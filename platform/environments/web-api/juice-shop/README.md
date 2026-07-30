@@ -72,9 +72,8 @@ docker network disconnect juice-shop_juice-shop-lab hermes-kali-mcp
 
 ## Authorized Safe Scans (via Kali MCP)
 Only these tools against the local target:
-- `server_health`
 - `execute_command` (DNS, TCP, HTTP basic)
-- `nmap_scan` (TCP connect, unprivileged, port 3000)
+- `nmap_scan` (TCP connect, unprivileged, port 3000) — **DEGRADED: HTTP 500 in dedicated tool**
 - `nikto_scan`
 - `gobuster_scan`
 
@@ -101,7 +100,10 @@ After validation: Juice Shop destroyed, Kali disconnected, network removed.
 - No external target scanning
 - No SQLMap, Hydra, Metasploit
 - dirb_scan not available in Kali image
-- Kali MCP tools via Hermes STDIO
+- dedicated nmap_scan returns HTTP 500 in current Kali MCP
+- Nmap TCP connect validated through MCP execute_command
+- server_health not validated in this lifecycle run
+- Kali MCP tools accessed through Hermes STDIO
 - Image pinned to validated digest
 
 ## Warning

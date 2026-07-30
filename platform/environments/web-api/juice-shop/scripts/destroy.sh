@@ -4,9 +4,13 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 COMPOSE_FILE="${SCRIPT_DIR}/../compose.yaml"
 
-# Get project name from compose
-PROJECT_NAME=$(docker compose -f "${COMPOSE_FILE}" config --format json | jq -r '.name // "juice-shop"')
-NETWORK_NAME="${PROJECT_NAME}_juice-shop-lab"
+PROJECT_NAME="juice-shop"
+NETWORK_NAME="juice-shop_juice-shop-lab"
+CONTAINER_NAME="juice-shop"
+DATA_VOLUME="juice-shop_juice-shop-data"
+FTP_VOLUME="juice-shop_juice-shop-ftp"
+
+COMPOSE=(docker compose -p "${PROJECT_NAME}" -f "${COMPOSE_FILE}")
 
 # Trap to ensure Kali is disconnected even on failure
 cleanup_kali() {
@@ -18,11 +22,12 @@ echo "[destroy] Disconnecting Kali MCP..."
 docker network disconnect juice-shop_juice-shop-lab hermes-kali-mcp 2>/dev/null || true
 
 echo "[destroy] Removing project containers, volumes, and network..."
-docker compose -f "${COMPOSE_FILE}" down --volumes --remove-orphans
+"${COMPOSE[@]}" down --volumes --remove-orphans
 
 echo "[destroy] Verifying cleanup..."
+
 # Check container
-if docker ps -a --filter "name=juice-shop" --format "{{.Names}}" | grep -q juice-shop; then
+if docker container inspect "${CONTAINER_NAME}" >/dev/null 2>&1; then
   echo "[destroy] ERROR: Container still exists"
   exit 1
 else
@@ -30,25 +35,47 @@ else
 fi
 
 # Check volumes
-if docker volume ls --filter "name=juice-shop" --format "{{.Name}}" | grep -q juice-shop; then
-  echo "[destroy] ERROR: Volumes still exist"
+if docker volume inspect "${DATA_VOLUME}" >/dev/null 2>&1; then
+  echo "[destroy] ERROR: Data volume still exists"
   exit 1
 else
-  echo "[destroy] Volumes removed"
+  echo "[destroy] Data volume removed"
 fi
 
-# Check network (project network should be removed)
-if docker network ls --filter "name=${NETWORK_NAME}" --format "{{.Name}}" | grep -q "${NETWORK_NAME}"; then
-  # Check if any external containers are still using it
-  ENDPOINTS=$(docker network inspect "${NETWORK_NAME}" --format '{{range $k, $v := .Containers}}{{$v.Name}} {{end}}' 2>/dev/null || true)
-  if [ -n "$ENDPOINTS" ]; then
+if docker volume inspect "${FTP_VOLUME}" >/dev/null 2>&1; then
+  echo "[destroy] ERROR: FTP volume still exists"
+  exit 1
+else
+  echo "[destroy] FTP volume removed"
+fi
+
+# Check network
+if docker network inspect "${NETWORK_NAME}" >/dev/null 2>&1; then
+  # Get endpoints
+  ENDPOINTS="$(docker network inspect "${NETWORK_NAME}" --format '{{range $k, $v := .Containers}}{{$v.Name}} {{end}}' 2>/dev/null || true)"
+  if [ -n "${ENDPOINTS}" ]; then
     echo "[destroy] ERROR: Network still has endpoints: ${ENDPOINTS}"
     exit 1
-  else
-    echo "[destroy] Network removed"
   fi
+
+  # Check if it's our project's network
+  PROJECT_LABEL="$(docker network inspect "${NETWORK_NAME}" --format '{{index .Labels "com.docker.compose.project"}}' 2>/dev/null || true)"
+  if [ "${PROJECT_LABEL}" != "${PROJECT_NAME}" ]; then
+    echo "[destroy] ERROR: Refusing to remove network not owned by project"
+    exit 1
+  fi
+
+  # Remove the empty network
+  docker network rm "${NETWORK_NAME}"
+  echo "[destroy] Network removed"
 else
   echo "[destroy] Network removed"
+fi
+
+# Final verification
+if docker network inspect "${NETWORK_NAME}" >/dev/null 2>&1; then
+  echo "[destroy] ERROR: Network still exists"
+  exit 1
 fi
 
 echo "[destroy] Destroy complete"

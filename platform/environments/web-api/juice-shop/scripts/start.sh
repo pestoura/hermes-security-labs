@@ -4,17 +4,20 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 COMPOSE_FILE="${SCRIPT_DIR}/../compose.yaml"
 
+PROJECT_NAME="juice-shop"
+COMPOSE=(docker compose -p "${PROJECT_NAME}" -f "${COMPOSE_FILE}")
+
 echo "[start] Validating compose..."
-docker compose -f "${COMPOSE_FILE}" config --quiet || {
+"${COMPOSE[@]}" config --quiet || {
   echo "[start] Compose validation failed"
   exit 1
 }
 
 echo "[start] Pulling image..."
-docker compose -f "${COMPOSE_FILE}" pull --quiet || true
+"${COMPOSE[@]}" pull --quiet || true
 
 echo "[start] Starting juice-shop..."
-docker compose -f "${COMPOSE_FILE}" up -d
+"${COMPOSE[@]}" up -d
 
 echo "[start] Waiting for healthy (timeout 120s)..."
 timeout 120 bash -c '
@@ -31,9 +34,9 @@ timeout 120 bash -c '
   done
 ' || {
   echo "[start] Timeout or failure waiting for healthy"
-  docker compose -f "${COMPOSE_FILE}" logs --tail 50
+  "${COMPOSE[@]}" logs --tail 50
   exit 1
 }
 
 echo "[start] Juice Shop is healthy"
-docker compose -f "${COMPOSE_FILE}" ps
+"${COMPOSE[@]}" ps

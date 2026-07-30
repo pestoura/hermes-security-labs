@@ -26,19 +26,20 @@ lifecycle:
   - destroy
 reset: "./scripts/reset.sh"
 cleanup: "./scripts/destroy.sh"
-evidence: ${EVIDENCE_DIR:-runtime/evidence/juice-shop}
+evidence: ${EVIDENCE_DIR:-.runtime/evidence/juice-shop}
 dependencies:
   - docker
 supported_tools:
-  - server_health
   - execute_command
-  - nmap_scan
   - nikto_scan
   - gobuster_scan
 limitations:
   - local validation only
   - no external targets
   - no SQLMap, Hydra, Metasploit
-  - dirb_scan not available in Kali image
-  - Kali MCP tools via Hermes STDIO
+  - dedicated nmap_scan returns HTTP 500 in current Kali MCP
+  - Nmap TCP connect validated through MCP execute_command
+  - dirb_scan unavailable in current Kali image
+  - server_health not validated in this lifecycle run
+  - Kali MCP tools accessed through Hermes STDIO
 status: CURRENT
