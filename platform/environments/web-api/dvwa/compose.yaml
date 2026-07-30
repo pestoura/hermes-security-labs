@@ -11,14 +11,11 @@ services:
       DB_PORT: "3306"
       DEFAULT_SECURITY_LEVEL: low
       DEFAULT_LOCALE: en
-      DISABLE_AUTHENTICATION: "false"
     depends_on:
       db:
         condition: service_healthy
     cap_drop:
-      - ALL
-    cap_add:
-      - NET_BIND_SERVICE
+      - NET_RAW
     security_opt:
       - no-new-privileges:true
     deploy:
@@ -32,7 +29,7 @@ services:
         - CMD
         - php
         - -r
-        - '$body = @file_get_contents("http://127.0.0.1/login.php"); exit($body === false ? 1 : 0);'
+        - '$$body = @file_get_contents("http://127.0.0.1/login.php"); exit($$body === false ? 1 : 0);'
       interval: 10s
       timeout: 8s
       retries: 18
