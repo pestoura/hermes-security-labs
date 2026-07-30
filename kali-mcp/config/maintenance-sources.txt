@@ -1,0 +1,9 @@
+# Maintenance allowed sources only.
+# Do not add arbitrary command execution from here.
+
+https://archive.kali.org/kali/
+https://ftp.halifax.rwth-aachen.de/kali/
+https://ftp.nluug.nl/os/Linux/distr/kali/
+
+# Wordlists/nuclei are optional and should be used only from authenticated
+# maintenance mode with egress enabled.

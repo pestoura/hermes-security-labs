@@ -1,0 +1,37 @@
+# Kali MCP Lab — Required packages for the base image
+#
+# This list is used by:
+# - Dockerfile build
+# - README build traceability
+# - Maintenance rebuilds
+#
+# Keep it minimal. Do not add GUI, wireless, Metasploit, C2, SSH, systemd.
+# For every added tool, document why it is required.
+
+# Core MCP bridge/server
+mcp-kali-server
+
+mcp-kali-server
+nmap
+curl
+wget
+gobuster
+nikto
+sqlmap
+ffuf
+dirb
+hydra
+john
+wpscan
+enum4linux
+ca-certificates
+procps
+netcat-openbsd
+file
+jq
+wordlists
+seclists
+procps
+netcat-openbsd
+file
+jq
