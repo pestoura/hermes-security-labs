@@ -19,24 +19,25 @@ targets:
 attacker: kali-mcp
 lifecycle:
   - start
+  - status
+  - smoke
   - stop
   - reset
   - destroy
-reset: docker compose -p juice-shop down --volumes
-cleanup: docker compose -p juice-shop down --volumes --remove-orphans
-evidence: /home/estourpm/hermes-labs/platform/environments/web-api/juice-shop/data
+reset: "./scripts/reset.sh"
+cleanup: "./scripts/destroy.sh"
+evidence: ${EVIDENCE_DIR:-runtime/evidence/juice-shop}
 dependencies:
   - docker
 supported_tools:
-  - nmap_scan
-  - gobuster_scan
-  - dirb_scan
-  - nikto_scan
-  - sqlmap_scan
-  - wpscan_analyze
-  - enum4linux_scan
   - server_health
   - execute_command
+  - nmap_scan
+  - nikto_scan
+  - gobuster_scan
+  - dirb_scan
 limitations:
   - local validation only
+  - no external targets
+  - no SQLMap, Hydra, Metasploit
 status: CURRENT

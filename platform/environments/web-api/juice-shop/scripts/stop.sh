@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
-export TMPDIR=/home/estourpm/hermes-labs/kali-mcp/data/tmp
-export TEMP="$TMPDIR"
-export TMP="$TMPDIR"
-cd /home/estourpm/hermes-labs/platform/environments/web-api/juice-shop
-docker compose down
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+COMPOSE_FILE="${SCRIPT_DIR}/../compose.yaml"
+
+echo "[stop] Stopping juice-shop..."
+docker compose -f "${COMPOSE_FILE}" stop
+
+echo "[stop] Status after stop:"
+docker compose -f "${COMPOSE_FILE}" ps

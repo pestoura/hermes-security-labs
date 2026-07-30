@@ -13,17 +13,21 @@ services:
           pids: 100
     healthcheck:
       test:
-        - CMD-SHELL
-        - "wget -q --spider http://127.0.0.1:3000 || exit 1"
-      interval: 30s
+        - CMD
+        - /nodejs/bin/node
+        - -e
+        - "const http=require('http');const req=http.get('http://127.0.0.1:3000',(res)=>{const ok=res.statusCode>=200&&res.statusCode<500;res.resume();process.exit(ok?0:1);});req.on('error',()=>process.exit(1));req.setTimeout(3000,()=>{req.destroy();process.exit(1);});"
+      interval: 10s
       timeout: 5s
-      retries: 3
+      retries: 12
       start_period: 30s
     networks:
       - juice-shop-lab
+    ports:
+      - "127.0.0.1:3000:3000"
     restart: on-failure
     security_opt:
-      - no-new-privileges
+      - no-new-privileges:true
     volumes:
       - juice-shop-data:/juice-shop/data
       - juice-shop-ftp:/juice-shop/ftp
