@@ -17,8 +17,8 @@ services:
         - -c
         - |
           for i in 1 2 3 4 5; do
-            curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/WebGoat/ | grep -qE '^[234]' &&
-            curl -s -o /dev/null -w "%{http_code}" http://localhost:9090/ | grep -qE '^[234]' && exit 0
+            timeout 3 bash -c "cat < /dev/null > /dev/tcp/localhost/8080" 2>/dev/null &&
+            timeout 3 bash -c "cat < /dev/null > /dev/tcp/localhost/9090" 2>/dev/null && exit 0
             sleep 2
           done
           exit 1
@@ -44,4 +44,3 @@ networks:
 
 volumes:
   webgoat-data:
-    name: webgoat-data

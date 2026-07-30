@@ -21,7 +21,7 @@ network:
   host_ports:
     webgoat: "${WEBGOAT_HOST_PORT:-8080}"
     webwolf: "${WEBWOLF_HOST_PORT:-9090}"
-egress: false
+egress: true
 targets:
   - name: webgoat
     protocol: http
@@ -49,13 +49,13 @@ supported_tools:
   - execute_command
   - nikto_scan
   - gobuster_scan
-  - nmap_scan
 limitations:
   - local validation only
   - no external targets
   - nmap_scan dedicated tool DEGRADED (HTTP 500 in Kali MCP)
-  - fallback Nmap via execute_command validated
-  - WebWolf root path returns 404; /login used for health
+  - Nmap TCP connect validated through execute_command
+  - dirb_scan unavailable in current Kali image
+  - server_health not validated directly
   - internal network not internal due to Docker port publishing requirement
   - host port override supported via WEBWOLF_HOST_PORT
 status: CURRENT

@@ -5,6 +5,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 COMPOSE_FILE="${SCRIPT_DIR}/../compose.yaml"
 
 PROJECT_NAME="webgoat"
+SERVICE_NAME="webgoat"
 COMPOSE=(docker compose -p "${PROJECT_NAME}" -f "${COMPOSE_FILE}")
 
 echo "[reset] Disconnecting Kali..."
@@ -19,11 +20,16 @@ echo "[reset] Recreating lab..."
 echo "[reset] Waiting for healthy..."
 timeout 180 bash -c '
   while true; do
-    health=$(docker inspect -f "{{.State.Health.Status}}" webgoat-webgoat-1 2>/dev/null || echo "none")
-    if [ "$health" = "healthy" ]; then
-      exit 0
+    CONTAINER_ID=$(
+      docker compose -p webgoat -f '"${COMPOSE_FILE}"' ps -q webgoat 2>/dev/null
+    )
+    if [ -n "${CONTAINER_ID}" ]; then
+      health=$(docker inspect -f "{{.State.Health.Status}}" "${CONTAINER_ID}" 2>/dev/null || echo "none")
+      if [ "${health}" = "healthy" ]; then
+        exit 0
+      fi
     fi
-    if [ "$health" = "unhealthy" ] || [ "$health" = "none" ]; then
+    if [ "${health}" = "unhealthy" ] || [ "${health}" = "none" ]; then
       sleep 5
       continue
     fi

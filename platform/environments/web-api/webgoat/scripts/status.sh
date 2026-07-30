@@ -15,9 +15,6 @@ COMPOSE=(
   -f "${COMPOSE_FILE}"
 )
 
-WEBGOAT_HOST_PORT="${WEBGOAT_HOST_PORT:-8080}"
-WEBWOLF_HOST_PORT="${WEBWOLF_HOST_PORT:-9090}"
-
 echo "[status] Compose state:"
 "${COMPOSE[@]}" ps
 
@@ -34,9 +31,7 @@ echo ""
 echo "[status] Port mapping (host -> container):"
 CONTAINER_ID=$("${COMPOSE[@]}" ps -q "${SERVICE_NAME}" 2>/dev/null)
 if [ -n "${CONTAINER_ID}" ]; then
-  docker inspect "${CONTAINER_ID}" --format '{{json .HostConfig.PortBindings}}' 2>/dev/null | \
-    jq -r 'to_entries[] | "\(.key) -> \(.value[0].HostIp):\(.value[0].HostPort)"' 2>/dev/null || \
-    echo "No ports published"
+  docker inspect "${CONTAINER_ID}" --format '{{range $port, $bindings := .HostConfig.PortBindings}}{{$port}} {{range $bindings}}{{.HostIp}}:{{.HostPort}}{{end}}{{println}}{{end}}' 2>/dev/null || echo "No ports published"
 else
   echo "Container not found"
 fi
@@ -47,8 +42,7 @@ docker network inspect "${NETWORK_NAME}" --format '{{.Name}} {{.Driver}} {{.Inte
 
 echo ""
 echo "[status] Kali MCP in ${NETWORK_NAME}:"
-docker network inspect "${NETWORK_NAME}" --format '{{range $k, $v := .Containers}}{{$v.Name}} {{end}}' 2>/dev/null | \
-  grep -q "${KALI_CONTAINER}" && echo "CONNECTED" || echo "NOT CONNECTED"
+docker network inspect "${NETWORK_NAME}" --format '{{range $k, $v := .Containers}}{{$v.Name}} {{end}}' 2>/dev/null | grep -q "${KALI_CONTAINER}" && echo "CONNECTED" || echo "NOT CONNECTED"
 
 echo ""
 echo "[status] Volumes:"
@@ -64,4 +58,4 @@ fi
 echo ""
 echo "[status] Internal targets:"
 echo "  WebGoat: http://webgoat:8080/WebGoat/"
-echo "  WebWolf: http://webgoat:9090/WebWolf/"
+echo "  WebWolf: http://webgoat:9090/"

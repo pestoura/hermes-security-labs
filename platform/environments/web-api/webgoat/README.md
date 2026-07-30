@@ -38,7 +38,7 @@ Official OWASP WebGoat project: https://github.com/WebGoat/WebGoat
 - Resource limits: 2 CPU, 2GiB RAM, 100 PIDs
 - Read-only root filesystem (except `/home/webgoat` volume)
 - Network: isolated bridge (host ports published via docker-proxy)
-- Egress: not required for startup
+- Egress: permitted (required for Docker port publishing)
 
 ## Host Port Override
 Default host ports: WebGoat 8080, WebWolf 9090.
@@ -112,33 +112,35 @@ cat < /dev/null > /dev/tcp/webgoat/9090
 
 **Authorized internal targets only:**
 - `http://webgoat:8080/WebGoat/`
-- `http://webgoat:9090/login`
+- `http://webgoat:9090/`
 
 No LAN targets. No external targets. No host Docker socket.
 
 ## Validated Tools (MCP)
 | Tool | Target | Result |
 |------|--------|--------|
-| execute_command | id, getent hosts webgoat, TCP 8080/9090, basic HTTP | PASS |
+| execute_command | id, getent hosts webgoat, TCP 8080/9090, HTTP basic | PASS |
 | nikto_scan | WebGoat (`/WebGoat/`) | PASS |
 | nikto_scan | WebWolf (`/login`) | PASS |
 | gobuster_scan | WebGoat (small wordlist) | PASS |
 | nmap_scan (dedicated) | TCP connect, unprivileged, 8080/9090 | DEGRADED (HTTP 500) |
-| nmap_scan fallback | `nmap -sT --unprivileged -Pn -p 8080,9090 webgoat` | PASS |
+| nmap fallback | `nmap -sT --unprivileged -Pn -p 8080,9090 webgoat` | PASS |
 
 **Not validated / not supported:**
 - SQLMap, Hydra, Metasploit
 - Credential attacks, brute force, reverse shells
-- NSE scripts, UDP scans, full port scans
+- NSE scripts, UDP, full port scans
 - External targets, host Docker, LAN
 
 ## Limitations
 - Local validation only (private repo, GitHub Actions quota exhausted)
 - Dedicated `nmap_scan` tool returns HTTP 500 in current Kali MCP (infrastructure)
 - `nmap` TCP connect works via `execute_command` fallback
+- `dirb_scan` unavailable in current Kali image
+- `server_health` not validated directly (tool doesn't accept target param)
 - WebWolf root path `/` returns 404; `/login` used for health
 - Network cannot be `internal: true` because Docker requires host port publishing for localhost access
-- Host port 9090 conflict with Prometheus documented; override via `WEBWOLF_HOST_PORT`
+- Host port 9090 conflict with Prometheus (other project) documented; override via `WEBWOLF_HOST_PORT`
 - No external deployment; Kali MCP accessed via Hermes STDIO (`hermes -p pentest-lab chat --toolsets kali-lab`)
 
 ## Evidence
@@ -154,7 +156,7 @@ When a new WebGoat release is published:
 1. Pull new tag: `docker pull webgoat/webgoat:<new-tag>`
 2. Get digest: `docker image inspect webgoat/webgoat:<new-tag> --format '{{json .RepoDigests}}'`
 3. Update `compose.yaml` image reference and `manifest.yaml` digest
-2. Re-run full lifecycle validation
+4. Re-run full lifecycle validation
 
 ## Troubleshooting
 | Issue | Resolution |
@@ -167,7 +169,7 @@ When a new WebGoat release is published:
 
 ## Final State After Destroy
 - WebGoat/WebWolf container: **removed**
-- Volume `webgoat-data`: **removed**
+- Volume `webgoat_webgoat-data`: **removed**
 - Network `webgoat-lab`: **removed**
 - Kali MCP: **running, healthy, disconnected**
 - Other Docker resources: **unchanged**

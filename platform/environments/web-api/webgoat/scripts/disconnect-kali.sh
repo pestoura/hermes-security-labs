@@ -19,4 +19,4 @@ docker inspect "${KALI_CONTAINER}" --format '{{.State.Status}}' 2>/dev/null || e
 
 echo "[disconnect-kali] Other Kali networks preserved:"
 docker inspect "${KALI_CONTAINER}" --format '{{json .NetworkSettings.Networks}}' 2>/dev/null | \
-  jq -r 'keys[]' 2>/dev/null || true
+  python3 -c "import sys, json; print(' '.join(json.load(sys.stdin).keys()))" 2>/dev/null || true

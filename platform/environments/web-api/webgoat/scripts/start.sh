@@ -6,11 +6,7 @@ COMPOSE_FILE="${SCRIPT_DIR}/../compose.yaml"
 
 PROJECT_NAME="webgoat"
 SERVICE_NAME="webgoat"
-COMPOSE=(
-  docker compose
-  -p "${PROJECT_NAME}"
-  -f "${COMPOSE_FILE}"
-)
+COMPOSE=(docker compose -p "${PROJECT_NAME}" -f "${COMPOSE_FILE}")
 
 WEBGOAT_HOST_PORT="${WEBGOAT_HOST_PORT:-8080}"
 WEBWOLF_HOST_PORT="${WEBWOLF_HOST_PORT:-9090}"
@@ -44,13 +40,18 @@ echo "[start] Starting webgoat..."
 echo "[start] Waiting for healthy (timeout 180s)..."
 timeout 180 bash -c '
   while true; do
-    health=$(docker inspect -f "{{.State.Health.Status}}" webgoat-webgoat-1 2>/dev/null || echo "none")
-    if [ "$health" = "healthy" ]; then
-      exit 0
-    fi
-    if [ "$health" = "unhealthy" ] || [ "$health" = "none" ]; then
-      sleep 5
-      continue
+    CONTAINER_ID=$(
+      docker compose -p webgoat -f '"${COMPOSE_FILE}"' ps -q webgoat 2>/dev/null
+    )
+    if [ -n "${CONTAINER_ID}" ]; then
+      health=$(docker inspect -f "{{.State.Health.Status}}" "${CONTAINER_ID}" 2>/dev/null || echo "none")
+      if [ "${health}" = "healthy" ]; then
+        exit 0
+      fi
+      if [ "${health}" = "unhealthy" ] || [ "${health}" = "none" ]; then
+        sleep 5
+        continue
+      fi
     fi
     sleep 5
   done

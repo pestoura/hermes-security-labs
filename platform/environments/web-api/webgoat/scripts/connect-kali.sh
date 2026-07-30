@@ -4,6 +4,7 @@ set -euo pipefail
 KALI_CONTAINER="hermes-kali-mcp"
 NETWORK_NAME="webgoat-lab"
 SERVICE_NAME="webgoat"
+PROJECT_NAME="webgoat"
 
 echo "[connect-kali] Verifying ${KALI_CONTAINER} exists and is running..."
 docker inspect "${KALI_CONTAINER}" --format '{{.State.Status}}' 2>/dev/null | grep -q running || {
@@ -13,22 +14,38 @@ docker inspect "${KALI_CONTAINER}" --format '{{.State.Status}}' 2>/dev/null | gr
 
 echo "[connect-kali] Verifying ${NETWORK_NAME} belongs to project..."
 docker network inspect "${NETWORK_NAME}" --format '{{json .Labels}}' 2>/dev/null | \
-  jq -e '.["com.docker.compose.project"] == "webgoat"' > /dev/null || {
+  grep -q '"com.docker.compose.project":"webgoat"' || {
   echo "[connect-kali] FAIL: Network ${NETWORK_NAME} not owned by project"
   exit 1
 }
 
-echo "[connect-kali] Verifying only ${SERVICE_NAME} initially connected..."
-connected=$(docker network inspect "${NETWORK_NAME}" --format '{{range $k, $v := .Containers}}{{$v.Name}} {{end}}' 2>/dev/null)
-echo "[connect-kali] Connected containers: '${connected}'"
-CONTAINER_NAME="webgoat-webgoat-1"
-if [[ "${connected}" != *"${CONTAINER_NAME}"* ]]; then
-  echo "[connect-kali] FAIL: Expected container ${CONTAINER_NAME} not found"
+echo "[connect-kali] Verifying current endpoints..."
+CONTAINER_ID=$(docker compose -p "${PROJECT_NAME}" -f platform/environments/web-api/webgoat/compose.yaml ps -q "${SERVICE_NAME}" 2>/dev/null)
+if [ -z "${CONTAINER_ID}" ]; then
+  echo "[connect-kali] FAIL: Service container not found"
   exit 1
 fi
-# Remove the expected container name and trim whitespace
+
+CONTAINER_NAME=$(docker inspect "${CONTAINER_ID}" --format '{{.Name}}' | sed 's#^/##')
+connected=$(docker network inspect "${NETWORK_NAME}" --format '{{range $k, $v := .Containers}}{{$v.Name}} {{end}}' 2>/dev/null)
+
+if [[ "${connected}" != *"${CONTAINER_NAME}"* ]]; then
+  echo "[connect-kali] FAIL: Expected container ${CONTAINER_NAME} not found in network"
+  exit 1
+fi
+
+# Check if Kali is already connected
+if echo "${connected}" | grep -q "${KALI_CONTAINER}"; then
+  echo "[connect-kali] ALREADY CONNECTED"
+  echo "[connect-kali] Authorized internal targets:"
+  echo "  http://webgoat:8080/WebGoat/"
+  echo "  http://webgoat:9090/"
+  exit 0
+fi
+
+# Check for unexpected endpoints
 other=$(echo "${connected}" | sed "s/${CONTAINER_NAME}//g" | tr -d ' \t\n\r')
-if [[ -n "${other}" ]]; then
+if [ -n "${other}" ] && [ "${other}" != "${KALI_CONTAINER}" ]; then
   echo "[connect-kali] FAIL: Unexpected endpoints: ${other}"
   exit 1
 fi
@@ -45,4 +62,4 @@ docker network inspect "${NETWORK_NAME}" --format '{{range $k, $v := .Containers
 
 echo "[connect-kali] Authorized internal targets:"
 echo "  http://webgoat:8080/WebGoat/"
-echo "  http://webgoat:9090/WebWolf/"
+echo "  http://webgoat:9090/"
