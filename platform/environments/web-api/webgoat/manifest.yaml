@@ -56,6 +56,7 @@ limitations:
   - Nmap TCP connect validated through execute_command
   - dirb_scan unavailable in current Kali image
   - server_health not validated directly
-  - internal network not internal due to Docker port publishing requirement
+  - versioned baseline uses a non-internal bridge and permits runtime egress
+  - internal network differential test required before changing network and egress settings
   - host port override supported via WEBWOLF_HOST_PORT
 status: CURRENT
