@@ -1,0 +1,61 @@
+id: webgoat
+name: OWASP WebGoat and WebWolf
+description: OWASP WebGoat is a deliberately insecure web application for learning web application security. WebWolf is a companion tool for simulating attacker infrastructure.
+category: web-api
+runtime: docker
+driver: docker-compose
+source:
+  type: official
+  project: OWASP WebGoat
+  image: webgoat/webgoat
+  tag: "2023.4"
+  digest: sha256:2775102b8186df1656f8a69cfb7a6bf6c77b43a25fa0accd6d44e6ae04c8d3b7
+resources:
+  cpus: "2.0"
+  memory: "2Gi"
+  pids_limit: 100
+network:
+  name: webgoat-lab
+  driver: bridge
+  internal: false
+  host_ports:
+    webgoat: "${WEBGOAT_HOST_PORT:-8080}"
+    webwolf: "${WEBWOLF_HOST_PORT:-9090}"
+egress: false
+targets:
+  - name: webgoat
+    protocol: http
+    internal_port: 8080
+    path: /WebGoat/
+  - name: webwolf
+    protocol: http
+    internal_port: 9090
+    path: /login
+attacker:
+  type: kali-mcp
+  profile: pentest-lab
+  connection: temporary
+lifecycle:
+  - start: scripts/start.sh
+  - status: scripts/status.sh
+  - smoke: scripts/smoke.sh
+  - stop: scripts/stop.sh
+  - reset: scripts/reset.sh
+  - destroy: scripts/destroy.sh
+  - connect_attacker: scripts/connect-kali.sh
+  - disconnect_attacker: scripts/disconnect-kali.sh
+evidence: ${EVIDENCE_DIR:-.runtime/evidence/webgoat}
+supported_tools:
+  - execute_command
+  - nikto_scan
+  - gobuster_scan
+  - nmap_scan
+limitations:
+  - local validation only
+  - no external targets
+  - nmap_scan dedicated tool DEGRADED (HTTP 500 in Kali MCP)
+  - fallback Nmap via execute_command validated
+  - WebWolf root path returns 404; /login used for health
+  - internal network not internal due to Docker port publishing requirement
+  - host port override supported via WEBWOLF_HOST_PORT
+status: CURRENT
