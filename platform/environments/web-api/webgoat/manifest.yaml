@@ -1,0 +1,49 @@
+id: webgoat
+name: OWASP WebGoat and WebWolf
+description: OWASP WebGoat and WebWolf local vulnerable web lab.
+category: web-api
+runtime: docker
+driver: docker-compose
+risk: low
+source: webgoat
+version: "sha256:2775102b8186df1656f8a69cfb7a6bf6c77b43a25fa0accd6d44e6ae04c8d3b7"
+resources:
+  cpus: 2.0
+  memory: 2Gi
+  disk: 2G
+networks:
+  - webgoat-lab
+egress: true
+targets:
+  - http://webgoat:8080/WebGoat/
+  - http://webgoat:9090/login
+attacker: kali-mcp
+lifecycle:
+  - start
+  - status
+  - smoke
+  - stop
+  - reset
+  - destroy
+reset: "./scripts/reset.sh"
+cleanup: "./scripts/destroy.sh"
+evidence: ${EVIDENCE_DIR:-.runtime/evidence/webgoat}
+dependencies:
+  - docker
+supported_tools:
+  - execute_command
+  - nikto_scan
+  - gobuster_scan
+limitations:
+  - local validation only
+  - no external targets
+  - no LAN exposure; host publication is restricted to 127.0.0.1
+  - dedicated nmap_scan returns HTTP 500 in current Kali MCP
+  - Nmap TCP connect validated through MCP execute_command
+  - dirb_scan unavailable in current Kali image
+  - server_health not validated directly
+  - versioned baseline uses a non-internal bridge and permits runtime egress
+  - internal true differential classified B; container HTTP passed while localhost publication failed
+  - runtime egress restriction tracked by issue #18
+  - host port override supported via WEBWOLF_HOST_PORT
+status: CURRENT

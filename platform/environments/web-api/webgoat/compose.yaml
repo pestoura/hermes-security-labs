@@ -1,0 +1,55 @@
+name: webgoat
+services:
+  webgoat:
+    image: webgoat/webgoat@sha256:2775102b8186df1656f8a69cfb7a6bf6c77b43a25fa0accd6d44e6ae04c8d3b7
+    cap_drop:
+      - all
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2Gi
+          pids: 100
+    healthcheck:
+      test:
+        - CMD
+        - /bin/bash
+        - -c
+        - |
+          check_http() {
+            local code
+            code="$(
+              curl \
+                --silent \
+                --show-error \
+                --output /dev/null \
+                --write-out '%{http_code}' \
+                --max-time 5 \
+                "$1"
+            )" || return 1
+            [[ "${code}" =~ ^[234][0-9][0-9]$ ]]
+          }
+          check_http http://127.0.0.1:8080/WebGoat/ &&
+          check_http http://127.0.0.1:9090/login
+      interval: 15s
+      timeout: 15s
+      retries: 12
+      start_period: 60s
+    networks:
+      - webgoat-lab
+    ports:
+      - "127.0.0.1:${WEBGOAT_HOST_PORT:-8080}:8080"
+      - "127.0.0.1:${WEBWOLF_HOST_PORT:-9090}:9090"
+    restart: on-failure
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - webgoat-data:/home/webgoat
+
+networks:
+  webgoat-lab:
+    name: webgoat-lab
+    driver: bridge
+
+volumes:
+  webgoat-data:
