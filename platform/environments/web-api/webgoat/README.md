@@ -52,10 +52,18 @@ export WEBWOLF_HOST_PORT=19090
 - No broad host bind mounts.
 - Resource limits: 2 CPU, 2 GiB memory, 100 PIDs.
 - The Compose-managed bridge network is `webgoat-lab`.
-- The current versioned baseline declares `internal: false` and `egress: true`.
+- The accepted baseline declares `internal: false` and `egress: true`.
+- Host publication remains restricted to `127.0.0.1`; there is no LAN bind.
 - Kali MCP is connected only during controlled validation and must be disconnected afterwards.
 
-A differential local test of `internal: true` remains required for the current PR head. That test must distinguish application startup or egress dependency from host port-publication behaviour before the versioned network mode is changed.
+The differential `internal: true` test was classified **B** on the validated Hermes Docker host:
+
+- WebGoat returned HTTP `302` inside the container;
+- WebWolf returned HTTP `200` inside the container;
+- host requests to `127.0.0.1:8080` and `127.0.0.1:19090` were refused;
+- the versioned non-internal bridge passed start, status, smoke, Kali attachment, reset and destroy.
+
+Runtime egress restriction without breaking localhost publication is tracked separately in issue `#18`.
 
 ## Healthcheck
 
@@ -90,7 +98,7 @@ Expected behaviour:
 - `reset.sh`: disconnects Kali, removes project state, recreates the environment, waits for health, and runs smoke validation.
 - `destroy.sh`: always attempts Kali disconnection before teardown, removes only project containers, volume, and network, verifies their absence, preserves the image, and supports a second idempotent execution.
 
-`destroy.sh` must be validated both when Kali is already disconnected and when Kali is initially connected.
+`destroy.sh` was validated both when Kali was already disconnected and when Kali was initially connected.
 
 ## Kali MCP validation
 
@@ -105,14 +113,13 @@ Validated tool set recorded in the manifest:
 - `nikto_scan`
 - `gobuster_scan`
 
-Known limitations from the previous local run:
+Known limitations:
 
 - the dedicated `nmap_scan` tool returned HTTP 500;
 - TCP-connect Nmap passed through MCP `execute_command`;
 - `dirb_scan` is unavailable in the current Kali image;
-- `server_health` was not validated directly.
-
-These results must be reconfirmed when a change affects runtime networking, health, or lifecycle behaviour.
+- `server_health` was not validated directly;
+- the accepted bridge permits runtime egress pending issue `#18`.
 
 Prohibited during validation:
 
@@ -130,21 +137,28 @@ Sanitised runtime evidence belongs under:
 
 Do not commit HTML pages, cookies, tokens, credentials, lesson solutions, payloads, or raw scanner output.
 
-## Acceptance criteria
+## Acceptance result
 
-The current PR head is accepted only when local validation confirms:
+The accepted local validation for commit `acbef65a1ea61c693f1733e32d4694beeb948ce0` confirmed:
 
-- WebGoat and WebWolf both reach HTTP healthy state;
-- actual host mappings remain localhost-only;
-- the `internal: true` differential test is classified with evidence;
-- Kali DNS and TCP access work only after temporary connection;
-- Kali remains running and disconnected after validation;
-- `stop`, `reset`, and `destroy` pass;
-- `destroy` succeeds with Kali initially connected;
-- a second `destroy` returns success;
-- container, project volume, and network are absent afterwards;
-- unrelated resources, including monitoring services, remain unchanged;
-- catalog, shell, and Compose validation pass.
+- the Git checkout and working-tree `compose.yaml` were identical;
+- the effective and running healthcheck used HTTP with `curl`, not TCP-only probing;
+- WebGoat and WebWolf reached healthy state on the versioned network;
+- WebGoat returned HTTP `302` and WebWolf HTTP `200`;
+- actual host mappings remained localhost-only;
+- the `internal: true` differential test was classified B with separate container and host evidence;
+- Kali DNS and TCP access worked after temporary connection;
+- the second `connect-kali.sh` returned `ALREADY CONNECTED` with exit code 0;
+- `destroy.sh` succeeded with Kali initially connected;
+- a second `destroy.sh` returned success;
+- container, project volume, and network were absent afterwards;
+- Kali remained running, healthy, and disconnected;
+- the normal Kali network remained intact;
+- Prometheus and unrelated Docker resources remained unchanged;
+- catalog, shell, and Compose validation passed;
+- the Git working tree remained clean.
+
+The egress improvement is non-blocking for this operational baseline and is tracked in issue `#18`.
 
 ## Digest update
 
