@@ -42,8 +42,7 @@ MariaDB is never published to the host and Kali is never attached to `dvwa-db`.
 
 - DVWA binds only to `127.0.0.1`.
 - MariaDB has no host port.
-- DVWA drops all Linux capabilities and adds back only `NET_BIND_SERVICE` for Apache port 80.
-- MariaDB drops `NET_RAW`.
+- DVWA and MariaDB both drop `NET_RAW`; the remaining default runtime capabilities are preserved for Apache and MariaDB startup compatibility.
 - `no-new-privileges` is enabled on both services.
 - No privileged mode, host networking, Docker socket, `SYS_ADMIN`, or host bind mounts.
 - CPU, memory, and PID limits are defined.
@@ -69,7 +68,7 @@ Expected behaviour:
 - `status.sh` reports service state, health, image references, effective port mapping, networks, volume, and Kali membership without changing resources.
 - `smoke.sh` validates HTTP, loopback-only publication, pinned image references, database non-publication, internal database isolation, and Kali disconnection.
 - `connect-kali.sh` idempotently attaches only `hermes-kali-mcp` to `dvwa-lab` after ownership and endpoint checks.
-- `disconnect-kali.sh` idempotently removes only `dvwa-lab` from Kali.
+- `disconnect-kali.sh` idempotently removes Kali from owned DVWA networks and refuses foreign resources.
 - `stop.sh` disconnects Kali and stops only this project while preserving the database volume.
 - `reset.sh` disconnects Kali, removes project state, recreates the environment, waits for health, and runs smoke validation.
 - `destroy.sh` disconnects Kali, removes only owned project containers, volume, and networks, verifies absence, preserves images, and supports a second idempotent execution.
