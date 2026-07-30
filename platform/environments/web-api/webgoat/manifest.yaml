@@ -1,50 +1,35 @@
 id: webgoat
 name: OWASP WebGoat and WebWolf
-description: OWASP WebGoat is a deliberately insecure web application for learning web application security. WebWolf is a companion tool for simulating attacker infrastructure.
+description: OWASP WebGoat and WebWolf local vulnerable web lab.
 category: web-api
 runtime: docker
 driver: docker-compose
-source:
-  type: official
-  project: OWASP WebGoat
-  image: webgoat/webgoat
-  tag: "2023.4"
-  digest: sha256:2775102b8186df1656f8a69cfb7a6bf6c77b43a25fa0accd6d44e6ae04c8d3b7
+risk: low
+source: webgoat
+version: "sha256:2775102b8186df1656f8a69cfb7a6bf6c77b43a25fa0accd6d44e6ae04c8d3b7"
 resources:
-  cpus: "2.0"
-  memory: "2Gi"
-  pids_limit: 100
-network:
-  name: webgoat-lab
-  driver: bridge
-  internal: false
-  host_ports:
-    webgoat: "${WEBGOAT_HOST_PORT:-8080}"
-    webwolf: "${WEBWOLF_HOST_PORT:-9090}"
+  cpus: 2.0
+  memory: 2Gi
+  disk: 2G
+networks:
+  - webgoat-lab
 egress: true
 targets:
-  - name: webgoat
-    protocol: http
-    internal_port: 8080
-    path: /WebGoat/
-  - name: webwolf
-    protocol: http
-    internal_port: 9090
-    path: /login
-attacker:
-  type: kali-mcp
-  profile: pentest-lab
-  connection: temporary
+  - http://webgoat:8080/WebGoat/
+  - http://webgoat:9090/login
+attacker: kali-mcp
 lifecycle:
-  - start: scripts/start.sh
-  - status: scripts/status.sh
-  - smoke: scripts/smoke.sh
-  - stop: scripts/stop.sh
-  - reset: scripts/reset.sh
-  - destroy: scripts/destroy.sh
-  - connect_attacker: scripts/connect-kali.sh
-  - disconnect_attacker: scripts/disconnect-kali.sh
+  - start
+  - status
+  - smoke
+  - stop
+  - reset
+  - destroy
+reset: "./scripts/reset.sh"
+cleanup: "./scripts/destroy.sh"
 evidence: ${EVIDENCE_DIR:-.runtime/evidence/webgoat}
+dependencies:
+  - docker
 supported_tools:
   - execute_command
   - nikto_scan
@@ -52,8 +37,9 @@ supported_tools:
 limitations:
   - local validation only
   - no external targets
-  - nmap_scan dedicated tool DEGRADED (HTTP 500 in Kali MCP)
-  - Nmap TCP connect validated through execute_command
+  - no LAN exposure; host publication is restricted to 127.0.0.1
+  - dedicated nmap_scan returns HTTP 500 in current Kali MCP
+  - Nmap TCP connect validated through MCP execute_command
   - dirb_scan unavailable in current Kali image
   - server_health not validated directly
   - versioned baseline uses a non-internal bridge and permits runtime egress
