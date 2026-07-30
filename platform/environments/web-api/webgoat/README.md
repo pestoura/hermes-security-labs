@@ -1,49 +1,39 @@
 # OWASP WebGoat and WebWolf Lab
 
 ## Objective
-Deliberately vulnerable web application (WebGoat) and attacker simulation tool (WebWolf) for local security testing.
 
-## Nature
-Intentionally vulnerable — only run in isolated environments.
+Run the deliberately vulnerable OWASP WebGoat application and its WebWolf companion in a controlled local Docker environment.
 
-## Origin
-Official OWASP WebGoat project: https://github.com/WebGoat/WebGoat
+Use this lab only against the authorised localhost and Docker-network targets documented below.
 
-## Image
-- Image: `webgoat/webgoat@sha256:2775102b8186df1656f8a69cfb7a6bf6c77b43a25fa0accd6d44e6ae04c8d3b7`
-- Tag: `2023.4`
-- Architecture: linux/amd64 (host validated)
+## Origin and image
+
+- Official project: `OWASP WebGoat`
+- Image: `webgoat/webgoat`
+- Release metadata: `2023.4`
+- Pinned digest: `sha256:2775102b8186df1656f8a69cfb7a6bf6c77b43a25fa0accd6d44e6ae04c8d3b7`
+- Validated host architecture: `linux/amd64`
+
+The image digest is intentionally fixed. Updating it requires a deliberate pull, complete local lifecycle validation, and a reviewed commit.
 
 ## Architecture
-- Single container running both WebGoat and WebWolf
-- WebGoat on internal port 8080, context path `/WebGoat/`
-- WebWolf on internal port 9090, context path `/login` (root returns 404)
-- Isolated Docker bridge network: `webgoat-lab`
-- Host ports bound to `127.0.0.1` only (no LAN exposure)
 
-## Endpoints
-| Service | Host Default | Internal Target |
-|---------|--------------|-----------------|
-| WebGoat | `http://127.0.0.1:8080/WebGoat/` | `http://webgoat:8080/WebGoat/` |
-| WebWolf | `http://127.0.0.1:9090/login` | `http://webgoat:9090/login` |
+A single container runs both services:
 
-> **Note**: WebWolf root path `/` returns 404. Use `/login` for health checks.
+| Service | Container target | Default host target |
+|---|---|---|
+| WebGoat | `http://webgoat:8080/WebGoat/` | `http://127.0.0.1:8080/WebGoat/` |
+| WebWolf | `http://webgoat:9090/login` | `http://127.0.0.1:9090/login` |
 
-## Isolation
-- Container runs with all capabilities dropped
-- No privileged access
-- No host network mode
-- No Docker socket access
-- No SYS_ADMIN
-- Resource limits: 2 CPU, 2GiB RAM, 100 PIDs
-- Read-only root filesystem (except `/home/webgoat` volume)
-- Network: isolated bridge (host ports published via docker-proxy)
-- Egress: permitted (required for Docker port publishing)
+WebWolf returns `404` at `/`; use `/login` for health and smoke validation.
 
-## Host Port Override
-Default host ports: WebGoat 8080, WebWolf 9090.
+Host publication is restricted to `127.0.0.1`. The internal container ports remain `8080` and `9090` even when a host-port override is used.
 
-If a host port is occupied (e.g., Prometheus on 9090), override at runtime:
+## Host-port override
+
+The default host ports are WebGoat `8080` and WebWolf `9090`.
+
+When another local service already owns port `9090`, use a free localhost port without changing the internal WebWolf target:
 
 ```bash
 export WEBGOAT_HOST_PORT=8080
@@ -51,131 +41,124 @@ export WEBWOLF_HOST_PORT=19090
 ./scripts/start.sh
 ```
 
-Internal targets remain `webgoat:8080` and `webgoat:9090` — only the host mapping changes.
+## Security boundaries
+
+- All Linux capabilities are dropped.
+- `no-new-privileges` is enabled.
+- No privileged mode.
+- No host networking.
+- No Docker socket exposure.
+- No `SYS_ADMIN`.
+- No broad host bind mounts.
+- Resource limits: 2 CPU, 2 GiB memory, 100 PIDs.
+- The Compose-managed bridge network is `webgoat-lab`.
+- The current versioned baseline declares `internal: false` and `egress: true`.
+- Kali MCP is connected only during controlled validation and must be disconnected afterwards.
+
+A differential local test of `internal: true` remains required for the current PR head. That test must distinguish application startup or egress dependency from host port-publication behaviour before the versioned network mode is changed.
+
+## Healthcheck
+
+The container healthcheck performs HTTP requests from inside the container against both services:
+
+- `http://127.0.0.1:8080/WebGoat/`
+- `http://127.0.0.1:9090/login`
+
+HTTP status codes in the `2xx`, `3xx`, and `4xx` ranges are accepted. Connection failures and `5xx` responses fail the healthcheck.
 
 ## Lifecycle
-```bash
-./scripts/start.sh      # Validate, pull, up -d, wait healthy
-./scripts/status.sh     # Read-only status, mappings, network, Kali
-./scripts/smoke.sh      # Health, HTTP, binding, digest, network
-./scripts/stop.sh       # Disconnect Kali, stop container
-./scripts/reset.sh      # Disconnect Kali, down -v, recreate, smoke
-./scripts/destroy.sh    # Disconnect Kali, down -v --remove-orphans, validate cleanup
-./scripts/connect-kali.sh    # Attach Kali MCP to webgoat-lab
-./scripts/disconnect-kali.sh # Detach Kali MCP
-```
-
-### Start
-- Validates compose
-- Checks image digest exists locally
-- Verifies host ports free
-- `up -d`, waits for healthy (timeout 180s)
-
-### Status
-- Compose state, container health, port mappings, network type, Kali membership, volumes, image digest, internal targets
-
-### Smoke
-- Container running, health = healthy
-- WebGoat HTTP 2xx/3xx/4xx on host port
-- WebWolf HTTP 2xx/3xx/4xx on host port (`/login`)
-- Binding only on `127.0.0.1`
-- Image digest matches
-- Network exists and is bridge
-
-### Stop
-- Disconnects Kali from network
-- Stops container (preserves volume)
-
-### Reset
-- Disconnects Kali
-- `down --volumes --remove-orphans`
-- Recreates, waits healthy, runs smoke
-- Kali remains disconnected
-
-### Destroy
-- Trap ensures Kali disconnect on exit
-- `down --volumes --remove-orphans`
-- Validates: container absent, volumes absent, network absent (if project-owned), Kali running and disconnected, image preserved
-- Idempotent: second run exits 0
-
-## Kali MCP Integration
-Temporary connection only during controlled validation:
 
 ```bash
+./scripts/start.sh
+./scripts/status.sh
+./scripts/smoke.sh
 ./scripts/connect-kali.sh
-# Inside Kali:
-getent hosts webgoat
-cat < /dev/null > /dev/tcp/webgoat/8080
-cat < /dev/null > /dev/tcp/webgoat/9090
 ./scripts/disconnect-kali.sh
+./scripts/stop.sh
+./scripts/reset.sh
+./scripts/destroy.sh
 ```
 
-**Authorized internal targets only:**
+Expected behaviour:
+
+- `start.sh`: validates Compose and the pinned image, starts the service, and waits for healthy state.
+- `status.sh`: reports the actual container, health, published ports, network, volume, Kali membership, and image digest.
+- `smoke.sh`: discovers actual host mappings and validates both HTTP endpoints, localhost-only binding, digest, and network.
+- `connect-kali.sh`: idempotently connects the running Kali MCP container to the owned lab network.
+- `disconnect-kali.sh`: idempotently removes only the WebGoat network from Kali.
+- `stop.sh`: disconnects Kali and stops only this project.
+- `reset.sh`: disconnects Kali, removes project state, recreates the environment, waits for health, and runs smoke validation.
+- `destroy.sh`: always attempts Kali disconnection before teardown, removes only project containers, volume, and network, verifies their absence, preserves the image, and supports a second idempotent execution.
+
+`destroy.sh` must be validated both when Kali is already disconnected and when Kali is initially connected.
+
+## Kali MCP validation
+
+Authorised internal targets only:
+
 - `http://webgoat:8080/WebGoat/`
-- `http://webgoat:9090/`
+- `http://webgoat:9090/login`
 
-No LAN targets. No external targets. No host Docker socket.
+Validated tool set recorded in the manifest:
 
-## Validated Tools (MCP)
-| Tool | Target | Result |
-|------|--------|--------|
-| execute_command | id, getent hosts webgoat, TCP 8080/9090, HTTP basic | PASS |
-| nikto_scan | WebGoat (`/WebGoat/`) | PASS |
-| nikto_scan | WebWolf (`/login`) | PASS |
-| gobuster_scan | WebGoat (small wordlist) | PASS |
-| nmap_scan (dedicated) | TCP connect, unprivileged, 8080/9090 | DEGRADED (HTTP 500) |
-| nmap fallback | `nmap -sT --unprivileged -Pn -p 8080,9090 webgoat` | PASS |
+- `execute_command`
+- `nikto_scan`
+- `gobuster_scan`
 
-**Not validated / not supported:**
-- SQLMap, Hydra, Metasploit
-- Credential attacks, brute force, reverse shells
-- NSE scripts, UDP, full port scans
-- External targets, host Docker, LAN
+Known limitations from the previous local run:
 
-## Limitations
-- Local validation only (private repo, GitHub Actions quota exhausted)
-- Dedicated `nmap_scan` tool returns HTTP 500 in current Kali MCP (infrastructure)
-- `nmap` TCP connect works via `execute_command` fallback
-- `dirb_scan` unavailable in current Kali image
-- `server_health` not validated directly (tool doesn't accept target param)
-- WebWolf root path `/` returns 404; `/login` used for health
-- Network cannot be `internal: true` because Docker requires host port publishing for localhost access
-- Host port 9090 conflict with Prometheus (other project) documented; override via `WEBWOLF_HOST_PORT`
-- No external deployment; Kali MCP accessed via Hermes STDIO (`hermes -p pentest-lab chat --toolsets kali-lab`)
+- the dedicated `nmap_scan` tool returned HTTP 500;
+- TCP-connect Nmap passed through MCP `execute_command`;
+- `dirb_scan` is unavailable in the current Kali image;
+- `server_health` was not validated directly.
+
+These results must be reconfirmed when a change affects runtime networking, health, or lifecycle behaviour.
+
+Prohibited during validation:
+
+- LAN or external targets;
+- host Docker targets;
+- SQLMap, Hydra, Metasploit, brute force, exploitation, reverse shells, UDP, or NSE scripts.
 
 ## Evidence
-Runtime evidence written to `${EVIDENCE_DIR:-.runtime/evidence/webgoat}` (gitignored):
-- Port diagnosis
-- Smoke summaries
-- MCP tool outputs (sanitized: timestamp, tool, target, args, exit code, duration, classification, short summary)
 
-No HTML pages, cookies, tokens, credentials, raw scanner output, or lesson solutions committed.
+Sanitised runtime evidence belongs under:
 
-## Digest Update
-When a new WebGoat release is published:
-1. Pull new tag: `docker pull webgoat/webgoat:<new-tag>`
-2. Get digest: `docker image inspect webgoat/webgoat:<new-tag> --format '{{json .RepoDigests}}'`
-3. Update `compose.yaml` image reference and `manifest.yaml` digest
-4. Re-run full lifecycle validation
+```text
+.runtime/evidence/webgoat/
+```
 
-## Troubleshooting
-| Issue | Resolution |
-|-------|------------|
-| Port 8080/9090/19090 in use | `export WEBWOLF_HOST_PORT=19090` (or other free port) |
-| Healthcheck timeout | Increase `start_period` / `retries` in compose |
-| WebWolf returns 404 | Use `/login` path, not `/` |
-| Kali cannot connect | Ensure `./scripts/connect-kali.sh` ran; verify `getent hosts webgoat` |
-| Image pull fails | Verify digest exists on Docker Hub; check architecture |
+Do not commit HTML pages, cookies, tokens, credentials, lesson solutions, payloads, or raw scanner output.
 
-## Final State After Destroy
-- WebGoat/WebWolf container: **removed**
-- Volume `webgoat_webgoat-data`: **removed**
-- Network `webgoat-lab`: **removed**
-- Kali MCP: **running, healthy, disconnected**
-- Other Docker resources: **unchanged**
+## Acceptance criteria
 
-## Prohibited
-- Targets outside `webgoat-lab` network
-- LAN / external scans
-- Credential attacks, exploitation, reverse shells
-- Docker socket exposure, privileged containers, host networking
+The current PR head is accepted only when local validation confirms:
+
+- WebGoat and WebWolf both reach HTTP healthy state;
+- actual host mappings remain localhost-only;
+- the `internal: true` differential test is classified with evidence;
+- Kali DNS and TCP access work only after temporary connection;
+- Kali remains running and disconnected after validation;
+- `stop`, `reset`, and `destroy` pass;
+- `destroy` succeeds with Kali initially connected;
+- a second `destroy` returns success;
+- container, project volume, and network are absent afterwards;
+- unrelated resources, including monitoring services, remain unchanged;
+- catalog, shell, and Compose validation pass.
+
+## Digest update
+
+1. Pull the intended official release.
+2. Obtain its repository digest.
+3. Update `compose.yaml` and `manifest.yaml` together.
+4. Repeat the complete acceptance workflow.
+5. Record only sanitised evidence.
+
+## Final expected state
+
+- WebGoat/WebWolf container: removed.
+- Volume `webgoat_webgoat-data`: removed.
+- Network `webgoat-lab`: removed.
+- Kali MCP: running and disconnected.
+- Image: preserved.
+- Other Docker resources: unchanged.
