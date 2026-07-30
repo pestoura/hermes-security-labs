@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 """Read-only catalog and rollout CLI for Hermes Security Labs.
 
-This tool deliberately does not start or destroy environments. It provides a
-single discovery implementation for flat YAML manifests and directory-based
-``manifest.yaml`` files while the repository migrates to one convention.
+The CLI deliberately does not start or destroy environments. It provides one
+catalog implementation for flat YAML manifests and directory-based
+``manifest.yaml`` files while the repository migrates to a single convention.
 """
 
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -16,14 +17,16 @@ from typing import Any, Iterable
 
 try:
     import yaml
-except ImportError as exc:  # pragma: no cover - handled explicitly at runtime
+except ImportError as exc:  # pragma: no cover
     raise SystemExit("PyYAML is required to use platform/scripts/labctl.py") from exc
 
 PLATFORM_DIR = Path(__file__).resolve().parents[1]
 ENVIRONMENTS_DIR = PLATFORM_DIR / "environments"
 REGISTRY_PATH = PLATFORM_DIR / "registry.yaml"
 ROLLOUT_PATH = PLATFORM_DIR / "rollout.yaml"
+SCHEMA_PATH = PLATFORM_DIR / "schemas" / "lab-manifest.schema.json"
 REQUIRED_FIELDS = {"id", "name", "runtime", "status"}
+MANIFEST_HINT_FIELDS = REQUIRED_FIELDS | {"category", "resources", "lifecycle"}
 IGNORED_YAML_NAMES = {"compose.yaml", "compose-effective.yaml"}
 DEFAULT_RUNTIMES = {"docker", "kubernetes", "virtual-machine", "cloud", "emulator"}
 DEFAULT_STATUSES = {
@@ -70,7 +73,12 @@ def discover_manifests() -> tuple[list[Manifest], list[str]]:
     manifests: list[Manifest] = []
     errors: list[str] = []
 
-    for path in candidate_yaml_files():
+    try:
+        candidates = list(candidate_yaml_files())
+    except ValueError as exc:
+        return manifests, [str(exc)]
+
+    for path in candidates:
         try:
             data = load_yaml(path)
         except ValueError as exc:
@@ -79,14 +87,24 @@ def discover_manifests() -> tuple[list[Manifest], list[str]]:
 
         if not isinstance(data, dict):
             continue
-        if not REQUIRED_FIELDS.issubset(data):
-            # A YAML file under environments may be an operational companion.
-            # Only mappings with the baseline manifest fields are catalog items.
+
+        looks_like_manifest = path.name == "manifest.yaml" or bool(
+            MANIFEST_HINT_FIELDS.intersection(data)
+        )
+        if not looks_like_manifest:
+            continue
+
+        missing = REQUIRED_FIELDS - set(data)
+        if missing:
+            errors.append(
+                f"{path.relative_to(PLATFORM_DIR)}: missing fields "
+                f"{', '.join(sorted(missing))}"
+            )
             continue
 
         env_id = str(data["id"]).strip()
         if not env_id:
-            errors.append(f"empty id in {path}")
+            errors.append(f"empty id in {path.relative_to(PLATFORM_DIR)}")
             continue
         manifests.append(Manifest(env_id=env_id, path=path, data=data))
 
@@ -95,7 +113,8 @@ def discover_manifests() -> tuple[list[Manifest], list[str]]:
         previous = seen.get(manifest.env_id)
         if previous:
             errors.append(
-                f"duplicate id '{manifest.env_id}': {previous} and {manifest.path}"
+                f"duplicate id '{manifest.env_id}': "
+                f"{previous.relative_to(PLATFORM_DIR)} and {manifest.relative_path}"
             )
         else:
             seen[manifest.env_id] = manifest.path
@@ -135,6 +154,28 @@ def registry_constraints() -> tuple[set[str], set[str]]:
 def manifest_index() -> tuple[dict[str, Manifest], list[str]]:
     manifests, errors = discover_manifests()
     return {manifest.env_id: manifest for manifest in manifests}, errors
+
+
+def schema_errors(manifest: Manifest) -> list[str]:
+    if not SCHEMA_PATH.exists():
+        return [f"missing schema: {SCHEMA_PATH.relative_to(PLATFORM_DIR)}"]
+
+    try:
+        schema = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        return [f"invalid schema {SCHEMA_PATH.relative_to(PLATFORM_DIR)}: {exc}"]
+
+    try:
+        from jsonschema import Draft7Validator
+    except ImportError:
+        return []
+
+    validator = Draft7Validator(schema)
+    errors: list[str] = []
+    for error in sorted(validator.iter_errors(manifest.data), key=lambda item: list(item.path)):
+        location = ".".join(str(part) for part in error.path) or "$"
+        errors.append(f"{manifest.relative_path}: schema {location}: {error.message}")
+    return errors
 
 
 def cmd_list(args: argparse.Namespace) -> int:
@@ -188,27 +229,19 @@ def cmd_validate(_: argparse.Namespace) -> int:
 
     for manifest in manifests:
         data = manifest.data
-        missing = REQUIRED_FIELDS - set(data)
-        if missing:
-            errors.append(
-                f"{manifest.relative_path}: missing fields {', '.join(sorted(missing))}"
-            )
         runtime = str(data.get("runtime", ""))
         status = str(data.get("status", ""))
         if runtime not in runtimes:
-            errors.append(
-                f"{manifest.relative_path}: unsupported runtime '{runtime}'"
-            )
+            errors.append(f"{manifest.relative_path}: unsupported runtime '{runtime}'")
         if status not in statuses:
-            errors.append(
-                f"{manifest.relative_path}: unsupported status '{status}'"
-            )
+            errors.append(f"{manifest.relative_path}: unsupported status '{status}'")
         if "category" not in data:
             errors.append(f"{manifest.relative_path}: missing category")
         if "resources" not in data or not isinstance(data.get("resources"), dict):
             errors.append(f"{manifest.relative_path}: resources must be an object")
         if "lifecycle" not in data or not isinstance(data.get("lifecycle"), list):
             errors.append(f"{manifest.relative_path}: lifecycle must be an array")
+        errors.extend(schema_errors(manifest))
 
     if errors:
         for error in errors:
