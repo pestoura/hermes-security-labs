@@ -1,7 +1,7 @@
 name: juice-shop
 services:
   juice-shop:
-    image: bkimminich/juice-shop:latest
+    image: bkimminich/juice-shop@sha256:e68144772ebaaca0ec117b38d44903af92416793230288ef7c5437fc4f26850a
     container_name: juice-shop
     cap_drop:
       - all
@@ -33,8 +33,7 @@ services:
       - juice-shop-ftp:/juice-shop/ftp
 networks:
   juice-shop-lab:
-    external: true
-    name: juice-shop-lab
+    driver: bridge
 volumes:
   juice-shop-data:
   juice-shop-ftp:
