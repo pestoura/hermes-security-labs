@@ -1,17 +1,58 @@
-version: 1
+version: 2
+catalog:
+  environments_root: environments
+  rollout: rollout.yaml
+  schema: schemas/lab-manifest.schema.json
+  discovery:
+    - flat-yaml
+    - directory-manifest
+  cli: scripts/labctl.py
+
+statuses:
+  - CURRENT
+  - CURRENT-LIMITED
+  - FUTURE-VM
+  - FUTURE-HARDWARE
+  - CLOUD-SANDBOX
+  - EXTERNAL-HARDWARE
+  - PLANNED
+
 runtimes:
   - id: docker
     name: Docker
     status: CURRENT
+    drivers:
+      - docker-compose
+
   - id: kubernetes
     name: Kubernetes
-    status: FUTURE-HARDWARE
+    status: CURRENT-LIMITED
+    drivers:
+      - kind
+      - k3d
+      - k3s-vm
+      - kubeadm-vm
+
   - id: virtual-machine
     name: Virtual Machine
     status: CURRENT-LIMITED
+    drivers:
+      - libvirt
+      - proxmox
+      - external-hypervisor
+
   - id: cloud
     name: Cloud
     status: CLOUD-SANDBOX
+    drivers:
+      - local-emulation
+      - terraform-sandbox
+
   - id: emulator
     name: Emulator
     status: EXTERNAL-HARDWARE
+    drivers:
+      - qemu
+      - android-emulator
+      - eve-ng
+      - gns3

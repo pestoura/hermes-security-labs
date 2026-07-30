@@ -1,0 +1,115 @@
+version: 1
+policy:
+  heavy_labs_concurrent: 1
+  default_egress: false
+  deploy_from_github: false
+  require_registered_target: true
+  require_kali_disconnect_after_run: true
+
+phases:
+  - id: foundation
+    name: Baseline and orchestration foundation
+    priority: 0
+    issue: 6
+    environments:
+      - juice-shop
+
+  - id: docker-web-api
+    name: Docker web and API labs
+    priority: 1
+    issue: 8
+    environments:
+      - juice-shop
+      - webgoat
+      - dvwa
+      - nodegoat
+      - pygoat
+      - crapi
+      - vampi
+      - dvapi
+      - graphql-vulnerable-lab
+
+  - id: devsecops-ai
+    name: DevSecOps, supply-chain and AI/MCP labs
+    priority: 2
+    issue: 9
+    environments:
+      - cicd-goat
+      - wrongsecrets
+      - damn-vulnerable-sca
+      - terragoat
+      - cdkgoat
+      - cfngoat
+      - bicepgoat
+      - promptme
+      - vulnerable-mcp-servers
+      - llmforge
+      - damn-vulnerable-llm-agent
+      - prompt-injection-lab
+      - tool-poisoning-lab
+      - rag-poisoning-lab
+
+  - id: kubernetes
+    name: Local Kubernetes labs with kind or k3d
+    priority: 3
+    issue: 10
+    environments:
+      - kubernetes-goat
+      - kubegoat
+      - dvka
+      - wrongsecrets-kubernetes
+      - k8s-rbac-lab
+      - k8s-secrets-lab
+      - k8s-admission-lab
+      - k8s-network-policy-lab
+
+  - id: virtual-machine
+    name: Infrastructure, network, Windows and Active Directory labs
+    priority: 4
+    issue: 11
+    environments:
+      - metasploitable-2
+      - metasploitable-3-linux
+      - metasploitable-3-windows
+      - goad-mini
+      - goad-light
+      - goad-full
+      - goad-sccm
+      - windows-workstation-lab
+      - windows-server-lab
+      - ftp-lab
+      - smb-lab
+      - ldap-lab
+      - dns-lab
+      - snmp-lab
+      - smtp-lab
+      - tls-lab
+      - segmentation-lateral-movement-lab
+      - eve-ng
+      - gns3
+
+  - id: cloud-mobile-iot
+    name: Cloud, mobile, IoT, firmware and OT/ICS labs
+    priority: 5
+    issue: 12
+    environments:
+      - localstack
+      - azurite
+      - cloudgoat
+      - awsgoat
+      - azuregoat
+      - gcpgoat
+      - eks-goat
+      - gke-goat
+      - bugbazaar
+      - injuredandroid
+      - damn-vulnerable-bank
+      - pivaa
+      - igoat
+      - iotgoat
+      - dvrf
+      - icsgoat
+      - modbus-lab
+      - mqtt-lab
+      - zigbee-lab
+      - firmware-analysis-lab
