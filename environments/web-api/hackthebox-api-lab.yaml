@@ -1,0 +1,38 @@
+id: hackthebox-api-lab
+name: Hack The Box API Playground
+description: GraphQL and REST API service with IDOR, mass assignment, authentication
+  bypass scenarios.
+runtime: docker
+driver: docker-compose
+risk: medium
+source: htb-challenges
+version: '1.0'
+resources:
+  cpu: '1'
+  memory: 1Gi
+  disk: 8Gi
+networks:
+- labnet-api
+egress: false
+targets:
+- api:4000
+- graphql-playground:3002
+attacker: kali
+lifecycle:
+- start
+- stop
+- reset
+reset: docker-compose restart api
+cleanup: docker-compose down -v
+evidence: GraphQL introspection export; API request logs
+dependencies:
+- docker
+supported_tools:
+- burp
+- graphqlmap
+- postman
+- insomnia
+limitations:
+- limited to OWASP API Top 10 scenarios
+status: CURRENT-LIMITED
+category: web-api

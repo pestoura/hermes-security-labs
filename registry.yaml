@@ -1,0 +1,17 @@
+version: 1
+runtimes:
+  - id: docker
+    name: Docker
+    status: CURRENT
+  - id: kubernetes
+    name: Kubernetes
+    status: FUTURE-HARDWARE
+  - id: virtual-machine
+    name: Virtual Machine
+    status: CURRENT-LIMITED
+  - id: cloud
+    name: Cloud
+    status: CLOUD-SANDBOX
+  - id: emulator
+    name: Emulator
+    status: EXTERNAL-HARDWARE

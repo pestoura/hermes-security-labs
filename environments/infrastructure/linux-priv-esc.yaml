@@ -1,0 +1,40 @@
+id: linux-priv-esc
+name: Linux Privilege Escalation Lab
+description: Kali attacking Ubuntu/Debian targets with SUID, capabilities, cron, and
+  kernel exploits.
+runtime: virtual-machine
+driver: qemu-kvm
+risk: medium
+source: vulhub-linux
+version: '1.0'
+resources:
+  cpu: '2'
+  memory: 4Gi
+  disk: 40Gi
+networks:
+- labnet-infra
+egress: false
+targets:
+- target-ubuntu:22
+attacker: kali-vm
+lifecycle:
+- start
+- stop
+- reset
+- destroy
+reset: virsh snapshot-revert target-ubuntu clean
+cleanup: virsh destroy target-ubuntu
+evidence: proof.txt; linPEAS output; /etc/shadow
+dependencies:
+- virtual-machine
+- kvm
+supported_tools:
+- linpeas
+- gtfobins
+- pspy
+- nmap
+limitations:
+- no physical hardware
+- limited kernel versions
+status: CURRENT-LIMITED
+category: infrastructure

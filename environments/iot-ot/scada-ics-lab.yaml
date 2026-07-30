@@ -1,0 +1,40 @@
+id: scada-ics-lab
+name: SCADA/ICS Lab
+description: Conpot ICS honeypot plus Modbus/TCP device for PLC command injection
+  and protocol analysis.
+runtime: docker
+driver: docker-compose
+risk: high
+source: conpot
+version: 1.5.0
+resources:
+  cpu: '1'
+  memory: 1Gi
+  disk: 10Gi
+networks:
+- labnet-ics
+egress: false
+targets:
+- conpot:80
+- plc-simulator:502
+attacker: kali-vm
+lifecycle:
+- start
+- stop
+- reset
+- destroy
+reset: docker-compose restart conpot
+cleanup: docker-compose down -v
+evidence: Modbus sniffed frames; plc state changes
+dependencies:
+- docker
+supported_tools:
+- modbus-cli
+- wireshark
+- scapy
+- nmap
+limitations:
+- simulator only
+- no real safety interlock systems
+status: CURRENT-LIMITED
+category: iot-ot

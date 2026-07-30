@@ -1,0 +1,11 @@
+id: cloud
+name: Cloud
+local_emulation:
+  - LocalStack
+  - Azurite
+real_sandbox:
+  - AWS
+  - Azure
+  - GCP
+notes:
+  - No real cloud resources in this phase.

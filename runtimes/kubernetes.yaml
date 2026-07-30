@@ -1,0 +1,11 @@
+id: kubernetes
+name: Kubernetes
+drivers:
+  - kind
+  - k3d
+  - k3s-vm
+  - kubeadm-vm
+notes:
+  - No host cluster installation in this phase.
+  - Separate kubeconfig per lab.
+  - Kali attaches only during active lab runtime.

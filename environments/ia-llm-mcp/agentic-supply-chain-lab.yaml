@@ -1,0 +1,40 @@
+id: agentic-supply-chain-lab
+name: Agentic Supply Chain Lab
+description: 'Supply chain attack surface on agent frameworks: poisoned plugins, tool
+  schemas, and upstream models.'
+runtime: docker
+driver: docker-compose
+risk: high
+source: agent-supply-chain
+version: '1.0'
+resources:
+  cpu: '2'
+  memory: 4Gi
+  disk: 25Gi
+networks:
+- labnet-ia
+egress: true
+targets:
+- plugin-registry:5000
+- model-cache:8080
+- agent-vector-db:6333
+attacker: kali-vm
+lifecycle:
+- start
+- stop
+- reset
+reset: docker-compose restart registry
+cleanup: docker-compose down -v
+evidence: plugin integrity logs; schema diff report
+dependencies:
+- docker
+supported_tools:
+- trivy
+- syft
+- grype
+- sigstore
+limitations:
+- no real-time upstream updates
+- vocabularies limited to demo set
+status: CURRENT-LIMITED
+category: ia-llm-mcp

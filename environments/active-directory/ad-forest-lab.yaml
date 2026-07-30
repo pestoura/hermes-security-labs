@@ -1,0 +1,45 @@
+id: ad-forest-lab
+name: Active Directory Forest Lab
+description: Multi-domain forest with Exchange, MSSQL, file servers, and deliberately
+  weak password policy.
+runtime: virtual-machine
+driver: qemu-kvm
+risk: high
+source: ad-forest-template
+version: '2022'
+resources:
+  cpu: '4'
+  memory: 8Gi
+  disk: 120Gi
+networks:
+- labnet-ad
+- labnet-infra
+egress: false
+targets:
+- dc:389
+- dc:636
+- exchange:443
+- sql:1433
+attacker: kali-vm
+lifecycle:
+- start
+- stop
+- reset
+- destroy
+reset: virsh snapshot-revert ad-forest clean
+cleanup: virsh destroy ad-forest
+evidence: NTDS.dit; SAM; Bloodhound JSON; ticket exports
+dependencies:
+- virtual-machine
+- kvm
+supported_tools:
+- impacket
+- bloodhound
+- kerbrute
+- mimikatz
+- rubeus
+limitations:
+- no Azure AD Connect
+- no ADFS
+status: CURRENT
+category: active-directory

@@ -1,0 +1,41 @@
+id: plc-hacking-lab
+name: PLC Hacking Lab
+description: Real PLC firmware analysis and Modbus/TCP command injection for OT safety
+  systems.
+runtime: emulator
+driver: plc-firmware-emu
+risk: critical
+source: plc-firmware
+version: '1.0'
+resources:
+  cpu: '2'
+  memory: 4Gi
+  disk: 20Gi
+networks:
+- labnet-ics
+egress: false
+targets:
+- plc:502
+- scada-server:8080
+attacker: kali-vm
+lifecycle:
+- start
+- stop
+- reset
+- destroy
+reset: docker restart plc-emulator
+cleanup: docker rm -f plc-emulator
+evidence: firmware diff; register modifications; safety logs
+dependencies:
+- emulator
+- docker
+supported_tools:
+- modbus-cli
+- plc-analyzer
+- radare2
+- wireshark
+limitations:
+- emulated firmware only
+- no physical PLC safety certification
+status: EXTERNAL-HARDWARE
+category: iot-ot

@@ -1,0 +1,38 @@
+id: dvwa
+name: Damn Vulnerable Web Application
+description: PHP/MySQL web app with trivial to hard vulnerabilities for training and
+  skill proof.
+runtime: docker
+driver: docker-compose
+risk: low
+source: dvwa
+version: '1.10'
+resources:
+  cpu: '0.5'
+  memory: 512Mi
+  disk: 5Gi
+networks:
+- labnet-web
+egress: false
+targets:
+- dvwa:80
+attacker: kali
+lifecycle:
+- start
+- stop
+- reset
+- destroy
+reset: docker-compose restart dvwa
+cleanup: docker-compose down -v
+evidence: DVWA security level screenshots
+dependencies:
+- docker
+supported_tools:
+- burp
+- ffuf
+- gobuster
+- nikto
+limitations:
+- intentionally unrealistic in places
+status: CURRENT
+category: web-api

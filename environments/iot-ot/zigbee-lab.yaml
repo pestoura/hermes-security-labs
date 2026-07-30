@@ -1,0 +1,40 @@
+id: zigbee-lab
+name: Zigbee/IoT RF Lab
+description: Zigbee2MQTT gateway and emulated smart locks for replay, cryptanalysis,
+  and Zigbee exploitation.
+runtime: emulator
+driver: zigbee-sniffer
+risk: medium
+source: zigbee2mqtt
+version: 1.30.0
+resources:
+  cpu: '1'
+  memory: 512Mi
+  disk: 5Gi
+networks:
+- labnet-iot
+egress: false
+targets:
+- zigbee-coordinator:8888
+- mqtt-broker:1883
+attacker: kali-vm
+lifecycle:
+- start
+- stop
+- reset
+reset: systemctl restart zigbee2mqtt
+cleanup: systemctl stop zigbee2mqtt && docker rm zigbee-sim
+evidence: Zigbee frame captures; key extraction output
+dependencies:
+- emulator
+- zigbee-dongle
+supported_tools:
+- zigbee2mqtt-cli
+- killerbee
+- ubertooth
+- wireshark
+limitations:
+- requires physical dongle
+- limited channel selection
+status: EXTERNAL-HARDWARE
+category: iot-ot

@@ -1,0 +1,43 @@
+id: windows-server-hardening
+name: Windows Server Hardening Lab
+description: Windows Server with AD CS, SMB signing gaps, and unpatched kernel for
+  pivot and credential abuse.
+runtime: virtual-machine
+driver: qemu-kvm
+risk: high
+source: windows-server-eval
+version: '2022'
+resources:
+  cpu: '2'
+  memory: 4Gi
+  disk: 60Gi
+networks:
+- labnet-infra
+- labnet-ad
+egress: false
+targets:
+- target-win:3389
+- target-win:445
+- winrm:5985
+attacker: kali-vm
+lifecycle:
+- start
+- stop
+- reset
+- destroy
+reset: virsh snapshot-revert target-win clean
+cleanup: virsh destroy target-win
+evidence: NTDS.dit export; Kerberoast hashes; RDP logs
+dependencies:
+- virtual-machine
+- kvm
+supported_tools:
+- impacket
+- bloodhound
+- kerbrute
+- evil-winrm
+limitations:
+- 90-day evaluation only
+- no Exchange module
+status: CURRENT-LIMITED
+category: infrastructure

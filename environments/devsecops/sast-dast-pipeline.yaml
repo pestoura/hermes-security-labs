@@ -1,0 +1,40 @@
+id: sast-dast-pipeline
+name: SAST/DAST Pipeline Lab
+description: Automated pipeline with Snyk, SonarQube, OWASP ZAP, and Vault for supply
+  chain assessment.
+runtime: docker
+driver: docker-compose
+risk: medium
+source: devsecops-example
+version: 0.9.0
+resources:
+  cpu: '2'
+  memory: 3Gi
+  disk: 25Gi
+networks:
+- labnet-devsec
+egress: true
+targets:
+- sonarqube:9000
+- vault:8200
+- zap:8090
+attacker: kali
+lifecycle:
+- start
+- stop
+- reset
+reset: docker-compose restart services
+cleanup: docker-compose down -v
+evidence: scan reports; pipeline logs
+dependencies:
+- docker
+supported_tools:
+- snyk
+- trivy
+- gitleaks
+- semgrep
+limitations:
+- limited timeout on scans
+- no dynamic secrets
+status: CURRENT-LIMITED
+category: devsecops

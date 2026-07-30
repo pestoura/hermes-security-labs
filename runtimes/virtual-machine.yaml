@@ -1,0 +1,5 @@
+id: virtual-machine
+name: Virtual Machine
+notes:
+  - No Proxmox or libvirt installation in this phase.
+  - Read-only KVM audit only.

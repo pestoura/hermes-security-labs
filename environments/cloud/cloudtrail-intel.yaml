@@ -1,0 +1,44 @@
+id: cloudtrail-intel
+name: CloudTrail Intelligence Lab
+description: Shared AWS CloudTrail log analysis for anomaly detection, IAM user access
+  key exposure, and API abuse.
+runtime: cloud
+driver: terraform-aws
+risk: low
+source: cloudtrail-lab
+version: '1.0'
+resources:
+  cpu: '1'
+  memory: 2Gi
+  disk: 15Gi
+  cloud_vcpus: 2
+networks:
+- vpc-lab
+egress: true
+targets:
+- cloudtrail-s3
+- athena-db
+- glue-crawler
+attacker: kali-vm
+lifecycle:
+- create
+- start
+- stop
+- destroy
+reset: terraform destroy -auto-approve && terraform apply -auto-approve
+cleanup: terraform destroy -auto-approve
+evidence: Athena query results; Athena table DDL; S3 log manifests
+dependencies:
+- cloud
+- terraform
+- aws-cli
+supported_tools:
+- awscli
+- athena
+- glue
+- jupyter
+limitations:
+- read-only analysis
+- no write actions
+status: CURRENT-LIMITED
+category: cloud

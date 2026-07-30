@@ -1,0 +1,41 @@
+id: k8s-misconfig-playground
+name: Kubernetes Misconfiguration Playground
+description: Anti-affinity abused pods, privileged containers, hostPath mounts, and
+  no seccomp/AppArmor profiles.
+runtime: kubernetes
+driver: k3d
+risk: medium
+source: k8s-misconfig
+version: '1.0'
+resources:
+  cpu: '2'
+  memory: 4Gi
+  disk: 30Gi
+networks:
+- k3d-labnet
+egress: false
+targets:
+- privileged-pod
+- hostpath-pod
+- kube-apiserver:6443
+attacker: kali
+lifecycle:
+- start
+- stop
+- reset
+- destroy
+reset: k3d cluster delete misconfig-lab && k3d cluster create misconfig-lab
+cleanup: k3d cluster delete misconfig-lab
+evidence: container escape screenshots; kubectl audit
+dependencies:
+- kubernetes
+- k3d
+supported_tools:
+- kubectl
+- kubesec
+- falco
+- ccdc
+limitations:
+- no dynamic admission controller coverage
+status: CURRENT-LIMITED
+category: kubernetes

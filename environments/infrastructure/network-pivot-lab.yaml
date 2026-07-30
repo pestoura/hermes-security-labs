@@ -1,0 +1,44 @@
+id: network-pivot-lab
+name: Network Pivot Lab
+description: Multi-hop network with perimeter router, internal subnet, and segmented
+  ICS gateway.
+runtime: virtual-machine
+driver: qemu-kvm
+risk: high
+source: pivot-lab
+version: '1.0'
+resources:
+  cpu: '4'
+  memory: 8Gi
+  disk: 80Gi
+networks:
+- labnet-perimeter
+- labnet-internal
+- labnet-ics
+egress: false
+targets:
+- fw:80
+- web-internal:80
+- plc:502
+attacker: kali-vm
+lifecycle:
+- start
+- stop
+- reset
+- destroy
+reset: virsh snapshot-revert network-pivot clean
+cleanup: virsh destroy network-pivot
+evidence: tcpdump captures; route table screenshots
+dependencies:
+- virtual-machine
+- kvm
+supported_tools:
+- nmap
+- proxychains4
+- tcpdump
+- chisel
+limitations:
+- no real ISP emulation
+- limited bandwidth shaping
+status: CURRENT-LIMITED
+category: infrastructure

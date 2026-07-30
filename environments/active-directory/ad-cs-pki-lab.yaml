@@ -1,0 +1,42 @@
+id: ad-cs-pki-lab
+name: Active Directory Certificate Services Lab
+description: AD CS with ESC1-ESC8 misconfigurations for certificate template abuse
+  and domain compromise.
+runtime: virtual-machine
+driver: qemu-kvm
+risk: critical
+source: ad-cs-pack
+version: '1.0'
+resources:
+  cpu: '2'
+  memory: 4Gi
+  disk: 60Gi
+networks:
+- labnet-ad
+egress: false
+targets:
+- ca:88
+- ca:389
+- http-enroll:80
+attacker: kali-vm
+lifecycle:
+- start
+- stop
+- reset
+- destroy
+reset: virsh snapshot-revert ad-cs clean
+cleanup: virsh destroy ad-cs
+evidence: certificate requests; certipy output logs
+dependencies:
+- virtual-machine
+- kvm
+supported_tools:
+- certipy
+- impacket
+- ldapnomnom
+- openssl
+limitations:
+- no smartcard proxy enrollment
+- no NDES
+status: CURRENT
+category: active-directory

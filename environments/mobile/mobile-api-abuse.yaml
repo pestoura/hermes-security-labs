@@ -1,0 +1,41 @@
+id: mobile-api-abuse
+name: Mobile API Abuse Lab
+description: Hardened mobile app communicating with intentionally misconfigured REST
+  and GraphQL backend.
+runtime: docker
+driver: docker-compose
+risk: medium
+source: mobile-api-demo
+version: '1.0'
+resources:
+  cpu: '1'
+  memory: 1Gi
+  disk: 8Gi
+networks:
+- labnet-api
+- labnet-mobile
+egress: false
+targets:
+- api:443
+- graphql:4000
+attacker: kali-vm
+lifecycle:
+- start
+- stop
+- reset
+- destroy
+reset: docker-compose restart api
+cleanup: docker-compose down -v
+evidence: API request logs; insecure direct object reference screenshots
+dependencies:
+- docker
+supported_tools:
+- burp
+- postman
+- mobile-shell
+- mitmproxy
+limitations:
+- no pinning bypass scenarios
+- no biometric auth bypass
+status: CURRENT
+category: mobile

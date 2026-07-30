@@ -1,0 +1,39 @@
+id: jenkins-insecure-pipeline
+name: Jenkins Insecure Pipeline
+description: Jenkins server with vulnerable plugin set and pipeline containing credential
+  injection vectors.
+runtime: docker
+driver: docker-compose
+risk: high
+source: jenkins-lts
+version: 2.426.0
+resources:
+  cpu: '1'
+  memory: 2Gi
+  disk: 20Gi
+networks:
+- labnet-devsec
+egress: false
+targets:
+- jenkins:8080
+- agent:22
+attacker: kali
+lifecycle:
+- start
+- stop
+- reset
+- destroy
+reset: docker-compose restart jenkins
+cleanup: docker-compose down -v
+evidence: console text; credential access logs
+dependencies:
+- docker
+supported_tools:
+- trivy
+- owasp-dependency-check
+- gitleaks
+- nmap
+limitations:
+- agent communication only via TCP
+status: CURRENT
+category: devsecops

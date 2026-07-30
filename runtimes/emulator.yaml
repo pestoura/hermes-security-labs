@@ -1,0 +1,11 @@
+id: emulator
+name: Emulator
+supported:
+  - QEMU
+  - Android Emulator
+  - EVE-NG
+  - GNS3
+  - firmware
+  - OT-ICS
+notes:
+  - No installation in this phase.

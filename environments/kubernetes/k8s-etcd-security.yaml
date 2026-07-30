@@ -1,0 +1,41 @@
+id: k8s-etcd-security
+name: K8s etcd Security Lab
+description: Exposed etcd instance for key extraction, snapshot misuse, and etcd-to-cluster
+  lateral movement.
+runtime: kubernetes
+driver: k3d
+risk: critical
+source: etcd-security-lab
+version: '1.0'
+resources:
+  cpu: '2'
+  memory: 4Gi
+  disk: 20Gi
+networks:
+- k3d-labnet
+- etcdnet
+egress: false
+targets:
+- etcd:2379
+- etcd:2380
+attacker: kali
+lifecycle:
+- start
+- stop
+- reset
+- destroy
+reset: k3d cluster delete etcd-lab && k3d cluster create etcd-lab
+cleanup: k3d cluster delete etcd-lab
+evidence: etcd snapshot; TLS metadata
+dependencies:
+- kubernetes
+- k3d
+supported_tools:
+- etcdctl
+- kubectl
+- burp
+- openssl
+limitations:
+- etcd only, no application workloads
+status: CURRENT-LIMITED
+category: kubernetes

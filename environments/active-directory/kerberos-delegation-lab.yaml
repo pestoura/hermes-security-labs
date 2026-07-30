@@ -1,0 +1,42 @@
+id: kerberos-delegation-lab
+name: Kerberos Delegation Lab
+description: Unconstrained and constrained delegation misconfigurations for Silver/Golden
+  ticket attacks.
+runtime: virtual-machine
+driver: qemu-kvm
+risk: high
+source: kerberos-lab
+version: '1.0'
+resources:
+  cpu: '2'
+  memory: 4Gi
+  disk: 50Gi
+networks:
+- labnet-ad
+egress: false
+targets:
+- dc:88
+- file-srv:445
+- exchange:443
+attacker: kali-vm
+lifecycle:
+- start
+- stop
+- reset
+- destroy
+reset: virsh snapshot-revert kerberos clean
+cleanup: virsh destroy kerberos
+evidence: KDC logs; ticket .kirbi exports; logs
+dependencies:
+- virtual-machine
+- kvm
+supported_tools:
+- rubeus
+- impacket
+- bloodhound
+- mimikatz
+limitations:
+- no resource-based constrained delegation
+- no PKINIT
+status: CURRENT-LIMITED
+category: active-directory

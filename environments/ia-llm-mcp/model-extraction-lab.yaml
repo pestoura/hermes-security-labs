@@ -1,0 +1,40 @@
+id: model-extraction-lab
+name: Model Extraction Lab
+description: Open weights model API with rate limits and watermarking metadata for
+  extraction and replication attacks.
+runtime: docker
+driver: docker-compose
+risk: medium
+source: extraction-target
+version: '1.0'
+resources:
+  cpu: '2'
+  memory: 4Gi
+  disk: 30Gi
+networks:
+- labnet-ia
+egress: true
+targets:
+- model-api:8080
+- prometheus:9090
+attacker: kali-vm
+lifecycle:
+- start
+- stop
+- reset
+reset: docker-compose restart model-api
+cleanup: docker-compose down -v
+evidence: extracted model checkpoints; watermark metadata analysis
+dependencies:
+- docker
+- gpu-optional
+supported_tools:
+- garak
+- modelsteuth
+- memorization-suite
+- numpy
+limitations:
+- no copyrighted model weights
+- limited API rate limit bypass
+status: CURRENT
+category: ia-llm-mcp

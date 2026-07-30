@@ -1,0 +1,8 @@
+name: validate
+on: [push,pull_request]
+jobs:
+  yaml:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python -c "import yaml, pathlib, sys; [yaml.safe_load(p.read_text()) for p in pathlib.Path('.').rglob('*.yaml')]; print('YAML_OK')"

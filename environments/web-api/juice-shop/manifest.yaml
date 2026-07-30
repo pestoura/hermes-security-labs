@@ -1,0 +1,42 @@
+id: juice-shop
+name: OWASP Juice Shop
+description: OWASP Juice Shop web lab.
+category: web-api
+runtime: docker
+driver: docker-compose
+risk: low
+source: juice-shop
+version: latest
+resources:
+  cpus: 1.0
+  memory: 512M
+  disk: 2G
+networks:
+  - juice-shop-lab
+egress: false
+targets:
+  - juice-shop
+attacker: kali-mcp
+lifecycle:
+  - start
+  - stop
+  - reset
+  - destroy
+reset: docker compose -p juice-shop down --volumes
+cleanup: docker compose -p juice-shop down --volumes --remove-orphans
+evidence: /home/estourpm/hermes-labs/platform/environments/web-api/juice-shop/data
+dependencies:
+  - docker
+supported_tools:
+  - nmap_scan
+  - gobuster_scan
+  - dirb_scan
+  - nikto_scan
+  - sqlmap_scan
+  - wpscan_analyze
+  - enum4linux_scan
+  - server_health
+  - execute_command
+limitations:
+  - local validation only
+status: CURRENT

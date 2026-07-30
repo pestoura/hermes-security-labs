@@ -1,0 +1,42 @@
+id: k8s-hardening-lab
+name: Kubernetes Hardening Lab
+description: k3d cluster with default install exposing multiple CIS benchmark failures
+  and RBAC misconfigurations.
+runtime: kubernetes
+driver: k3d
+risk: high
+source: k8s-hardening-example
+version: 1.29.0
+resources:
+  cpu: '4'
+  memory: 8Gi
+  disk: 60Gi
+networks:
+- k3d-labnet
+egress: false
+targets:
+- kubernetes-api:6443
+- dashboard:443
+- nodes
+attacker: kali
+lifecycle:
+- start
+- stop
+- reset
+- destroy
+reset: k3d cluster delete lab && k3d cluster create lab
+cleanup: k3d cluster delete lab
+evidence: kubectl audit log; etcd snapshot
+dependencies:
+- kubernetes
+- k3d
+supported_tools:
+- kubesec
+- kubectl
+- trivy
+- falco
+limitations:
+- no multi-cluster federation
+- single node per lab
+status: CURRENT-LIMITED
+category: kubernetes

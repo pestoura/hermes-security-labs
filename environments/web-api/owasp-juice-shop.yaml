@@ -1,0 +1,40 @@
+id: owasp-juice-shop
+name: OWASP Juice Shop
+description: Modern e-commerce app with OWASP Top 10 vulnerabilities for API and web
+  app testing.
+runtime: docker
+driver: docker-compose
+risk: medium
+source: juice-shop
+version: 16.0.0
+resources:
+  cpu: '1'
+  memory: 1Gi
+  disk: 10Gi
+networks:
+- labnet-web
+egress: false
+targets:
+- juice-shop:3000
+- juice-shop-api:3001
+attacker: kali
+lifecycle:
+- start
+- stop
+- reset
+- destroy
+reset: docker-compose down && docker-compose up -d
+cleanup: docker-compose down -v
+evidence: capture juice-shop logs; export db dump
+dependencies:
+- docker
+supported_tools:
+- burp
+- nuclei
+- sqlmap
+- postman
+limitations:
+- no real payment gateway
+- no external SMTP
+status: CURRENT
+category: web-api

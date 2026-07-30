@@ -1,0 +1,45 @@
+id: aws-misconfig-lab
+name: AWS Misconfiguration Lab
+description: Terraformed AWS account with S3 public buckets, IAM over-permissions,
+  and exposed EC2 metadata.
+runtime: cloud
+driver: terraform-aws
+risk: medium
+source: terraform-aws-misconfig
+version: '1.0'
+resources:
+  cpu: '2'
+  memory: 4Gi
+  disk: 20Gi
+  cloud_vcpus: 4
+networks:
+- vpc-lab
+- public-subnet-1a
+egress: true
+targets:
+- s3-bucket-public
+- ec2-public:22
+- metadata:169.254.169.254
+attacker: kali-vm
+lifecycle:
+- create
+- start
+- stop
+- destroy
+reset: terraform destroy -auto-approve && terraform apply -auto-approve
+cleanup: terraform destroy -auto-approve
+evidence: IAM policy JSON; S3 bucket access logs; CloudTrail events
+dependencies:
+- cloud
+- terraform
+- aws-cli
+supported_tools:
+- pacu
+- awscli
+- cloudmapper
+- prowler
+limitations:
+- limited budget guardrails
+- no multi-region
+status: CURRENT-LIMITED
+category: cloud

@@ -1,0 +1,12 @@
+id: docker
+name: Docker
+driver: docker-compose
+network_per_lab: true
+lifecycle:
+  - start
+  - stop
+  - reset
+  - destroy
+egress:
+  allowed_profiles:
+    - maintenance

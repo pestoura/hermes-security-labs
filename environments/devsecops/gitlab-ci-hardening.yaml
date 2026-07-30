@@ -1,0 +1,39 @@
+id: gitlab-ci-hardening
+name: GitLab CI/CD Hardening Lab
+description: GitLab CE instance with CI runners and deliberately insecure pipeline
+  definitions for SAST/DAST abuse.
+runtime: docker
+driver: docker-compose
+risk: high
+source: gitlab-community
+version: 16.11.0
+resources:
+  cpu: '2'
+  memory: 4Gi
+  disk: 40Gi
+networks:
+- labnet-devsec
+egress: false
+targets:
+- gitlab:80
+- gitlab-runner:2222
+attacker: kali
+lifecycle:
+- start
+- stop
+- reset
+- destroy
+reset: docker-compose restart gitlab
+cleanup: docker-compose down -v
+evidence: CI job artifacts; secret exposure logs
+dependencies:
+- docker
+supported_tools:
+- trivy
+- gitleaks
+- trufflehog
+- bandit
+limitations:
+- no protected variables in default config
+status: CURRENT-LIMITED
+category: devsecops

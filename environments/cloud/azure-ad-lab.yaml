@@ -1,0 +1,45 @@
+id: azure-ad-lab
+name: Azure AD Misconfiguration Lab
+description: Azure tenant with guest access, excess app permissions, and legacy auth
+  enabled.
+runtime: cloud
+driver: terraform-azure
+risk: high
+source: azure-lab
+version: '1.0'
+resources:
+  cpu: '1'
+  memory: 2Gi
+  disk: 10Gi
+  cloud_vcpus: 2
+networks:
+- vnet-lab
+- subnet-default
+egress: true
+targets:
+- portal.azure.com
+- graph.microsoft.com
+- storage-account:443
+attacker: kali-vm
+lifecycle:
+- create
+- start
+- stop
+- destroy
+reset: terraform destroy -auto-approve && terraform apply -auto-approve
+cleanup: terraform destroy -auto-approve
+evidence: Azure AD sign-in logs; app role assignments; token exports
+dependencies:
+- cloud
+- terraform
+- azure-cli
+supported_tools:
+- azure-cli
+- roadrecon
+- microburst
+- token_tools
+limitations:
+- no Conditional Access evaluation
+- tenant visibility limited
+status: CLOUD-SANDBOX
+category: cloud

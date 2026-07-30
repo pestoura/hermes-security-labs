@@ -1,0 +1,30 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Lab manifest",
+  "type": "object",
+  "required": ["id", "name", "runtime", "status"],
+  "properties": {
+    "id": {"type": "string"},
+    "name": {"type": "string"},
+    "description": {"type": "string"},
+    "category": {"type": "string"},
+    "runtime": {"type": "string"},
+    "driver": {"type": "string"},
+    "risk": {"type": "string"},
+    "source": {"type": "string"},
+    "version": {"type": "string"},
+    "resources": {"type": "object"},
+    "networks": {"type": "array"},
+    "egress": {"type": "boolean"},
+    "targets": {"type": "array"},
+    "attacker": {"type": "string"},
+    "lifecycle": {"type": "array"},
+    "reset": {"type": "string"},
+    "cleanup": {"type": "string"},
+    "evidence": {"type": "string"},
+    "dependencies": {"type": "array"},
+    "supported_tools": {"type": "array"},
+    "limitations": {"type": "array"},
+    "status": {"type": "string"}
+  }
+}

@@ -1,0 +1,41 @@
+id: prompt-injection-lab
+name: LLM Prompt Injection Lab
+description: Chat application embedding RAG and direct prompt attack surfaces for
+  jailbreak, exfiltration, and indirect injection.
+runtime: docker
+driver: docker-compose
+risk: medium
+source: llm-chat-app
+version: '1.0'
+resources:
+  cpu: '2'
+  memory: 4Gi
+  disk: 20Gi
+networks:
+- labnet-ia
+egress: false
+targets:
+- chat-api:8000
+- llm-gateway:11434
+attacker: kali-vm
+lifecycle:
+- start
+- stop
+- reset
+- destroy
+reset: docker-compose restart chat-api
+cleanup: docker-compose down -v
+evidence: conversation logs; jailbreak success screenshots; exfiltrated artifacts
+dependencies:
+- docker
+- gpu-optional
+supported_tools:
+- garak
+- pyrit
+- promptfoo
+- llm-guard
+limitations:
+- no real-time evolving model weights
+- simulated RAG only
+status: CURRENT
+category: ia-llm-mcp

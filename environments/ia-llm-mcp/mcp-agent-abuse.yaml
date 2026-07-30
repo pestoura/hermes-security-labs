@@ -1,0 +1,42 @@
+id: mcp-agent-abuse
+name: MCP Agent Abuse Lab
+description: Model Context Protocol server and agent capable of tool abuse, data exfiltration,
+  and privilege escalation via MCP.
+runtime: docker
+driver: docker-compose
+risk: high
+source: mcp-agent-lab
+version: 0.8.0
+resources:
+  cpu: '2'
+  memory: 4Gi
+  disk: 20Gi
+networks:
+- labnet-ia
+- labnet-api
+egress: true
+targets:
+- mcp-server:3000
+- agent-ui:5173
+- backend-api:8080
+attacker: kali-vm
+lifecycle:
+- start
+- stop
+- reset
+- destroy
+reset: docker-compose restart mcp-server
+cleanup: docker-compose down -v
+evidence: MCP tool call logs; exfiltrated DB records; prompt history
+dependencies:
+- docker
+supported_tools:
+- burp
+- postman
+- python-mcp
+- langgraph
+limitations:
+- experimental spec
+- limited tool schema coverage
+status: CURRENT-LIMITED
+category: ia-llm-mcp

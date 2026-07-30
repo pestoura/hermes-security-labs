@@ -1,0 +1,44 @@
+id: gcp-iam-triage
+name: GCP IAM Triage Lab
+description: GCP project with overly permissive service accounts, public GCS buckets,
+  and IAM custom roles.
+runtime: cloud
+driver: terraform-gcp
+risk: medium
+source: gcp-iam-lab
+version: '1.0'
+resources:
+  cpu: '1'
+  memory: 2Gi
+  disk: 10Gi
+  cloud_vcpus: 2
+networks:
+- vpc-lab
+- subnet-us-central1
+egress: true
+targets:
+- storage.googleapis.com
+- compute.googleapis.com
+- iam.googleapis.com
+attacker: kali-vm
+lifecycle:
+- create
+- start
+- stop
+- destroy
+reset: terraform destroy -auto-approve && terraform apply -auto-approve
+cleanup: terraform destroy -auto-approve
+evidence: IAM policy JSON; GCS audit logs; access findings
+dependencies:
+- cloud
+- terraform
+- gcloud-cli
+supported_tools:
+- gcloud
+- prowler
+- forseti
+- orca
+limitations:
+- limited data residency options
+status: CLOUD-SANDBOX
+category: cloud

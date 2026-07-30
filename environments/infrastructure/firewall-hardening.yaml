@@ -1,0 +1,44 @@
+id: firewall-hardening
+name: Firewall Hardening Lab
+description: pfSense/OPNsense firewall with VPN bypass, VLAN hopping, and DMZ misconfiguration
+  scenarios.
+runtime: virtual-machine
+driver: qemu-kvm
+risk: medium
+source: pfsense-eval
+version: '23.09'
+resources:
+  cpu: '1'
+  memory: 2Gi
+  disk: 20Gi
+networks:
+- labnet-wan
+- labnet-dmz
+- labnet-lan
+egress: false
+targets:
+- fw:443
+- openvpn:1194
+- dmz-http:80
+attacker: kali-vm
+lifecycle:
+- start
+- stop
+- reset
+- destroy
+reset: virsh snapshot-revert fw clean
+cleanup: virsh destroy fw
+evidence: packet capture; firewall rule misconfig report
+dependencies:
+- virtual-machine
+- kvm
+supported_tools:
+- nmap
+- wireshark
+- bettercap
+- ike-scan
+limitations:
+- no PPPoE emulation
+- limited throughput
+status: CURRENT-LIMITED
+category: infrastructure

@@ -1,0 +1,43 @@
+id: k8s-rook-ceph
+name: Kubernetes Rook Ceph Lab
+description: Rook Ceph deployment exposing object storage abuse, MDS attacks, and
+  management API risks.
+runtime: kubernetes
+driver: k3d
+risk: high
+source: rook-ceph
+version: 1.12.0
+resources:
+  cpu: '4'
+  memory: 8Gi
+  disk: 120Gi
+networks:
+- k3d-labnet
+- ceph-public
+egress: false
+targets:
+- rook-ceph-mon
+- rook-ceph-mgr
+- rgw:7480
+attacker: kali
+lifecycle:
+- start
+- stop
+- reset
+- destroy
+reset: k3d cluster delete rook-lab && k3d cluster create rook-lab
+cleanup: k3d cluster delete rook-lab
+evidence: Ceph dashboard screenshots; object bucket logs
+dependencies:
+- kubernetes
+- k3d
+supported_tools:
+- ceph
+- rados
+- radosgw-admin
+- kubectl
+limitations:
+- no multi-site replication
+- reduced OSD count
+status: FUTURE-VM
+category: kubernetes
