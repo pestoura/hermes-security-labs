@@ -16,12 +16,21 @@ services:
         - /bin/bash
         - -c
         - |
-          for i in 1 2 3 4 5; do
-            timeout 3 bash -c "cat < /dev/null > /dev/tcp/localhost/8080" 2>/dev/null &&
-            timeout 3 bash -c "cat < /dev/null > /dev/tcp/localhost/9090" 2>/dev/null && exit 0
-            sleep 2
-          done
-          exit 1
+          check_http() {
+            local code
+            code="$(
+              curl \
+                --silent \
+                --show-error \
+                --output /dev/null \
+                --write-out '%{http_code}' \
+                --max-time 5 \
+                "$1"
+            )" || return 1
+            [[ "${code}" =~ ^[234][0-9][0-9]$ ]]
+          }
+          check_http http://127.0.0.1:8080/WebGoat/ &&
+          check_http http://127.0.0.1:9090/login
       interval: 15s
       timeout: 15s
       retries: 12
