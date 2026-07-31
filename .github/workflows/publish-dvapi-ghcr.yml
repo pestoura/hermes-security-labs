@@ -20,6 +20,7 @@ env:
   UPSTREAM_COMMIT: bde30d295aa8bc7f5516396fbae19d9630c11600
   UPSTREAM_SHORT: bde30d2
   BASE_IMAGE: docker.io/library/node:20-bookworm-slim
+  DOCKERFILE_SHA256: f4456a95d101d78082edea97cebe8a5a09fdd82520f59a7ed2d5e04cbb512be8
 
 jobs:
   publish:
@@ -61,7 +62,11 @@ jobs:
           CMD ["pm2-runtime", "start", "npm", "--", "start"]
           DOCKERFILE
 
-          sha256sum "${source_dir}/Dockerfile.hermes"
+          printf '%s  %s\n' \
+            "${DOCKERFILE_SHA256}" \
+            "${source_dir}/Dockerfile.hermes" |
+            sha256sum --check
+
           rm -rf "${source_dir}/.git"
 
       - name: Log in to GitHub Container Registry
@@ -93,6 +98,7 @@ jobs:
             io.hermes.upstream.repository=${{ env.UPSTREAM_REPOSITORY }}
             io.hermes.upstream.revision=${{ env.UPSTREAM_COMMIT }}
             io.hermes.build.base-image=${{ env.BASE_IMAGE }}
+            io.hermes.build.dockerfile-sha256=${{ env.DOCKERFILE_SHA256 }}
 
       - name: Build and push DVAPI
         id: push
@@ -128,6 +134,7 @@ jobs:
             echo "- Package: \`${REGISTRY}/${IMAGE_NAME}\`"
             echo "- Upstream commit: \`${UPSTREAM_COMMIT}\`"
             echo "- Base image: \`${BASE_IMAGE}\`"
+            echo "- Dockerfile SHA-256: \`${DOCKERFILE_SHA256}\`"
             echo "- Immutable reference: \`${image_ref}\`"
             echo "- Platform: \`linux/amd64\`"
             echo '- BuildKit provenance: `mode=max`'
