@@ -1,0 +1,46 @@
+id: dvapi
+name: DVAPI
+description: Deliberately vulnerable Node.js API backed by isolated MongoDB.
+category: web-api
+runtime: docker
+driver: docker-compose
+risk: low
+source: https://github.com/payatu/DVAPI
+version: bde30d295aa8bc7f5516396fbae19d9630c11600
+resources:
+  cpus: 1.5
+  memory: 1Gi
+  disk: 2G
+networks:
+  - dvapi-lab
+  - dvapi-db
+egress: true
+targets:
+  - http://dvapi:3000/
+attacker: kali-mcp
+lifecycle:
+  - start
+  - status
+  - smoke
+  - stop
+  - reset
+  - destroy
+reset: ./scripts/reset.sh
+cleanup: ./scripts/destroy.sh
+evidence: ${EVIDENCE_DIR:-.runtime/evidence/dvapi}
+dependencies:
+  - docker
+  - docker-buildkit
+  - mongo-4.4.29
+supported_tools:
+  - execute_command
+  - nikto_scan
+  - gobuster_scan
+limitations:
+  - local validation only
+  - application source is pinned to an immutable upstream commit
+  - project-contained Dockerfile replaces the upstream mutable node latest base
+  - MongoDB remains unexposed on an internal network
+  - runtime egress remains possible through the publication network
+  - no exploitation, destructive API operations, brute force, denial of service, external or LAN targets during lifecycle acceptance
+status: CURRENT
