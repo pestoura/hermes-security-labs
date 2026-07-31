@@ -1,0 +1,85 @@
+name: nodegoat
+
+services:
+  nodegoat:
+    build:
+      context: https://github.com/OWASP/NodeGoat.git#c5cb68a7084e4ae7dcc60e6a98768720a81841e8
+    image: hermes/nodegoat:c5cb68a
+    environment:
+      NODE_ENV: production
+      MONGODB_URI: mongodb://mongo:27017/nodegoat
+    command: sh -c "until nc -z -w 2 mongo 27017; do sleep 2; done; node artifacts/db-reset.js; npm start"
+    depends_on:
+      mongo:
+        condition: service_healthy
+    cap_drop:
+      - NET_RAW
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 640M
+          pids: 120
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "require('http').get('http://127.0.0.1:4000/',r=>process.exit(r.statusCode<500?0:1)).on('error',()=>process.exit(1))"
+      interval: 10s
+      timeout: 8s
+      retries: 24
+      start_period: 45s
+    networks:
+      nodegoat-lab:
+        aliases:
+          - nodegoat
+      nodegoat-db: {}
+    ports:
+      - "127.0.0.1:${NODEGOAT_HOST_PORT:-4000}:4000"
+    restart: on-failure
+
+  mongo:
+    image: docker.io/library/mongo:4.4.29
+    user: mongodb
+    cap_drop:
+      - NET_RAW
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+          pids: 120
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          mongo --quiet --eval
+          'quit(db.runCommand({ ping: 1 }).ok ? 0 : 1)'
+      interval: 10s
+      timeout: 8s
+      retries: 18
+      start_period: 30s
+    networks:
+      nodegoat-db:
+        aliases:
+          - mongo
+    restart: on-failure
+    volumes:
+      - nodegoat-mongo-data:/data/db
+
+networks:
+  nodegoat-lab:
+    name: nodegoat-lab
+    driver: bridge
+  nodegoat-db:
+    name: nodegoat-db
+    driver: bridge
+    internal: true
+
+volumes:
+  nodegoat-mongo-data:
