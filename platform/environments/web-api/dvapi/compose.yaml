@@ -58,7 +58,9 @@ services:
     healthcheck:
       test:
         - CMD-SHELL
-        - mongo --quiet --eval 'quit(db.runCommand({ ping: 1 }).ok ? 0 : 1)'
+        - >-
+          mongo --quiet --eval
+          'quit(db.runCommand({ ping: 1 }).ok ? 0 : 1)'
       interval: 10s
       timeout: 8s
       retries: 18
