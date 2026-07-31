@@ -2,9 +2,7 @@ name: vampi
 
 services:
   vampi:
-    build:
-      context: https://github.com/erev0s/VAmPI.git#f16052dce83f05847133ec98f01c5193a41de7d8
-    image: hermes/vampi:f16052d
+    image: ghcr.io/pestoura/hermes-vampi@sha256:e7b2760d586ed2b4b15a689823a07816e32308bca293f9e8c08830c7b36c7229
     environment:
       vulnerable: "1"
       tokentimetolive: "3600"
