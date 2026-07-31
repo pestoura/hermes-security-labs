@@ -8,6 +8,9 @@ services:
         FROM python:3.10-slim-bookworm
         ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
         WORKDIR /opt/dvga
+        RUN apt-get update && apt-get install --no-install-recommends -y \
+              git \
+            && rm -rf /var/lib/apt/lists/*
         RUN useradd --create-home --shell /usr/sbin/nologin dvga
         COPY . /opt/dvga
         RUN python -m pip install --no-cache-dir --upgrade pip && \
