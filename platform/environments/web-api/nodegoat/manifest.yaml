@@ -30,7 +30,6 @@ cleanup: ./scripts/destroy.sh
 evidence: ${EVIDENCE_DIR:-.runtime/evidence/nodegoat}
 dependencies:
   - docker
-  - docker-buildkit
   - mongo-4.4.29
 supported_tools:
   - execute_command
@@ -38,7 +37,8 @@ supported_tools:
   - gobuster_scan
 limitations:
   - local validation only
-  - application source is built from an immutable upstream commit
+  - application image is consumed from GHCR by immutable OCI index digest
+  - application image preserves upstream commit c5cb68a7084e4ae7dcc60e6a98768720a81841e8 and the accepted Node.js 12 compatibility boundary
   - MongoDB uses the fixed 4.4.29 dependency tag and remains unexposed on an internal network
   - runtime egress remains possible through the publication network
   - no exploitation, brute force, denial of service, external or LAN targets during lifecycle acceptance
