@@ -1,0 +1,144 @@
+name: Publish DVAPI to GHCR
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish the immutable DVAPI image
+        required: true
+        type: boolean
+        default: false
+
+concurrency:
+  group: ghcr-dvapi-publish
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository_owner }}/hermes-dvapi
+  UPSTREAM_REPOSITORY: https://github.com/payatu/DVAPI
+  UPSTREAM_COMMIT: bde30d295aa8bc7f5516396fbae19d9630c11600
+  UPSTREAM_SHORT: bde30d2
+  BASE_IMAGE: docker.io/library/node:20-bookworm-slim
+  DOCKERFILE_SHA256: f4456a95d101d78082edea97cebe8a5a09fdd82520f59a7ed2d5e04cbb512be8
+
+jobs:
+  publish:
+    name: Build and publish immutable DVAPI image
+    if: ${{ inputs.publish }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5
+        with:
+          driver: docker-container
+
+      - name: Prepare immutable DVAPI source
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          source_dir="${RUNNER_TEMP}/dvapi-source"
+          rm -rf "${source_dir}"
+          git init --quiet "${source_dir}"
+          git -C "${source_dir}" remote add origin "${UPSTREAM_REPOSITORY}.git"
+          git -C "${source_dir}" fetch --quiet --depth=1 --no-tags origin "${UPSTREAM_COMMIT}"
+          git -C "${source_dir}" checkout --quiet --detach FETCH_HEAD
+
+          actual_commit="$(git -C "${source_dir}" rev-parse HEAD)"
+          test "${actual_commit}" = "${UPSTREAM_COMMIT}"
+          test -f "${source_dir}/src/package.json"
+
+          cat > "${source_dir}/Dockerfile.hermes" <<'DOCKERFILE'
+          FROM node:20-bookworm-slim
+          WORKDIR /app
+          COPY src /app
+          RUN npm install && npm install --global pm2
+          CMD ["pm2-runtime", "start", "npm", "--", "start"]
+          DOCKERFILE
+
+          printf '%s  %s\n' \
+            "${DOCKERFILE_SHA256}" \
+            "${source_dir}/Dockerfile.hermes" |
+            sha256sum --check
+
+          rm -rf "${source_dir}/.git"
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate immutable OCI metadata
+        id: meta
+        uses: docker/metadata-action@030e881283bb7a6894de51c315a6bfe6a94e05cf
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          flavor: |
+            latest=false
+          tags: |
+            type=raw,value=upstream-${{ env.UPSTREAM_SHORT }}
+            type=sha,prefix=repo-,format=long
+          labels: |
+            org.opencontainers.image.title=Hermes DVAPI
+            org.opencontainers.image.description=Immutable DVAPI laboratory image built for hermes-security-labs
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.url=https://github.com/${{ github.repository }}
+            org.opencontainers.image.documentation=https://github.com/${{ github.repository }}/tree/main/platform/environments/web-api/dvapi
+            org.opencontainers.image.version=upstream-${{ env.UPSTREAM_SHORT }}
+            org.opencontainers.image.revision=${{ env.UPSTREAM_COMMIT }}
+            org.opencontainers.image.base.name=${{ env.BASE_IMAGE }}
+            io.hermes.upstream.repository=${{ env.UPSTREAM_REPOSITORY }}
+            io.hermes.upstream.revision=${{ env.UPSTREAM_COMMIT }}
+            io.hermes.build.base-image=${{ env.BASE_IMAGE }}
+            io.hermes.build.dockerfile-sha256=${{ env.DOCKERFILE_SHA256 }}
+
+      - name: Build and push DVAPI
+        id: push
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf
+        with:
+          context: ${{ runner.temp }}/dvapi-source
+          file: ${{ runner.temp }}/dvapi-source/Dockerfile.hermes
+          platforms: linux/amd64
+          pull: true
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          provenance: mode=max
+          sbom: true
+          cache-from: type=gha,scope=dvapi-bde30d2
+          cache-to: type=gha,mode=max,scope=dvapi-bde30d2
+
+      - name: Verify published digest
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          digest='${{ steps.push.outputs.digest }}'
+          test -n "${digest}"
+          [[ "${digest}" == sha256:* ]]
+
+          image_ref="${REGISTRY}/${IMAGE_NAME}@${digest}"
+          docker buildx imagetools inspect "${image_ref}"
+
+          {
+            echo '### DVAPI GHCR publication'
+            echo
+            echo "- Package: \`${REGISTRY}/${IMAGE_NAME}\`"
+            echo "- Upstream commit: \`${UPSTREAM_COMMIT}\`"
+            echo "- Base image: \`${BASE_IMAGE}\`"
+            echo "- Dockerfile SHA-256: \`${DOCKERFILE_SHA256}\`"
+            echo "- Immutable reference: \`${image_ref}\`"
+            echo "- Platform: \`linux/amd64\`"
+            echo '- BuildKit provenance: `mode=max`'
+            echo '- SBOM: enabled'
+            echo '- MongoDB: not published or mirrored'
+            echo '- Deployment: not performed'
+          } >> "${GITHUB_STEP_SUMMARY}"
