@@ -41,7 +41,7 @@ supported_tools:
 limitations:
   - local validation only
   - all six official crAPI application images must resolve to tag 1.1.6-rc8 in the effective Compose model
-  - effective image references must be inspected before pull; any 1.1.6, latest, main or develop reference is a checkout or configuration failure
+  - start refuses effective 1.1.6, latest, main or develop references before pull
   - repository digests must be recorded during local acceptance and pinned before promotion
   - optional chatbot and Chroma services are intentionally excluded from the baseline
   - only the web gateway joins the publication and Kali network
