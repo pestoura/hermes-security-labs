@@ -45,6 +45,7 @@ The workflow:
 - fetches only the declared upstream commit into the ephemeral runner directory;
 - verifies that the checked-out `HEAD` exactly matches the declared commit;
 - writes the reviewed Hermes Dockerfile only in the ephemeral workspace;
+- verifies the Dockerfile against its reviewed SHA-256 before building;
 - builds `linux/amd64` from the verified source;
 - authenticates to GHCR with the ephemeral `GITHUB_TOKEN`;
 - publishes only immutable tags;
@@ -64,6 +65,12 @@ WORKDIR /app
 COPY src /app
 RUN npm install && npm install --global pm2
 CMD ["pm2-runtime", "start", "npm", "--", "start"]
+```
+
+Reviewed Dockerfile SHA-256:
+
+```text
+f4456a95d101d78082edea97cebe8a5a09fdd82520f59a7ed2d5e04cbb512be8
 ```
 
 This recipe replaces the upstream mutable Node base while preserving the source and runtime command already accepted by the DVAPI lifecycle campaign.
@@ -87,9 +94,11 @@ The Docker setup, login, metadata and build actions are pinned to reviewed full 
 
 ## Current visibility exception
 
-The repository and pilot package are currently public because GitHub-hosted Actions were blocked by the account billing/spending restriction while the repository was private.
+The repository is currently public because GitHub-hosted Actions were blocked by the account billing/spending restriction while it was private.
 
-This is a temporary operating exception. The target model remains:
+GHCR package visibility is independent and must be confirmed immediately after the first publication. Anonymous Hermes validation requires the new `hermes-dvapi` package to be public during this temporary operating phase; do not assume that repository visibility changes the package automatically.
+
+The target model remains:
 
 - private repository and packages;
 - package linkage to `pestoura/hermes-security-labs`;
@@ -133,11 +142,12 @@ Record:
 - immutable package digest;
 - application manifest digest;
 - SBOM/provenance attestation manifest digest;
-- published immutable tags.
+- published immutable tags;
+- package visibility and repository linkage.
 
 ## Registry validation
 
-While the package remains public, validation must succeed without `docker login`:
+When the package is intentionally public for this rollout, validation must succeed without `docker login`:
 
 ```bash
 docker buildx imagetools inspect \
@@ -151,6 +161,7 @@ Confirm:
 - canonical digest matching the workflow summary;
 - provenance and SBOM attestation manifests;
 - expected OCI and Hermes labels;
+- reviewed Dockerfile SHA-256 label;
 - absence of a `latest` runtime tag.
 
 ## Hermes validation gate
