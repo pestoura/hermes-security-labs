@@ -10,7 +10,7 @@ x-service-security: &service-security
 services:
   crapi-identity:
     <<: *service-security
-    image: crapi/crapi-identity:1.1.6
+    image: crapi/crapi-identity:1.1.6-rc8
     environment:
       LOG_LEVEL: INFO
       DB_NAME: crapi
@@ -54,7 +54,7 @@ services:
 
   crapi-community:
     <<: *service-security
-    image: crapi/crapi-community:1.1.6
+    image: crapi/crapi-community:1.1.6-rc8
     environment:
       LOG_LEVEL: INFO
       IDENTITY_SERVICE: crapi-identity:8080
@@ -96,7 +96,7 @@ services:
 
   crapi-workshop:
     <<: *service-security
-    image: crapi/crapi-workshop:1.1.6
+    image: crapi/crapi-workshop:1.1.6-rc8
     environment:
       LOG_LEVEL: INFO
       IDENTITY_SERVICE: crapi-identity:8080
@@ -143,7 +143,7 @@ services:
 
   crapi-web:
     <<: *service-security
-    image: crapi/crapi-web:1.1.6
+    image: crapi/crapi-web:1.1.6-rc8
     environment:
       COMMUNITY_SERVICE: crapi-community:8087
       IDENTITY_SERVICE: crapi-identity:8080
@@ -181,7 +181,7 @@ services:
 
   gateway:
     <<: *service-security
-    image: crapi/gateway-service:1.1.6
+    image: crapi/gateway-service:1.1.6-rc8
     healthcheck:
       test: ["CMD", "bash", "-c", "cat < /dev/null > /dev/tcp/127.0.0.1/443"]
       interval: 15s
@@ -201,7 +201,7 @@ services:
 
   mailhog:
     <<: *service-security
-    image: crapi/mailhog:1.1.6
+    image: crapi/mailhog:1.1.6-rc8
     user: root
     environment:
       MH_MONGO_URI: admin:crapisecretpassword@mongodb:27017
@@ -260,7 +260,12 @@ services:
       MONGO_INITDB_ROOT_USERNAME: admin
       MONGO_INITDB_ROOT_PASSWORD: crapisecretpassword
     healthcheck:
-      test: ["CMD-SHELL", "mongo --quiet --username admin --password crapisecretpassword --authenticationDatabase admin --eval 'quit(db.runCommand({ ping: 1 }).ok ? 0 : 1)'"]
+      test:
+        - CMD-SHELL
+        - >-
+          mongo --quiet --username admin --password crapisecretpassword
+          --authenticationDatabase admin
+          --eval 'quit(db.runCommand({ ping: 1 }).ok ? 0 : 1)'
       interval: 15s
       timeout: 15s
       retries: 20
