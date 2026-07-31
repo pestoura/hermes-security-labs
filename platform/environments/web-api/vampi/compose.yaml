@@ -1,0 +1,42 @@
+name: vampi
+
+services:
+  vampi:
+    build:
+      context: https://github.com/erev0s/VAmPI.git#f16052dce83f05847133ec98f01c5193a41de7d8
+    image: hermes/vampi:f16052d
+    environment:
+      vulnerable: "1"
+      tokentimetolive: "3600"
+    cap_drop:
+      - NET_RAW
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+          pids: 100
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request; urllib.request.urlopen('http://127.0.0.1:5000/', timeout=5).read(1)
+      interval: 10s
+      timeout: 8s
+      retries: 18
+      start_period: 30s
+    networks:
+      vampi-lab:
+        aliases:
+          - vampi
+    ports:
+      - "127.0.0.1:${VAMPI_HOST_PORT:-5000}:5000"
+    restart: on-failure
+
+networks:
+  vampi-lab:
+    name: vampi-lab
+    driver: bridge

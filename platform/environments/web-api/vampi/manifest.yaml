@@ -1,0 +1,44 @@
+id: vampi
+name: VAmPI Vulnerable API
+description: Vulnerable Flask API based on OpenAPI 3 for authorised API security testing.
+category: web-api
+runtime: docker
+driver: docker-compose
+risk: low
+source: https://github.com/erev0s/VAmPI
+version: f16052dce83f05847133ec98f01c5193a41de7d8
+resources:
+  cpus: 1.0
+  memory: 512Mi
+  disk: 1G
+networks:
+  - vampi-lab
+egress: true
+targets:
+  - http://vampi:5000/
+  - http://vampi:5000/ui/
+attacker: kali-mcp
+lifecycle:
+  - start
+  - status
+  - smoke
+  - stop
+  - reset
+  - destroy
+reset: ./scripts/reset.sh
+cleanup: ./scripts/destroy.sh
+evidence: ${EVIDENCE_DIR:-.runtime/evidence/vampi}
+dependencies:
+  - docker
+  - docker-buildkit
+supported_tools:
+  - execute_command
+  - nikto_scan
+  - gobuster_scan
+limitations:
+  - local validation only
+  - source is built from an immutable upstream commit during first start
+  - runtime egress remains possible through the non-internal publication network
+  - no external or LAN targets
+  - no exploitation, denial of service or destructive API operations during lifecycle acceptance
+status: CURRENT
