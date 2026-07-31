@@ -1,0 +1,43 @@
+id: graphql-vulnerable-lab
+name: Damn Vulnerable GraphQL Application
+description: Intentionally vulnerable GraphQL application for authorised GraphQL security testing.
+category: web-api
+runtime: docker
+driver: docker-compose
+risk: low
+source: https://github.com/dolevf/Damn-Vulnerable-GraphQL-Application
+version: a961308c02d1fb462b192681c336b0739e432da7
+resources:
+  cpus: 1.0
+  memory: 768Mi
+  disk: 1G
+networks:
+  - graphql-vulnerable-lab
+egress: true
+targets:
+  - http://graphql-vulnerable-lab:5013/
+attacker: kali-mcp
+lifecycle:
+  - start
+  - status
+  - smoke
+  - stop
+  - reset
+  - destroy
+reset: ./scripts/reset.sh
+cleanup: ./scripts/destroy.sh
+evidence: ${EVIDENCE_DIR:-.runtime/evidence/graphql-vulnerable-lab}
+dependencies:
+  - docker
+  - docker-buildkit
+supported_tools:
+  - execute_command
+  - nikto_scan
+  - gobuster_scan
+limitations:
+  - local validation only
+  - source is built from an immutable upstream commit during first start
+  - runtime egress remains possible through the publication network
+  - no denial-of-service, command execution, SSRF, injection or exploitation scenarios during lifecycle acceptance
+  - no external or LAN targets
+status: CURRENT
