@@ -37,6 +37,7 @@ supported_tools:
 limitations:
   - local validation only
   - source is built from an immutable upstream commit during first start
+  - project-contained Dockerfile modernises unreliable upstream build steps without modifying application source
   - runtime egress remains possible through the publication network
   - no denial-of-service, command execution, SSRF, injection or exploitation scenarios during lifecycle acceptance
   - no external or LAN targets
