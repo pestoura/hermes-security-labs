@@ -7,13 +7,36 @@ KALI_CONTAINER="hermes-kali-mcp"; HOST_PORT="${CRAPI_HOST_PORT:-8888}"; CONTAINE
 SERVICES=(postgresdb mongodb mailhog gateway crapi-identity crapi-community crapi-workshop crapi-web)
 INTERNAL_SERVICES=(postgresdb mongodb mailhog gateway crapi-identity crapi-community crapi-workshop)
 VOLUMES=(crapi_crapi-postgres-data crapi_crapi-mongo-data)
+EXPECTED_CRAPI_IMAGES=(
+  crapi/crapi-identity:1.1.6-rc8
+  crapi/crapi-community:1.1.6-rc8
+  crapi/crapi-workshop:1.1.6-rc8
+  crapi/crapi-web:1.1.6-rc8
+  crapi/gateway-service:1.1.6-rc8
+  crapi/mailhog:1.1.6-rc8
+)
 COMPOSE=(docker compose -p "${PROJECT_NAME}" -f "${ENV_DIR}/compose.yaml")
 id(){ "${COMPOSE[@]}" ps -q "$1" 2>/dev/null; }
 owned(){ docker network inspect "$1" --format '{{index .Labels "com.docker.compose.project"}}' 2>/dev/null | grep -qx "${PROJECT_NAME}"; }
 kali_connected(){ docker network inspect "${LAB_NETWORK}" --format '{{range $k, $v := .Containers}}{{$v.Name}} {{end}}' 2>/dev/null | grep -qw "${KALI_CONTAINER}"; }
+verify_images(){
+  local effective expected
+  effective="$("${COMPOSE[@]}" config --images)"
+  printf '%s\n' "${effective}"
+  for expected in "${EXPECTED_CRAPI_IMAGES[@]}"; do
+    grep -Fxq "${expected}" <<<"${effective}" || {
+      echo "[start] Effective Compose image missing: ${expected}"
+      return 1
+    }
+  done
+  if grep -E '^crapi/.+:(1\.1\.6|latest|main|develop)$' <<<"${effective}"; then
+    echo '[start] Refusing mutable or incorrect crAPI image reference'
+    return 1
+  fi
+}
 disconnect(){ if ! docker network inspect "${LAB_NETWORK}" >/dev/null 2>&1; then echo '[disconnect-kali] Network absent'; return 0; fi; owned "${LAB_NETWORK}" || { echo '[disconnect-kali] Refusing unowned network'; return 1; }; if kali_connected; then docker network disconnect "${LAB_NETWORK}" "${KALI_CONTAINER}"; echo '[disconnect-kali] DISCONNECTED'; else echo '[disconnect-kali] ALREADY DISCONNECTED'; fi; }
 wait_healthy(){ local service cid health; for service in "${SERVICES[@]}"; do for _ in $(seq 1 120); do cid="$(id "${service}")"; if [ -n "${cid}" ]; then health="$(docker inspect "${cid}" --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}')"; [ "${health}" = healthy ] && break; [ "$(docker inspect "${cid}" --format '{{.State.Status}}')" = exited ] && return 1; fi; sleep 5; done; cid="$(id "${service}")"; [ -n "${cid}" ] && [ "$(docker inspect "${cid}" --format '{{.State.Health.Status}}')" = healthy ] || { echo "[start] ${service} not healthy"; return 1; }; done; }
-start(){ "${COMPOSE[@]}" config --quiet; if [ -z "$(id "${APP_SERVICE}")" ] && ss -ltn "sport = :${HOST_PORT}" | grep -q LISTEN; then echo "[start] Port ${HOST_PORT} already in use"; return 1; fi; "${COMPOSE[@]}" pull; "${COMPOSE[@]}" up -d; wait_healthy || { "${COMPOSE[@]}" logs --tail 150; return 1; }; echo '[start] All crAPI services healthy'; "${COMPOSE[@]}" ps; }
+start(){ "${COMPOSE[@]}" config --quiet; verify_images; if [ -z "$(id "${APP_SERVICE}")" ] && ss -ltn "sport = :${HOST_PORT}" | grep -q LISTEN; then echo "[start] Port ${HOST_PORT} already in use"; return 1; fi; "${COMPOSE[@]}" pull; "${COMPOSE[@]}" up -d; wait_healthy || { "${COMPOSE[@]}" logs --tail 150; return 1; }; echo '[start] All crAPI services healthy'; "${COMPOSE[@]}" ps; }
 status(){ "${COMPOSE[@]}" ps; local s cid; for s in "${SERVICES[@]}"; do cid="$(id "${s}")"; [ -n "${cid}" ] && docker inspect "${cid}" --format "service=${s} state={{.State.Status}} health={{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}} image={{.Config.Image}} networks={{range \$name, \$_ := .NetworkSettings.Networks}}{{\$name}} {{end}}" || true; done; "${COMPOSE[@]}" port "${APP_SERVICE}" "${CONTAINER_PORT}" || true; if kali_connected; then echo 'Kali CONNECTED'; else echo 'Kali NOT CONNECTED'; fi; }
 smoke(){ local s cid mapping code bindings; for s in "${SERVICES[@]}"; do cid="$(id "${s}")"; [ -n "${cid}" ] && [ "$(docker inspect "${cid}" --format '{{.State.Health.Status}}')" = healthy ] || return 1; done; mapping="$("${COMPOSE[@]}" port "${APP_SERVICE}" "${CONTAINER_PORT}")"; [ "${mapping}" = "127.0.0.1:${HOST_PORT}" ]; for s in "${INTERNAL_SERVICES[@]}"; do cid="$(id "${s}")"; bindings="$(docker inspect "${cid}" --format '{{json .HostConfig.PortBindings}}')"; [ "${bindings}" = '{}' ] || [ "${bindings}" = null ] || { echo "[smoke] ${s} has host binding ${bindings}"; return 1; }; done; code="$(python3 - "${HOST_PORT}" <<'PY'
 import http.client,sys
