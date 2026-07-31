@@ -6,7 +6,7 @@ runtime: docker
 driver: docker-compose
 risk: low
 source: https://github.com/OWASP/crAPI
-version: 1.1.6@73d309cc8f28bbdeed31dbb35f05dba8354de3c9
+version: 1.1.6-rc8@73d309cc8f28bbdeed31dbb35f05dba8354de3c9
 resources:
   cpus: 2.0
   memory: 3Gi
@@ -31,7 +31,7 @@ cleanup: ./scripts/destroy.sh
 evidence: ${EVIDENCE_DIR:-.runtime/evidence/crapi}
 dependencies:
   - docker
-  - crapi-1.1.6-images
+  - crapi-1.1.6-rc8-images
   - postgres-14
   - mongo-4.4.29
 supported_tools:
@@ -40,7 +40,7 @@ supported_tools:
   - gobuster_scan
 limitations:
   - local validation only
-  - official crAPI application images use fixed release tag 1.1.6; repository digests must be recorded during local acceptance
+  - official crAPI application images use the common available release-candidate tag 1.1.6-rc8; repository digests must be recorded during local acceptance
   - optional chatbot and Chroma services are intentionally excluded from the baseline
   - only the web gateway joins the publication and Kali network
   - PostgreSQL, MongoDB, MailHog, gateway and backend services remain on an internal network without host publication
