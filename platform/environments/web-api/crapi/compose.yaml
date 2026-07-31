@@ -24,6 +24,13 @@ services:
       MAILHOG_HOST: mailhog
       MAILHOG_PORT: "1025"
       MAILHOG_DOMAIN: example.com
+      SMTP_HOST: smtp.example.com
+      SMTP_PORT: "587"
+      SMTP_EMAIL: user@example.com
+      SMTP_PASS: xxxxxxxxxxxxxx
+      SMTP_FROM: no-reply@example.com
+      SMTP_AUTH: "true"
+      SMTP_STARTTLS: "true"
       JWT_EXPIRATION: "604800000"
       ENABLE_LOG4J: "false"
       API_GATEWAY_URL: https://api.mypremiumdealership.com
