@@ -5,12 +5,34 @@ services:
     build:
       context: https://github.com/adeyosemanputra/pygoat.git#19d17cc8874861142b330636d068bbde54e86b85
       dockerfile_inline: |
-        FROM python:3.11-slim-bookworm
+        FROM python:3.10-slim-bookworm
         ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
         WORKDIR /app
-        RUN apt-get update && apt-get install --no-install-recommends -y gcc libpq-dev && rm -rf /var/lib/apt/lists/*
+        RUN apt-get update && apt-get install --no-install-recommends -y \
+              build-essential \
+              libc6-dev \
+              libffi-dev \
+              libjpeg62-turbo-dev \
+              libpq-dev \
+              python3-dev \
+              zlib1g-dev \
+            && rm -rf /var/lib/apt/lists/*
         COPY . /app
-        RUN python -m pip install --no-cache-dir --upgrade pip && pip install --no-cache-dir -r requirements.txt && python manage.py migrate --noinput
+        RUN grep -vE '^(psycopg2|PyYAML)==' requirements.txt > /tmp/requirements.txt && \
+            python -m pip install --no-cache-dir --upgrade pip setuptools wheel && \
+            pip install --no-cache-dir psycopg2-binary==2.9.9 PyYAML==6.0.2 && \
+            pip install --no-cache-dir -r /tmp/requirements.txt && \
+            python - <<'PY'
+        from pathlib import Path
+        path = Path('/app/pygoat/settings.py')
+        text = path.read_text()
+        text = text.replace(
+            "ALLOWED_HOSTS = ['pygoat.herokuapp.com', '0.0.0.0.']",
+            "ALLOWED_HOSTS = ['pygoat.herokuapp.com', '0.0.0.0', '127.0.0.1', 'localhost', 'pygoat']",
+        )
+        path.write_text(text)
+        PY
+        RUN python manage.py migrate --noinput
         CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "2", "pygoat.wsgi"]
     image: hermes/pygoat:19d17cc
     cap_drop:
