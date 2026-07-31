@@ -1,0 +1,84 @@
+name: dvapi
+
+services:
+  dvapi:
+    build:
+      context: https://github.com/payatu/DVAPI.git#bde30d295aa8bc7f5516396fbae19d9630c11600
+      dockerfile_inline: |
+        FROM node:20-bookworm-slim
+        WORKDIR /app
+        COPY src /app
+        RUN npm install && npm install --global pm2
+        CMD ["pm2-runtime", "start", "npm", "--", "start"]
+    image: hermes/dvapi:bde30d2
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    cap_drop:
+      - NET_RAW
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 640M
+          pids: 120
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "require('http').get('http://127.0.0.1:3000/',r=>process.exit(r.statusCode<500?0:1)).on('error',()=>process.exit(1))"
+      interval: 10s
+      timeout: 8s
+      retries: 24
+      start_period: 45s
+    networks:
+      dvapi-lab:
+        aliases:
+          - dvapi
+      dvapi-db: {}
+    ports:
+      - "127.0.0.1:${DVAPI_HOST_PORT:-3000}:3000"
+    restart: on-failure
+
+  mongodb:
+    image: docker.io/library/mongo:4.4.29
+    cap_drop:
+      - NET_RAW
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+          pids: 120
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - mongo --quiet --eval 'quit(db.runCommand({ ping: 1 }).ok ? 0 : 1)'
+      interval: 10s
+      timeout: 8s
+      retries: 18
+      start_period: 30s
+    networks:
+      dvapi-db:
+        aliases:
+          - mongodb
+    restart: on-failure
+    volumes:
+      - dvapi-mongo-data:/data/db
+
+networks:
+  dvapi-lab:
+    name: dvapi-lab
+    driver: bridge
+  dvapi-db:
+    name: dvapi-db
+    driver: bridge
+    internal: true
+
+volumes:
+  dvapi-mongo-data:
