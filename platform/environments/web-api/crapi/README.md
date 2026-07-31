@@ -29,11 +29,11 @@ Before `start.sh`, inspect the effective Compose model:
 docker compose -p crapi -f compose.yaml config --images
 ```
 
-Every official crAPI image must resolve to `1.1.6-rc8`. Any effective `1.1.6`, `latest`, `main` or `develop` reference is a checkout/configuration failure and must stop the campaign before pulling.
+Every official crAPI image must resolve to `1.1.6-rc8`. Any effective `1.1.6`, `latest`, `main` or `develop` reference is a checkout/configuration failure and must stop the campaign before pulling. `start.sh` enforces this gate automatically.
 
 ## Lifecycle
 
-The first start pulls the fixed release tags and waits for all eight services to become healthy. Reset destroys volumes and recreates a clean environment. Destroy validates network ownership, disconnects Kali, removes containers, PostgreSQL/MongoDB volumes and both networks, preserves images and supports a second execution.
+The first start verifies the effective images, pulls the fixed release tags and waits for all eight services to become healthy. Reset destroys volumes and recreates a clean environment. Destroy validates network ownership, disconnects Kali, removes containers, PostgreSQL/MongoDB volumes and both networks, preserves images and supports a second execution.
 
 ## Acceptance limits
 
