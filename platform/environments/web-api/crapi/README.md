@@ -7,7 +7,7 @@
 - Reference commit: `73d309cc8f28bbdeed31dbb35f05dba8354de3c9`
 - Official application images use release tag `1.1.6`.
 
-Local acceptance must record the resolved repository digest for every official crAPI image and the PostgreSQL/MongoDB dependencies before promotion from `CURRENT-LIMITED`.
+Docker Hub currently exposes the final `1.1.6` tag for the official crAPI images. Local acceptance must record the resolved repository digest for every official crAPI image and the PostgreSQL/MongoDB dependencies before promotion from `CURRENT-LIMITED`.
 
 ## Baseline services
 
