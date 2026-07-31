@@ -6,7 +6,7 @@
 - Source commit: `19d17cc8874861142b330636d068bbde54e86b85`
 - Local image: `hermes/pygoat:19d17cc`
 
-The upstream source is immutable. A project-contained inline Dockerfile uses Python 3.11 on Debian Bookworm because the upstream Dockerfile pins obsolete Buster package versions. Application source is not modified.
+The upstream source is immutable. A project-contained inline Dockerfile uses Python 3.10 on Debian Bookworm, installs the native build toolchain required by legacy dependencies, substitutes `psycopg2-binary` for the unused PostgreSQL source build, upgrades PyYAML to a Python-compatible release, and adds the authorised local hostnames to Django `ALLOWED_HOSTS`. Challenge and application source remain otherwise unchanged.
 
 ## Targets
 
