@@ -1,0 +1,45 @@
+id: nodegoat
+name: OWASP NodeGoat
+description: Deliberately vulnerable Node.js application for authorised security training.
+category: web-api
+runtime: docker
+driver: docker-compose
+risk: low
+source: https://github.com/OWASP/NodeGoat
+version: c5cb68a7084e4ae7dcc60e6a98768720a81841e8
+resources:
+  cpus: 1.5
+  memory: 1Gi
+  disk: 2G
+networks:
+  - nodegoat-lab
+  - nodegoat-db
+egress: true
+targets:
+  - http://nodegoat:4000/
+attacker: kali-mcp
+lifecycle:
+  - start
+  - status
+  - smoke
+  - stop
+  - reset
+  - destroy
+reset: ./scripts/reset.sh
+cleanup: ./scripts/destroy.sh
+evidence: ${EVIDENCE_DIR:-.runtime/evidence/nodegoat}
+dependencies:
+  - docker
+  - docker-buildkit
+  - mongo-4.4.29
+supported_tools:
+  - execute_command
+  - nikto_scan
+  - gobuster_scan
+limitations:
+  - local validation only
+  - application source is built from an immutable upstream commit
+  - MongoDB uses the fixed 4.4.29 dependency tag and remains unexposed on an internal network
+  - runtime egress remains possible through the publication network
+  - no exploitation, brute force, denial of service, external or LAN targets during lifecycle acceptance
+status: CURRENT
