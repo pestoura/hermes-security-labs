@@ -3,11 +3,11 @@
 ## Canonical version
 
 - Repository: `OWASP/crAPI`
-- Release: `1.1.6`
+- Upstream reference release: `v1.1.6-rc8`
 - Reference commit: `73d309cc8f28bbdeed31dbb35f05dba8354de3c9`
-- Official application images use release tag `1.1.6`.
+- Official application images use the common available tag `1.1.6-rc8`.
 
-Docker Hub currently exposes the final `1.1.6` tag for the official crAPI images. Local acceptance must record the resolved repository digest for every official crAPI image and the PostgreSQL/MongoDB dependencies before promotion from `CURRENT-LIMITED`.
+The final `1.1.6` tag is not available consistently across all required official images. The baseline therefore uses the upstream release-candidate tag shared by identity, community, workshop, web, gateway and MailHog. Local acceptance must record the resolved repository digest for every official crAPI image and the PostgreSQL/MongoDB dependencies before promotion from `CURRENT-LIMITED`.
 
 ## Baseline services
 
@@ -24,7 +24,7 @@ Only `crapi-web` publishes a host port. All other services must have empty host 
 
 ## Lifecycle
 
-The first start pulls the fixed release tags and waits for all eight services to become healthy. Reset destroys volumes and recreates a clean environment. Destroy validates network ownership, disconnects Kali, removes containers, PostgreSQL/MongoDB volumes and both networks, preserves images and supports a second execution.
+The first start pulls the fixed release-candidate tags and waits for all eight services to become healthy. Reset destroys volumes and recreates a clean environment. Destroy validates network ownership, disconnects Kali, removes containers, PostgreSQL/MongoDB volumes and both networks, preserves images and supports a second execution.
 
 ## Acceptance limits
 
