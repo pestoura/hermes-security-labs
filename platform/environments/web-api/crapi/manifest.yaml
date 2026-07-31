@@ -40,7 +40,9 @@ supported_tools:
   - gobuster_scan
 limitations:
   - local validation only
-  - official crAPI application images use the common available release-candidate tag 1.1.6-rc8; repository digests must be recorded during local acceptance
+  - all six official crAPI application images must resolve to tag 1.1.6-rc8 in the effective Compose model
+  - effective image references must be inspected before pull; any 1.1.6, latest, main or develop reference is a checkout or configuration failure
+  - repository digests must be recorded during local acceptance and pinned before promotion
   - optional chatbot and Chroma services are intentionally excluded from the baseline
   - only the web gateway joins the publication and Kali network
   - PostgreSQL, MongoDB, MailHog, gateway and backend services remain on an internal network without host publication
