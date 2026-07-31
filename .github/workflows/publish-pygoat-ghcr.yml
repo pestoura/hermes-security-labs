@@ -20,8 +20,9 @@ env:
   UPSTREAM_COMMIT: 19d17cc8874861142b330636d068bbde54e86b85
   UPSTREAM_SHORT: 19d17cc
   BASE_IMAGE: docker.io/library/python:3.10-slim-bookworm
-  DOCKERFILE_SHA256: 58389fedb2ec704c6e0bc1e9f899cdd07a3fdc08aac117b9da20b1cfa53d8d3d
-  BUILD_RECIPE: pygoat-python310-compat-v1
+  DOCKERFILE_SHA256: be97d7312173241fdffd709ba9532d6c602b7780cc03d90c0a353fa216d835e6
+  BUILD_RECIPE: pygoat-python310-compat-v2
+  IMMUTABLE_UPSTREAM_TAG: upstream-19d17cc-recipe-v2
 
 jobs:
   publish:
@@ -46,6 +47,7 @@ jobs:
 
           source_dir="${RUNNER_TEMP}/pygoat-source"
           dockerfile="${source_dir}/Dockerfile.hermes"
+          settings_file="${source_dir}/pygoat/settings.py"
 
           rm -rf "${source_dir}"
           git init --quiet "${source_dir}"
@@ -58,12 +60,13 @@ jobs:
 
           test -f "${source_dir}/requirements.txt"
           test -f "${source_dir}/manage.py"
-          test -f "${source_dir}/pygoat/settings.py"
+          test -f "${settings_file}"
 
           grep -Fx 'psycopg2==2.9.3' "${source_dir}/requirements.txt"
           grep -Fx 'PyYAML==5.1' "${source_dir}/requirements.txt"
           grep -F "ALLOWED_HOSTS = ['pygoat.herokuapp.com', '0.0.0.0.']" \
-            "${source_dir}/pygoat/settings.py"
+            "${settings_file}"
+          grep -Fx 'django_heroku.settings(locals())' "${settings_file}"
 
           cat > "${dockerfile}" <<'DOCKERFILE'
           FROM python:3.10-slim-bookworm
@@ -87,10 +90,16 @@ jobs:
           from pathlib import Path
           path = Path('/app/pygoat/settings.py')
           text = path.read_text()
-          text = text.replace(
-              "ALLOWED_HOSTS = ['pygoat.herokuapp.com', '0.0.0.0.']",
-              "ALLOWED_HOSTS = ['pygoat.herokuapp.com', '0.0.0.0', '127.0.0.1', 'localhost', 'pygoat']",
-          )
+          original_hosts = "ALLOWED_HOSTS = ['pygoat.herokuapp.com', '0.0.0.0.']"
+          hermes_hosts = "ALLOWED_HOSTS = ['pygoat.herokuapp.com', '0.0.0.0', '127.0.0.1', 'localhost', 'pygoat']"
+          original_heroku = "django_heroku.settings(locals())"
+          hermes_heroku = "django_heroku.settings(locals(), allowed_hosts=False)"
+          if text.count(original_hosts) != 1:
+              raise SystemExit("unexpected upstream ALLOWED_HOSTS declaration")
+          if text.count(original_heroku) != 1:
+              raise SystemExit("unexpected django_heroku settings call")
+          text = text.replace(original_hosts, hermes_hosts)
+          text = text.replace(original_heroku, hermes_heroku)
           path.write_text(text)
           PY
           RUN python manage.py migrate --noinput
@@ -121,7 +130,7 @@ jobs:
           flavor: |
             latest=false
           tags: |
-            type=raw,value=upstream-${{ env.UPSTREAM_SHORT }}
+            type=raw,value=${{ env.IMMUTABLE_UPSTREAM_TAG }}
             type=sha,prefix=repo-,format=long
           labels: |
             org.opencontainers.image.title=Hermes PyGoat
@@ -129,7 +138,7 @@ jobs:
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
             org.opencontainers.image.url=https://github.com/${{ github.repository }}
             org.opencontainers.image.documentation=https://github.com/${{ github.repository }}/tree/main/platform/environments/web-api/pygoat
-            org.opencontainers.image.version=upstream-${{ env.UPSTREAM_SHORT }}
+            org.opencontainers.image.version=${{ env.IMMUTABLE_UPSTREAM_TAG }}
             org.opencontainers.image.revision=${{ env.UPSTREAM_COMMIT }}
             org.opencontainers.image.licenses=NOASSERTION
             org.opencontainers.image.base.name=${{ env.BASE_IMAGE }}
@@ -152,8 +161,31 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           provenance: mode=max
           sbom: true
-          cache-from: type=gha,scope=pygoat-19d17cc
-          cache-to: type=gha,mode=max,scope=pygoat-19d17cc
+          cache-from: type=gha,scope=pygoat-19d17cc-v2
+          cache-to: type=gha,mode=max,scope=pygoat-19d17cc-v2
+
+      - name: Verify published runtime configuration
+        shell: bash
+        env:
+          PUBLISHED_DIGEST: ${{ steps.push.outputs.digest }}
+        run: |
+          set -euo pipefail
+
+          test -n "${PUBLISHED_DIGEST}"
+          image_ref="${REGISTRY}/${IMAGE_NAME}@${PUBLISHED_DIGEST}"
+          expected_hosts="['pygoat.herokuapp.com', '0.0.0.0', '127.0.0.1', 'localhost', 'pygoat']"
+
+          runtime_hosts="$({
+            docker run \
+              --rm \
+              --network none \
+              --entrypoint python \
+              "${image_ref}" \
+              -c 'from pygoat import settings; print(repr(settings.ALLOWED_HOSTS))'
+          })"
+
+          printf 'RUNTIME_ALLOWED_HOSTS=%s\n' "${runtime_hosts}"
+          test "${runtime_hosts}" = "${expected_hosts}"
 
       - name: Verify published OCI index and manifests
         shell: bash
@@ -225,10 +257,12 @@ jobs:
             echo "- Declared base image: \`${BASE_IMAGE}\`"
             echo "- Build recipe: \`${BUILD_RECIPE}\`"
             echo "- Dockerfile SHA-256: \`${DOCKERFILE_SHA256}\`"
+            echo "- Immutable upstream tag: \`${IMMUTABLE_UPSTREAM_TAG}\`"
             echo "- OCI index/runtime digest: \`${digest}\`"
             echo "- Immutable runtime reference: \`${image_ref}\`"
             echo "- Application manifest (linux/amd64): \`${application_digest}\`"
             echo "- Attestation manifest (unknown/unknown): \`${attestation_digest}\`"
+            echo '- Runtime ALLOWED_HOSTS: restricted to the authorised Hermes list'
             echo '- Upstream license: `NOASSERTION`'
             echo '- BuildKit provenance: `mode=max`'
             echo '- SBOM: enabled'
