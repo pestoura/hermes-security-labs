@@ -210,21 +210,13 @@ The credential must not reuse the existing GitHub CLI OAuth token, a publication
 
 Credential creation, installation, rotation and revocation require explicit owner authorization.
 
-The token must never appear in Git history, Compose, manifests, command-line arguments, process listings, shell tracing, screenshots, evidence, agent memory or issue comments.
+The credential must never appear in Git history, Compose, manifests, command-line arguments, process listings, shell tracing, screenshots, evidence, agent memory or issue comments.
 
-Authentication uses standard input and an isolated Docker configuration:
+Authentication must use `docker login --password-stdin` with the secret supplied outside the command line and an isolated Docker configuration directory.
 
-```bash
-printf '%s' "${GHCR_READ_TOKEN}" |
-  docker --config "${HERMES_GHCR_DOCKER_CONFIG}" \
-  login ghcr.io \
-  --username pestoura \
-  --password-stdin
-```
+Preferred storage is an approved credential helper or host secret store. A plain Docker `config.json` requires explicit temporary-pilot approval, directory mode `0700`, file mode `0600`, a documented end date for the pilot and immediate credential rotation after the test.
 
-Preferred storage is an approved credential helper or host secret store. A plain Docker `config.json` requires explicit temporary-pilot approval, directory mode `0700`, file mode `0600`, documented expiry and immediate rotation after the test.
-
-Evidence may record the Docker config path, ownership, modes, helper name, token scope names, creation/expiry dates and rotation identifier. It must never record the token, Docker `auth`, Basic/Bearer headers or decoded credential material.
+Evidence may record only non-secret operational metadata such as the isolated config path, file ownership and modes, the credential helper name, the approved scope labels and a non-secret rotation reference. It must never record the credential, Docker `auth`, authorization headers or decoded credential material.
 
 ## Precondition gates
 
@@ -368,7 +360,7 @@ Issue `#7` must distinguish:
 - local image ID and architecture;
 - effective Compose hash;
 - authentication mode;
-- credential rotation identifier without secret material;
+- non-secret credential rotation reference;
 - SBOM/provenance verification;
 - rollback digest.
 
@@ -378,9 +370,9 @@ Drift exists when the running package identity or digest differs from the accept
 
 Use ignored directories under `.runtime/evidence/`.
 
-Allowed evidence includes package identities, digests, sanitized status/errors, workflow IDs, OCI metadata, token scope names without values, file modes, lifecycle results and drift comparisons.
+Allowed evidence includes package identities, digests, sanitized status/errors, workflow IDs, OCI metadata, approved scope labels without secret values, file modes, lifecycle results and drift comparisons.
 
-Forbidden evidence includes token values, authorization headers, Docker `auth`, cookies, private keys, unredacted environment dumps and shell history containing credentials.
+Forbidden evidence includes credential values, authorization headers, Docker `auth`, cookies, private keys, unredacted environment dumps and shell history containing credentials.
 
 ## Implementation sequence
 
