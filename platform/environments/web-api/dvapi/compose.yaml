@@ -2,15 +2,7 @@ name: dvapi
 
 services:
   dvapi:
-    build:
-      context: https://github.com/payatu/DVAPI.git#bde30d295aa8bc7f5516396fbae19d9630c11600
-      dockerfile_inline: |
-        FROM node:20-bookworm-slim
-        WORKDIR /app
-        COPY src /app
-        RUN npm install && npm install --global pm2
-        CMD ["pm2-runtime", "start", "npm", "--", "start"]
-    image: hermes/dvapi:bde30d2
+    image: ghcr.io/pestoura/hermes-dvapi@sha256:18d9175aa8031568c95e5bd9dcd9597a0b575aec7a742d81c7f34973c506c872
     depends_on:
       mongodb:
         condition: service_healthy
