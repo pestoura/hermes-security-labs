@@ -2,39 +2,7 @@ name: pygoat
 
 services:
   pygoat:
-    build:
-      context: https://github.com/adeyosemanputra/pygoat.git#19d17cc8874861142b330636d068bbde54e86b85
-      dockerfile_inline: |
-        FROM python:3.10-slim-bookworm
-        ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
-        WORKDIR /app
-        RUN apt-get update && apt-get install --no-install-recommends -y \
-              build-essential \
-              libc6-dev \
-              libffi-dev \
-              libjpeg62-turbo-dev \
-              libpq-dev \
-              python3-dev \
-              zlib1g-dev \
-            && rm -rf /var/lib/apt/lists/*
-        COPY . /app
-        RUN grep -vE '^(psycopg2|PyYAML)==' requirements.txt > /tmp/requirements.txt && \
-            python -m pip install --no-cache-dir --upgrade pip setuptools wheel && \
-            pip install --no-cache-dir psycopg2-binary==2.9.9 PyYAML==6.0.2 && \
-            pip install --no-cache-dir -r /tmp/requirements.txt && \
-            python - <<'PY'
-        from pathlib import Path
-        path = Path('/app/pygoat/settings.py')
-        text = path.read_text()
-        text = text.replace(
-            "ALLOWED_HOSTS = ['pygoat.herokuapp.com', '0.0.0.0.']",
-            "ALLOWED_HOSTS = ['pygoat.herokuapp.com', '0.0.0.0', '127.0.0.1', 'localhost', 'pygoat']",
-        )
-        path.write_text(text)
-        PY
-        RUN python manage.py migrate --noinput
-        CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "2", "pygoat.wsgi"]
-    image: hermes/pygoat:19d17cc
+    image: ghcr.io/pestoura/hermes-pygoat@sha256:3df04f28225c1b9a7a888edbb724540364c3d88967578fc688d47632272069a9
     cap_drop:
       - NET_RAW
     security_opt:

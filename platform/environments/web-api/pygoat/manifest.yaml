@@ -1,6 +1,6 @@
 id: pygoat
 name: PyGoat
-description: Deliberately vulnerable Django application built from an immutable upstream commit.
+description: Deliberately vulnerable Django application consumed from an immutable GHCR OCI index.
 category: web-api
 runtime: docker
 driver: docker-compose
@@ -29,17 +29,18 @@ cleanup: ./scripts/destroy.sh
 evidence: ${EVIDENCE_DIR:-.runtime/evidence/pygoat}
 dependencies:
   - docker
-  - source-build
 supported_tools:
   - execute_command
   - nikto_scan
   - gobuster_scan
 limitations:
   - local validation only
-  - source build uses a project-contained Python 3.10 compatibility wrapper
-  - legacy psycopg2 source build is replaced with psycopg2-binary and PyYAML is upgraded for runtime compatibility
-  - application source and challenges remain pinned to the recorded upstream commit
+  - application image is consumed from GHCR by immutable OCI index digest
+  - application source and challenges remain pinned to upstream commit 19d17cc8874861142b330636d068bbde54e86b85
+  - accepted recipe pygoat-python310-compat-v2 preserves the Python 3.10 compatibility boundary and SQLite database model
+  - psycopg2-binary 2.9.9, transitive psycopg2 2.9.12 and PyYAML 6.0.2 are retained for runtime compatibility
+  - effective Django ALLOWED_HOSTS is restricted to the authorised Hermes host list
   - host publication is restricted to 127.0.0.1
-  - runtime egress is permitted for source build and publication network
+  - runtime egress is permitted through the lab network
   - no exploitation, brute force, denial of service, external or LAN targets during acceptance
 status: CURRENT-LIMITED
