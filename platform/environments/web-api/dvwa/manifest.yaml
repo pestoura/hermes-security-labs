@@ -1,0 +1,50 @@
+id: dvwa
+name: Damn Vulnerable Web Application
+description: Official DVWA PHP and MariaDB vulnerable web lab with isolated database networking.
+category: web-api
+runtime: docker
+driver: docker-compose
+risk: low
+source: digininja-dvwa
+version: "sha256:091498cedec31b4a3091a1262e6a5a0ce5ec32d4bd26486558818346ccc89d67"
+resources:
+  cpus: 1.75
+  memory: 1536M
+  disk: 3G
+networks:
+  - dvwa-lab
+  - dvwa-db
+egress: true
+targets:
+  - http://dvwa:80/login.php
+attacker: kali-mcp
+lifecycle:
+  - start
+  - status
+  - smoke
+  - stop
+  - reset
+  - destroy
+reset: "./scripts/reset.sh"
+cleanup: "./scripts/destroy.sh"
+evidence: ${EVIDENCE_DIR:-.runtime/evidence/dvwa}
+dependencies:
+  - docker
+supported_tools:
+  - execute_command
+  - nikto_scan
+  - gobuster_scan
+limitations:
+  - local validation only
+  - no external targets
+  - no LAN exposure; host publication is restricted to 127.0.0.1
+  - DVWA image pinned to official GHCR commit tag d45ba3c and immutable index digest
+  - MariaDB 10.11.18 image pinned to immutable multi-platform index digest
+  - MariaDB has no host port and is attached only to the internal dvwa-db network
+  - the DVWA service also uses the non-internal dvwa-lab bridge for localhost publication and temporary Kali access
+  - runtime outbound egress from the DVWA service remains possible and must be declared accurately
+  - dedicated nmap_scan may remain DEGRADED in the current Kali MCP; TCP-connect Nmap uses execute_command fallback
+  - dirb_scan may be unavailable in the current Kali image
+  - server_health requires schema-compatible validation before being listed
+  - host port override supported via DVWA_HOST_PORT
+status: CURRENT

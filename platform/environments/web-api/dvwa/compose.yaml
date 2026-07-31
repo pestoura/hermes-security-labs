@@ -1,0 +1,89 @@
+name: dvwa
+
+services:
+  dvwa:
+    image: ghcr.io/digininja/dvwa:d45ba3c@sha256:091498cedec31b4a3091a1262e6a5a0ce5ec32d4bd26486558818346ccc89d67
+    environment:
+      DB_SERVER: db
+      DB_DATABASE: dvwa
+      DB_USER: dvwa
+      DB_PASSWORD: p@ssw0rd
+      DB_PORT: "3306"
+      DEFAULT_SECURITY_LEVEL: low
+      DEFAULT_LOCALE: en
+    depends_on:
+      db:
+        condition: service_healthy
+    cap_drop:
+      - NET_RAW
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 768M
+          pids: 100
+    healthcheck:
+      test:
+        - CMD
+        - php
+        - -r
+        - '$$body = @file_get_contents("http://127.0.0.1/login.php"); exit($$body === false ? 1 : 0);'
+      interval: 10s
+      timeout: 8s
+      retries: 18
+      start_period: 45s
+    networks:
+      dvwa-lab:
+        aliases:
+          - dvwa
+      dvwa-db: {}
+    ports:
+      - "127.0.0.1:${DVWA_HOST_PORT:-4280}:80"
+    restart: on-failure
+
+  db:
+    image: docker.io/library/mariadb:10.11.18@sha256:be981e4113326ada8d6004174dd09eeaefc03094037f811182a52d4f2e737350
+    environment:
+      MARIADB_ROOT_PASSWORD: dvwa-root-local
+      MARIADB_DATABASE: dvwa
+      MARIADB_USER: dvwa
+      MARIADB_PASSWORD: p@ssw0rd
+    cap_drop:
+      - NET_RAW
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          cpus: "0.75"
+          memory: 768M
+          pids: 150
+    healthcheck:
+      test:
+        - CMD
+        - healthcheck.sh
+        - --connect
+        - --innodb_initialized
+      interval: 10s
+      timeout: 8s
+      retries: 18
+      start_period: 30s
+    networks:
+      - dvwa-db
+    restart: on-failure
+    volumes:
+      - dvwa-db-data:/var/lib/mysql
+
+networks:
+  dvwa-lab:
+    name: dvwa-lab
+    driver: bridge
+  dvwa-db:
+    name: dvwa-db
+    driver: bridge
+    internal: true
+
+volumes:
+  dvwa-db-data:
