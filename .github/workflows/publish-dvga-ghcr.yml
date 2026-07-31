@@ -1,0 +1,403 @@
+name: Publish DVGA to GHCR
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish the immutable DVGA image
+        required: true
+        type: boolean
+        default: false
+
+concurrency:
+  group: ghcr-dvga-publish
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository_owner }}/hermes-dvga
+  UPSTREAM_REPOSITORY: https://github.com/dolevf/Damn-Vulnerable-GraphQL-Application
+  UPSTREAM_COMMIT: a961308c02d1fb462b192681c336b0739e432da7
+  UPSTREAM_SHORT: a961308
+  FLASK_SOCKETS_REPOSITORY: https://github.com/dolevf/flask-sockets
+  FLASK_SOCKETS_COMMIT: 513caf69a053a53c35110a389c9b0d83b2a9d99b
+  FLASK_SOCKETS_SHORT: 513caf6
+  BASE_IMAGE: docker.io/library/python:3.10-slim-bookworm
+  DOCKERFILE_SHA256: 9bce8097d8b8e2ed32c86cfa335cb8e3bc9f914f9e998e1f296a2e668c428e5d
+  BUILD_RECIPE: dvga-python310-vcs-pin-v1
+  IMMUTABLE_UPSTREAM_TAG: upstream-a961308-flask-sockets-513caf6
+
+jobs:
+  publish:
+    name: Build and publish immutable DVGA image
+    if: ${{ inputs.publish }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5
+        with:
+          driver: docker-container
+
+      - name: Prepare immutable DVGA source and build recipe
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          source_dir="${RUNNER_TEMP}/dvga-source"
+          dependency_dir="${RUNNER_TEMP}/flask-sockets-source"
+          dockerfile="${source_dir}/Dockerfile.hermes"
+          requirements="${source_dir}/requirements.txt"
+
+          rm -rf "${source_dir}" "${dependency_dir}"
+
+          git init --quiet "${source_dir}"
+          git -C "${source_dir}" remote add origin "${UPSTREAM_REPOSITORY}.git"
+          git -C "${source_dir}" fetch --quiet --depth=1 --no-tags origin "${UPSTREAM_COMMIT}"
+          git -C "${source_dir}" checkout --quiet --detach FETCH_HEAD
+
+          actual_commit="$(git -C "${source_dir}" rev-parse HEAD)"
+          test "${actual_commit}" = "${UPSTREAM_COMMIT}"
+
+          test -f "${requirements}"
+          test -f "${source_dir}/LICENSE.md"
+          test -f "${source_dir}/setup.py"
+          test -f "${source_dir}/app.py"
+          test -f "${source_dir}/version.py"
+
+          grep -Fx 'git+https://github.com/dolevf/flask-sockets@master' "${requirements}"
+          grep -Fx "VERSION = '2.2.0'" "${source_dir}/version.py"
+          grep -Fx 'MIT License' "${source_dir}/LICENSE.md"
+
+          git init --quiet "${dependency_dir}"
+          git -C "${dependency_dir}" remote add origin "${FLASK_SOCKETS_REPOSITORY}.git"
+          git -C "${dependency_dir}" fetch --quiet --depth=1 --no-tags origin "${FLASK_SOCKETS_COMMIT}"
+          test "$(git -C "${dependency_dir}" rev-parse FETCH_HEAD)" = "${FLASK_SOCKETS_COMMIT}"
+
+          cat > "${dockerfile}" <<'DOCKERFILE'
+          FROM python:3.10-slim-bookworm
+          ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+          WORKDIR /opt/dvga
+          RUN apt-get update && apt-get install --no-install-recommends -y \
+                git \
+              && rm -rf /var/lib/apt/lists/*
+          RUN useradd --create-home --shell /usr/sbin/nologin dvga
+          COPY . /opt/dvga
+          RUN python - <<'PY'
+          from pathlib import Path
+          path = Path('/opt/dvga/requirements.txt')
+          text = path.read_text()
+          mutable = 'git+https://github.com/dolevf/flask-sockets@master'
+          pinned = 'git+https://github.com/dolevf/flask-sockets@513caf69a053a53c35110a389c9b0d83b2a9d99b'
+          if text.count(mutable) != 1:
+              raise SystemExit('unexpected mutable flask-sockets requirement')
+          if pinned in text:
+              raise SystemExit('flask-sockets requirement already pinned')
+          path.write_text(text.replace(mutable, pinned))
+          PY
+          RUN python -m pip install --no-cache-dir --upgrade pip && \
+              pip install --no-cache-dir -r requirements.txt && \
+              python setup.py && \
+              chown -R dvga:dvga /opt/dvga
+          USER dvga
+          CMD ["python", "app.py"]
+          DOCKERFILE
+
+          sed -i 's/^          //' "${dockerfile}"
+
+          printf '%s  %s\n' \
+            "${DOCKERFILE_SHA256}" \
+            "${dockerfile}" |
+            sha256sum --check
+
+          rm -rf "${source_dir}/.git" "${dependency_dir}"
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate immutable OCI metadata
+        id: meta
+        uses: docker/metadata-action@030e881283bb7a6894de51c315a6bfe6a94e05cf
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          flavor: |
+            latest=false
+          tags: |
+            type=raw,value=${{ env.IMMUTABLE_UPSTREAM_TAG }}
+            type=sha,prefix=repo-,format=long
+          labels: |
+            org.opencontainers.image.title=Hermes DVGA
+            org.opencontainers.image.description=Immutable project-adapted Damn Vulnerable GraphQL Application image built for hermes-security-labs
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.url=https://github.com/${{ github.repository }}
+            org.opencontainers.image.documentation=https://github.com/${{ github.repository }}/tree/main/platform/environments/web-api/graphql-vulnerable-lab
+            org.opencontainers.image.version=${{ env.IMMUTABLE_UPSTREAM_TAG }}
+            org.opencontainers.image.revision=${{ env.UPSTREAM_COMMIT }}
+            org.opencontainers.image.licenses=MIT
+            org.opencontainers.image.base.name=${{ env.BASE_IMAGE }}
+            io.hermes.upstream.repository=${{ env.UPSTREAM_REPOSITORY }}
+            io.hermes.upstream.revision=${{ env.UPSTREAM_COMMIT }}
+            io.hermes.dependency.flask-sockets.repository=${{ env.FLASK_SOCKETS_REPOSITORY }}
+            io.hermes.dependency.flask-sockets.revision=${{ env.FLASK_SOCKETS_COMMIT }}
+            io.hermes.build.base-image=${{ env.BASE_IMAGE }}
+            io.hermes.build.dockerfile-sha256=${{ env.DOCKERFILE_SHA256 }}
+            io.hermes.build.recipe=${{ env.BUILD_RECIPE }}
+
+      - name: Build and push DVGA
+        id: push
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf
+        with:
+          context: ${{ runner.temp }}/dvga-source
+          file: ${{ runner.temp }}/dvga-source/Dockerfile.hermes
+          platforms: linux/amd64
+          pull: true
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          provenance: mode=max
+          sbom: true
+          cache-from: type=gha,scope=dvga-a961308-513caf6-v1
+          cache-to: type=gha,mode=max,scope=dvga-a961308-513caf6-v1
+
+      - name: Verify published runtime and dependency pin
+        shell: bash
+        env:
+          PUBLISHED_DIGEST: ${{ steps.push.outputs.digest }}
+        run: |
+          set -euo pipefail
+
+          test -n "${PUBLISHED_DIGEST}"
+          image_ref="${REGISTRY}/${IMAGE_NAME}@${PUBLISHED_DIGEST}"
+          container_name="dvga-ghcr-runtime-check"
+
+          cleanup() {
+            docker rm -f "${container_name}" >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+
+          docker pull --platform linux/amd64 "${image_ref}"
+
+          test "$(docker image inspect "${image_ref}" --format '{{.Config.User}}')" = dvga
+          test "$(docker image inspect "${image_ref}" --format '{{json .Config.Cmd}}')" = '["python","app.py"]'
+
+          runtime_metadata="$({
+            docker run \
+              --rm \
+              --network none \
+              --entrypoint python \
+              "${image_ref}" \
+              - <<'PY'
+          import importlib.metadata
+          import json
+          import platform
+
+          distribution = importlib.metadata.distribution("Flask-Sockets")
+          direct_url_text = distribution.read_text("direct_url.json")
+          if not direct_url_text:
+              raise SystemExit("Flask-Sockets direct_url.json is absent")
+
+          direct_url = json.loads(direct_url_text)
+          vcs_info = direct_url.get("vcs_info", {})
+
+          expected_commit = "513caf69a053a53c35110a389c9b0d83b2a9d99b"
+          if vcs_info.get("commit_id") != expected_commit:
+              raise SystemExit("unexpected Flask-Sockets VCS commit")
+          if vcs_info.get("requested_revision") != expected_commit:
+              raise SystemExit("Flask-Sockets requested revision is not immutable")
+
+          expected_packages = {
+              "Flask": "2.2.2",
+              "Flask-Sockets": "0.2.1.1",
+              "Flask-GraphQL": "2.0.1",
+              "Flask-GraphQL-Auth": "1.3.3",
+              "Flask-SocketIO": "5.3.2",
+              "Flask-SQLAlchemy": "3.0.2",
+              "SQLAlchemy": "1.4.44",
+              "graphene": "2.1.9",
+              "graphene-sqlalchemy": "2.3.0",
+              "graphql-core": "2.3.2",
+              "gevent": "22.10.2",
+              "gevent-websocket": "0.10.1",
+              "greenlet": "2.0.1",
+              "Werkzeug": "2.2.2",
+              "PyJWT": "2.0.1",
+          }
+
+          actual_packages = {
+              name: importlib.metadata.version(name)
+              for name in expected_packages
+          }
+
+          if actual_packages != expected_packages:
+              raise SystemExit(
+                  f"critical dependency mismatch: {actual_packages!r}"
+              )
+
+          from version import VERSION
+          if VERSION != "2.2.0":
+              raise SystemExit(f"unexpected DVGA version: {VERSION}")
+
+          result = {
+              "python": platform.python_version(),
+              "dvga_version": VERSION,
+              "flask_sockets_direct_url": direct_url,
+              "packages": actual_packages,
+          }
+          print(json.dumps(result, sort_keys=True))
+          PY
+          })"
+
+          printf 'RUNTIME_METADATA=%s\n' "${runtime_metadata}"
+
+          docker run \
+            -d \
+            --name "${container_name}" \
+            --network none \
+            --cap-drop NET_RAW \
+            --security-opt no-new-privileges \
+            -e WEB_HOST=127.0.0.1 \
+            -e WEB_PORT=5013 \
+            "${image_ref}"
+
+          healthy=no
+          for _ in $(seq 1 45); do
+            if docker exec "${container_name}" \
+              python - <<'PY' >/dev/null 2>&1
+          import urllib.request
+          response = urllib.request.urlopen(
+              "http://127.0.0.1:5013/",
+              timeout=5,
+          )
+          response.read(1)
+          if response.status < 200 or response.status >= 500:
+              raise SystemExit(1)
+          PY
+            then
+              healthy=yes
+              break
+            fi
+
+            state="$(docker inspect "${container_name}" --format '{{.State.Status}}')"
+            [ "${state}" = running ] || break
+            sleep 2
+          done
+
+          if [ "${healthy}" != yes ]; then
+            docker logs "${container_name}"
+            exit 1
+          fi
+
+          test "$(docker inspect "${container_name}" --format '{{.Config.User}}')" = dvga
+          test "$(docker inspect "${container_name}" --format '{{.HostConfig.NetworkMode}}')" = none
+          docker inspect "${container_name}" --format '{{json .HostConfig.CapDrop}}' | grep -F NET_RAW
+          docker inspect "${container_name}" --format '{{json .HostConfig.SecurityOpt}}' | grep -F no-new-privileges
+
+          docker exec "${container_name}" \
+            python - <<'PY'
+          import os
+          import config
+          from version import VERSION
+
+          assert VERSION == "2.2.0"
+          assert config.WEB_HOST == "127.0.0.1"
+          assert int(config.WEB_PORT) == 5013
+          assert os.path.isfile(config.SQLALCHEMY_FILE)
+          assert os.path.getsize(config.SQLALCHEMY_FILE) > 0
+          assert os.path.isdir(config.WEB_UPLOADDIR)
+
+          print("DVGA_RUNTIME=PASS")
+          print("FLASK_SOCKETS_PIN=PASS")
+          print("DATABASE_INITIALIZED=PASS")
+          PY
+
+      - name: Verify published OCI index and manifests
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          digest='${{ steps.push.outputs.digest }}'
+          test -n "${digest}"
+          [[ "${digest}" == sha256:* ]]
+
+          image_ref="${REGISTRY}/${IMAGE_NAME}@${digest}"
+          raw_index="${RUNNER_TEMP}/dvga-index.json"
+
+          docker buildx imagetools inspect "${image_ref}"
+          docker buildx imagetools inspect --raw "${image_ref}" > "${raw_index}"
+
+          read -r application_digest attestation_digest < <(
+            python3 - "${raw_index}" <<'PY'
+          import json
+          import sys
+
+          with open(sys.argv[1], encoding="utf-8") as handle:
+              index = json.load(handle)
+
+          if index.get("mediaType") != "application/vnd.oci.image.index.v1+json":
+              raise SystemExit("published object is not an OCI image index")
+
+          manifests = index.get("manifests", [])
+          applications = [
+              item for item in manifests
+              if item.get("platform", {}).get("os") == "linux"
+              and item.get("platform", {}).get("architecture") == "amd64"
+          ]
+          attestations = [
+              item for item in manifests
+              if item.get("platform", {}).get("os") == "unknown"
+              and item.get("platform", {}).get("architecture") == "unknown"
+              and item.get("annotations", {}).get("vnd.docker.reference.type")
+              == "attestation-manifest"
+          ]
+
+          if len(applications) != 1:
+              raise SystemExit("expected exactly one linux/amd64 application manifest")
+          if len(attestations) != 1:
+              raise SystemExit("expected exactly one attestation manifest")
+
+          application_digest = applications[0]["digest"]
+          attestation_digest = attestations[0]["digest"]
+          reference_digest = attestations[0].get("annotations", {}).get(
+              "vnd.docker.reference.digest"
+          )
+
+          if reference_digest != application_digest:
+              raise SystemExit("attestation does not reference the application manifest")
+
+          print(application_digest, attestation_digest)
+          PY
+          )
+
+          [[ "${application_digest}" == sha256:* ]]
+          [[ "${attestation_digest}" == sha256:* ]]
+          test "${digest}" != "${attestation_digest}"
+
+          {
+            echo '### DVGA GHCR publication'
+            echo
+            echo "- Package: \`${REGISTRY}/${IMAGE_NAME}\`"
+            echo "- Primary upstream commit: \`${UPSTREAM_COMMIT}\`"
+            echo "- Flask-Sockets commit: \`${FLASK_SOCKETS_COMMIT}\`"
+            echo "- Declared base image: \`${BASE_IMAGE}\`"
+            echo "- Build recipe: \`${BUILD_RECIPE}\`"
+            echo "- Dockerfile SHA-256: \`${DOCKERFILE_SHA256}\`"
+            echo "- Immutable upstream tag: \`${IMMUTABLE_UPSTREAM_TAG}\`"
+            echo "- OCI index/runtime digest: \`${digest}\`"
+            echo "- Immutable runtime reference: \`${image_ref}\`"
+            echo "- Application manifest (linux/amd64): \`${application_digest}\`"
+            echo "- Attestation manifest (unknown/unknown): \`${attestation_digest}\`"
+            echo '- Runtime user: `dvga`'
+            echo '- DVGA version: `2.2.0`'
+            echo '- Upstream license: `MIT`'
+            echo '- BuildKit provenance: `mode=max`'
+            echo '- SBOM: enabled'
+            echo '- Deployment: not performed'
+          } >> "${GITHUB_STEP_SUMMARY}"
