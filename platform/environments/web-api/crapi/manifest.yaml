@@ -1,0 +1,51 @@
+id: crapi
+name: OWASP crAPI
+description: Completely Ridiculous API, a deliberately vulnerable microservice API platform.
+category: web-api
+runtime: docker
+driver: docker-compose
+risk: low
+source: https://github.com/OWASP/crAPI
+version: 1.1.6-rc8@73d309cc8f28bbdeed31dbb35f05dba8354de3c9
+resources:
+  cpus: 2.0
+  memory: 3Gi
+  disk: 6G
+networks:
+  - crapi-lab
+  - crapi-core
+egress: true
+targets:
+  - http://crapi:80/
+  - http://crapi:80/health
+attacker: kali-mcp
+lifecycle:
+  - start
+  - status
+  - smoke
+  - stop
+  - reset
+  - destroy
+reset: ./scripts/reset.sh
+cleanup: ./scripts/destroy.sh
+evidence: ${EVIDENCE_DIR:-.runtime/evidence/crapi}
+dependencies:
+  - docker
+  - crapi-1.1.6-rc8-images
+  - postgres-14
+  - mongo-4.4.29
+supported_tools:
+  - execute_command
+  - nikto_scan
+  - gobuster_scan
+limitations:
+  - local validation only
+  - all six official crAPI application images must resolve to tag 1.1.6-rc8 in the effective Compose model
+  - start refuses effective 1.1.6, latest, main or develop references before pull
+  - repository digests must be recorded during local acceptance and pinned before promotion
+  - optional chatbot and Chroma services are intentionally excluded from the baseline
+  - only the web gateway joins the publication and Kali network
+  - PostgreSQL, MongoDB, MailHog, gateway and backend services remain on an internal network without host publication
+  - runtime egress remains possible through the web publication network
+  - no exploitation, account abuse, brute force, denial of service, external or LAN targets during lifecycle acceptance
+status: CURRENT-LIMITED
