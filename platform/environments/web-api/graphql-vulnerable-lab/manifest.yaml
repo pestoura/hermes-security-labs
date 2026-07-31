@@ -1,6 +1,6 @@
 id: graphql-vulnerable-lab
 name: Damn Vulnerable GraphQL Application
-description: Intentionally vulnerable GraphQL application for authorised GraphQL security testing.
+description: Intentionally vulnerable GraphQL application consumed from an immutable GHCR OCI index.
 category: web-api
 runtime: docker
 driver: docker-compose
@@ -29,15 +29,18 @@ cleanup: ./scripts/destroy.sh
 evidence: ${EVIDENCE_DIR:-.runtime/evidence/graphql-vulnerable-lab}
 dependencies:
   - docker
-  - docker-buildkit
 supported_tools:
   - execute_command
   - nikto_scan
   - gobuster_scan
 limitations:
   - local validation only
-  - source is built from an immutable upstream commit during first start
-  - project-contained Dockerfile modernises unreliable upstream build steps without modifying application source
+  - runtime image is pinned to the accepted immutable GHCR OCI index digest
+  - application source remains pinned to upstream commit a961308c02d1fb462b192681c336b0739e432da7
+  - Flask-Sockets is pinned to commit 513caf69a053a53c35110a389c9b0d83b2a9d99b by the accepted publication recipe
+  - accepted runtime preserves DVGA 2.2.0, Python 3.10, SQLite and the non-root dvga user
+  - wheel 0.46.3 versus packaging 22.0 is a recorded non-blocking build-tool compatibility observation present in both compared images
+  - host publication is restricted to 127.0.0.1
   - runtime egress remains possible through the publication network
   - no denial-of-service, command execution, SSRF, injection or exploitation scenarios during lifecycle acceptance
   - no external or LAN targets
