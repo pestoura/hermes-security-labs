@@ -30,7 +30,6 @@ cleanup: ./scripts/destroy.sh
 evidence: ${EVIDENCE_DIR:-.runtime/evidence/dvapi}
 dependencies:
   - docker
-  - docker-buildkit
   - mongo-4.4.29
 supported_tools:
   - execute_command
@@ -38,9 +37,8 @@ supported_tools:
   - gobuster_scan
 limitations:
   - local validation only
-  - application source is pinned to an immutable upstream commit
-  - project-contained Dockerfile replaces the upstream mutable node latest base
-  - MongoDB remains unexposed on an internal network
+  - application runtime image is pinned to an immutable GHCR digest built from the declared upstream commit and reviewed Node.js 20 recipe
+  - MongoDB remains the separately pinned official image and is unexposed on an internal network
   - runtime egress remains possible through the publication network
   - no exploitation, destructive API operations, brute force, denial of service, external or LAN targets during lifecycle acceptance
 status: CURRENT
