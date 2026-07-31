@@ -1,0 +1,57 @@
+name: graphql-vulnerable-lab
+
+services:
+  graphql-vulnerable-lab:
+    build:
+      context: https://github.com/dolevf/Damn-Vulnerable-GraphQL-Application.git#a961308c02d1fb462b192681c336b0739e432da7
+      dockerfile_inline: |
+        FROM python:3.10-slim-bookworm
+        ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+        WORKDIR /opt/dvga
+        RUN apt-get update && apt-get install --no-install-recommends -y \
+              git \
+            && rm -rf /var/lib/apt/lists/*
+        RUN useradd --create-home --shell /usr/sbin/nologin dvga
+        COPY . /opt/dvga
+        RUN python -m pip install --no-cache-dir --upgrade pip && \
+            pip install --no-cache-dir -r requirements.txt && \
+            python setup.py && \
+            chown -R dvga:dvga /opt/dvga
+        USER dvga
+        CMD ["python", "app.py"]
+    image: hermes/dvga:a961308
+    environment:
+      WEB_HOST: 0.0.0.0
+      WEB_PORT: "5013"
+    cap_drop:
+      - NET_RAW
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 768M
+          pids: 120
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request; urllib.request.urlopen('http://127.0.0.1:5013/', timeout=5).read(1)
+      interval: 10s
+      timeout: 8s
+      retries: 18
+      start_period: 30s
+    networks:
+      graphql-vulnerable-lab:
+        aliases:
+          - graphql-vulnerable-lab
+    ports:
+      - "127.0.0.1:${GRAPHQL_LAB_HOST_PORT:-5013}:5013"
+    restart: on-failure
+
+networks:
+  graphql-vulnerable-lab:
+    name: graphql-vulnerable-lab
+    driver: bridge
