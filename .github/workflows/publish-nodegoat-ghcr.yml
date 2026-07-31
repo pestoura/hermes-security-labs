@@ -1,0 +1,191 @@
+name: Publish NodeGoat to GHCR
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish the immutable NodeGoat image
+        required: true
+        type: boolean
+        default: false
+
+concurrency:
+  group: ghcr-nodegoat-publish
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository_owner }}/hermes-nodegoat
+  UPSTREAM_REPOSITORY: https://github.com/OWASP/NodeGoat
+  UPSTREAM_COMMIT: c5cb68a7084e4ae7dcc60e6a98768720a81841e8
+  UPSTREAM_SHORT: c5cb68a
+  BASE_IMAGE: docker.io/library/node:12-alpine
+  DOCKERFILE_SHA256: 564fbfee6c70cebb62279954262dc614004faabfb71f63c09cb93a1f01237810
+
+jobs:
+  publish:
+    name: Build and publish immutable NodeGoat image
+    if: ${{ inputs.publish }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5
+        with:
+          driver: docker-container
+
+      - name: Prepare immutable NodeGoat source
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          source_dir="${RUNNER_TEMP}/nodegoat-source"
+          rm -rf "${source_dir}"
+          git init --quiet "${source_dir}"
+          git -C "${source_dir}" remote add origin "${UPSTREAM_REPOSITORY}.git"
+          git -C "${source_dir}" fetch --quiet --depth=1 --no-tags origin "${UPSTREAM_COMMIT}"
+          git -C "${source_dir}" checkout --quiet --detach FETCH_HEAD
+
+          actual_commit="$(git -C "${source_dir}" rev-parse HEAD)"
+          test "${actual_commit}" = "${UPSTREAM_COMMIT}"
+          test -f "${source_dir}/package.json"
+          test -f "${source_dir}/artifacts/db-reset.js"
+          test -f "${source_dir}/Dockerfile"
+
+          printf '%s  %s\n' \
+            "${DOCKERFILE_SHA256}" \
+            "${source_dir}/Dockerfile" |
+            sha256sum --check
+
+          rm -rf "${source_dir}/.git"
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate immutable OCI metadata
+        id: meta
+        uses: docker/metadata-action@030e881283bb7a6894de51c315a6bfe6a94e05cf
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          flavor: |
+            latest=false
+          tags: |
+            type=raw,value=upstream-${{ env.UPSTREAM_SHORT }}
+            type=sha,prefix=repo-,format=long
+          labels: |
+            org.opencontainers.image.title=Hermes OWASP NodeGoat
+            org.opencontainers.image.description=Immutable OWASP NodeGoat laboratory image built for hermes-security-labs
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.url=https://github.com/${{ github.repository }}
+            org.opencontainers.image.documentation=https://github.com/${{ github.repository }}/tree/main/platform/environments/web-api/nodegoat
+            org.opencontainers.image.version=upstream-${{ env.UPSTREAM_SHORT }}
+            org.opencontainers.image.revision=${{ env.UPSTREAM_COMMIT }}
+            org.opencontainers.image.licenses=Apache-2.0
+            org.opencontainers.image.base.name=${{ env.BASE_IMAGE }}
+            io.hermes.upstream.repository=${{ env.UPSTREAM_REPOSITORY }}
+            io.hermes.upstream.revision=${{ env.UPSTREAM_COMMIT }}
+            io.hermes.build.base-image=${{ env.BASE_IMAGE }}
+            io.hermes.build.dockerfile-sha256=${{ env.DOCKERFILE_SHA256 }}
+
+      - name: Build and push NodeGoat
+        id: push
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf
+        with:
+          context: ${{ runner.temp }}/nodegoat-source
+          file: ${{ runner.temp }}/nodegoat-source/Dockerfile
+          platforms: linux/amd64
+          pull: true
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          provenance: mode=max
+          sbom: true
+          cache-from: type=gha,scope=nodegoat-c5cb68a
+          cache-to: type=gha,mode=max,scope=nodegoat-c5cb68a
+
+      - name: Verify published OCI index and manifests
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          digest='${{ steps.push.outputs.digest }}'
+          test -n "${digest}"
+          [[ "${digest}" == sha256:* ]]
+
+          image_ref="${REGISTRY}/${IMAGE_NAME}@${digest}"
+          raw_index="${RUNNER_TEMP}/nodegoat-index.json"
+
+          docker buildx imagetools inspect "${image_ref}"
+          docker buildx imagetools inspect --raw "${image_ref}" > "${raw_index}"
+
+          read -r application_digest attestation_digest < <(
+            python3 - "${raw_index}" <<'PY'
+          import json
+          import sys
+
+          with open(sys.argv[1], encoding="utf-8") as handle:
+              index = json.load(handle)
+
+          if index.get("mediaType") != "application/vnd.oci.image.index.v1+json":
+              raise SystemExit("published object is not an OCI image index")
+
+          manifests = index.get("manifests", [])
+          applications = [
+              item for item in manifests
+              if item.get("platform", {}).get("os") == "linux"
+              and item.get("platform", {}).get("architecture") == "amd64"
+          ]
+          attestations = [
+              item for item in manifests
+              if item.get("platform", {}).get("os") == "unknown"
+              and item.get("platform", {}).get("architecture") == "unknown"
+              and item.get("annotations", {}).get("vnd.docker.reference.type")
+              == "attestation-manifest"
+          ]
+
+          if len(applications) != 1:
+              raise SystemExit("expected exactly one linux/amd64 application manifest")
+          if len(attestations) != 1:
+              raise SystemExit("expected exactly one attestation manifest")
+
+          application_digest = applications[0]["digest"]
+          attestation_digest = attestations[0]["digest"]
+          reference_digest = attestations[0].get("annotations", {}).get(
+              "vnd.docker.reference.digest"
+          )
+
+          if reference_digest != application_digest:
+              raise SystemExit("attestation does not reference the application manifest")
+
+          print(application_digest, attestation_digest)
+          PY
+          )
+
+          [[ "${application_digest}" == sha256:* ]]
+          [[ "${attestation_digest}" == sha256:* ]]
+          test "${digest}" != "${attestation_digest}"
+
+          {
+            echo '### NodeGoat GHCR publication'
+            echo
+            echo "- Package: \`${REGISTRY}/${IMAGE_NAME}\`"
+            echo "- Upstream commit: \`${UPSTREAM_COMMIT}\`"
+            echo "- Declared base image: \`${BASE_IMAGE}\`"
+            echo "- Dockerfile SHA-256: \`${DOCKERFILE_SHA256}\`"
+            echo "- OCI index/runtime digest: \`${digest}\`"
+            echo "- Immutable runtime reference: \`${image_ref}\`"
+            echo "- Application manifest (linux/amd64): \`${application_digest}\`"
+            echo "- Attestation manifest (unknown/unknown): \`${attestation_digest}\`"
+            echo '- BuildKit provenance: `mode=max`'
+            echo '- SBOM: enabled'
+            echo '- MongoDB: not published or mirrored'
+            echo '- Deployment: not performed'
+          } >> "${GITHUB_STEP_SUMMARY}"
