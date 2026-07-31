@@ -2,9 +2,7 @@ name: nodegoat
 
 services:
   nodegoat:
-    build:
-      context: https://github.com/OWASP/NodeGoat.git#c5cb68a7084e4ae7dcc60e6a98768720a81841e8
-    image: hermes/nodegoat:c5cb68a
+    image: ghcr.io/pestoura/hermes-nodegoat@sha256:0e0cbd8b0c82db51b1dfff9c58a391653774fa3b7b4c68ad10e6cda4c173ab6c
     environment:
       NODE_ENV: production
       MONGODB_URI: mongodb://mongo:27017/nodegoat
