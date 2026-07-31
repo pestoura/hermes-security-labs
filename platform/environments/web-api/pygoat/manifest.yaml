@@ -1,6 +1,6 @@
 id: pygoat
 name: PyGoat
-description: Deliberately vulnerable Django application for authorised web security testing.
+description: Deliberately vulnerable Django application built from an immutable upstream commit.
 category: web-api
 runtime: docker
 driver: docker-compose
@@ -29,15 +29,17 @@ cleanup: ./scripts/destroy.sh
 evidence: ${EVIDENCE_DIR:-.runtime/evidence/pygoat}
 dependencies:
   - docker
-  - docker-buildkit
+  - source-build
 supported_tools:
   - execute_command
   - nikto_scan
   - gobuster_scan
 limitations:
   - local validation only
-  - source is pinned to an immutable upstream commit
-  - project-contained Dockerfile modernises the obsolete upstream base image without modifying application source
-  - runtime egress remains possible through the publication network
-  - no exploitation, brute force, denial of service, external or LAN targets during lifecycle acceptance
-status: CURRENT
+  - source build uses a project-contained Python 3.10 compatibility wrapper
+  - legacy psycopg2 source build is replaced with psycopg2-binary and PyYAML is upgraded for runtime compatibility
+  - application source and challenges remain pinned to the recorded upstream commit
+  - host publication is restricted to 127.0.0.1
+  - runtime egress is permitted for source build and publication network
+  - no exploitation, brute force, denial of service, external or LAN targets during acceptance
+status: CURRENT-LIMITED
