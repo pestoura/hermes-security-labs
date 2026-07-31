@@ -47,7 +47,7 @@ start_lab() {
     echo "[start] Port ${HOST_PORT} already in use"
     return 1
   fi
-  "${COMPOSE[@]}" up -d --build
+  "${COMPOSE[@]}" up -d --pull missing
   local id health
   for _ in $(seq 1 48); do
     id="$(container_id)"
