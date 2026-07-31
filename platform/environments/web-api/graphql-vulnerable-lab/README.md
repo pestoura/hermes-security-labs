@@ -1,12 +1,12 @@
 # Damn Vulnerable GraphQL Application Lab
 
-## Source
+## Source and build
 
 - Canonical repository: `dolevf/Damn-Vulnerable-GraphQL-Application`
 - Source commit: `a961308c02d1fb462b192681c336b0739e432da7`
 - Local image: `hermes/dvga:a961308`
 
-The image is built from the immutable upstream commit during first start.
+The application source is built from the immutable upstream commit. A project-contained Python 3.10 Bookworm Dockerfile replaces the upstream build steps that execute `apt install` without refreshing package metadata and use a non-persistent virtual-environment activation. Application source is not modified.
 
 ## Targets
 
