@@ -5,6 +5,7 @@ Plataforma segregada de laboratórios de cibersegurança para o Hermes, com Kali
 ## Modelo operacional
 
 - **GitHub:** fonte de verdade de código, configuração, manifestos, documentação e workflows.
+- **GitHub Container Registry:** armazena imagens Docker/OCI construídas ou adaptadas pelo projeto; o runtime consome apenas digests aceites.
 - **Hermes:** host e orquestrador dos laboratórios locais.
 - **Docker:** runtime principal para Web/API, DevSecOps, IA/MCP e serviços sintéticos.
 - **Kubernetes:** clusters descartáveis com kind/k3d.
@@ -16,6 +17,7 @@ O repositório não contém segredos, resultados brutos, imagens runtime, creden
 ## Estrutura
 
 ```text
+docs/                     arquitetura e políticas operacionais
 kali-mcp/                 imagem e Compose do Kali MCP
 platform/environments/    manifestos e implementações dos laboratórios
 platform/registry.yaml    runtimes, estados e descoberta do catálogo
@@ -25,6 +27,8 @@ platform/schemas/         schema dos manifestos
 deployment/               deploy, verify, rollback e drift detection
 skills/                   instruções do agente Hermes
 ```
+
+A política de imagens próprias, packages privados, proveniência e consumo por digest está documentada em [`docs/ghcr-container-registry.md`](docs/ghcr-container-registry.md).
 
 ## Catálogo
 
@@ -57,12 +61,15 @@ Comandos read-only:
 5. Máquinas virtuais, infraestrutura, redes e Active Directory.
 6. Cloud sandbox, mobile, IoT, firmware e OT/ICS.
 
+A adoção do GHCR é uma melhoria transversal de supply chain e não uma fase autónoma. Começa com um piloto VAmPI e é aplicada gradualmente aos ambientes construídos pelo projeto.
+
 A execução normal não concede egress permanente, não publica ambientes na LAN e liga o Kali apenas à rede do laboratório ativo. O Kali deve ser desligado dessa rede no final de cada execução.
 
 ## Fluxo de alteração
 
 ```text
-issue → branch → commit → pull request → CI → revisão → merge → deployment local → evidências
+issue → branch → commit → pull request → CI → revisão → merge
+      → build/publicação GHCR quando aplicável → deployment local → evidências
 ```
 
 Não existe deployment automático do GitHub para o Hermes nem self-hosted runner com acesso ao Docker socket.
