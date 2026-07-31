@@ -1,0 +1,236 @@
+name: Publish PyGoat to GHCR
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish the immutable PyGoat image
+        required: true
+        type: boolean
+        default: false
+
+concurrency:
+  group: ghcr-pygoat-publish
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository_owner }}/hermes-pygoat
+  UPSTREAM_REPOSITORY: https://github.com/adeyosemanputra/pygoat
+  UPSTREAM_COMMIT: 19d17cc8874861142b330636d068bbde54e86b85
+  UPSTREAM_SHORT: 19d17cc
+  BASE_IMAGE: docker.io/library/python:3.10-slim-bookworm
+  DOCKERFILE_SHA256: 58389fedb2ec704c6e0bc1e9f899cdd07a3fdc08aac117b9da20b1cfa53d8d3d
+  BUILD_RECIPE: pygoat-python310-compat-v1
+
+jobs:
+  publish:
+    name: Build and publish immutable PyGoat image
+    if: ${{ inputs.publish }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5
+        with:
+          driver: docker-container
+
+      - name: Prepare immutable PyGoat source and build recipe
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          source_dir="${RUNNER_TEMP}/pygoat-source"
+          dockerfile="${source_dir}/Dockerfile.hermes"
+
+          rm -rf "${source_dir}"
+          git init --quiet "${source_dir}"
+          git -C "${source_dir}" remote add origin "${UPSTREAM_REPOSITORY}.git"
+          git -C "${source_dir}" fetch --quiet --depth=1 --no-tags origin "${UPSTREAM_COMMIT}"
+          git -C "${source_dir}" checkout --quiet --detach FETCH_HEAD
+
+          actual_commit="$(git -C "${source_dir}" rev-parse HEAD)"
+          test "${actual_commit}" = "${UPSTREAM_COMMIT}"
+
+          test -f "${source_dir}/requirements.txt"
+          test -f "${source_dir}/manage.py"
+          test -f "${source_dir}/pygoat/settings.py"
+
+          grep -Fx 'psycopg2==2.9.3' "${source_dir}/requirements.txt"
+          grep -Fx 'PyYAML==5.1' "${source_dir}/requirements.txt"
+          grep -F "ALLOWED_HOSTS = ['pygoat.herokuapp.com', '0.0.0.0.']" \
+            "${source_dir}/pygoat/settings.py"
+
+          cat > "${dockerfile}" <<'DOCKERFILE'
+          FROM python:3.10-slim-bookworm
+          ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+          WORKDIR /app
+          RUN apt-get update && apt-get install --no-install-recommends -y \
+                build-essential \
+                libc6-dev \
+                libffi-dev \
+                libjpeg62-turbo-dev \
+                libpq-dev \
+                python3-dev \
+                zlib1g-dev \
+              && rm -rf /var/lib/apt/lists/*
+          COPY . /app
+          RUN grep -vE '^(psycopg2|PyYAML)==' requirements.txt > /tmp/requirements.txt && \
+              python -m pip install --no-cache-dir --upgrade pip setuptools wheel && \
+              pip install --no-cache-dir psycopg2-binary==2.9.9 PyYAML==6.0.2 && \
+              pip install --no-cache-dir -r /tmp/requirements.txt && \
+              python - <<'PY'
+          from pathlib import Path
+          path = Path('/app/pygoat/settings.py')
+          text = path.read_text()
+          text = text.replace(
+              "ALLOWED_HOSTS = ['pygoat.herokuapp.com', '0.0.0.0.']",
+              "ALLOWED_HOSTS = ['pygoat.herokuapp.com', '0.0.0.0', '127.0.0.1', 'localhost', 'pygoat']",
+          )
+          path.write_text(text)
+          PY
+          RUN python manage.py migrate --noinput
+          CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "2", "pygoat.wsgi"]
+          DOCKERFILE
+
+          sed -i 's/^          //' "${dockerfile}"
+
+          printf '%s  %s\n' \
+            "${DOCKERFILE_SHA256}" \
+            "${dockerfile}" |
+            sha256sum --check
+
+          rm -rf "${source_dir}/.git"
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate immutable OCI metadata
+        id: meta
+        uses: docker/metadata-action@030e881283bb7a6894de51c315a6bfe6a94e05cf
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          flavor: |
+            latest=false
+          tags: |
+            type=raw,value=upstream-${{ env.UPSTREAM_SHORT }}
+            type=sha,prefix=repo-,format=long
+          labels: |
+            org.opencontainers.image.title=Hermes PyGoat
+            org.opencontainers.image.description=Immutable project-adapted PyGoat laboratory image built for hermes-security-labs
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.url=https://github.com/${{ github.repository }}
+            org.opencontainers.image.documentation=https://github.com/${{ github.repository }}/tree/main/platform/environments/web-api/pygoat
+            org.opencontainers.image.version=upstream-${{ env.UPSTREAM_SHORT }}
+            org.opencontainers.image.revision=${{ env.UPSTREAM_COMMIT }}
+            org.opencontainers.image.licenses=NOASSERTION
+            org.opencontainers.image.base.name=${{ env.BASE_IMAGE }}
+            io.hermes.upstream.repository=${{ env.UPSTREAM_REPOSITORY }}
+            io.hermes.upstream.revision=${{ env.UPSTREAM_COMMIT }}
+            io.hermes.build.base-image=${{ env.BASE_IMAGE }}
+            io.hermes.build.dockerfile-sha256=${{ env.DOCKERFILE_SHA256 }}
+            io.hermes.build.recipe=${{ env.BUILD_RECIPE }}
+
+      - name: Build and push PyGoat
+        id: push
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf
+        with:
+          context: ${{ runner.temp }}/pygoat-source
+          file: ${{ runner.temp }}/pygoat-source/Dockerfile.hermes
+          platforms: linux/amd64
+          pull: true
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          provenance: mode=max
+          sbom: true
+          cache-from: type=gha,scope=pygoat-19d17cc
+          cache-to: type=gha,mode=max,scope=pygoat-19d17cc
+
+      - name: Verify published OCI index and manifests
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          digest='${{ steps.push.outputs.digest }}'
+          test -n "${digest}"
+          [[ "${digest}" == sha256:* ]]
+
+          image_ref="${REGISTRY}/${IMAGE_NAME}@${digest}"
+          raw_index="${RUNNER_TEMP}/pygoat-index.json"
+
+          docker buildx imagetools inspect "${image_ref}"
+          docker buildx imagetools inspect --raw "${image_ref}" > "${raw_index}"
+
+          read -r application_digest attestation_digest < <(
+            python3 - "${raw_index}" <<'PY'
+          import json
+          import sys
+
+          with open(sys.argv[1], encoding="utf-8") as handle:
+              index = json.load(handle)
+
+          if index.get("mediaType") != "application/vnd.oci.image.index.v1+json":
+              raise SystemExit("published object is not an OCI image index")
+
+          manifests = index.get("manifests", [])
+          applications = [
+              item for item in manifests
+              if item.get("platform", {}).get("os") == "linux"
+              and item.get("platform", {}).get("architecture") == "amd64"
+          ]
+          attestations = [
+              item for item in manifests
+              if item.get("platform", {}).get("os") == "unknown"
+              and item.get("platform", {}).get("architecture") == "unknown"
+              and item.get("annotations", {}).get("vnd.docker.reference.type")
+              == "attestation-manifest"
+          ]
+
+          if len(applications) != 1:
+              raise SystemExit("expected exactly one linux/amd64 application manifest")
+          if len(attestations) != 1:
+              raise SystemExit("expected exactly one attestation manifest")
+
+          application_digest = applications[0]["digest"]
+          attestation_digest = attestations[0]["digest"]
+          reference_digest = attestations[0].get("annotations", {}).get(
+              "vnd.docker.reference.digest"
+          )
+
+          if reference_digest != application_digest:
+              raise SystemExit("attestation does not reference the application manifest")
+
+          print(application_digest, attestation_digest)
+          PY
+          )
+
+          [[ "${application_digest}" == sha256:* ]]
+          [[ "${attestation_digest}" == sha256:* ]]
+          test "${digest}" != "${attestation_digest}"
+
+          {
+            echo '### PyGoat GHCR publication'
+            echo
+            echo "- Package: \`${REGISTRY}/${IMAGE_NAME}\`"
+            echo "- Upstream commit: \`${UPSTREAM_COMMIT}\`"
+            echo "- Declared base image: \`${BASE_IMAGE}\`"
+            echo "- Build recipe: \`${BUILD_RECIPE}\`"
+            echo "- Dockerfile SHA-256: \`${DOCKERFILE_SHA256}\`"
+            echo "- OCI index/runtime digest: \`${digest}\`"
+            echo "- Immutable runtime reference: \`${image_ref}\`"
+            echo "- Application manifest (linux/amd64): \`${application_digest}\`"
+            echo "- Attestation manifest (unknown/unknown): \`${attestation_digest}\`"
+            echo '- Upstream license: `NOASSERTION`'
+            echo '- BuildKit provenance: `mode=max`'
+            echo '- SBOM: enabled'
+            echo '- Deployment: not performed'
+          } >> "${GITHUB_STEP_SUMMARY}"
