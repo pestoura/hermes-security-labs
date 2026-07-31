@@ -30,14 +30,13 @@ cleanup: ./scripts/destroy.sh
 evidence: ${EVIDENCE_DIR:-.runtime/evidence/vampi}
 dependencies:
   - docker
-  - docker-buildkit
 supported_tools:
   - execute_command
   - nikto_scan
   - gobuster_scan
 limitations:
   - local validation only
-  - source is built from an immutable upstream commit during first start
+  - runtime image is pinned to an immutable GHCR digest built from the declared upstream commit
   - runtime egress remains possible through the non-internal publication network
   - no external or LAN targets
   - no exploitation, denial of service or destructive API operations during lifecycle acceptance
