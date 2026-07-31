@@ -1,0 +1,97 @@
+name: Publish VAmPI to GHCR
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish the immutable VAmPI pilot image
+        required: true
+        type: boolean
+        default: false
+
+concurrency:
+  group: ghcr-vampi-publish
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository_owner }}/hermes-vampi
+  UPSTREAM_REPOSITORY: https://github.com/erev0s/VAmPI
+  UPSTREAM_COMMIT: f16052dce83f05847133ec98f01c5193a41de7d8
+  UPSTREAM_SHORT: f16052d
+
+jobs:
+  publish:
+    name: Build and publish immutable VAmPI image
+    if: ${{ inputs.publish }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate immutable OCI metadata
+        id: meta
+        uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=upstream-${{ env.UPSTREAM_SHORT }}
+            type=sha,prefix=repo-,format=long
+          labels: |
+            org.opencontainers.image.title=Hermes VAmPI
+            org.opencontainers.image.description=Immutable VAmPI laboratory image built for hermes-security-labs
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.url=https://github.com/${{ github.repository }}
+            org.opencontainers.image.documentation=https://github.com/${{ github.repository }}/tree/main/platform/environments/web-api/vampi
+            org.opencontainers.image.version=upstream-${{ env.UPSTREAM_SHORT }}
+            org.opencontainers.image.revision=${{ env.UPSTREAM_COMMIT }}
+            io.hermes.upstream.repository=${{ env.UPSTREAM_REPOSITORY }}
+            io.hermes.upstream.revision=${{ env.UPSTREAM_COMMIT }}
+
+      - name: Build and push VAmPI
+        id: push
+        uses: docker/build-push-action@f2a1d5e99d037542a71f64918e516c093c6f3fc4
+        with:
+          context: https://github.com/erev0s/VAmPI.git#f16052dce83f05847133ec98f01c5193a41de7d8
+          platforms: linux/amd64
+          pull: true
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          provenance: mode=max
+          sbom: true
+          cache-from: type=gha,scope=vampi-f16052d
+          cache-to: type=gha,mode=max,scope=vampi-f16052d
+
+      - name: Verify published digest
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          digest='${{ steps.push.outputs.digest }}'
+          test -n "$digest"
+          [[ "$digest" == sha256:* ]]
+
+          image_ref="${REGISTRY}/${IMAGE_NAME}@${digest}"
+          docker buildx imagetools inspect "$image_ref"
+
+          {
+            echo '### VAmPI GHCR publication'
+            echo
+            echo "- Package: \`${REGISTRY}/${IMAGE_NAME}\`"
+            echo "- Upstream commit: \`${UPSTREAM_COMMIT}\`"
+            echo "- Immutable reference: \`${image_ref}\`"
+            echo "- Platform: \`linux/amd64\`"
+            echo '- BuildKit provenance: `mode=max`'
+            echo '- SBOM: enabled'
+            echo '- Deployment: not performed'
+          } >> "$GITHUB_STEP_SUMMARY"
