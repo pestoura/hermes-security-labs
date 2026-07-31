@@ -1,0 +1,47 @@
+name: pygoat
+
+services:
+  pygoat:
+    build:
+      context: https://github.com/adeyosemanputra/pygoat.git#19d17cc8874861142b330636d068bbde54e86b85
+      dockerfile_inline: |
+        FROM python:3.11-slim-bookworm
+        ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+        WORKDIR /app
+        RUN apt-get update && apt-get install --no-install-recommends -y gcc libpq-dev && rm -rf /var/lib/apt/lists/*
+        COPY . /app
+        RUN python -m pip install --no-cache-dir --upgrade pip && pip install --no-cache-dir -r requirements.txt && python manage.py migrate --noinput
+        CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "2", "pygoat.wsgi"]
+    image: hermes/pygoat:19d17cc
+    cap_drop:
+      - NET_RAW
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          cpus: "1.5"
+          memory: 1G
+          pids: 150
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/', timeout=5).read(1)
+      interval: 10s
+      timeout: 8s
+      retries: 24
+      start_period: 45s
+    networks:
+      pygoat-lab:
+        aliases:
+          - pygoat
+    ports:
+      - "127.0.0.1:${PYGOAT_HOST_PORT:-8000}:8000"
+    restart: on-failure
+
+networks:
+  pygoat-lab:
+    name: pygoat-lab
+    driver: bridge

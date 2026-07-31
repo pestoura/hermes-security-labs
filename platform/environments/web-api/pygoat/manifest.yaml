@@ -1,0 +1,43 @@
+id: pygoat
+name: PyGoat
+description: Deliberately vulnerable Django application for authorised web security testing.
+category: web-api
+runtime: docker
+driver: docker-compose
+risk: low
+source: https://github.com/adeyosemanputra/pygoat
+version: 19d17cc8874861142b330636d068bbde54e86b85
+resources:
+  cpus: 1.5
+  memory: 1Gi
+  disk: 2G
+networks:
+  - pygoat-lab
+egress: true
+targets:
+  - http://pygoat:8000/
+attacker: kali-mcp
+lifecycle:
+  - start
+  - status
+  - smoke
+  - stop
+  - reset
+  - destroy
+reset: ./scripts/reset.sh
+cleanup: ./scripts/destroy.sh
+evidence: ${EVIDENCE_DIR:-.runtime/evidence/pygoat}
+dependencies:
+  - docker
+  - docker-buildkit
+supported_tools:
+  - execute_command
+  - nikto_scan
+  - gobuster_scan
+limitations:
+  - local validation only
+  - source is pinned to an immutable upstream commit
+  - project-contained Dockerfile modernises the obsolete upstream base image without modifying application source
+  - runtime egress remains possible through the publication network
+  - no exploitation, brute force, denial of service, external or LAN targets during lifecycle acceptance
+status: CURRENT
