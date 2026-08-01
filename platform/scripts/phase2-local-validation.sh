@@ -3,6 +3,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../.." && pwd)"
 LIFECYCLE="$ROOT/platform/scripts/phase2-compose-lab.sh"
+LIFECYCLE_SELF_TEST="$ROOT/platform/scripts/phase2-compose-lifecycle-self-test.sh"
 SOURCE_FETCHER="$ROOT/platform/runtime/phase2-safe-lab/fetch_source.py"
 COMPOSE_GENERATOR="$ROOT/platform/scripts/phase2_compose.py"
 RUNTIME="${PHASE2_RUN_RUNTIME:-0}"
@@ -64,6 +65,8 @@ python3 "$ROOT/platform/scripts/labctl.py" plan >/dev/null
 python3 "$SOURCE_FETCHER" --self-test
 python3 "$COMPOSE_GENERATOR" --self-test
 bash -n "$LIFECYCLE"
+bash -n "$LIFECYCLE_SELF_TEST"
+"$LIFECYCLE_SELF_TEST"
 
 for env_id in "${ENVIRONMENTS[@]}"; do
   echo "STATIC $env_id"
@@ -103,3 +106,4 @@ if [ "${#failures[@]}" -gt 0 ]; then
 fi
 
 echo "PHASE2_BATCH_VALIDATION_COMPLETE runtime=1"
+echo "PHASE2_BATCH_LOCAL_ACCEPTANCE_PROVED"
