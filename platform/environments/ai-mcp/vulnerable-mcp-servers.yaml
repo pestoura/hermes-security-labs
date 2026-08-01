@@ -1,0 +1,53 @@
+id: vulnerable-mcp-servers
+name: Vulnerable MCP Servers Safe Lab
+description: Container-isolated vulnerable MCP tool semantics with no host command execution.
+category: ai-mcp
+runtime: docker
+driver: docker-compose
+risk: high
+source: https://github.com/pfelilpe/DVMCP
+version: 75dc4ec58423be3aea11476eda17085bf7498e81
+host_port: 8211
+resources:
+  cpus: 1.0
+  memory: 768m
+  disk: 3G
+networks:
+- vulnerable-mcp-servers-internal
+- vulnerable-mcp-servers-publication
+egress: false
+targets:
+- http://target:8080/
+- http://target:8090/mcp
+attacker: kali-mcp
+lifecycle:
+- start
+- status
+- smoke
+- stop
+- reset
+- destroy
+reset: platform/scripts/phase2-compose-lab.sh vulnerable-mcp-servers reset
+cleanup: platform/scripts/phase2-compose-lab.sh vulnerable-mcp-servers destroy
+evidence: ${EVIDENCE_DIR:-.runtime/evidence/vulnerable-mcp-servers}
+dependencies:
+- docker
+- docker-compose
+- python3
+- PyYAML
+supported_tools:
+- read_source
+- analyze_source
+- execute_command
+- forward_env
+limitations:
+- no host shell execution
+- no filesystem access outside the baked source snapshot
+- synthetic tools and data only
+- MCP port is lab-network only
+- target runtime egress denied by an internal Docker network
+- localhost publication uses a separate secret-free proxy
+- Kali attachment is temporary and must end disconnected
+- effective Compose is deterministically generated from platform/phase2/environments.yaml
+- Phase 2 local validation required before merge
+status: CURRENT-LIMITED
