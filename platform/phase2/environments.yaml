@@ -1,0 +1,136 @@
+version: 1
+runtime:
+  python_base: docker.io/library/python:3.12-alpine3.22@sha256:a190708a2dec1bd18b1decb539f8e8f5407abaa9bf39cacda583f7f8c11db322
+  publication_proxy: docker.io/alpine/socat@sha256:7955a82d66fd43c711946ba5c499e3ec8bf494db8ce6b32ad4df5e1b13b8f1d2
+  kali_container: hermes-kali-mcp
+environments:
+- id: cicd-goat
+  mode: cicd
+  source_repo: cider-security-research/cicd-goat
+  source_commit: 0ed10925f3983857cf219b2ac1c327b861fcccca
+  host_port: 8201
+  resources:
+    cpus: '2.0'
+    memory_limit: 4096m
+    memory_reservation: 2048m
+    pids: 1024
+- id: damn-vulnerable-sca
+  mode: sca
+  source_repo: harekrishnarai/Damn-vulnerable-sca
+  source_commit: fa5d063a5588c404dc3a222bd3f10965666c01db
+  host_port: 8202
+  resources:
+    cpus: '2.0'
+    memory_limit: 2048m
+    memory_reservation: 1024m
+    pids: 512
+- id: terragoat
+  mode: iac
+  source_repo: bridgecrewio/terragoat
+  source_commit: 729f8da62c6a85ce4af5ad3d123de97776d954c4
+  host_port: 8203
+  resources:
+    cpus: '0.75'
+    memory_limit: 512m
+    memory_reservation: 256m
+    pids: 128
+- id: cdkgoat
+  mode: iac
+  source_repo: bridgecrewio/cdkgoat
+  source_commit: c6c0278a49083526c462c80d6ff95e32db83f6a8
+  host_port: 8204
+  resources:
+    cpus: '0.75'
+    memory_limit: 512m
+    memory_reservation: 256m
+    pids: 128
+- id: cfngoat
+  mode: iac
+  source_repo: bridgecrewio/cfngoat
+  source_commit: 0c09b69cfc3dbc6cb3ef01883415c35c588ced48
+  host_port: 8205
+  resources:
+    cpus: '0.75'
+    memory_limit: 512m
+    memory_reservation: 256m
+    pids: 128
+- id: bicepgoat
+  mode: iac
+  source_repo: bridgecrewio/bicepgoat
+  source_commit: 83388f40be34af3146eb484d635e413383b28d16
+  host_port: 8206
+  resources:
+    cpus: '0.75'
+    memory_limit: 512m
+    memory_reservation: 256m
+    pids: 128
+- id: promptme
+  mode: prompt
+  source_repo: R3dShad0w7/PromptMe
+  source_commit: fd7676c323698e824f4417bd5d116c18baabe902
+  host_port: 8210
+  resources:
+    cpus: '1.0'
+    memory_limit: 768m
+    memory_reservation: 384m
+    pids: 192
+- id: vulnerable-mcp-servers
+  mode: mcp
+  source_repo: pfelilpe/DVMCP
+  source_commit: 75dc4ec58423be3aea11476eda17085bf7498e81
+  host_port: 8211
+  resources:
+    cpus: '1.0'
+    memory_limit: 768m
+    memory_reservation: 384m
+    pids: 192
+- id: llmforge
+  mode: llm
+  source_repo: SasanLabs/LLMForge
+  source_commit: 62c756fc79343e4fbf2344eaf683e9a44e6ca5c3
+  host_port: 8212
+  resources:
+    cpus: '1.0'
+    memory_limit: 768m
+    memory_reservation: 384m
+    pids: 192
+- id: damn-vulnerable-llm-agent
+  mode: agent
+  source_repo: ReversecLabs/damn-vulnerable-llm-agent
+  source_commit: c0cf9a14adad76e9d6a53c41741f625334bd9971
+  host_port: 8213
+  resources:
+    cpus: '1.0'
+    memory_limit: 768m
+    memory_reservation: 384m
+    pids: 192
+- id: prompt-injection-lab
+  mode: prompt
+  source_repo: ''
+  source_commit: synthetic-v1
+  host_port: 8214
+  resources:
+    cpus: '0.5'
+    memory_limit: 256m
+    memory_reservation: 128m
+    pids: 96
+- id: tool-poisoning-lab
+  mode: tool
+  source_repo: ''
+  source_commit: synthetic-v1
+  host_port: 8215
+  resources:
+    cpus: '0.5'
+    memory_limit: 256m
+    memory_reservation: 128m
+    pids: 96
+- id: rag-poisoning-lab
+  mode: rag
+  source_repo: ''
+  source_commit: synthetic-v1
+  host_port: 8216
+  resources:
+    cpus: '0.5'
+    memory_limit: 256m
+    memory_reservation: 128m
+    pids: 96
