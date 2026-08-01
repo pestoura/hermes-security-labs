@@ -1,0 +1,53 @@
+id: damn-vulnerable-llm-agent
+name: Damn Vulnerable LLM Agent Safe Lab
+description: Deterministic excessive-agency and tool-trust exercises without real tool execution.
+category: ai-mcp
+runtime: docker
+driver: docker-compose
+risk: high
+source: https://github.com/ReversecLabs/damn-vulnerable-llm-agent
+version: c0cf9a14adad76e9d6a53c41741f625334bd9971
+host_port: 8213
+resources:
+  cpus: 1.0
+  memory: 768m
+  disk: 3G
+networks:
+- damn-vulnerable-llm-agent-internal
+- damn-vulnerable-llm-agent-publication
+egress: false
+targets:
+- http://target:8080/
+- http://target:8090/mcp
+attacker: kali-mcp
+lifecycle:
+- start
+- status
+- smoke
+- stop
+- reset
+- destroy
+reset: platform/scripts/phase2-compose-lab.sh damn-vulnerable-llm-agent reset
+cleanup: platform/scripts/phase2-compose-lab.sh damn-vulnerable-llm-agent destroy
+evidence: ${EVIDENCE_DIR:-.runtime/evidence/damn-vulnerable-llm-agent}
+dependencies:
+- docker
+- docker-compose
+- python3
+- PyYAML
+supported_tools:
+- read_source
+- analyze_source
+- execute_command
+- forward_env
+limitations:
+- no external model API
+- no Ollama requirement in the safe profile
+- tools never execute host commands
+- synthetic identities and data only
+- target runtime egress denied by an internal Docker network
+- localhost publication uses a separate secret-free proxy
+- Kali attachment is temporary and must end disconnected
+- effective Compose is deterministically generated from platform/phase2/environments.yaml
+- Phase 2 local validation required before merge
+status: CURRENT-LIMITED

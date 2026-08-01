@@ -1,0 +1,50 @@
+id: terragoat
+name: TerraGoat Offline IaC Lab
+description: Offline Terraform misconfiguration analysis using an immutable TerraGoat snapshot.
+category: devsecops
+runtime: docker
+driver: docker-compose
+risk: medium
+source: https://github.com/bridgecrewio/terragoat
+version: 729f8da62c6a85ce4af5ad3d123de97776d954c4
+host_port: 8203
+resources:
+  cpus: 0.75
+  memory: 512m
+  disk: 2G
+networks:
+- terragoat-internal
+- terragoat-publication
+egress: false
+targets:
+- http://target:8080/
+attacker: kali-mcp
+lifecycle:
+- start
+- status
+- smoke
+- stop
+- reset
+- destroy
+reset: platform/scripts/phase2-compose-lab.sh terragoat reset
+cleanup: platform/scripts/phase2-compose-lab.sh terragoat destroy
+evidence: ${EVIDENCE_DIR:-.runtime/evidence/terragoat}
+dependencies:
+- docker
+- docker-compose
+- python3
+- PyYAML
+supported_tools:
+- read_source
+- analyze_source
+limitations:
+- no terraform apply
+- no cloud credentials
+- no cloud resources created
+- offline source analysis only
+- target runtime egress denied by an internal Docker network
+- localhost publication uses a separate secret-free proxy
+- Kali attachment is temporary and must end disconnected
+- effective Compose is deterministically generated from platform/phase2/environments.yaml
+- Phase 2 local validation required before merge
+status: CURRENT-LIMITED

@@ -1,0 +1,51 @@
+id: cicd-goat
+name: CI/CD Goat Safe Source Lab
+description: Safe source-analysis and pipeline-abuse simulation profile for CI/CD Goat.
+category: devsecops
+runtime: docker
+driver: docker-compose
+risk: high
+source: https://github.com/cider-security-research/cicd-goat
+version: 0ed10925f3983857cf219b2ac1c327b861fcccca
+host_port: 8201
+resources:
+  cpus: 2.0
+  memory: 4096m
+  disk: 20G
+networks:
+- cicd-goat-internal
+- cicd-goat-publication
+egress: false
+targets:
+- http://target:8080/
+attacker: kali-mcp
+lifecycle:
+- start
+- status
+- smoke
+- stop
+- reset
+- destroy
+reset: platform/scripts/phase2-compose-lab.sh cicd-goat reset
+cleanup: platform/scripts/phase2-compose-lab.sh cicd-goat destroy
+evidence: ${EVIDENCE_DIR:-.runtime/evidence/cicd-goat}
+dependencies:
+- docker
+- docker-compose
+- python3
+- PyYAML
+supported_tools:
+- read_source
+- analyze_source
+- pipeline_status
+limitations:
+- CURRENT-LIMITED safe profile; the full upstream stack is not started
+- Docker-in-Docker, privileged containers and Docker socket access are excluded
+- source snapshot and deterministic pipeline simulations only
+- no real CI credentials, repositories or cloud accounts
+- target runtime egress denied by an internal Docker network
+- localhost publication uses a separate secret-free proxy
+- Kali attachment is temporary and must end disconnected
+- effective Compose is deterministically generated from platform/phase2/environments.yaml
+- Phase 2 local validation required before merge
+status: CURRENT-LIMITED

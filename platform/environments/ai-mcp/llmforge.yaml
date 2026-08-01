@@ -1,20 +1,20 @@
-id: prompt-injection-lab
-name: Synthetic Prompt Injection Lab
-description: Deterministic direct and indirect prompt-injection exercises.
-category: ia-llm-mcp
+id: llmforge
+name: LLMForge Deterministic Local Lab
+description: Deterministic local LLM vulnerability exercises based on an immutable LLMForge snapshot.
+category: ai-mcp
 runtime: docker
 driver: docker-compose
 risk: medium
-source: https://github.com/pestoura/hermes-security-labs
-version: synthetic-v1
-host_port: 8214
+source: https://github.com/SasanLabs/LLMForge
+version: 62c756fc79343e4fbf2344eaf683e9a44e6ca5c3
+host_port: 8212
 resources:
-  cpus: 0.5
-  memory: 256m
-  disk: 1G
+  cpus: 1.0
+  memory: 768m
+  disk: 3G
 networks:
-- prompt-injection-lab-internal
-- prompt-injection-lab-publication
+- llmforge-internal
+- llmforge-publication
 egress: false
 targets:
 - http://target:8080/
@@ -27,9 +27,9 @@ lifecycle:
 - stop
 - reset
 - destroy
-reset: platform/scripts/phase2-compose-lab.sh prompt-injection-lab reset
-cleanup: platform/scripts/phase2-compose-lab.sh prompt-injection-lab destroy
-evidence: ${EVIDENCE_DIR:-.runtime/evidence/prompt-injection-lab}
+reset: platform/scripts/phase2-compose-lab.sh llmforge reset
+cleanup: platform/scripts/phase2-compose-lab.sh llmforge destroy
+evidence: ${EVIDENCE_DIR:-.runtime/evidence/llmforge}
 dependencies:
 - docker
 - docker-compose
@@ -38,11 +38,12 @@ dependencies:
 supported_tools:
 - read_source
 - analyze_source
+- rag_query
 limitations:
-- synthetic local corpus
 - no external model API
-- no real secrets
-- training behavior is intentionally vulnerable
+- no model credentials
+- deterministic simulation
+- no untrusted plugin execution
 - target runtime egress denied by an internal Docker network
 - localhost publication uses a separate secret-free proxy
 - Kali attachment is temporary and must end disconnected

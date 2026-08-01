@@ -1,0 +1,50 @@
+id: cdkgoat
+name: CDKGoat Offline IaC Lab
+description: Offline AWS CDK misconfiguration analysis using an immutable CDKGoat snapshot.
+category: devsecops
+runtime: docker
+driver: docker-compose
+risk: medium
+source: https://github.com/bridgecrewio/cdkgoat
+version: c6c0278a49083526c462c80d6ff95e32db83f6a8
+host_port: 8204
+resources:
+  cpus: 0.75
+  memory: 512m
+  disk: 2G
+networks:
+- cdkgoat-internal
+- cdkgoat-publication
+egress: false
+targets:
+- http://target:8080/
+attacker: kali-mcp
+lifecycle:
+- start
+- status
+- smoke
+- stop
+- reset
+- destroy
+reset: platform/scripts/phase2-compose-lab.sh cdkgoat reset
+cleanup: platform/scripts/phase2-compose-lab.sh cdkgoat destroy
+evidence: ${EVIDENCE_DIR:-.runtime/evidence/cdkgoat}
+dependencies:
+- docker
+- docker-compose
+- python3
+- PyYAML
+supported_tools:
+- read_source
+- analyze_source
+limitations:
+- no cdk deploy
+- no AWS credentials
+- no cloud resources created
+- offline source analysis only
+- target runtime egress denied by an internal Docker network
+- localhost publication uses a separate secret-free proxy
+- Kali attachment is temporary and must end disconnected
+- effective Compose is deterministically generated from platform/phase2/environments.yaml
+- Phase 2 local validation required before merge
+status: CURRENT-LIMITED

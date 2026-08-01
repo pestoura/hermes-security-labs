@@ -1,0 +1,50 @@
+id: bicepgoat
+name: BicepGoat Offline IaC Lab
+description: Offline Azure Bicep misconfiguration analysis using an immutable BicepGoat snapshot.
+category: devsecops
+runtime: docker
+driver: docker-compose
+risk: medium
+source: https://github.com/bridgecrewio/bicepgoat
+version: 83388f40be34af3146eb484d635e413383b28d16
+host_port: 8206
+resources:
+  cpus: 0.75
+  memory: 512m
+  disk: 2G
+networks:
+- bicepgoat-internal
+- bicepgoat-publication
+egress: false
+targets:
+- http://target:8080/
+attacker: kali-mcp
+lifecycle:
+- start
+- status
+- smoke
+- stop
+- reset
+- destroy
+reset: platform/scripts/phase2-compose-lab.sh bicepgoat reset
+cleanup: platform/scripts/phase2-compose-lab.sh bicepgoat destroy
+evidence: ${EVIDENCE_DIR:-.runtime/evidence/bicepgoat}
+dependencies:
+- docker
+- docker-compose
+- python3
+- PyYAML
+supported_tools:
+- read_source
+- analyze_source
+limitations:
+- no Azure deployment
+- no Azure credentials
+- no cloud resources created
+- offline source analysis only
+- target runtime egress denied by an internal Docker network
+- localhost publication uses a separate secret-free proxy
+- Kali attachment is temporary and must end disconnected
+- effective Compose is deterministically generated from platform/phase2/environments.yaml
+- Phase 2 local validation required before merge
+status: CURRENT-LIMITED

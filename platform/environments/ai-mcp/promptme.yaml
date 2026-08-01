@@ -1,20 +1,20 @@
-id: prompt-injection-lab
-name: Synthetic Prompt Injection Lab
-description: Deterministic direct and indirect prompt-injection exercises.
-category: ia-llm-mcp
+id: promptme
+name: PromptMe Deterministic Local Lab
+description: Deterministic local prompt-injection training profile based on an immutable PromptMe snapshot.
+category: ai-mcp
 runtime: docker
 driver: docker-compose
 risk: medium
-source: https://github.com/pestoura/hermes-security-labs
-version: synthetic-v1
-host_port: 8214
+source: https://github.com/R3dShad0w7/PromptMe
+version: fd7676c323698e824f4417bd5d116c18baabe902
+host_port: 8210
 resources:
-  cpus: 0.5
-  memory: 256m
-  disk: 1G
+  cpus: 1.0
+  memory: 768m
+  disk: 3G
 networks:
-- prompt-injection-lab-internal
-- prompt-injection-lab-publication
+- promptme-internal
+- promptme-publication
 egress: false
 targets:
 - http://target:8080/
@@ -27,9 +27,9 @@ lifecycle:
 - stop
 - reset
 - destroy
-reset: platform/scripts/phase2-compose-lab.sh prompt-injection-lab reset
-cleanup: platform/scripts/phase2-compose-lab.sh prompt-injection-lab destroy
-evidence: ${EVIDENCE_DIR:-.runtime/evidence/prompt-injection-lab}
+reset: platform/scripts/phase2-compose-lab.sh promptme reset
+cleanup: platform/scripts/phase2-compose-lab.sh promptme destroy
+evidence: ${EVIDENCE_DIR:-.runtime/evidence/promptme}
 dependencies:
 - docker
 - docker-compose
@@ -39,10 +39,10 @@ supported_tools:
 - read_source
 - analyze_source
 limitations:
-- synthetic local corpus
 - no external model API
-- no real secrets
-- training behavior is intentionally vulnerable
+- no model credentials
+- deterministic simulation rather than generative inference
+- source snapshot is immutable
 - target runtime egress denied by an internal Docker network
 - localhost publication uses a separate secret-free proxy
 - Kali attachment is temporary and must end disconnected
