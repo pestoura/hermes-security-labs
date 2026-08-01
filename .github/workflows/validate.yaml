@@ -38,12 +38,14 @@ jobs:
         run: python platform/runtime/phase2-safe-lab/fetch_source.py --self-test
       - name: Validate Phase 2 Compose generation
         run: python platform/scripts/phase2_compose.py --self-test
-      - name: Exercise Phase 2 proxy healthcheck
+      - name: Exercise Phase 2 proxy liveness and forwarding
         run: |
           set -euo pipefail
           network=phase2-proxy-selftest
           target=phase2-proxy-selftest-target
           proxy=phase2-proxy-selftest-proxy
+          python_image=docker.io/library/python:3.12-alpine3.22@sha256:a190708a2dec1bd18b1decb539f8e8f5407abaa9bf39cacda583f7f8c11db322
+          proxy_image=docker.io/alpine/socat@sha256:7955a82d66fd43c711946ba5c499e3ec8bf494db8ce6b32ad4df5e1b13b8f1d2
           cleanup() {
             docker rm -f "$proxy" "$target" >/dev/null 2>&1 || true
             docker network rm "$network" >/dev/null 2>&1 || true
@@ -51,17 +53,17 @@ jobs:
           trap cleanup EXIT
           docker network create "$network" >/dev/null
           docker run -d --name "$target" --network "$network" \
-            --entrypoint python \
-            docker.io/library/python:3.12-alpine3.22@sha256:a190708a2dec1bd18b1decb539f8e8f5407abaa9bf39cacda583f7f8c11db322 \
+            --entrypoint python "$python_image" \
             -m http.server 8080 --bind 0.0.0.0 >/dev/null
           docker run -d --name "$proxy" --network "$network" \
-            --entrypoint socat \
-            docker.io/alpine/socat@sha256:7955a82d66fd43c711946ba5c499e3ec8bf494db8ce6b32ad4df5e1b13b8f1d2 \
+            --entrypoint socat "$proxy_image" \
             TCP-LISTEN:8080,reuseaddr,fork TCP:"$target":8080 >/dev/null
+          docker exec "$proxy" /bin/sh -c 'kill -0 1'
+          echo PHASE2_PROXY_LIVENESS_OK
           for _ in $(seq 1 20); do
-            if docker exec "$proxy" /bin/sh -c \
-              'exec socat -T3 -u OPEN:/dev/null TCP:127.0.0.1:8080,connect-timeout=3 >/dev/null 2>&1'; then
-              echo PHASE2_PROXY_HEALTHCHECK_OK
+            if docker run --rm --network "$network" --entrypoint python "$python_image" \
+              -c "import urllib.request; urllib.request.urlopen('http://${proxy}:8080/', timeout=3).read(1)"; then
+              echo PHASE2_PROXY_FORWARDING_OK
               exit 0
             fi
             sleep 1
