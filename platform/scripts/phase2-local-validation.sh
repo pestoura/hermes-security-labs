@@ -66,7 +66,7 @@ python3 "$SOURCE_FETCHER" --self-test
 python3 "$COMPOSE_GENERATOR" --self-test
 bash -n "$LIFECYCLE"
 bash -n "$LIFECYCLE_SELF_TEST"
-"$LIFECYCLE_SELF_TEST"
+bash "$LIFECYCLE_SELF_TEST"
 
 for env_id in "${ENVIRONMENTS[@]}"; do
   echo "STATIC $env_id"
