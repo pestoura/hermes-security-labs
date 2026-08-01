@@ -1,0 +1,72 @@
+name: wrongsecrets
+
+services:
+  wrongsecrets:
+    image: docker.io/jeroenwillemsen/wrongsecrets:1.13.5-no-vault@sha256:a8abfafd1f10880ad6193af5c73341c3d721be31c71f812768b9300c47edc249
+    networks:
+      - wrongsecrets-internal
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 768m
+          pids: 256
+        reservations:
+          memory: 384m
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: false
+    tmpfs:
+      - /tmp
+    environment:
+      HERMES_WRONGSECRETS_SYNTHETIC_MARKER: "WRONGSECRETS_SYNTHETIC_MARKER"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  wrongsecrets-proxy:
+    image: docker.io/alpine/socat@sha256:7955a82d66fd43c711946ba5c499e3ec8bf494db8ce6b32ad4df5e1b13b8f1d2
+    ports:
+      - "127.0.0.1:${WRONGSECRETS_HOST_PORT:-8082}:8080"
+    networks:
+      - wrongsecrets-internal
+      - wrongsecrets-publication
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128m
+          pids: 64
+        reservations:
+          memory: 64m
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /run
+    command:
+      - "TCP-LISTEN:8080,reuseaddr,fork"
+      - "TCP:wrongsecrets:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+networks:
+  wrongsecrets-internal:
+    name: wrongsecrets-internal
+    driver: bridge
+    internal: true
+  wrongsecrets-publication:
+    name: wrongsecrets-publication
+    driver: bridge
