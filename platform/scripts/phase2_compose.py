@@ -112,14 +112,11 @@ def render(env: dict, runtime: dict) -> dict:
                     }
                 },
                 "healthcheck": {
-                    "test": [
-                        "CMD-SHELL",
-                        "exec socat -T3 -u OPEN:/dev/null TCP:127.0.0.1:8080,connect-timeout=3 >/dev/null 2>&1",
-                    ],
+                    "test": ["CMD-SHELL", "kill -0 1"],
                     "interval": "10s",
-                    "timeout": "5s",
-                    "retries": 12,
-                    "start_period": "5s",
+                    "timeout": "3s",
+                    "retries": 6,
+                    "start_period": "2s",
                 },
             },
         },
@@ -137,8 +134,8 @@ def self_test() -> None:
     document = render(data["environments"][0], data["runtime"])
     proxy = document["services"]["proxy"]
     test = proxy["healthcheck"]["test"]
-    if test[0] != "CMD-SHELL" or "socat" not in test[1] or "wget" in test[1]:
-        raise SystemExit("proxy healthcheck must use the image-native socat binary")
+    if test != ["CMD-SHELL", "kill -0 1"]:
+        raise SystemExit("proxy healthcheck must be a non-blocking PID 1 liveness probe")
     if proxy["command"][0] == "socat":
         raise SystemExit("proxy command must not duplicate the image ENTRYPOINT")
     internal = data["environments"][0]["id"] + "-internal"
