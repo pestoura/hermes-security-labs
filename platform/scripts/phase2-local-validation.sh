@@ -3,6 +3,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../.." && pwd)"
 LIFECYCLE="$ROOT/platform/scripts/phase2-compose-lab.sh"
+SOURCE_FETCHER="$ROOT/platform/runtime/phase2-safe-lab/fetch_source.py"
 RUNTIME="${PHASE2_RUN_RUNTIME:-0}"
 
 ENVIRONMENTS=(
@@ -23,6 +24,7 @@ ENVIRONMENTS=(
 
 python3 "$ROOT/platform/scripts/labctl.py" validate
 python3 "$ROOT/platform/scripts/labctl.py" plan >/dev/null
+python3 "$SOURCE_FETCHER" --self-test
 bash -n "$LIFECYCLE"
 
 for env_id in "${ENVIRONMENTS[@]}"; do
