@@ -1,0 +1,40 @@
+id: wrongsecrets
+name: OWASP WrongSecrets
+description: OWASP WrongSecrets laboratory for secrets management challenges
+category: devsecops
+runtime: docker
+driver: docker-compose
+risk: low
+source: https://github.com/OWASP/wrongsecrets
+version: sha256:a8abfafd1f10880ad6193af5c73341c3d721be31c71f812768b9300c47edc249
+resources:
+  cpus: 1.0
+  memory: 768m
+  disk: 2G
+networks:
+  - wrongsecrets-internal
+egress: false
+targets:
+  - http://wrongsecrets:8080/
+attacker: kali-mcp
+lifecycle:
+  - start
+  - status
+  - smoke
+  - stop
+  - reset
+  - destroy
+reset: "./scripts/reset.sh"
+cleanup: "./scripts/destroy.sh"
+evidence: ${EVIDENCE_DIR:-.runtime/evidence/wrongsecrets}
+status: CURRENT
+limitations:
+  - Docker/no-vault profile only
+  - AWS, Azure, GCP, Kubernetes, Vault and Google Drive excluded
+  - MCP accessible only through isolated network
+  - Proxy publication without secrets
+  - Target without egress
+  - Challenge values are synthetic
+  - Single heavy lab active at a time
+supported_tools:
+  - execute_command
