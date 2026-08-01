@@ -23,14 +23,17 @@ services:
     environment:
       HERMES_WRONGSECRETS_SYNTHETIC_MARKER: "WRONGSECRETS_SYNTHETIC_MARKER"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      test: ["CMD-SHELL", "kill -0 1"]
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 30s
+      start_period: 10s
 
   wrongsecrets-proxy:
     image: docker.io/alpine/socat@sha256:7955a82d66fd43c711946ba5c499e3ec8bf494db8ce6b32ad4df5e1b13b8f1d2
+    depends_on:
+      wrongsecrets:
+        condition: service_healthy
     ports:
       - "127.0.0.1:${WRONGSECRETS_HOST_PORT:-8082}:8080"
     networks:
@@ -56,11 +59,11 @@ services:
       - "TCP-LISTEN:8080,reuseaddr,fork"
       - "TCP:wrongsecrets:8080"
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:8080/actuator/health"]
+      test: ["CMD-SHELL", "kill -0 1"]
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 10s
+      start_period: 5s
 
 networks:
   wrongsecrets-internal:
