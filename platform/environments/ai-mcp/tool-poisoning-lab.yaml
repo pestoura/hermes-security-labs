@@ -1,0 +1,53 @@
+id: tool-poisoning-lab
+name: Synthetic Tool Poisoning Lab
+description: Deterministic MCP tool-description poisoning and excessive-trust exercises.
+category: ai-mcp
+runtime: docker
+driver: docker-compose
+risk: high
+source: https://github.com/pestoura/hermes-security-labs
+version: synthetic-v1
+host_port: 8215
+resources:
+  cpus: 0.5
+  memory: 256m
+  disk: 1G
+networks:
+- tool-poisoning-lab-internal
+- tool-poisoning-lab-publication
+egress: false
+targets:
+- http://target:8080/
+- http://target:8090/mcp
+attacker: kali-mcp
+lifecycle:
+- start
+- status
+- smoke
+- stop
+- reset
+- destroy
+reset: platform/scripts/phase2-compose-lab.sh tool-poisoning-lab reset
+cleanup: platform/scripts/phase2-compose-lab.sh tool-poisoning-lab destroy
+evidence: ${EVIDENCE_DIR:-.runtime/evidence/tool-poisoning-lab}
+dependencies:
+- docker
+- docker-compose
+- python3
+- PyYAML
+supported_tools:
+- read_source
+- analyze_source
+- execute_command
+- forward_env
+limitations:
+- synthetic tools only
+- no host command execution
+- no external MCP servers
+- no real secrets
+- target runtime egress denied by an internal Docker network
+- localhost publication uses a separate secret-free proxy
+- Kali attachment is temporary and must end disconnected
+- effective Compose is deterministically generated from platform/phase2/environments.yaml
+- Phase 2 local validation required before merge
+status: CURRENT-LIMITED
