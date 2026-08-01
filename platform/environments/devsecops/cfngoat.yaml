@@ -1,0 +1,50 @@
+id: cfngoat
+name: CFNGoat Offline IaC Lab
+description: Offline CloudFormation misconfiguration analysis using an immutable CFNGoat snapshot.
+category: devsecops
+runtime: docker
+driver: docker-compose
+risk: medium
+source: https://github.com/bridgecrewio/cfngoat
+version: 0c09b69cfc3dbc6cb3ef01883415c35c588ced48
+host_port: 8205
+resources:
+  cpus: 0.75
+  memory: 512m
+  disk: 2G
+networks:
+- cfngoat-internal
+- cfngoat-publication
+egress: false
+targets:
+- http://target:8080/
+attacker: kali-mcp
+lifecycle:
+- start
+- status
+- smoke
+- stop
+- reset
+- destroy
+reset: platform/scripts/phase2-compose-lab.sh cfngoat reset
+cleanup: platform/scripts/phase2-compose-lab.sh cfngoat destroy
+evidence: ${EVIDENCE_DIR:-.runtime/evidence/cfngoat}
+dependencies:
+- docker
+- docker-compose
+- python3
+- PyYAML
+supported_tools:
+- read_source
+- analyze_source
+limitations:
+- no CloudFormation deployment
+- no AWS credentials
+- no cloud resources created
+- offline source analysis only
+- target runtime egress denied by an internal Docker network
+- localhost publication uses a separate secret-free proxy
+- Kali attachment is temporary and must end disconnected
+- effective Compose is deterministically generated from platform/phase2/environments.yaml
+- Phase 2 local validation required before merge
+status: CURRENT-LIMITED
