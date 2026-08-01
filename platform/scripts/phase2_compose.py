@@ -10,11 +10,13 @@ ROOT = Path(__file__).resolve().parents[2]
 CATALOG_PATH = ROOT / "platform" / "phase2" / "environments.yaml"
 RUNTIME_CONTEXT = "../../../platform/runtime/phase2-safe-lab"
 
+
 def load_catalog() -> dict:
     data = yaml.safe_load(CATALOG_PATH.read_text(encoding="utf-8"))
     if not isinstance(data, dict) or data.get("version") != 1:
         raise SystemExit("unsupported Phase 2 catalog")
     return data
+
 
 def get_env(data: dict, env_id: str) -> dict:
     matches = [item for item in data["environments"] if item["id"] == env_id]
@@ -22,8 +24,10 @@ def get_env(data: dict, env_id: str) -> dict:
         raise SystemExit(f"expected one catalog entry for {env_id}, found {len(matches)}")
     return matches[0]
 
+
 def port_var(env_id: str) -> str:
     return env_id.upper().replace("-", "_") + "_HOST_PORT"
+
 
 def render(env: dict, runtime: dict) -> dict:
     commit = str(env["source_commit"])
@@ -64,19 +68,37 @@ def render(env: dict, runtime: dict) -> dict:
                 "tmpfs": ["/tmp", "/run"],
                 "deploy": {
                     "resources": {
-                        "limits": {"cpus": str(r["cpus"]), "memory": r["memory_limit"], "pids": int(r["pids"])},
+                        "limits": {
+                            "cpus": str(r["cpus"]),
+                            "memory": r["memory_limit"],
+                            "pids": int(r["pids"]),
+                        },
                         "reservations": {"memory": r["memory_reservation"]},
                     }
                 },
                 "healthcheck": {
-                    "test": ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=3).read(1)"],
-                    "interval": "10s", "timeout": "5s", "retries": 12, "start_period": "10s",
+                    "test": [
+                        "CMD",
+                        "python",
+                        "-c",
+                        "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=3).read(1)",
+                    ],
+                    "interval": "10s",
+                    "timeout": "5s",
+                    "retries": 12,
+                    "start_period": "10s",
                 },
             },
             "proxy": {
                 "image": runtime["publication_proxy"],
                 "depends_on": {"target": {"condition": "service_healthy"}},
-                "ports": ["127.0.0.1:${" + port_var(env_id) + ":-" + str(env["host_port"]) + "}:8080"],
+                "ports": [
+                    "127.0.0.1:${"
+                    + port_var(env_id)
+                    + ":-"
+                    + str(env["host_port"])
+                    + "}:8080"
+                ],
                 "networks": [internal, publication],
                 "security_opt": ["no-new-privileges:true"],
                 "cap_drop": ["ALL"],
@@ -90,8 +112,14 @@ def render(env: dict, runtime: dict) -> dict:
                     }
                 },
                 "healthcheck": {
-                    "test": ["CMD", "wget", "-qO-", "http://localhost:8080/health"],
-                    "interval": "10s", "timeout": "5s", "retries": 12, "start_period": "10s",
+                    "test": [
+                        "CMD-SHELL",
+                        "exec socat -T3 -u OPEN:/dev/null TCP:127.0.0.1:8080,connect-timeout=3 >/dev/null 2>&1",
+                    ],
+                    "interval": "10s",
+                    "timeout": "5s",
+                    "retries": 12,
+                    "start_period": "5s",
                 },
             },
         },
@@ -101,11 +129,35 @@ def render(env: dict, runtime: dict) -> dict:
         },
     }
 
+
+def self_test() -> None:
+    data = load_catalog()
+    if not data.get("environments"):
+        raise SystemExit("Phase 2 catalog has no environments")
+    document = render(data["environments"][0], data["runtime"])
+    proxy = document["services"]["proxy"]
+    test = proxy["healthcheck"]["test"]
+    if test[0] != "CMD-SHELL" or "socat" not in test[1] or "wget" in test[1]:
+        raise SystemExit("proxy healthcheck must use the image-native socat binary")
+    if proxy["command"][0] == "socat":
+        raise SystemExit("proxy command must not duplicate the image ENTRYPOINT")
+    internal = data["environments"][0]["id"] + "-internal"
+    if document["networks"][internal].get("internal") is not True:
+        raise SystemExit("target network must remain internal")
+    print("PHASE2_COMPOSE_SELF_TEST_OK")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("environment")
+    parser.add_argument("environment", nargs="?")
     parser.add_argument("--output")
+    parser.add_argument("--self-test", action="store_true")
     args = parser.parse_args()
+    if args.self_test:
+        self_test()
+        return
+    if not args.environment:
+        parser.error("environment is required unless --self-test is used")
     data = load_catalog()
     env = get_env(data, args.environment)
     document = yaml.safe_dump(render(env, data["runtime"]), sort_keys=False, width=120)
@@ -115,6 +167,7 @@ def main() -> None:
         output.write_text(document, encoding="utf-8")
     else:
         sys.stdout.write(document)
+
 
 if __name__ == "__main__":
     main()
