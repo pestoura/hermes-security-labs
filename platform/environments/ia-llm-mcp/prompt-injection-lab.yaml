@@ -1,41 +1,51 @@
 id: prompt-injection-lab
-name: LLM Prompt Injection Lab
-description: Chat application embedding RAG and direct prompt attack surfaces for
-  jailbreak, exfiltration, and indirect injection.
+name: Synthetic Prompt Injection Lab
+description: Deterministic direct and indirect prompt-injection exercises.
+category: ia-llm-mcp
 runtime: docker
 driver: docker-compose
 risk: medium
-source: llm-chat-app
-version: '1.0'
+source: https://github.com/pestoura/hermes-security-labs
+version: synthetic-v1
+host_port: 8214
 resources:
-  cpu: '2'
-  memory: 4Gi
-  disk: 20Gi
+  cpus: 0.5
+  memory: 256m
+  disk: 1G
 networks:
-- labnet-ia
+- prompt-injection-lab-internal
+- prompt-injection-lab-publication
 egress: false
 targets:
-- chat-api:8000
-- llm-gateway:11434
-attacker: kali-vm
+- http://target:8080/
+- http://target:8090/mcp
+attacker: kali-mcp
 lifecycle:
 - start
+- status
+- smoke
 - stop
 - reset
 - destroy
-reset: docker-compose restart chat-api
-cleanup: docker-compose down -v
-evidence: conversation logs; jailbreak success screenshots; exfiltrated artifacts
+reset: platform/scripts/phase2-compose-lab.sh prompt-injection-lab reset
+cleanup: platform/scripts/phase2-compose-lab.sh prompt-injection-lab destroy
+evidence: ${EVIDENCE_DIR:-.runtime/evidence/prompt-injection-lab}
 dependencies:
 - docker
-- gpu-optional
+- docker-compose
+- python3
+- PyYAML
 supported_tools:
-- garak
-- pyrit
-- promptfoo
-- llm-guard
+- read_source
+- analyze_source
 limitations:
-- no real-time evolving model weights
-- simulated RAG only
-status: CURRENT
-category: ia-llm-mcp
+- synthetic local corpus
+- no external model API
+- no real secrets
+- training behavior is intentionally vulnerable
+- target runtime egress denied by an internal Docker network
+- localhost publication uses a separate secret-free proxy
+- Kali attachment is temporary and must end disconnected
+- effective Compose is deterministically generated from platform/phase2/environments.yaml
+- Phase 2 local validation required before merge
+status: CURRENT-LIMITED
