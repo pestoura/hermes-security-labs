@@ -1,0 +1,50 @@
+id: damn-vulnerable-sca
+name: Damn Vulnerable SCA Safe Lab
+description: Offline source snapshot and vulnerable dependency analysis laboratory.
+category: devsecops
+runtime: docker
+driver: docker-compose
+risk: high
+source: https://github.com/harekrishnarai/Damn-vulnerable-sca
+version: fa5d063a5588c404dc3a222bd3f10965666c01db
+host_port: 8202
+resources:
+  cpus: 2.0
+  memory: 2048m
+  disk: 8G
+networks:
+- damn-vulnerable-sca-internal
+- damn-vulnerable-sca-publication
+egress: false
+targets:
+- http://target:8080/
+attacker: kali-mcp
+lifecycle:
+- start
+- status
+- smoke
+- stop
+- reset
+- destroy
+reset: platform/scripts/phase2-compose-lab.sh damn-vulnerable-sca reset
+cleanup: platform/scripts/phase2-compose-lab.sh damn-vulnerable-sca destroy
+evidence: ${EVIDENCE_DIR:-.runtime/evidence/damn-vulnerable-sca}
+dependencies:
+- docker
+- docker-compose
+- python3
+- PyYAML
+supported_tools:
+- read_source
+- analyze_source
+limitations:
+- CURRENT-LIMITED offline analysis profile
+- malicious or intentionally compromised dependencies are not executed
+- no package publication or external registry credentials
+- source patterns are training signals and not a complete SCA engine
+- target runtime egress denied by an internal Docker network
+- localhost publication uses a separate secret-free proxy
+- Kali attachment is temporary and must end disconnected
+- effective Compose is deterministically generated from platform/phase2/environments.yaml
+- Phase 2 local validation required before merge
+status: CURRENT-LIMITED
