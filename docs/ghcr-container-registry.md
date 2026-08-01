@@ -4,9 +4,7 @@
 
 GitHub Container Registry (GHCR) is the canonical registry for container images built or adapted by `pestoura/hermes-security-labs`.
 
-The repository remains the source of truth for source code, Dockerfiles, Compose files, manifests, workflows and documentation. GHCR stores the resulting Docker/OCI images. Hermes pulls accepted images and runs them locally; GitHub never deploys directly to Hermes.
-
-This capability is a cross-cutting supply-chain improvement. It supports Web/API hardening, deployment tracking and Phase 2, but it is not a prerequisite for closing the initial Web/API implementation.
+The public repository remains the source of truth for source code, Compose files, manifests, accepted digests and operating documentation. GHCR stores the resulting Docker/OCI artefacts. Hermes pulls accepted images and runs them locally; GitHub never deploys directly to Hermes.
 
 ## Operational status
 
@@ -20,45 +18,103 @@ The initial five project-built image rollouts are complete and accepted by immut
 | PyGoat | `ghcr.io/pestoura/hermes-pygoat` |
 | Damn Vulnerable GraphQL Application | `ghcr.io/pestoura/hermes-dvga` |
 
-These packages were made public during a temporary infrastructure and billing exception. GitHub does not allow a public package to be changed back to private. The accepted package identities therefore remain public historical artefacts and cannot directly become the private target state.
+These package identities were made public during a temporary operating exception. A public package cannot be changed back to private. They therefore remain immutable accepted artefacts and rollback references.
 
-The controlled transition to parallel private package identities and read-only Hermes authentication is specified in [`ghcr-private-readonly-transition.md`](ghcr-private-readonly-transition.md) and tracked by issue `#53`.
+The transition to private packages and read-only Hermes authentication is tracked by issue `#53` and specified in [`ghcr-private-readonly-transition.md`](ghcr-private-readonly-transition.md).
 
-No current public package may be deleted, overwritten, retagged or changed as part of that transition.
+## Visibility and access are separate controls
 
-## Scope
+GHCR Container packages support granular visibility and access permissions.
 
-### Project-built packages
+A package intended to remain private must:
 
-The first-generation public package names above remain accepted until each replacement private package passes publication, access, digest, lifecycle, migration and post-merge gates.
+- be private from first publication;
+- never reuse an accepted public package identity;
+- avoid inheriting access from a public repository;
+- expose Actions access only to an approved private publisher repository;
+- remain inaccessible through anonymous pulls;
+- be consumed by Hermes only through a dedicated read-only credential.
 
-Project-built Kali MCP or runtime images require a separate approval before being added.
+A private package linked before first publication can inherit access permissions from its linked repository even though package visibility remains private. GitHub also warns that giving a public repository access to a private package can extend access through forks. The current public source repository must therefore not be the publisher or inherited-permission boundary for a private package.
 
-### Upstream images
+Official references:
 
-Official upstream dependencies remain in their canonical registries and are pinned by digest. This includes MariaDB, MongoDB, PostgreSQL, DVWA, WebGoat and Juice Shop.
+- [Configuring package access control and visibility](https://docs.github.com/en/packages/learn-github-packages/configuring-a-packages-access-control-and-visibility)
+- [Connecting a repository to a package](https://docs.github.com/en/packages/learn-github-packages/connecting-a-repository-to-a-package)
 
-Mirroring an upstream image into GHCR is an exception that requires a documented reason, such as upstream-retention risk, registry availability, compliance or supply-chain approval.
+## Private publisher boundary
 
-## Package visibility and linkage
+The target architecture uses two repositories with different responsibilities.
 
-Target-state project packages are private unless a separate public-release decision is approved.
+### Public canonical source repository
 
-Rules:
+`pestoura/hermes-security-labs`
 
-- a package intended to be private must be private from first publication;
-- an existing public package must never be treated as capable of returning to private visibility;
-- every package is linked to `pestoura/hermes-security-labs` for source traceability when appropriate;
-- package visibility and access inheritance are separate controls and must both be verified;
-- a private package linked to the public repository must use verified granular package access rather than assume repository inheritance provides confidentiality;
-- GitHub Actions access is granted only to the publishing repository and only at the package permission level required by the workflow;
-- package deletion is not part of normal lifecycle operations.
+Responsibilities:
 
-Required OCI metadata:
+- source and configuration review;
+- accepted source commits and recipe hashes;
+- public Compose and manifest definitions;
+- accepted public and private runtime digests;
+- lifecycle validation evidence references;
+- deployment tracking and drift policy.
+
+This repository must not receive inherited access to private packages.
+
+### Private publisher repository
+
+Proposed pilot identity:
+
+`pestoura/hermes-private-registry-publisher`
+
+Responsibilities:
+
+- reviewed publication workflows only;
+- immutable source checkout from the canonical public repository or upstream source;
+- Dockerfile or generated recipe verification;
+- GHCR publication with its own `GITHUB_TOKEN`;
+- SBOM and provenance generation;
+- package settings and Actions access limited to the private publisher.
+
+Creation of this repository requires explicit owner authorization. It must be private before any workflow or package publication occurs.
+
+## Package identities
+
+The first private pilot package is proposed as:
 
 ```text
-org.opencontainers.image.source=https://github.com/pestoura/hermes-security-labs
-org.opencontainers.image.revision=<source-or-repository-commit>
+ghcr.io/pestoura/hermes-private-vampi
+```
+
+The current public runtime and rollback reference remains:
+
+```text
+ghcr.io/pestoura/hermes-vampi@sha256:e7b2760d586ed2b4b15a689823a07816e32308bca293f9e8c08830c7b36c7229
+```
+
+No public package, tag or digest is deleted, overwritten or moved during the transition.
+
+## OCI metadata and repository linkage
+
+For private packages, `org.opencontainers.image.source` points to the approved private publisher repository so that package linkage and inherited permissions remain private:
+
+```text
+org.opencontainers.image.source=https://github.com/pestoura/hermes-private-registry-publisher
+```
+
+The canonical public source and immutable revision are recorded separately:
+
+```text
+io.hermes.canonical-source=https://github.com/pestoura/hermes-security-labs
+io.hermes.canonical-source.revision=<full-source-commit>
+io.hermes.build.recipe=<reviewed-recipe-id>
+io.hermes.build.dockerfile-sha256=<reviewed-sha256>
+```
+
+Required standard OCI metadata also includes:
+
+```text
+org.opencontainers.image.revision=<publisher-repository-commit>
 org.opencontainers.image.created=<RFC3339 timestamp>
 org.opencontainers.image.description=<short description>
 org.opencontainers.image.licenses=<SPDX identifier when known>
@@ -70,11 +126,11 @@ Tags are navigation metadata. Digests are deployment identities.
 
 Allowed publication tags:
 
-- immutable source/revision tag;
-- repository commit tag;
+- immutable source or recipe revision tag;
+- immutable publisher-repository commit tag;
 - controlled release tag after acceptance.
 
-Prohibited deployment references:
+Prohibited runtime references:
 
 - `latest`;
 - `main`;
@@ -82,21 +138,19 @@ Prohibited deployment references:
 - `develop`;
 - any other mutable channel tag.
 
-After local acceptance, Compose and manifests consume the exact accepted OCI index digest:
+Compose and manifests consume only the accepted OCI index digest:
 
 ```yaml
-image: ghcr.io/pestoura/<package>@sha256:<accepted-index-digest>
+image: ghcr.io/pestoura/<private-package>@sha256:<accepted-index-digest>
 ```
 
-The application manifest and attestation manifest are recorded separately. The attestation digest is never used as a runtime reference.
+The application and attestation manifests are recorded separately. The attestation digest is never used as a runtime reference.
 
-A human-readable tag may remain in documentation and evidence, but it is not the runtime trust anchor.
+## Publication workflow
 
-## Build and publication workflow
+Publication uses a GitHub-hosted runner in the private publisher repository.
 
-Publication uses GitHub-hosted runners only.
-
-Minimum workflow permissions:
+Minimum permissions:
 
 ```yaml
 permissions:
@@ -104,27 +158,26 @@ permissions:
   packages: write
 ```
 
-Additional attestation permissions are allowed only when required by a reviewed implementation.
+Additional attestation permissions are allowed only when required by the reviewed implementation.
 
 Rules:
 
+- `GITHUB_TOKEN` only for publication;
+- no personal access token in Actions secrets when `GITHUB_TOKEN` is sufficient;
 - no self-hosted runner;
-- no Docker socket from Hermes;
-- no deployment to Hermes from GitHub Actions;
-- no personal access token for publication when `GITHUB_TOKEN` is sufficient;
-- third-party actions are pinned by immutable commit SHA;
-- publication is triggered by explicit workflow dispatch or a controlled release event;
-- pull-request validation builds without publishing unless explicitly approved;
-- published output records image name, tag, OCI index digest, application digest, attestation digest, architecture, source revision and attestation result;
-- a private-package workflow must verify that the new package identity is not one of the accepted public package names.
+- no Hermes Docker socket;
+- no automatic deployment;
+- manual dispatch or controlled release only;
+- third-party Actions pinned by full commit SHA;
+- immutable source and dependency verification;
+- immutable tags only;
+- SBOM and provenance retained;
+- package visibility verified as private after first publication;
+- inherited access verified to reference only the private publisher repository.
 
 ## Hermes authentication model
 
-Hermes receives read-only package access for private packages.
-
-GitHub Packages command-line authentication outside GitHub Actions uses a personal access token (classic).
-
-The Hermes credential requires only:
+Hermes uses a dedicated personal access token classic with only:
 
 ```text
 read:packages
@@ -140,168 +193,117 @@ workflow
 admin:org
 ```
 
-Rules:
+The existing GitHub CLI OAuth token on Hermes is operationally overprivileged and must not be reused as the registry consumer credential.
 
-- no registry token is stored in Git, manifests, Compose files or evidence;
-- authentication uses standard input, never a token in command-line arguments;
-- the token owner must have read permission to the private package;
-- credential creation, storage, rotation and revocation are host-operations tasks requiring explicit approval;
-- runtime scripts never print the credential, authorization headers or Docker auth configuration;
-- an isolated Docker configuration directory is used for Hermes registry access;
-- a supported credential helper or approved host secret store is preferred;
-- a plain Docker `config.json` is not encrypted and requires explicit temporary-pilot approval, restrictive file modes and a documented expiry;
-- deployment verifies the expected package identity and digest before starting the laboratory.
+Credential rules:
 
-Example login shape with placeholder values only:
+- create, rotate and revoke only through an owner-authorized host operation;
+- store outside Git, Compose, manifests, evidence and agent memory;
+- authenticate through standard input;
+- use a dedicated Docker configuration directory;
+- prefer an approved credential helper or host secret store;
+- never print token values, authorization headers or Docker `auth` fields;
+- remove or rotate temporary pilot credentials after validation.
 
-```bash
-printf '%s' "${GHCR_READ_TOKEN}" |
-  docker --config "${HERMES_GHCR_DOCKER_CONFIG}" \
-  login ghcr.io \
-  --username pestoura \
-  --password-stdin
-```
+Authentication must use `docker login --password-stdin` with the secret supplied outside command-line arguments.
+
+## Billing and execution readiness
+
+GitHub currently documents Container registry image storage and bandwidth as free, with advance notice before any policy change. General private GitHub Packages quotas and budgets still apply to other package types.
+
+The private pilot must nevertheless verify:
+
+- the private publisher repository can execute GitHub-hosted Actions;
+- no Actions spending or quota block prevents the publication workflow;
+- the package remains private after publication;
+- no payment or budget change is made without explicit authorization.
+
+A failed legacy billing API endpoint does not by itself prove a Container registry block. UI or supported API evidence is required for any claim that billing is ready or blocked.
+
+Official reference:
+
+- [GitHub Packages billing](https://docs.github.com/en/billing/concepts/product-billing/github-packages)
 
 ## Private access validation
 
-A private package is not accepted until all of the following pass:
+A private package is accepted only when all gates pass:
 
-1. anonymous metadata inspection and pull are denied;
-2. authenticated exact-digest inspection and pull succeed;
-3. the credential exposes `read:packages` and does not expose write, delete or repository scopes;
-4. a non-destructive registry authorization check confirms push authority is denied or omitted;
-5. no manifest, blob, tag or package version is uploaded by the negative-control test;
-6. OCI index, application and attestation roles remain valid;
-7. SBOM and provenance remain present;
-8. lifecycle acceptance passes on Hermes using a temporary ignored override;
-9. the credential is absent from evidence and shell history;
-10. final Docker and Git state is clean.
+1. private publisher repository is approved and private;
+2. package is private from first publication;
+3. inherited access references only the private publisher repository;
+4. anonymous metadata inspection and pull fail;
+5. authenticated exact-digest inspection and pull succeed;
+6. the Hermes credential exposes only `read:packages`;
+7. a non-destructive authorization check confirms push authority is denied or omitted;
+8. no manifest, blob, tag or version is uploaded by the negative-control test;
+9. OCI index, application and attestation roles are valid;
+10. SBOM and provenance are present;
+11. lifecycle parity passes through a temporary ignored override;
+12. evidence contains no credential material;
+13. Docker and Git finish clean.
 
-## Supply-chain controls
+## Pilot sequence
 
-Each published image must provide:
-
-- immutable source commit;
-- reproducible build instructions where practical;
-- OCI source and revision metadata;
-- accepted architecture;
-- OCI index digest;
-- application and attestation manifest digests;
-- dependency and base-image references;
-- vulnerability scan result or documented exception;
-- build provenance attestation when supported;
-- lifecycle acceptance on Hermes;
-- rollback digest.
-
-The registry does not replace source review, lifecycle validation or local isolation testing.
-
-## Rollout model
-
-### Completed public rollout
-
-The five initial public packages have passed controlled publication, independent digest validation, Compose migration and post-merge lifecycle acceptance.
-
-### Private read-only pilot
-
-VAmPI is the first private-access pilot because it is a single project-built service with an accepted lifecycle and no external database dependency.
-
-The proposed parallel pilot identity is:
-
-```text
-ghcr.io/pestoura/hermes-private-vampi
-```
-
-The package name, credential provisioning and first publication require explicit owner authorization.
-
-Pilot sequence:
-
-1. confirm private-package billing and budget readiness;
-2. review and merge the private transition documentation;
-3. explicitly authorize the package identity and credential creation;
-4. publish the new package privately through a separately reviewed workflow;
-5. verify package visibility, linkage and granular Actions access;
-6. prove anonymous denial;
-7. provision and validate the read-only Hermes credential;
-8. pull and validate the exact private digest through a temporary override;
-9. migrate Compose in a separate PR;
-10. perform post-merge acceptance;
-11. demonstrate rollback to the accepted public digest;
-12. update deployment tracking and drift detection;
-13. decide the namespace model for the remaining packages.
+1. merge the corrected private-publisher architecture;
+2. verify private-repository Actions readiness;
+3. explicitly authorize creation of the private publisher repository;
+4. create it as private with minimal contents;
+5. prepare and review a VAmPI publication workflow there;
+6. explicitly authorize the first private publication;
+7. publish `hermes-private-vampi` once;
+8. verify visibility, linkage and inherited access;
+9. provision the dedicated `read:packages` credential;
+10. prove anonymous denial and authenticated digest pull;
+11. validate lifecycle parity through a temporary override;
+12. migrate Compose in a separate PR;
+13. perform post-merge acceptance;
+14. demonstrate rollback to the accepted public digest;
+15. update deployment tracking and drift detection under `#7`.
 
 Only one package migration is active at a time.
-
-## Billing and quota gate
-
-Private package storage and data transfer are metered.
-
-Before private publication:
-
-- confirm available storage and transfer allowance;
-- confirm a valid budget/payment configuration where required;
-- record only non-sensitive quota readiness evidence;
-- stop with `BLOCKED_GHCR_PRIVATE_BILLING` when GitHub blocks usage;
-- do not bypass the block with a self-hosted runner or exposed Hermes Docker socket.
-
-## Integration with deployment tracking
-
-Issue `#7` must eventually record, for each deployed laboratory:
-
-- Git commit;
-- effective Compose hash;
-- registry visibility class;
-- GHCR package identity;
-- accepted OCI index digest;
-- local image ID;
-- architecture;
-- authentication mode;
-- credential rotation identifier without secret material;
-- SBOM and provenance verification result;
-- rollback digest.
-
-Drift is reported when the effective package identity or image digest differs from the identity and digest declared by the accepted Git commit.
 
 ## Rollback policy
 
 Rollback is a reviewed change to a previously accepted immutable OCI index digest.
 
-During the private pilot, the current public VAmPI digest remains the rollback target:
+For the VAmPI pilot, the rollback target is:
 
 ```text
 ghcr.io/pestoura/hermes-vampi@sha256:e7b2760d586ed2b4b15a689823a07816e32308bca293f9e8c08830c7b36c7229
 ```
 
-Rollback never:
+Rollback never moves a tag, deletes a package, changes unrelated laboratories or reuses the read-only credential for publication.
 
-- moves a tag;
-- deletes the private package;
-- bypasses post-change acceptance;
-- reuses the read-only credential for publication;
-- changes unrelated laboratories.
+## Deployment tracking
 
-## Phase relationship
+Issue `#7` must record:
 
-- **Phase 1 Web/API:** closed for the scoped initial implementation.
-- **Public GHCR rollout:** complete for the five project-built images.
-- **Private read-only transition:** tracked by issue `#53` under epic `#34`.
-- **Deployment tracking and drift:** tracked by issue `#7`.
-- **Phase 2:** uses the same registry, provenance, digest and least-privilege principles.
+- canonical source commit;
+- publisher repository and commit;
+- effective Compose hash;
+- registry visibility class;
+- package identity;
+- accepted OCI index digest;
+- application and attestation digests;
+- local image ID and architecture;
+- authentication mode;
+- non-secret credential rotation reference;
+- SBOM and provenance verification;
+- rollback digest.
 
-## Acceptance criteria
+Drift exists when the effective package identity or digest differs from the accepted Git commit.
+
+## Completion criteria
 
 The GHCR epic can close only when:
 
-- the five initial image rollouts remain accepted and immutable;
-- the irreversible public-package constraint is documented;
-- a private package identity is published without altering its public predecessor;
-- package visibility, linkage and granular permissions are verified;
-- Hermes authenticates with a `read:packages`-only credential;
-- anonymous private-package access is denied;
-- authenticated exact-digest pull succeeds;
-- absence of write/delete authority is proven without destructive operations;
-- lifecycle acceptance passes using the private digest;
-- a separate migration PR and post-merge acceptance pass;
-- rollback to a previous accepted digest is demonstrated;
-- deployment tracking records package identity, digest and authentication mode;
-- no automatic deployment path to Hermes exists;
-- no credentials or sensitive logs are committed.
+- all five accepted public images remain immutable;
+- the private publisher boundary is implemented;
+- a private package is published without inheriting from the public repository;
+- anonymous access is denied;
+- Hermes pulls by exact digest using a `read:packages`-only credential;
+- absence of write/delete authority is proven safely;
+- lifecycle parity and private Compose migration pass;
+- rollback to the accepted public digest is demonstrated;
+- deployment tracking records source, publisher, package, digest and authentication mode;
+- no automatic deployment or committed credential exists.
