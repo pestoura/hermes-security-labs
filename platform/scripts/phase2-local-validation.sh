@@ -68,7 +68,7 @@ bash -n "$LIFECYCLE"
 for env_id in "${ENVIRONMENTS[@]}"; do
   echo "STATIC $env_id"
   "$LIFECYCLE" "$env_id" config >/dev/null
- done
+done
 
 if [ "$RUNTIME" != "1" ]; then
   trap - INT TERM
@@ -83,18 +83,17 @@ for env_id in "${ENVIRONMENTS[@]}"; do
   if run_environment "$env_id"; then
     echo "PHASE2_ENVIRONMENT_PASS env=$env_id"
     CURRENT_ENV=""
-    continue
+  else
+    rc=$?
+    cleanup_environment "$env_id"
+    CURRENT_ENV=""
+    failures+=("$env_id:$rc")
+    echo "PHASE2_ENVIRONMENT_BLOCKED env=$env_id exit=$rc" >&2
+    if [ "$CONTINUE_ON_FAILURE" != "1" ]; then
+      exit "$rc"
+    fi
   fi
-
-  rc=$?
-  cleanup_environment "$env_id"
-  CURRENT_ENV=""
-  failures+=("$env_id:$rc")
-  echo "PHASE2_ENVIRONMENT_BLOCKED env=$env_id exit=$rc" >&2
-  if [ "$CONTINUE_ON_FAILURE" != "1" ]; then
-    exit "$rc"
-  fi
- done
+done
 
 trap - INT TERM
 if [ "${#failures[@]}" -gt 0 ]; then
