@@ -49,6 +49,7 @@ domains:
         calibration: pending
       - id: wrongsecrets
         calibration: pending
+        calibration: pending
         campaigns: [devsecops-baseline]
         calibration: documented
       - id: damn-vulnerable-sca
@@ -71,9 +72,11 @@ domains:
     laboratories:
       - id: promptme
         calibration: pending
+        calibration: pending
         campaigns: [ai-mcp-baseline, prompt-injection-complete]
         calibration: documented
       - id: vulnerable-mcp-servers
+        calibration: pending
         calibration: pending
         campaigns: [ai-mcp-baseline, mcp-tool-security]
         calibration: documented
