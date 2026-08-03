@@ -33,10 +33,14 @@ state/
 
 __pycache__/
 .pytest_cache/
+.ruff_cache/
 .venv/
 node_modules/
+.coverage
 
 compose-effective.yaml
 container-inspect*.json
 deployment.local.json
 .runtime/
+security/**/dist/
+security/catalog/generated*.json
