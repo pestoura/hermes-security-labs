@@ -9,6 +9,7 @@ selectors:
   categories:
   - iac
   - secrets
+  - evidence
 execution:
   mode: sequential
   max_parallel: 1
