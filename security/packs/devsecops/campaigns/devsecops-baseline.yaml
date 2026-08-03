@@ -7,10 +7,11 @@ metadata:
 domain: devsecops
 selectors:
   categories:
-  - inventory
+  - repository
   - secrets
   - sca
-  - repository
+  - sbom
+  - evidence
 execution:
   mode: sequential
   max_parallel: 1
