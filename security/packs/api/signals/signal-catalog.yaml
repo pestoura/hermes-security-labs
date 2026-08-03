@@ -196,8 +196,8 @@ signals:
     producer:
       - tls
     description: Whether plaintext HTTP is accepted alongside or instead of HTTPS
-  rate_limit_triggered:
-    name: rate_limit_triggered
+  rate_limit.triggered:
+    name: rate_limit.triggered
     type: boolean
     family: rate-resource
     producer:
@@ -205,32 +205,32 @@ signals:
       - workflow
       - fuzz
     description: Whether the server enforced a rate limit
-  object_owner_id:
-    name: object_owner_id
+  object.owner_id:
+    name: object.owner_id
     type: string
     family: authorization
     producer:
       - http
       - workflow
     description: Owner identifier on the returned object
-  subject_id:
-    name: subject_id
+  subject.id:
+    name: subject.id
     type: string
     family: authorization
     producer:
       - http
       - workflow
     description: Authenticated subject identifier
-  entity_id:
-    name: entity_id
+  entity.id:
+    name: entity.id
     type: string
     family: business-logic
     producer:
       - http
       - workflow
     description: Entity identifier for business-logic operations
-  entity_owner_id:
-    name: entity_owner_id
+  entity.owner_id:
+    name: entity.owner_id
     type: string
     family: business-logic
     producer:

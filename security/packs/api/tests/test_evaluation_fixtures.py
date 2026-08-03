@@ -124,8 +124,8 @@ class TestJwtAudience:
 class TestBola:
     def test_vulnerable_when_owner_mismatch(self) -> None:
         signals = {
-            "object_owner_id": "owner-1",
-            "subject_id": "attacker",
+            "object.owner_id": "owner-1",
+            "subject.id": "attacker",
             "response_status": 200,
             "target_reachable": True,
             "prerequisites_missing": False,
@@ -135,8 +135,8 @@ class TestBola:
 
     def test_secure_when_same_owner(self) -> None:
         signals = {
-            "object_owner_id": "owner-1",
-            "subject_id": "owner-1",
+            "object.owner_id": "owner-1",
+            "subject.id": "owner-1",
             "response_status": 200,
             "target_reachable": True,
             "prerequisites_missing": False,
@@ -162,3 +162,106 @@ class TestEvaluatorSafety:
         assert not any(runbook["evaluation"]["vulnerable_when"])
         assert not any(runbook["evaluation"]["secure_when"])
         assert any("family_signal_producer_required" in item for item in runbook["evaluation"]["inconclusive_when"])
+
+
+class TestSemanticSignals:
+    def test_semantic_signals_are_accepted_by_evaluator(self) -> None:
+        signals = {
+            "entity.id": "txn-123",
+            "entity.owner_id": "owner-1",
+            "subject.id": "attacker",
+        }
+        result = evaluate_signals(
+            signals,
+            {
+                "vulnerable_when": ["entity.id != '' and entity.owner_id != '' and entity.owner_id != subject.id"],
+                "secure_when": ["entity.id == '' or entity.owner_id == '' or entity.owner_id == subject.id"],
+                "inconclusive_when": ["target_reachable == false"],
+            },
+        )
+        assert result.decision == "vulnerable"
+
+    def test_semantic_rate_limit_signal_is_accepted(self) -> None:
+        signals = {
+            "rate_limit.triggered": False,
+            "response_status": 200,
+            "target_reachable": True,
+            "prerequisites_missing": False,
+        }
+        result = evaluate_signals(
+            signals,
+            {
+                "vulnerable_when": ["rate_limit.triggered == false and response_status == 200"],
+                "secure_when": ["rate_limit.triggered == true"],
+                "inconclusive_when": [],
+            },
+        )
+        assert result.decision == "vulnerable"
+
+    def test_semantic_authz_signals_are_accepted(self) -> None:
+        signals = {
+            "object.owner_id": "owner-1",
+            "subject.id": "attacker",
+            "response_status": 200,
+            "target_reachable": True,
+            "prerequisites_missing": False,
+        }
+        result = evaluate_signals(
+            signals,
+            {
+                "vulnerable_when": ["object.owner_id != subject.id and subject.id != '' and response_status == 200"],
+                "secure_when": ["object.owner_id == subject.id or subject.id == ''"],
+                "inconclusive_when": [],
+            },
+        )
+        assert result.decision == "vulnerable"
+
+
+class TestRunnerMetadataFiltering:
+    def test_runner_metadata_is_rejected_by_evaluate_signals(self) -> None:
+        with pytest.raises(SignalError):
+            evaluate_signals(
+                {
+                    "response_status": 200,
+                    "runner_exit_code": 0,
+                    "runner_status": "ok",
+                    "runner_stdout": "ok",
+                },
+                {
+                    "vulnerable_when": ["response_status == 200"],
+                    "secure_when": [],
+                    "inconclusive_when": [],
+                },
+            )
+
+    def test_extract_runner_meta_preserves_evidence(self) -> None:
+        from evaluation import extract_runner_meta
+        output = {
+            "status": "ok",
+            "response_status": 200,
+            "runner_exit_code": 0,
+            "runner_status": "ok",
+            "runner_stdout": "completed",
+            "meta": {},
+        }
+        meta = extract_runner_meta(output)
+        assert meta == {
+            "runner_exit_code": 0,
+            "runner_status": "ok",
+            "runner_stdout": "completed",
+        }
+
+    def test_normalize_execution_output_excludes_runner_meta_from_functional_signals(self) -> None:
+        from evaluation import normalize_execution_output
+        output = {
+            "status": "ok",
+            "response_status": 200,
+            "runner_exit_code": 0,
+            "runner_status": "ok",
+            "runner_stdout": "completed",
+            "meta": {},
+        }
+        functional = normalize_execution_output("http", output)
+        assert "runner_exit_code" not in functional
+        assert "runner_status" not in functional
+        assert "runner_stdout" not in functional

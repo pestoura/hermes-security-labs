@@ -34,6 +34,17 @@ class EvaluationResult:
     evaluated: tuple[str, ...] = ()
 
 
+def _dotted(node: ast.AST) -> str:
+    parts: list[str] = []
+    current = node
+    while isinstance(current, ast.Attribute):
+        parts.append(current.attr)
+        current = current.value
+    if isinstance(current, ast.Name):
+        parts.append(current.id)
+    return ".".join(reversed(parts))
+
+
 class _Evaluator(ast.NodeVisitor):
     def __init__(self, signals: dict[str, Any]) -> None:
         self.signals = signals
@@ -107,6 +118,9 @@ class _Evaluator(ast.NodeVisitor):
         return node.value
 
     def visit_Attribute(self, node: ast.Attribute) -> Any:  # type: ignore[override]
+        dotted = _dotted(node)
+        if dotted in self.signals:
+            return self.signals[dotted]
         value = self.visit(node.value)
         if not isinstance(value, dict) or node.attr not in value:
             raise SignalError(f"unknown signal path {ast.dump(node)}")
@@ -182,6 +196,9 @@ def _load_signal_catalog() -> dict[str, SignalDefinition]:
             description=str(value.get("description") or ""),
         )
     return signals
+
+
+_RUNNER_META_KEYS = {"runner_exit_code", "runner_status", "runner_stdout"}
 
 
 def _normalize_http_response(response: dict[str, Any]) -> dict[str, Any]:
@@ -322,15 +339,39 @@ def _normalize_handler_output(handler: str, output: dict[str, Any] | None) -> di
 
 
 def normalize_execution_output(handler: str, output: dict[str, Any] | None) -> dict[str, Any]:
-    normalized = {
-        "target_reachable": True,
-        "prerequisites_missing": bool((output or {}).get("prerequisites_missing", False)),
-        "handler_signal": str((output or {}).get("finding") or (output or {}).get("status") or ""),
+    if not isinstance(output, dict):
+        output = {}
+    functional = {
+        "target_reachable": bool(output.get("target_reachable", True)),
+        "prerequisites_missing": bool(output.get("prerequisites_missing", False)),
+        "handler_signal": str(output.get("finding") or output.get("status") or ""),
     }
-    if (output or {}).get("status") == "error":
-        normalized["prerequisites_missing"] = True
-    normalized.update(_normalize_handler_output(handler, output))
-    return normalized
+    if output.get("status") == "error":
+        functional["prerequisites_missing"] = True
+    for source, target in (
+        (("status_code",), "response_status"),
+        (("response_headers",), "headers"),
+        (("redacted_response_sample", "body_sample"), "response_body_sample"),
+        (("contains_sensitive_data",), "response_contains_sensitive_data"),
+        (("schema_found",), "response_contains_schema"),
+        (("security_schemes_present",), "openapi_security_schemes_present"),
+    ):
+        for key in source:
+            if key in output:
+                functional[target] = output[key]
+                break
+    request_meta = output.get("request_metadata") or output.get("request") or {}
+    functional["request_redirect_target"] = str(request_meta.get("final_url") or request_meta.get("redirect_target") or "")
+    functional.update(_normalize_auth(output.get("auth") or output.get("auth_result")))
+    functional.update(_normalize_upload(output.get("upload") or output.get("upload_result")))
+    functional.update(_normalize_rate(output.get("rate_limit") or output.get("rate")))
+    functional.update(_normalize_authorization(output.get("authorization") or output.get("authz")))
+    functional.update(_normalize_business_logic(output.get("business_logic") or output.get("logic")))
+    jwt_payload = output.get("jwt") or output
+    functional.update(_normalize_jwt(jwt_payload))
+    functional.update(_normalize_tls(output))
+    functional.update(_normalize_workflow(output.get("workflow") or output))
+    return {key: value for key, value in functional.items() if key not in _RUNNER_META_KEYS}
 
 
 def load_signal_catalog() -> dict[str, SignalDefinition]:
@@ -344,11 +385,14 @@ def load_canonical_mapping() -> dict[str, dict[str, Any]]:
     return {str(item.get("runbook_id")): item for item in (data.get("mappings") or []) if item.get("runbook_id")}
 
 
+from api_pentest_runbooks.adapter import extract_runner_meta
+
 __all__ = [
     "EvaluationResult",
     "SignalDefinition",
     "SignalError",
     "evaluate_signals",
+    "extract_runner_meta",
     "load_canonical_mapping",
     "load_signal_catalog",
     "normalize_execution_output",

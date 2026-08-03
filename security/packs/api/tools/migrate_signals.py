@@ -86,8 +86,8 @@ def _auth_criteria(runbook: dict[str, Any]) -> dict[str, list[str]]:
 
 def _authorization_criteria(runbook: dict[str, Any]) -> dict[str, list[str]]:
     return {
-        "vulnerable_when": ["object_owner_id != subject_id and subject_id != '' and response_status == 200"],
-        "secure_when": ["object_owner_id == subject_id or subject_id == ''"],
+        "vulnerable_when": ["object.owner_id != subject.id and subject.id != '' and response_status == 200"],
+        "secure_when": ["object.owner_id == subject.id or subject.id == ''"],
         "inconclusive_when": ["target_reachable == false or prerequisites_missing == true"],
     }
 
@@ -130,8 +130,8 @@ def _transport_criteria(runbook: dict[str, Any]) -> dict[str, list[str]]:
 
 def _rate_resource_criteria(runbook: dict[str, Any]) -> dict[str, list[str]]:
     return {
-        "vulnerable_when": ["rate_limit_triggered == false and response_status == 200"],
-        "secure_when": ["rate_limit_triggered == true"],
+        "vulnerable_when": ["rate_limit.triggered == false and response_status == 200"],
+        "secure_when": ["rate_limit.triggered == true"],
         "inconclusive_when": ["target_reachable == false or prerequisites_missing == true"],
     }
 
@@ -182,8 +182,8 @@ def _discovery_criteria(runbook: dict[str, Any]) -> dict[str, list[str]]:
 
 def _business_logic_criteria(runbook: dict[str, Any]) -> dict[str, list[str]]:
     return {
-        "vulnerable_when": ["entity_id != '' and entity_owner_id != '' and entity_owner_id != subject_id"],
-        "secure_when": ["entity_id == '' or entity_owner_id == '' or entity_owner_id == subject_id"],
+        "vulnerable_when": ["entity.id != '' and entity.owner_id != '' and entity.owner_id != subject.id"],
+        "secure_when": ["entity.id == '' or entity.owner_id == '' or entity.owner_id == subject.id"],
         "inconclusive_when": ["target_reachable == false or prerequisites_missing == true"],
     }
 

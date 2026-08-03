@@ -55,9 +55,9 @@ steps:
   - timestamps
 evaluation:
   vulnerable_when:
-  - object_owner_id != subject_id and subject_id != '' and response_status == 200
+  - object.owner_id != subject.id and subject.id != '' and response_status == 200
   secure_when:
-  - object_owner_id == subject_id or subject_id == ''
+  - object.owner_id == subject.id or subject.id == ''
   inconclusive_when:
   - target_reachable == false or prerequisites_missing == true
 outputs:

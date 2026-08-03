@@ -58,13 +58,13 @@ families:
         primary_runbook_id: API-AUTH-JWT-AUDIENCE-008
 
   - family: authorization
-    description: Authorization signals use object_owner_id and subject_id to detect BOLA, BFLA, horizontal/vertical escalation, hidden fields, mass assignment, indirect references, method bypass, content-type bypass, relationship abuse, parameter pollution, path normalization, and webhook ownership issues. The canonical signals are object_owner_id, subject_id, and response_status.
+    description: Authorization signals use object.owner_id and subject.id to detect BOLA, BFLA, horizontal/vertical escalation, hidden fields, mass assignment, indirect references, method bypass, content-type bypass, relationship abuse, parameter pollution, path normalization, and webhook ownership issues. The canonical signals are object.owner_id, subject.id, and response_status.
     scenarios:
       - name: bola vulnerable
         description: Owner mismatch on object access returns 200
         signals:
-          object_owner_id: owner-1
-          subject_id: attacker
+          object.owner_id: owner-1
+          subject.id: attacker
           response_status: 200
           target_reachable: true
           prerequisites_missing: false
@@ -73,8 +73,8 @@ families:
       - name: bola secure
         description: Same owner access returns 200
         signals:
-          object_owner_id: owner-1
-          subject_id: owner-1
+          object.owner_id: owner-1
+          subject.id: owner-1
           response_status: 200
           target_reachable: true
           prerequisites_missing: false
@@ -83,8 +83,8 @@ families:
       - name: bola inconclusive
         description: Target unreachable during authorization probe
         signals:
-          object_owner_id: owner-1
-          subject_id: attacker
+          object.owner_id: owner-1
+          subject.id: attacker
           response_status: 0
           target_reachable: false
           prerequisites_missing: false
@@ -92,14 +92,14 @@ families:
         primary_runbook_id: API-AUTHZ-BOLA-READ-001
 
   - family: business-logic
-    description: Business logic signals use entity_id, entity_owner_id, and subject_id to detect duplicate transactions, idempotency bypass, negative quantities, invalid price manipulation, race conditions, state transition bypass, step bypass, coupon reuse, refund amount abuse, and inventory inconsistencies. The canonical signals are entity.id, entity.owner_id, subject.id, and response_status.
+    description: Business logic signals use entity.id, entity.owner_id, and subject.id to detect duplicate transactions, idempotency bypass, negative quantities, invalid price manipulation, race conditions, state transition bypass, step bypass, coupon reuse, refund amount abuse, and inventory inconsistencies. The canonical signals are entity.id, entity.owner_id, subject.id, and response_status.
     scenarios:
       - name: duplicate txn vulnerable
         description: Entity owner mismatch on transaction operation returns 200
         signals:
-          entity_id: txn-123
-          entity_owner_id: owner-1
-          subject_id: attacker
+          entity.id: txn-123
+          entity.owner_id: owner-1
+          subject.id: attacker
           response_status: 200
           target_reachable: true
           prerequisites_missing: false
@@ -108,9 +108,9 @@ families:
       - name: duplicate txn secure
         description: Same owner transaction operation
         signals:
-          entity_id: txn-123
-          entity_owner_id: owner-1
-          subject_id: owner-1
+          entity.id: txn-123
+          entity.owner_id: owner-1
+          subject.id: owner-1
           response_status: 200
           target_reachable: true
           prerequisites_missing: false
@@ -119,9 +119,9 @@ families:
       - name: duplicate txn inconclusive
         description: Target unreachable during business logic probe
         signals:
-          entity_id: txn-123
-          entity_owner_id: owner-1
-          subject_id: attacker
+          entity.id: txn-123
+          entity.owner_id: owner-1
+          subject.id: attacker
           response_status: 0
           target_reachable: false
           prerequisites_missing: false
@@ -292,12 +292,12 @@ families:
         primary_runbook_id: API-INPUT-SSRF-LOCALHOST-010
 
   - family: rate-resource
-    description: Rate and resource control signals detect missing rate limits on login, OTP, reset, endpoint burst, expensive queries, pagination abuse, upload size limits, body size limits, GraphQL depth limits, and WebSocket flooding. The canonical signals are rate_limit_triggered and response_status.
+    description: Rate and resource control signals detect missing rate limits on login, OTP, reset, endpoint burst, expensive queries, pagination abuse, upload size limits, body size limits, GraphQL depth limits, and WebSocket flooding. The canonical signals are rate_limit.triggered and response_status.
     scenarios:
       - name: login rate limit vulnerable
         description: No rate limiting on login endpoint with repeated 200
         signals:
-          rate_limit_triggered: false
+          rate_limit.triggered: false
           response_status: 200
           target_reachable: true
           prerequisites_missing: false
@@ -306,7 +306,7 @@ families:
       - name: login rate limit secure
         description: Rate limiting triggered on login endpoint
         signals:
-          rate_limit_triggered: true
+          rate_limit.triggered: true
           response_status: 429
           target_reachable: true
           prerequisites_missing: false
@@ -315,7 +315,7 @@ families:
       - name: login rate limit inconclusive
         description: Target unreachable during rate limit probe
         signals:
-          rate_limit_triggered: false
+          rate_limit.triggered: false
           response_status: 0
           target_reachable: false
           prerequisites_missing: false
