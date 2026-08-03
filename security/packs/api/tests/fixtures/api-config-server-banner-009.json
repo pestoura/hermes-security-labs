@@ -1,0 +1,22 @@
+{
+  "vulnerable": {
+    "target_reachable": true,
+    "prerequisites_missing": false,
+    "response_status": 200,
+    "response_headers": {
+      "server": "vendor"
+    }
+  },
+  "secure": {
+    "response_status": 200,
+    "target_reachable": true,
+    "prerequisites_missing": false,
+    "response_headers": {
+      "server": "vendor"
+    }
+  },
+  "inconclusive": {
+    "target_reachable": false,
+    "prerequisites_missing": true
+  }
+}

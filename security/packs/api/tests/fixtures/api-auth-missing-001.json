@@ -1,0 +1,17 @@
+{
+  "vulnerable": {
+    "target_reachable": true,
+    "prerequisites_missing": false,
+    "auth.accepted": false,
+    "response_status": 200
+  },
+  "secure": {
+    "response_status": 200,
+    "target_reachable": true,
+    "prerequisites_missing": false
+  },
+  "inconclusive": {
+    "target_reachable": false,
+    "prerequisites_missing": true
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "vulnerable": {
+    "target_reachable": true,
+    "prerequisites_missing": false,
+    "jwt.claims.aud": "hex0r-api",
+    "response_status": 200
+  },
+  "secure": {
+    "response_status": 200,
+    "target_reachable": true,
+    "prerequisites_missing": false,
+    "jwt.claims.aud": "hex0r-api"
+  },
+  "inconclusive": {
+    "target_reachable": false,
+    "prerequisites_missing": true
+  }
+}

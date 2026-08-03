@@ -1,0 +1,24 @@
+{
+  "vulnerable": {
+    "target_reachable": true,
+    "prerequisites_missing": false,
+    "response_status": 200,
+    "object.owner_id": "other",
+    "subject.id": "me",
+    "entity.id": "1",
+    "entity.owner_id": "other"
+  },
+  "secure": {
+    "response_status": 200,
+    "target_reachable": true,
+    "prerequisites_missing": false,
+    "object.owner_id": "other",
+    "subject.id": "me",
+    "entity.id": "1",
+    "entity.owner_id": "other"
+  },
+  "inconclusive": {
+    "target_reachable": false,
+    "prerequisites_missing": true
+  }
+}

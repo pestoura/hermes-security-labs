@@ -1,0 +1,18 @@
+{
+  "vulnerable": {
+    "target_reachable": true,
+    "prerequisites_missing": false,
+    "response_status": 200,
+    "tls.plaintext_allowed": true
+  },
+  "secure": {
+    "response_status": 200,
+    "target_reachable": true,
+    "prerequisites_missing": false,
+    "tls.plaintext_allowed": true
+  },
+  "inconclusive": {
+    "target_reachable": false,
+    "prerequisites_missing": true
+  }
+}

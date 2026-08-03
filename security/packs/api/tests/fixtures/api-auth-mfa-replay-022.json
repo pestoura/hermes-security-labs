@@ -1,0 +1,16 @@
+{
+  "vulnerable": {
+    "target_reachable": true,
+    "prerequisites_missing": false,
+    "handler_signal": "failed"
+  },
+  "secure": {
+    "target_reachable": true,
+    "prerequisites_missing": false,
+    "handler_signal": "failed"
+  },
+  "inconclusive": {
+    "target_reachable": false,
+    "prerequisites_missing": true
+  }
+}
