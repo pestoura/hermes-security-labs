@@ -49,11 +49,11 @@ steps:
   - timestamps
 evaluation:
   vulnerable_when:
-  - profile-specific vulnerable signal is present
+  - ssl_grade in {'F','T'} or 'heartbleed' in nmap_script_output
   secure_when:
-  - profile-specific protection signal is present
+  - ssl_grade in {'A+','A','B'} and 'heartbleed' not in nmap_script_output
   inconclusive_when:
-  - target unavailable or prerequisites missing
+  - target_reachable == false or prerequisites_missing == true
 outputs:
   title: Detect weak TLS cipher suites
   severity: medium

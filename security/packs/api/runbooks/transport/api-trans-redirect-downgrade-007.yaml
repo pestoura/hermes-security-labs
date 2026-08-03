@@ -49,11 +49,11 @@ steps:
   - timestamps
 evaluation:
   vulnerable_when:
-  - profile-specific vulnerable signal is present
+  - http_status in {200,401,403,500} and 'x-powered-by' in response_headers
   secure_when:
-  - profile-specific protection signal is present
+  - http_status in {401,403} or 'x-powered-by' not in response_headers
   inconclusive_when:
-  - target unavailable or prerequisites missing
+  - target_reachable == false or prerequisites_missing == true
 outputs:
   title: Detect HTTPS to HTTP redirect downgrade
   severity: high

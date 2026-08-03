@@ -53,11 +53,11 @@ steps:
   - timestamps
 evaluation:
   vulnerable_when:
-  - profile-specific vulnerable signal is present
+  - jwt_alg in {'None','HS256'} or secret_bits < 2048
   secure_when:
-  - profile-specific protection signal is present
+  - jwt_alg=='RS256' and secret_bits >= 2048
   inconclusive_when:
-  - target unavailable or prerequisites missing
+  - target_reachable == false or prerequisites_missing == true
 outputs:
   title: Detect JWT asymmetric to symmetric algorithm confusion
   severity: critical

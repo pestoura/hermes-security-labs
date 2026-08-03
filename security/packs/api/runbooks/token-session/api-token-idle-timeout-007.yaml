@@ -49,11 +49,11 @@ steps:
   - timestamps
 evaluation:
   vulnerable_when:
-  - profile-specific vulnerable signal is present
+  - workflow_status in {'failed','blocked'}
   secure_when:
-  - profile-specific protection signal is present
+  - workflow_status in {'passed','completed'}
   inconclusive_when:
-  - target unavailable or prerequisites missing
+  - target_reachable == false or prerequisites_missing == true
 outputs:
   title: Validate idle session timeout
   severity: medium

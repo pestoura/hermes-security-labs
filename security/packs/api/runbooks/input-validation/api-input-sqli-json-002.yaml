@@ -50,11 +50,11 @@ steps:
   - timestamps
 evaluation:
   vulnerable_when:
-  - profile-specific vulnerable signal is present
+  - sqlmap_injection_type in {'boolean-based','error-based','union-based','stacked-queries'}
   secure_when:
-  - profile-specific protection signal is present
+  - sqlmap_injection_type=='not injectable'
   inconclusive_when:
-  - target unavailable or prerequisites missing
+  - target_reachable == false or prerequisites_missing == true
 outputs:
   title: Detect SQL injection in JSON body parameters
   severity: critical

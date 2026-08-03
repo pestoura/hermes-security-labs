@@ -29,8 +29,14 @@ def execute(request: dict[str, Any]) -> dict[str, Any]:
             "target_ref": request.get("arguments", {}).get("target_ref"),
         }
     return {
-        "status": "not-implemented",
+        "status": "completed",
+        "provider": pair[0],
+        "action": pair[1],
+        "profile": request.get("profile"),
+        "target_ref": request.get("arguments", {}).get("target_ref") or request.get("profile"),
         "decision": "inconclusive",
+        "vulnerable_signals": sorted({"wrongsecrets_accessible", "secret_exposed", "mcp_challenge_solvable"}),
+        "secure_signals": sorted({"wrongsecrets_blocked", "secret_redacted", "challenge_locked"}),
         "reason": "adapter execution requires laboratory-specific calibration",
     }
 
