@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import ast
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, Sequence
+from typing import Any
 
 import yaml
 
@@ -35,7 +35,7 @@ class EvaluationResult:
 
 
 class _Evaluator(ast.NodeVisitor):
-    def __init__(self, signals: Dict[str, Any]) -> None:
+    def __init__(self, signals: dict[str, Any]) -> None:
         self.signals = signals
 
     def visit(self, node: ast.AST) -> Any:  # type: ignore[override]
@@ -74,10 +74,10 @@ class _Evaluator(ast.NodeVisitor):
         for op, comparator in zip(node.ops, node.comparators):
             right = self.visit(comparator)
             if isinstance(op, ast.Eq):
-                if not left == right:
+                if left != right:
                     return False
             elif isinstance(op, ast.NotEq):
-                if not left != right:
+                if left == right:
                     return False
             elif isinstance(op, ast.In):
                 if left not in right:
@@ -126,7 +126,7 @@ def _produced_signals_from_expr(expr: str) -> list[str]:
     return found
 
 
-def _infer_signals_from_criteria(criteria: Dict[str, List[str]]) -> set[str]:
+def _infer_signals_from_criteria(criteria: dict[str, list[str]]) -> set[str]:
     catalog = set(_load_signal_catalog())
     inferred: set[str] = set(catalog)
     for key in ("vulnerable_when", "secure_when", "inconclusive_when"):
@@ -135,7 +135,7 @@ def _infer_signals_from_criteria(criteria: Dict[str, List[str]]) -> set[str]:
     return inferred
 
 
-def evaluate_signals(signals: Dict[str, Any], criteria: Dict[str, List[str]]) -> EvaluationResult:
+def evaluate_signals(signals: dict[str, Any], criteria: dict[str, list[str]]) -> EvaluationResult:
     explicit = _infer_signals_from_criteria(criteria)
     unknown_provided = sorted(set(signals) - explicit)
     if unknown_provided:
@@ -150,8 +150,8 @@ def evaluate_signals(signals: Dict[str, Any], criteria: Dict[str, List[str]]) ->
         if expected == "string" and value is not None and not isinstance(value, str):
             raise SignalError(f"type mismatch: {name} expected {expected}, got {type(value).__name__}")
     evaluator = _Evaluator(signals)
-    evaluated: List[str] = []
-    reasons: List[str] = []
+    evaluated: list[str] = []
+    reasons: list[str] = []
     for expr in criteria.get("vulnerable_when", []):
         evaluated.append(expr)
         if ast.parse(expr, mode="eval") and evaluator.visit(ast.parse(expr, mode="eval").body):
@@ -170,7 +170,7 @@ def evaluate_signals(signals: Dict[str, Any], criteria: Dict[str, List[str]]) ->
     return EvaluationResult(decision="inconclusive", reasons=("no criteria matched",), evaluated=tuple(evaluated))
 
 
-def _load_signal_catalog() -> Dict[str, SignalDefinition]:
+def _load_signal_catalog() -> dict[str, SignalDefinition]:
     data = yaml.safe_load(SIGNAL_CATALOG_PATH.read_text(encoding="utf-8"))
     signals = {}
     for key, value in (data.get("signals") or {}).items():
@@ -184,7 +184,7 @@ def _load_signal_catalog() -> Dict[str, SignalDefinition]:
     return signals
 
 
-def _normalize_http_response(response: Dict[str, Any]) -> Dict[str, Any]:
+def _normalize_http_response(response: dict[str, Any]) -> dict[str, Any]:
     headers = response.get("headers") or response.get("response_headers") or {}
     return {
         "response_status": response.get("status_code") or response.get("response_status"),
@@ -196,14 +196,14 @@ def _normalize_http_response(response: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def _normalize_request_meta(request_meta: Dict[str, Any]) -> Dict[str, Any]:
+def _normalize_request_meta(request_meta: dict[str, Any]) -> dict[str, Any]:
     redirect_target = ""
     if isinstance(request_meta, dict):
         redirect_target = str(request_meta.get("final_url") or request_meta.get("redirect_target") or "")
     return {"request_redirect_target": redirect_target}
 
 
-def _normalize_auth(auth_payload: Dict[str, Any] | None) -> Dict[str, Any]:
+def _normalize_auth(auth_payload: dict[str, Any] | None) -> dict[str, Any]:
     if not isinstance(auth_payload, dict):
         return {"auth_accepted": False, "auth_scheme": ""}
     return {
@@ -212,7 +212,7 @@ def _normalize_auth(auth_payload: Dict[str, Any] | None) -> Dict[str, Any]:
     }
 
 
-def _normalize_jwt(jwt_payload: Dict[str, Any] | None) -> Dict[str, Any]:
+def _normalize_jwt(jwt_payload: dict[str, Any] | None) -> dict[str, Any]:
     if not isinstance(jwt_payload, dict):
         return {
             "jwt.claims.aud": None,
@@ -235,23 +235,23 @@ def _normalize_jwt(jwt_payload: Dict[str, Any] | None) -> Dict[str, Any]:
     }
 
 
-def _normalize_upload(upload_payload: Dict[str, Any] | None) -> Dict[str, Any]:
+def _normalize_upload(upload_payload: dict[str, Any] | None) -> dict[str, Any]:
     if not isinstance(upload_payload, dict):
         return {"upload_executed": False}
     return {"upload_executed": bool(upload_payload.get("executed", False))}
 
 
-def _normalize_workflow(workflow_payload: Dict[str, Any] | None) -> Dict[str, Any]:
+def _normalize_workflow(workflow_payload: dict[str, Any] | None) -> dict[str, Any]:
     if not isinstance(workflow_payload, dict):
         return {"workflow_status": ""}
     return {"workflow_status": str(workflow_payload.get("status") or "")}
 
 
-def _normalize_rate(rate_payload: Dict[str, Any] | None) -> Dict[str, Any]:
+def _normalize_rate(rate_payload: dict[str, Any] | None) -> dict[str, Any]:
     return {"rate_limit.triggered": bool((rate_payload or {}).get("triggered", False))}
 
 
-def _normalize_authorization(authz_payload: Dict[str, Any] | None) -> Dict[str, Any]:
+def _normalize_authorization(authz_payload: dict[str, Any] | None) -> dict[str, Any]:
     if not isinstance(authz_payload, dict):
         return {"object.owner_id": "", "subject.id": ""}
     return {
@@ -260,7 +260,7 @@ def _normalize_authorization(authz_payload: Dict[str, Any] | None) -> Dict[str, 
     }
 
 
-def _normalize_business_logic(logic_payload: Dict[str, Any] | None) -> Dict[str, Any]:
+def _normalize_business_logic(logic_payload: dict[str, Any] | None) -> dict[str, Any]:
     if not isinstance(logic_payload, dict):
         return {"entity.id": "", "entity.owner_id": ""}
     return {
@@ -269,7 +269,7 @@ def _normalize_business_logic(logic_payload: Dict[str, Any] | None) -> Dict[str,
     }
 
 
-def _normalize_discovery(discovery_payload: Dict[str, Any] | None) -> Dict[str, Any]:
+def _normalize_discovery(discovery_payload: dict[str, Any] | None) -> dict[str, Any]:
     if not isinstance(discovery_payload, dict):
         return {"response_contains_schema": False, "openapi_security_schemes_present": False}
     return {
@@ -278,7 +278,7 @@ def _normalize_discovery(discovery_payload: Dict[str, Any] | None) -> Dict[str, 
     }
 
 
-def _normalize_tls(tls_payload: Dict[str, Any] | None) -> Dict[str, Any]:
+def _normalize_tls(tls_payload: dict[str, Any] | None) -> dict[str, Any]:
     if not isinstance(tls_payload, dict):
         return {
             "tls.cert_expired": False,
@@ -294,8 +294,8 @@ def _normalize_tls(tls_payload: Dict[str, Any] | None) -> Dict[str, Any]:
     }
 
 
-def _normalize_handler_output(handler: str, output: Dict[str, Any] | None) -> Dict[str, Any]:
-    normalized: Dict[str, Any] = {}
+def _normalize_handler_output(handler: str, output: dict[str, Any] | None) -> dict[str, Any]:
+    normalized: dict[str, Any] = {}
     if not isinstance(output, dict):
         return normalized
     if handler in {"http", "openapi", "workflow", "headers", "race"}:
@@ -321,7 +321,7 @@ def _normalize_handler_output(handler: str, output: Dict[str, Any] | None) -> Di
     return normalized
 
 
-def normalize_execution_output(handler: str, output: Dict[str, Any] | None) -> Dict[str, Any]:
+def normalize_execution_output(handler: str, output: dict[str, Any] | None) -> dict[str, Any]:
     normalized = {
         "target_reachable": True,
         "prerequisites_missing": bool((output or {}).get("prerequisites_missing", False)),
@@ -333,11 +333,11 @@ def normalize_execution_output(handler: str, output: Dict[str, Any] | None) -> D
     return normalized
 
 
-def load_signal_catalog() -> Dict[str, SignalDefinition]:
+def load_signal_catalog() -> dict[str, SignalDefinition]:
     return _load_signal_catalog()
 
 
-def load_canonical_mapping() -> Dict[str, Dict[str, Any]]:
+def load_canonical_mapping() -> dict[str, dict[str, Any]]:
     if not MAPPING_PATH.exists():
         return {}
     data = yaml.safe_load(MAPPING_PATH.read_text(encoding="utf-8"))
@@ -348,8 +348,8 @@ __all__ = [
     "EvaluationResult",
     "SignalDefinition",
     "SignalError",
+    "evaluate_signals",
     "load_canonical_mapping",
     "load_signal_catalog",
     "normalize_execution_output",
-    "evaluate_signals",
 ]
