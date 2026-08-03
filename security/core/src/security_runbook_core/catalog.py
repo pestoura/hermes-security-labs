@@ -52,9 +52,11 @@ def load_pack(root: Path) -> list[dict[str, Any]]:
                     }
                 ],
                 "evaluation": {
-                    "vulnerable_when": ["profile-specific vulnerable signal"],
-                    "secure_when": ["profile-specific protection signal"],
-                    "inconclusive_when": ["prerequisite or evidence missing"],
+                    "vulnerable_when": [],
+                    "secure_when": [],
+                    "inconclusive_when": [
+                        "target_reachable == false or prerequisites_missing == true"
+                    ],
                 },
                 "outputs": {
                     "title": row["name"],
