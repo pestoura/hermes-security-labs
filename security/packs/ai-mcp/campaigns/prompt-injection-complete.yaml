@@ -7,8 +7,8 @@ metadata:
 domain: ai-mcp
 selectors:
   categories:
-  - prompt_injection_direct
-  - prompt_injection_indirect
+  - direct-prompt-injection
+  - indirect-prompt-injection
 execution:
   mode: sequential
   max_parallel: 1
