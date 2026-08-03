@@ -1,0 +1,36 @@
+apiVersion: security.hex0r.io/v1alpha1
+kind: SecurityCatalogManifest
+repository: pestoura/hermes-security-labs
+version: 1
+components:
+  core:
+    path: security/core
+    source_repository: pestoura/security-runbook-core
+    source_revision: 54be257bad730d9df3c6b855ca3d453f1fb2b63d
+    status: alpha
+  api:
+    path: security/packs/api
+    source_repository: pestoura/api-pentest-runbooks
+    source_revision: 3273ec9f8352597758ba2c3f4ddb7ead1e59c926
+    expected_runbooks: 150
+    canonical_format: individual-yaml
+    status: experimental
+  devsecops:
+    path: security/packs/devsecops
+    source_repository: pestoura/devsecops-security-runbooks
+    source_revision: 3588270e9e56f73fe7b7aff46944a1b87d5fde27
+    expected_runbooks: 120
+    canonical_format: individual-yaml
+    status: experimental
+  ai-mcp:
+    path: security/packs/ai-mcp
+    source_repository: pestoura/ai-mcp-security-runbooks
+    source_revision: 24078938b2584674f0e075e644677ec1f18b12a9
+    expected_runbooks: 100
+    canonical_format: individual-yaml
+    status: experimental
+controls:
+  forbidden_runbook_keys: [command, script, shell, argv]
+  require_unique_ids: true
+  require_registered_laboratories: true
+  generated_catalogs_are_canonical: false
