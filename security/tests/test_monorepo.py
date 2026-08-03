@@ -17,7 +17,7 @@ def test_combined_catalog_is_valid():
     errors, warnings, entries = securityctl.perform_validation()
     assert errors == []
     assert len(entries) == 370
-    assert warnings
+    assert warnings == []
 
 
 def test_pack_counts_are_exact():
