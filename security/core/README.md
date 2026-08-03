@@ -1,3 +1,6 @@
+> **Localização canónica:** `security/core` no monorepo `pestoura/hermes-security-labs`.  
+> Importado de `pestoura/security-runbook-core@54be257bad730d9df3c6b855ca3d453f1fb2b63d`; o repositório autónomo é apenas histórico de migração.
+
 # Security Runbook Core
 
 Deterministic engine and canonical contracts for machine-readable security runbooks.
