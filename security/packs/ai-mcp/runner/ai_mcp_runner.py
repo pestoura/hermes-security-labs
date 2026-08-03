@@ -29,15 +29,15 @@ def execute(request: dict[str, Any]) -> dict[str, Any]:
             "target_ref": request.get("arguments", {}).get("target_ref"),
         }
     return {
-        "status": "completed",
+        "status": "not-implemented",
         "provider": pair[0],
         "action": pair[1],
         "profile": request.get("profile"),
         "target_ref": request.get("arguments", {}).get("target_ref") or request.get("profile"),
         "decision": "inconclusive",
-        "vulnerable_signals": sorted({"prompt_injection_accepted", "mcp_tool_poisoned", "rag_context_modified"}),
-        "secure_signals": sorted({"prompt_injection_rejected", "mcp_tool_verified", "rag_context_unchanged"}),
-        "reason": "adapter execution requires laboratory-specific calibration",
+        "vulnerable_signals": [],
+        "secure_signals": [],
+        "reason": "real adapter execution pending calibration",
     }
 
 
