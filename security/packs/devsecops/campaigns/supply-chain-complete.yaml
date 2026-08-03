@@ -9,7 +9,8 @@ selectors:
   categories:
   - sbom
   - oci
-  - supply_chain
+  - supplychain
+  - evidence
 execution:
   mode: sequential
   max_parallel: 1
