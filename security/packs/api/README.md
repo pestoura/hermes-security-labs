@@ -1,10 +1,13 @@
+> **Localização canónica:** `security/packs/api` no monorepo `pestoura/hermes-security-labs`.  
+> Importado de `pestoura/api-pentest-runbooks@3273ec9f8352597758ba2c3f4ddb7ead1e59c926`; o repositório autónomo é apenas histórico de migração.
+
 # API Pentest Runbooks
 
 Biblioteca canónica e machine-readable de runbooks de pentest autorizado a APIs Web, desenhada para planeamento pelo Hermes e execução controlada através do Kali MCP.
 
 ## Estado
 
-A versão `v0.1.0-alpha` contém a fundação do motor, políticas, integração com o `hermes-security-labs` e um catálogo inicial de 150 runbooks. A promoção de cada runbook para `stable` exige execução em laboratório, calibração de evidência e análise de falsos positivos.
+A versão `v0.1.0-alpha` contém a fundação do motor, políticas e 150 runbooks individuais. Estes runbooks preservam nesta migração os critérios de avaliação genéricos do pack de origem; continuam `experimental` e pendentes de implementação/calibração específica, evidência e análise de falsos positivos.
 
 ## Princípio operacional
 
@@ -23,15 +26,15 @@ Kali runner allowlisted
 
 O modelo de linguagem nunca fornece comandos shell livres. Cada passo referencia um `handler` e um `profile` conhecidos. O adapter envia ao MCP apenas um comando fixo para o runner, com um payload JSON codificado.
 
-## Quick start
+## Quick start no monorepo
 
 ```bash
+cd security/packs/api
 python -m venv .venv
 . .venv/bin/activate
 pip install -e '.[dev]'
 api-pentest-runbooks validate
 api-pentest-runbooks list --category authorization
-api-pentest-runbooks plan --campaign campaigns/api-baseline.yaml --target examples/target-crapi.yaml
 pytest
 ```
 
@@ -44,20 +47,19 @@ pytest
 - Credenciais são referências externas e nunca são persistidas no catálogo.
 - Resultados brutos e segredos não pertencem ao Git.
 
-## Repositório de laboratórios
+## Laboratórios
 
-A integração inicial usa o catálogo e lifecycle de `pestoura/hermes-security-labs`, incluindo CRAPI, VAmPI, DVAPI e o laboratório GraphQL. O laboratório deve estar ativo, com Kali ligado à rede isolada, antes da execução.
+A ligação aos laboratórios é canónica em `../../bindings/labs.yaml`. O laboratório deve estar ativo, com Kali ligado à rede isolada, antes da execução.
 
 ## Estrutura
 
 ```text
-runbooks/       bundles canónicos de runbooks
+runbooks/       150 YAML canónicos
 campaigns/      seleção e ordenação de runbooks
 schemas/        contratos JSON Schema
 src/            loader, validator, planner, policy e executor
 runner/         runner a instalar/montar no Kali
 policies/       perfis laboratory, staging e production
-integrations/   mapeamento dos laboratórios Hermes
 docs/           arquitetura, DSL e plano de validação
 tests/          testes estruturais e de segurança
 ```
