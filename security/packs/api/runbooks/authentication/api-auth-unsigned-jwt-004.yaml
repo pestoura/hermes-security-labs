@@ -53,11 +53,11 @@ steps:
   - timestamps
 evaluation:
   vulnerable_when:
-  - profile-specific vulnerable signal is present
+  - jwt_alg=='None' and 'alg' in headers
   secure_when:
-  - profile-specific protection signal is present
+  - '''alg'' in headers and jwt_alg!=''None'''
   inconclusive_when:
-  - target unavailable or prerequisites missing
+  - target_reachable == false or prerequisites_missing == true
 outputs:
   title: Reject unsigned JWT tokens
   severity: critical

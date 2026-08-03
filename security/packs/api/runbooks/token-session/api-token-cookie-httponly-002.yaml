@@ -49,11 +49,12 @@ steps:
   - timestamps
 evaluation:
   vulnerable_when:
-  - profile-specific vulnerable signal is present
+  - '''x-content-type-options'' not in response_headers or ''x-frame-options'' not
+    in response_headers'
   secure_when:
-  - profile-specific protection signal is present
+  - '''x-content-type-options'' in response_headers and ''x-frame-options'' in response_headers'
   inconclusive_when:
-  - target unavailable or prerequisites missing
+  - target_reachable == false or prerequisites_missing == true
 outputs:
   title: Validate HttpOnly flag on authentication cookies
   severity: medium
