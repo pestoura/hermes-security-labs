@@ -7,9 +7,10 @@ metadata:
 domain: ai-mcp
 selectors:
   categories:
-  - tool_poisoning
-  - agency
-  - mcp
+  - tool-poisoning
+  - excessive-agency
+  - mcp-authorization
+  - exfiltration
 execution:
   mode: sequential
   max_parallel: 1
