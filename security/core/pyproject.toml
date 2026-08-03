@@ -1,0 +1,23 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "security-runbook-core"
+version = "0.1.0a1"
+description = "Deterministic core for executable security runbooks"
+requires-python = ">=3.11"
+dependencies = ["PyYAML>=6.0.2,<7", "jsonschema>=4.23,<5"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.3,<9", "ruff>=0.9,<1"]
+
+[project.scripts]
+security-runbook-core = "security_runbook_core.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/security_runbook_core"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"

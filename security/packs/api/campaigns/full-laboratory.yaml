@@ -1,0 +1,21 @@
+apiVersion: hex0r.io/v1alpha1
+kind: ApiPentestCampaign
+metadata:
+  id: API-FULL-LAB-001
+  name: Full authorised laboratory campaign
+selection:
+  categories:
+    - discovery
+    - transport
+    - authentication
+    - authorization
+    - token-session
+    - input-validation
+    - data-exposure
+    - rate-resource
+    - business-logic
+    - configuration
+execution:
+  mode: sequential
+  max_parallel: 1
+  max_runbooks: 150

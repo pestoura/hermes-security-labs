@@ -1,0 +1,14 @@
+apiVersion: hex0r.io/v1alpha1
+kind: ApiPentestCampaign
+metadata:
+  id: API-OAUTH-OIDC-001
+  name: OAuth OIDC and JWT campaign
+selection:
+  categories:
+    - authentication
+    - token-session
+    - authorization
+execution:
+  mode: sequential
+  max_parallel: 1
+  max_runbooks: 64

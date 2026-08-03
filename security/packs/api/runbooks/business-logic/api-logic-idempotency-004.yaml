@@ -1,0 +1,61 @@
+apiVersion: hex0r.io/v1alpha1
+kind: ApiPentestRunbook
+metadata:
+  id: API-LOGIC-IDEMPOTENCY-004
+  name: Validate idempotency key enforcement
+  version: 0.1.0
+  status: experimental
+  category: business-logic
+  tags:
+  - api
+  - business-logic
+  - workflow
+  - idempotency-key
+mapping:
+  owasp_api:
+  - API6:2023
+  cwe:
+  - CWE-799
+selectors:
+  api_types:
+  - rest
+  auth_types:
+  - any
+  required_capabilities:
+  - stateful_workflows
+risk:
+  intrusiveness: medium
+  production_safe: false
+  destructive: false
+  max_requests: 40
+  max_response_bytes: 65536
+inputs:
+- name: base_url
+  type: uri
+  required: true
+  secret: false
+steps:
+- id: primary-probe
+  action: kali.action
+  handler: workflow
+  profile: idempotency-key
+  arguments:
+    url: '{{ target.base_url }}'
+  timeout_seconds: 120
+  evidence:
+  - request_metadata
+  - response_status
+  - response_headers
+  - redacted_response_sample
+  - timestamps
+evaluation:
+  vulnerable_when:
+  - profile-specific vulnerable signal is present
+  secure_when:
+  - profile-specific protection signal is present
+  inconclusive_when:
+  - target unavailable or prerequisites missing
+outputs:
+  title: Validate idempotency key enforcement
+  severity: high
+  confidence: dynamic

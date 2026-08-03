@@ -1,0 +1,41 @@
+apiVersion: security.hex0r.io/v1alpha1
+kind: AdapterCatalog
+domain: ai-mcp
+providers:
+- id: agent
+  actions:
+  - discover
+  - conversation-test
+  - content-test
+  - boundary-test
+  - agency-test
+  - output-test
+  adapters:
+  - agent-session
+  - tool-observer
+  - semantic-evaluator
+  execution: state-machine
+- id: mcp
+  actions:
+  - tool-poison-test
+  - security-test
+  adapters:
+  - mcp-client
+  - mcp-inspector
+  - tool-observer
+  execution: state-machine
+- id: rag
+  actions:
+  - poison-test
+  adapters:
+  - rag-ingestion
+  - rag-query
+  - retrieval-observer
+  execution: state-machine
+- id: memory
+  actions:
+  - isolation-test
+  adapters:
+  - memory-inspector
+  - session-controller
+  execution: state-machine

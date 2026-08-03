@@ -1,0 +1,77 @@
+apiVersion: security.hex0r.io/v1alpha1
+kind: SecurityRunbook
+metadata:
+  id: DEVSEC-OCI-009
+  name: Verify Latest Tag
+  version: 1.0.0
+  status: experimental
+  domain: devsecops
+  category: oci
+  tags:
+  - latest-tag
+  - oci
+  - owasp-devsecops
+  - typed-execution
+selectors:
+  target_types:
+  - oci-image
+  capabilities:
+  - registry-read
+  - image-metadata-read
+risk:
+  intrusiveness: passive
+  destructive: false
+  production_safe: true
+  max_actions: 5
+  timeout_seconds: 300
+steps:
+- id: collect-baseline
+  provider: oci
+  action: inspect
+  profile: oci-baseline
+  arguments:
+    target_ref: '{{ target.ref }}'
+    evidence_ref: baseline/DEVSEC-OCI-009
+    read_only: true
+    redact_secrets: true
+- id: execute-control
+  provider: oci
+  action: inspect
+  profile: latest-tag
+  arguments:
+    target_ref: '{{ target.ref }}'
+    control_id: DEVSEC-OCI-009
+    rule_profile: latest-tag
+    fail_closed: false
+    redact_secrets: true
+    collect_tool_version: true
+    evidence_ref: findings/DEVSEC-OCI-009
+- id: verify-evidence
+  provider: evidence
+  action: verify
+  profile: deterministic-finding-bundle
+  arguments:
+    target_ref: '{{ target.ref }}'
+    control_id: DEVSEC-OCI-009
+    required_artifacts:
+    - tool-version
+    - scan-summary
+    - sanitised-observations
+    redact_secrets: true
+evaluation:
+  vulnerable_when:
+  - control.latest_tag.status equals non_compliant
+  - control.latest_tag.evidence_count is greater than zero
+  - scanner.completed equals true and scanner.error_count equals zero
+  secure_when:
+  - control.latest_tag.status equals compliant
+  - control.latest_tag.evidence_count equals zero
+  - scanner.completed equals true and baseline.coverage_complete equals true
+  inconclusive_when:
+  - control.latest_tag.status equals unknown
+  - scanner.completed equals false or scanner.error_count is greater than zero
+  - baseline.coverage_complete equals false or required evidence is missing
+outputs:
+  title: Latest Tag control result
+  severity: medium
+  confidence: dynamic

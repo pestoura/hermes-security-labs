@@ -1,0 +1,61 @@
+apiVersion: hex0r.io/v1alpha1
+kind: ApiPentestRunbook
+metadata:
+  id: API-DISC-WEBSOCKET-ENDPOINT-010
+  name: Discover WebSocket upgrade endpoints
+  version: 0.1.0
+  status: experimental
+  category: discovery
+  tags:
+  - api
+  - discovery
+  - websocket
+  - websocket-endpoint-discovery
+mapping:
+  owasp_api:
+  - API9:2023
+  cwe:
+  - CWE-200
+selectors:
+  api_types:
+  - websocket
+  auth_types:
+  - any
+  required_capabilities:
+  - websocket
+risk:
+  intrusiveness: medium
+  production_safe: false
+  destructive: false
+  max_requests: 50
+  max_response_bytes: 65536
+inputs:
+- name: base_url
+  type: uri
+  required: true
+  secret: false
+steps:
+- id: primary-probe
+  action: kali.action
+  handler: websocket
+  profile: websocket-endpoint-discovery
+  arguments:
+    url: '{{ target.base_url }}'
+  timeout_seconds: 120
+  evidence:
+  - request_metadata
+  - response_status
+  - response_headers
+  - redacted_response_sample
+  - timestamps
+evaluation:
+  vulnerable_when:
+  - profile-specific vulnerable signal is present
+  secure_when:
+  - profile-specific protection signal is present
+  inconclusive_when:
+  - target unavailable or prerequisites missing
+outputs:
+  title: Discover WebSocket upgrade endpoints
+  severity: info
+  confidence: dynamic

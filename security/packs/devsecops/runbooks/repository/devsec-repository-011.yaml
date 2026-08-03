@@ -1,0 +1,77 @@
+apiVersion: security.hex0r.io/v1alpha1
+kind: SecurityRunbook
+metadata:
+  id: DEVSEC-REPOSITORY-011
+  name: Verify Audit Log Coverage
+  version: 1.0.0
+  status: experimental
+  domain: devsecops
+  category: repository
+  tags:
+  - audit-log-coverage
+  - owasp-devsecops
+  - repository
+  - typed-execution
+selectors:
+  target_types:
+  - git-repository
+  capabilities:
+  - repository-read
+  - metadata-read
+risk:
+  intrusiveness: passive
+  destructive: false
+  production_safe: true
+  max_actions: 5
+  timeout_seconds: 180
+steps:
+- id: collect-baseline
+  provider: repository
+  action: inventory
+  profile: repository-baseline
+  arguments:
+    target_ref: '{{ target.ref }}'
+    evidence_ref: baseline/DEVSEC-REPOSITORY-011
+    read_only: true
+    redact_secrets: true
+- id: execute-control
+  provider: repository
+  action: inspect
+  profile: audit-log-coverage
+  arguments:
+    target_ref: '{{ target.ref }}'
+    control_id: DEVSEC-REPOSITORY-011
+    rule_profile: audit-log-coverage
+    fail_closed: false
+    redact_secrets: true
+    collect_tool_version: true
+    evidence_ref: findings/DEVSEC-REPOSITORY-011
+- id: verify-evidence
+  provider: evidence
+  action: verify
+  profile: deterministic-finding-bundle
+  arguments:
+    target_ref: '{{ target.ref }}'
+    control_id: DEVSEC-REPOSITORY-011
+    required_artifacts:
+    - tool-version
+    - scan-summary
+    - sanitised-observations
+    redact_secrets: true
+evaluation:
+  vulnerable_when:
+  - control.audit_log_coverage.status equals non_compliant
+  - control.audit_log_coverage.evidence_count is greater than zero
+  - scanner.completed equals true and scanner.error_count equals zero
+  secure_when:
+  - control.audit_log_coverage.status equals compliant
+  - control.audit_log_coverage.evidence_count equals zero
+  - scanner.completed equals true and baseline.coverage_complete equals true
+  inconclusive_when:
+  - control.audit_log_coverage.status equals unknown
+  - scanner.completed equals false or scanner.error_count is greater than zero
+  - baseline.coverage_complete equals false or required evidence is missing
+outputs:
+  title: Audit Log Coverage control result
+  severity: medium
+  confidence: dynamic

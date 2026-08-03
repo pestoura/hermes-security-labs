@@ -1,0 +1,11 @@
+apiVersion: hex0r.io/v1alpha1
+kind: ApiPentestPolicy
+environment: staging
+scope:
+  allowed_hosts: []
+  allowed_cidrs: []
+execution:
+  allowed_intrusiveness: [passive, low, medium]
+  allow_destructive: false
+  max_parallel: 2
+  stop_on_scope_violation: true

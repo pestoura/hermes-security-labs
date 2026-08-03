@@ -1,0 +1,15 @@
+id: crapi-lab
+base_url: http://crapi:8888
+api_type: rest
+auth_type: jwt
+openapi_url: http://crapi:8888/openapi.json
+capabilities:
+  - openapi
+  - two_test_identities
+  - roles
+  - file_upload
+  - stateful_workflows
+identities:
+  owner: secret://crapi/owner
+  attacker: secret://crapi/attacker
+  admin: secret://crapi/admin

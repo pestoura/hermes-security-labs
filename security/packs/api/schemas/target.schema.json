@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["id", "base_url", "api_type", "auth_type", "capabilities"],
+  "properties": {
+    "id": {"type": "string"},
+    "base_url": {"type": "string", "format": "uri"},
+    "api_type": {"type": "string"},
+    "auth_type": {"type": "string"},
+    "capabilities": {"type": "array", "items": {"type": "string"}},
+    "openapi_url": {"type": "string"},
+    "identities": {"type": "object"}
+  }
+}

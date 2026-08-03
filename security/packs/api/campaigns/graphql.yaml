@@ -1,0 +1,17 @@
+apiVersion: hex0r.io/v1alpha1
+kind: ApiPentestCampaign
+metadata:
+  id: API-GRAPHQL-001
+  name: GraphQL API campaign
+selection:
+  runbook_ids:
+    - API-DISC-GRAPHQL-ENDPOINT-008
+    - API-DISC-GRAPHQL-INTROSPECTION-009
+    - API-INPUT-GRAPHQL-INJECTION-020
+    - API-INPUT-GRAPHQL-BATCH-021
+    - API-INPUT-GRAPHQL-ALIAS-022
+    - API-RATE-GRAPHQL-DEPTH-009
+execution:
+  mode: sequential
+  max_parallel: 1
+  max_runbooks: 20

@@ -1,0 +1,21 @@
+apiVersion: hex0r.io/v1alpha1
+kind: ApiPentestCampaign
+metadata:
+  id: API-MULTITENANT-001
+  name: Multi-tenant authorization campaign
+selection:
+  runbook_ids:
+    - API-AUTHZ-BOLA-READ-001
+    - API-AUTHZ-BOLA-UPDATE-002
+    - API-AUTHZ-BOLA-DELETE-003
+    - API-AUTHZ-HORIZONTAL-005
+    - API-AUTHZ-VERTICAL-006
+    - API-AUTHZ-TENANT-READ-007
+    - API-AUTHZ-TENANT-WRITE-008
+    - API-AUTHZ-NESTED-OBJECT-009
+    - API-AUTHZ-BATCH-010
+    - API-AUTHZ-EXPORT-023
+execution:
+  mode: sequential
+  max_parallel: 1
+  max_runbooks: 20

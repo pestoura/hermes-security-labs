@@ -1,0 +1,77 @@
+apiVersion: security.hex0r.io/v1alpha1
+kind: SecurityRunbook
+metadata:
+  id: DEVSEC-SCA-001
+  name: Verify Known Critical Cve
+  version: 1.0.0
+  status: experimental
+  domain: devsecops
+  category: sca
+  tags:
+  - known-critical-cve
+  - owasp-devsecops
+  - sca
+  - typed-execution
+selectors:
+  target_types:
+  - software-project
+  capabilities:
+  - dependency-manifest-read
+  - vulnerability-database
+risk:
+  intrusiveness: passive
+  destructive: false
+  production_safe: true
+  max_actions: 5
+  timeout_seconds: 300
+steps:
+- id: collect-baseline
+  provider: repository
+  action: inventory
+  profile: sca-baseline
+  arguments:
+    target_ref: '{{ target.ref }}'
+    evidence_ref: baseline/DEVSEC-SCA-001
+    read_only: true
+    redact_secrets: true
+- id: execute-control
+  provider: sca
+  action: scan
+  profile: known-critical-cve
+  arguments:
+    target_ref: '{{ target.ref }}'
+    control_id: DEVSEC-SCA-001
+    rule_profile: known-critical-cve
+    fail_closed: false
+    redact_secrets: true
+    collect_tool_version: true
+    evidence_ref: findings/DEVSEC-SCA-001
+- id: verify-evidence
+  provider: evidence
+  action: verify
+  profile: deterministic-finding-bundle
+  arguments:
+    target_ref: '{{ target.ref }}'
+    control_id: DEVSEC-SCA-001
+    required_artifacts:
+    - tool-version
+    - scan-summary
+    - sanitised-observations
+    redact_secrets: true
+evaluation:
+  vulnerable_when:
+  - control.known_critical_cve.status equals non_compliant
+  - control.known_critical_cve.evidence_count is greater than zero
+  - scanner.completed equals true and scanner.error_count equals zero
+  secure_when:
+  - control.known_critical_cve.status equals compliant
+  - control.known_critical_cve.evidence_count equals zero
+  - scanner.completed equals true and baseline.coverage_complete equals true
+  inconclusive_when:
+  - control.known_critical_cve.status equals unknown
+  - scanner.completed equals false or scanner.error_count is greater than zero
+  - baseline.coverage_complete equals false or required evidence is missing
+outputs:
+  title: Known Critical Cve control result
+  severity: medium
+  confidence: dynamic

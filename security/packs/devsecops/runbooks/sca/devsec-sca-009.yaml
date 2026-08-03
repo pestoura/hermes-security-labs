@@ -1,0 +1,77 @@
+apiVersion: security.hex0r.io/v1alpha1
+kind: SecurityRunbook
+metadata:
+  id: DEVSEC-SCA-009
+  name: Verify Direct Vs Transitive
+  version: 1.0.0
+  status: experimental
+  domain: devsecops
+  category: sca
+  tags:
+  - direct-vs-transitive
+  - owasp-devsecops
+  - sca
+  - typed-execution
+selectors:
+  target_types:
+  - software-project
+  capabilities:
+  - dependency-manifest-read
+  - vulnerability-database
+risk:
+  intrusiveness: passive
+  destructive: false
+  production_safe: true
+  max_actions: 5
+  timeout_seconds: 300
+steps:
+- id: collect-baseline
+  provider: repository
+  action: inventory
+  profile: sca-baseline
+  arguments:
+    target_ref: '{{ target.ref }}'
+    evidence_ref: baseline/DEVSEC-SCA-009
+    read_only: true
+    redact_secrets: true
+- id: execute-control
+  provider: sca
+  action: scan
+  profile: direct-vs-transitive
+  arguments:
+    target_ref: '{{ target.ref }}'
+    control_id: DEVSEC-SCA-009
+    rule_profile: direct-vs-transitive
+    fail_closed: false
+    redact_secrets: true
+    collect_tool_version: true
+    evidence_ref: findings/DEVSEC-SCA-009
+- id: verify-evidence
+  provider: evidence
+  action: verify
+  profile: deterministic-finding-bundle
+  arguments:
+    target_ref: '{{ target.ref }}'
+    control_id: DEVSEC-SCA-009
+    required_artifacts:
+    - tool-version
+    - scan-summary
+    - sanitised-observations
+    redact_secrets: true
+evaluation:
+  vulnerable_when:
+  - control.direct_vs_transitive.status equals non_compliant
+  - control.direct_vs_transitive.evidence_count is greater than zero
+  - scanner.completed equals true and scanner.error_count equals zero
+  secure_when:
+  - control.direct_vs_transitive.status equals compliant
+  - control.direct_vs_transitive.evidence_count equals zero
+  - scanner.completed equals true and baseline.coverage_complete equals true
+  inconclusive_when:
+  - control.direct_vs_transitive.status equals unknown
+  - scanner.completed equals false or scanner.error_count is greater than zero
+  - baseline.coverage_complete equals false or required evidence is missing
+outputs:
+  title: Direct Vs Transitive control result
+  severity: medium
+  confidence: dynamic
