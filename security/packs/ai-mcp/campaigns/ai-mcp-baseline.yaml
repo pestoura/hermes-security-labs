@@ -7,9 +7,10 @@ metadata:
 domain: ai-mcp
 selectors:
   categories:
-  - discovery
-  - prompt_data
-  - mcp
+  - agent-discovery
+  - direct-prompt-injection
+  - mcp-authorization
+  - output-integrity
 execution:
   mode: sequential
   max_parallel: 1
