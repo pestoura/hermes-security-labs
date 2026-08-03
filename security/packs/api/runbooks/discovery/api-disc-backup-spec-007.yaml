@@ -49,9 +49,9 @@ steps:
   - timestamps
 evaluation:
   vulnerable_when:
-  - fuzz_200_ratio > 0.15 or fuzz_wildcard==False
+  - response_contains_schema == true or openapi_security_schemes_present == true
   secure_when:
-  - fuzz_200_ratio <= 0.15 or fuzz_wildcard==True
+  - response_contains_schema == false and openapi_security_schemes_present == false
   inconclusive_when:
   - target_reachable == false or prerequisites_missing == true
 outputs:

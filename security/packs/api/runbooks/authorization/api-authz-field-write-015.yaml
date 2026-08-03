@@ -55,9 +55,9 @@ steps:
   - timestamps
 evaluation:
   vulnerable_when:
-  - workflow_status in {'failed','blocked'}
+  - object_owner_id != subject_id and subject_id != '' and response_status == 200
   secure_when:
-  - workflow_status in {'passed','completed'}
+  - object_owner_id == subject_id or subject_id == ''
   inconclusive_when:
   - target_reachable == false or prerequisites_missing == true
 outputs:

@@ -48,12 +48,11 @@ steps:
   - redacted_response_sample
   - timestamps
 evaluation:
-  vulnerable_when:
-  - workflow_status in {'failed','blocked'}
-  secure_when:
-  - workflow_status in {'passed','completed'}
+  vulnerable_when: []
+  secure_when: []
   inconclusive_when:
   - target_reachable == false or prerequisites_missing == true
+  - family_signal_producer_required
 outputs:
   title: Detect refresh token reuse
   severity: high

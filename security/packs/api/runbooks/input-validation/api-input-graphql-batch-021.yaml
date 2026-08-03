@@ -50,9 +50,9 @@ steps:
   - timestamps
 evaluation:
   vulnerable_when:
-  - graphql_introspection_enabled or 'errors' in response_body
+  - response_status == 200 and response_contains_sensitive_data == true
   secure_when:
-  - not graphql_introspection_enabled and 'errors' not in response_body
+  - response_status in {400,401,403,404}
   inconclusive_when:
   - target_reachable == false or prerequisites_missing == true
 outputs:

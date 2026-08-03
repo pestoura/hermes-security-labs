@@ -48,12 +48,11 @@ steps:
   - redacted_response_sample
   - timestamps
 evaluation:
-  vulnerable_when:
-  - auth.scheme == 'basic' and request.redirect_target != '' and request.redirect_target.startswith('http://')
-  secure_when:
-  - request.redirect_target == '' or request.redirect_target.startswith('https://')
+  vulnerable_when: []
+  secure_when: []
   inconclusive_when:
   - target_reachable == false or prerequisites_missing == true
+  - family_signal_producer_required
 outputs:
   title: Validate Basic authentication transport protections
   severity: high

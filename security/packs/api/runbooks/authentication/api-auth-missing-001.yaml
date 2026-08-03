@@ -49,9 +49,9 @@ steps:
   - timestamps
 evaluation:
   vulnerable_when:
-  - auth.accepted == false and response_status == 200
+  - auth_accepted == false and response_status == 200
   secure_when:
-  - auth.accepted == true or response_status in {401,403}
+  - auth_accepted == true or response_status in {401,403}
   inconclusive_when:
   - target_reachable == false or prerequisites_missing == true
 outputs:

@@ -53,9 +53,9 @@ steps:
   - timestamps
 evaluation:
   vulnerable_when:
-  - jwt_alg=='None' and 'alg' in headers
+  - jwt_claims_aud is None or jwt_claims_aud not in {'hex0r-api','crapi'}
   secure_when:
-  - '''alg'' in headers and jwt_alg!=''None'''
+  - jwt_claims_aud in {'hex0r-api','crapi'} and jwt_signature_valid == true
   inconclusive_when:
   - target_reachable == false or prerequisites_missing == true
 outputs:

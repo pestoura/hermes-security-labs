@@ -53,9 +53,9 @@ steps:
   - timestamps
 evaluation:
   vulnerable_when:
-  - jwt_alg in {'None','HS256'} or secret_bits < 2048
+  - jwt_claims_exp is None or jwt_claims_exp < prereq_now
   secure_when:
-  - jwt_alg=='RS256' and secret_bits >= 2048
+  - jwt_claims_exp is not None
   inconclusive_when:
   - target_reachable == false or prerequisites_missing == true
 outputs:

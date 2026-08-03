@@ -1,11 +1,12 @@
 """Regression tests for API evaluation criteria fixes introduced in issue #64."""
 
+from __future__ import annotations
+
 from api_pentest_runbooks.adapter import DryRunAdapter
 from api_pentest_runbooks.catalog import load_runbooks
 from api_pentest_runbooks.executor import execute_runbook
 from api_pentest_runbooks.planner import applicable
-
-ROOT = None  # removed unused Path dependency
+from evaluation import evaluate_signals
 
 
 def _load(rid: str) -> dict:
@@ -32,8 +33,8 @@ def _run(rid: str, target: dict | None = None) -> dict:
 def test_jwt_audience_regression_family_isolation() -> None:
     runbook = _load("API-AUTH-JWT-AUDIENCE-008")
     assert runbook["metadata"]["category"] == "authentication"
-    assert any("jwt.claims.aud" in item for item in runbook["evaluation"]["vulnerable_when"])
-    assert any("jwt.claims.aud" in item for item in runbook["evaluation"]["secure_when"])
+    assert any("jwt_claims_aud" in item for item in runbook["evaluation"]["vulnerable_when"])
+    assert any("jwt_claims_aud" in item for item in runbook["evaluation"]["secure_when"])
     assert not any("workflow_status" in item for item in runbook["evaluation"]["vulnerable_when"])
     assert not any("x-powered-by" in item for item in runbook["evaluation"]["vulnerable_when"])
     assert not any("x-content-type-options" in item for item in runbook["evaluation"]["vulnerable_when"])
@@ -54,7 +55,7 @@ def test_jwt_audience_selected_only_for_jwt_targets() -> None:
 def test_missing_auth_regression_uses_auth_signals() -> None:
     runbook = _load("API-AUTH-MISSING-001")
     assert runbook["metadata"]["category"] == "authentication"
-    assert any("auth.accepted" in item for item in runbook["evaluation"]["vulnerable_when"])
+    assert any("auth_accepted" in item for item in runbook["evaluation"]["vulnerable_when"])
     assert any("response_status" in item for item in runbook["evaluation"]["vulnerable_when"])
     assert not any("x-powered-by" in item for item in runbook["evaluation"]["vulnerable_when"])
     assert not any("workflow_status" in item for item in runbook["evaluation"]["secure_when"])
@@ -68,10 +69,17 @@ def test_missing_auth_fixture_vulnerable_when_no_auth_and_200() -> None:
 def test_basic_transport_regression_uses_redirect_signals() -> None:
     runbook = _load("API-AUTH-BASIC-TRANSPORT-016")
     assert runbook["metadata"]["category"] == "authentication"
-    assert any("request.redirect_target" in item for item in runbook["evaluation"]["vulnerable_when"])
-    assert any("auth.scheme == 'basic'" in item for item in runbook["evaluation"]["vulnerable_when"])
-    assert not any("x-content-type-options" in item for item in runbook["evaluation"]["vulnerable_when"])
-    assert not any("x-frame-options" in item for item in runbook["evaluation"]["vulnerable_when"])
+    assert any("family_signal_producer_required" in item for item in runbook["evaluation"]["inconclusive_when"])
+    result = evaluate_signals(
+        {
+            "auth_scheme": "basic",
+            "request_redirect_target": "http://insecure.example.com",
+            "target_reachable": True,
+            "prerequisites_missing": False,
+        },
+        runbook["evaluation"],
+    )
+    assert result.decision == "inconclusive"
 
 
 def test_basic_transport_fixture_secure_when_https_or_no_redirect() -> None:

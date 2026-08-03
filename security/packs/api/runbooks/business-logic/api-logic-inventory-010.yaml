@@ -50,9 +50,9 @@ steps:
   - timestamps
 evaluation:
   vulnerable_when:
-  - race_duplicate_success==True
+  - entity_id != '' and entity_owner_id != '' and entity_owner_id != subject_id
   secure_when:
-  - race_duplicate_success==False
+  - entity_id == '' or entity_owner_id == '' or entity_owner_id == subject_id
   inconclusive_when:
   - target_reachable == false or prerequisites_missing == true
 outputs:
