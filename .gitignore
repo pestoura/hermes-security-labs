@@ -9,8 +9,8 @@
 *.pfx
 *.token
 *.secret
-secrets/
-credentials/
+/secrets/
+/credentials/
 
 data/cache/
 data/tmp/
