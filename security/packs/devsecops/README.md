@@ -1,11 +1,13 @@
-# Devsecops Security Runbooks
+> **Localização canónica:** `security/packs/devsecops` no monorepo `pestoura/hermes-security-labs`.  
+> Importado de `pestoura/devsecops-security-runbooks@3588270e9e56f73fe7b7aff46944a1b87d5fde27`; o repositório autónomo é apenas histórico de migração.
 
-A versioned library of **120 machine-readable security runbooks** for the `devsecops` domain.
+# DevSecOps Security Runbooks
 
-Unlike the bootstrap catalog, every runbook is now stored as an individual YAML file under `runbooks/`.
-The YAML files are the canonical source. Any CSV or report is derived from them.
+Biblioteca versionada de **120 runbooks machine-readable** para o domínio `devsecops`.
 
-## Coverage
+Cada runbook é um ficheiro YAML individual em `runbooks/`. Os YAML são a fonte canónica; CSV e relatórios são derivados.
+
+## Cobertura
 
 - `repository`: 12
 - `secrets`: 16
@@ -17,23 +19,21 @@ The YAML files are the canonical source. Any CSV or report is derived from them.
 - `iac`: 16
 - `evidence`: 6
 
-## Definition of complete
+## Definição materializada
 
-Every runbook has a unique ID, target selectors, capabilities, explicit risk limits, three typed steps,
-profile-specific evaluation criteria, deterministic evidence requirements encoded in the step arguments,
-and a finding output. No runbook contains free-form shell, script, command or argv fields.
+Cada runbook tem ID único, seletores de target, capacidades, limites de risco, três passos tipados, critérios específicos de avaliação, requisitos determinísticos de evidência e finding de saída. Nenhum runbook contém campos livres `shell`, `script`, `command` ou `argv`.
 
-## Validation status
+## Estado de validação
 
-The definitions are structurally complete and validated in CI. They remain `experimental` until their
-positive and negative controls are calibrated against authorised laboratories. Structural completeness
-must not be represented as proof that an external adapter has detected the vulnerability in a live target.
+As definições estão estruturalmente completas e validadas em CI. Permanecem `experimental` até os controlos positivos e negativos serem calibrados nos laboratórios autorizados. Completude estrutural não prova deteção operacional num target real.
 
-## Commands
+## Comandos no monorepo
 
 ```bash
-pip install -e '.[dev]'
+cd security/packs/devsecops
 python tools/validate_pack.py
 pytest -q
 python tools/export_catalog.py --output dist/catalog.csv
 ```
+
+A ligação aos laboratórios é canónica em `../../bindings/labs.yaml`.
