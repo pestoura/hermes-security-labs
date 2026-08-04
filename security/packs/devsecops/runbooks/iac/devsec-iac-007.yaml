@@ -1,0 +1,77 @@
+apiVersion: security.hex0r.io/v1alpha1
+kind: SecurityRunbook
+metadata:
+  id: DEVSEC-IAC-007
+  name: Verify Iam Wildcard
+  version: 1.0.0
+  status: experimental
+  domain: devsecops
+  category: iac
+  tags:
+  - iac
+  - iam-wildcard
+  - owasp-devsecops
+  - typed-execution
+selectors:
+  target_types:
+  - iac-project
+  capabilities:
+  - iac-read
+  - policy-engine
+risk:
+  intrusiveness: passive
+  destructive: false
+  production_safe: true
+  max_actions: 5
+  timeout_seconds: 300
+steps:
+- id: collect-baseline
+  provider: repository
+  action: inventory
+  profile: iac-baseline
+  arguments:
+    target_ref: '{{ target.ref }}'
+    evidence_ref: baseline/DEVSEC-IAC-007
+    read_only: true
+    redact_secrets: true
+- id: execute-control
+  provider: iac
+  action: scan
+  profile: iam-wildcard
+  arguments:
+    target_ref: '{{ target.ref }}'
+    control_id: DEVSEC-IAC-007
+    rule_profile: iam-wildcard
+    fail_closed: false
+    redact_secrets: true
+    collect_tool_version: true
+    evidence_ref: findings/DEVSEC-IAC-007
+- id: verify-evidence
+  provider: evidence
+  action: verify
+  profile: deterministic-finding-bundle
+  arguments:
+    target_ref: '{{ target.ref }}'
+    control_id: DEVSEC-IAC-007
+    required_artifacts:
+    - tool-version
+    - scan-summary
+    - sanitised-observations
+    redact_secrets: true
+evaluation:
+  vulnerable_when:
+  - control.iam_wildcard.status equals non_compliant
+  - control.iam_wildcard.evidence_count is greater than zero
+  - scanner.completed equals true and scanner.error_count equals zero
+  secure_when:
+  - control.iam_wildcard.status equals compliant
+  - control.iam_wildcard.evidence_count equals zero
+  - scanner.completed equals true and baseline.coverage_complete equals true
+  inconclusive_when:
+  - control.iam_wildcard.status equals unknown
+  - scanner.completed equals false or scanner.error_count is greater than zero
+  - baseline.coverage_complete equals false or required evidence is missing
+outputs:
+  title: Iam Wildcard control result
+  severity: high
+  confidence: dynamic

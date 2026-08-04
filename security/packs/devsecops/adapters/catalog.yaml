@@ -1,0 +1,69 @@
+apiVersion: security.hex0r.io/v1alpha1
+kind: AdapterCatalog
+domain: devsecops
+providers:
+- id: repository
+  actions:
+  - inventory
+  - inspect
+  adapters:
+  - git
+  - github-api
+  execution: typed
+- id: secrets
+  actions:
+  - scan
+  adapters:
+  - gitleaks
+  - trufflehog
+  execution: typed
+- id: sca
+  actions:
+  - scan
+  adapters:
+  - trivy
+  - grype
+  execution: typed
+- id: sbom
+  actions:
+  - verify
+  adapters:
+  - syft
+  - cosign
+  execution: typed
+- id: oci
+  actions:
+  - inspect
+  adapters:
+  - trivy
+  - cosign
+  - registry-api
+  execution: typed
+- id: cicd
+  actions:
+  - inspect
+  adapters:
+  - workflow-parser
+  - github-api
+  execution: typed
+- id: supplychain
+  actions:
+  - verify
+  adapters:
+  - cosign
+  - provenance-parser
+  execution: typed
+- id: iac
+  actions:
+  - scan
+  adapters:
+  - checkov
+  - terrascan
+  - conftest
+  execution: typed
+- id: evidence
+  actions:
+  - verify
+  adapters:
+  - evidence-validator
+  execution: typed

@@ -1,0 +1,77 @@
+apiVersion: security.hex0r.io/v1alpha1
+kind: SecurityRunbook
+metadata:
+  id: DEVSEC-SCA-012
+  name: Verify Package Integrity Mismatch
+  version: 1.0.0
+  status: experimental
+  domain: devsecops
+  category: sca
+  tags:
+  - owasp-devsecops
+  - package-integrity-mismatch
+  - sca
+  - typed-execution
+selectors:
+  target_types:
+  - software-project
+  capabilities:
+  - dependency-manifest-read
+  - vulnerability-database
+risk:
+  intrusiveness: passive
+  destructive: false
+  production_safe: true
+  max_actions: 5
+  timeout_seconds: 300
+steps:
+- id: collect-baseline
+  provider: repository
+  action: inventory
+  profile: sca-baseline
+  arguments:
+    target_ref: '{{ target.ref }}'
+    evidence_ref: baseline/DEVSEC-SCA-012
+    read_only: true
+    redact_secrets: true
+- id: execute-control
+  provider: sca
+  action: scan
+  profile: package-integrity-mismatch
+  arguments:
+    target_ref: '{{ target.ref }}'
+    control_id: DEVSEC-SCA-012
+    rule_profile: package-integrity-mismatch
+    fail_closed: false
+    redact_secrets: true
+    collect_tool_version: true
+    evidence_ref: findings/DEVSEC-SCA-012
+- id: verify-evidence
+  provider: evidence
+  action: verify
+  profile: deterministic-finding-bundle
+  arguments:
+    target_ref: '{{ target.ref }}'
+    control_id: DEVSEC-SCA-012
+    required_artifacts:
+    - tool-version
+    - scan-summary
+    - sanitised-observations
+    redact_secrets: true
+evaluation:
+  vulnerable_when:
+  - control.package_integrity_mismatch.status equals non_compliant
+  - control.package_integrity_mismatch.evidence_count is greater than zero
+  - scanner.completed equals true and scanner.error_count equals zero
+  secure_when:
+  - control.package_integrity_mismatch.status equals compliant
+  - control.package_integrity_mismatch.evidence_count equals zero
+  - scanner.completed equals true and baseline.coverage_complete equals true
+  inconclusive_when:
+  - control.package_integrity_mismatch.status equals unknown
+  - scanner.completed equals false or scanner.error_count is greater than zero
+  - baseline.coverage_complete equals false or required evidence is missing
+outputs:
+  title: Package Integrity Mismatch control result
+  severity: medium
+  confidence: dynamic

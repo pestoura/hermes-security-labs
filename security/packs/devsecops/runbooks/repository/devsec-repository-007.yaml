@@ -1,0 +1,77 @@
+apiVersion: security.hex0r.io/v1alpha1
+kind: SecurityRunbook
+metadata:
+  id: DEVSEC-REPOSITORY-007
+  name: Verify Deploy Key Scope
+  version: 1.0.0
+  status: experimental
+  domain: devsecops
+  category: repository
+  tags:
+  - deploy-key-scope
+  - owasp-devsecops
+  - repository
+  - typed-execution
+selectors:
+  target_types:
+  - git-repository
+  capabilities:
+  - repository-read
+  - metadata-read
+risk:
+  intrusiveness: passive
+  destructive: false
+  production_safe: true
+  max_actions: 5
+  timeout_seconds: 180
+steps:
+- id: collect-baseline
+  provider: repository
+  action: inventory
+  profile: repository-baseline
+  arguments:
+    target_ref: '{{ target.ref }}'
+    evidence_ref: baseline/DEVSEC-REPOSITORY-007
+    read_only: true
+    redact_secrets: true
+- id: execute-control
+  provider: repository
+  action: inspect
+  profile: deploy-key-scope
+  arguments:
+    target_ref: '{{ target.ref }}'
+    control_id: DEVSEC-REPOSITORY-007
+    rule_profile: deploy-key-scope
+    fail_closed: false
+    redact_secrets: true
+    collect_tool_version: true
+    evidence_ref: findings/DEVSEC-REPOSITORY-007
+- id: verify-evidence
+  provider: evidence
+  action: verify
+  profile: deterministic-finding-bundle
+  arguments:
+    target_ref: '{{ target.ref }}'
+    control_id: DEVSEC-REPOSITORY-007
+    required_artifacts:
+    - tool-version
+    - scan-summary
+    - sanitised-observations
+    redact_secrets: true
+evaluation:
+  vulnerable_when:
+  - control.deploy_key_scope.status equals non_compliant
+  - control.deploy_key_scope.evidence_count is greater than zero
+  - scanner.completed equals true and scanner.error_count equals zero
+  secure_when:
+  - control.deploy_key_scope.status equals compliant
+  - control.deploy_key_scope.evidence_count equals zero
+  - scanner.completed equals true and baseline.coverage_complete equals true
+  inconclusive_when:
+  - control.deploy_key_scope.status equals unknown
+  - scanner.completed equals false or scanner.error_count is greater than zero
+  - baseline.coverage_complete equals false or required evidence is missing
+outputs:
+  title: Deploy Key Scope control result
+  severity: medium
+  confidence: dynamic

@@ -1,0 +1,26 @@
+family: authentication
+runbook_id: API-AUTH-MISSING-001
+positive_control:
+  description: endpoint accepts unauthenticated access with 200
+  signals:
+    auth_accepted: false
+    response_status: 200
+    target_reachable: true
+    prerequisites_missing: false
+  expected_decision: vulnerable
+negative_control:
+  description: endpoint returns 401 without auth
+  signals:
+    auth_accepted: false
+    response_status: 401
+    target_reachable: true
+    prerequisites_missing: false
+  expected_decision: secure
+inconclusive_control:
+  description: target unreachable
+  signals:
+    auth_accepted: false
+    response_status: 0
+    target_reachable: false
+    prerequisites_missing: false
+  expected_decision: inconclusive

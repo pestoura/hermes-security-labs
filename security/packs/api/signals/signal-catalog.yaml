@@ -1,0 +1,272 @@
+schema_version: "1"
+signals:
+  response_status:
+    name: response_status
+    type: integer
+    family: http
+    producer:
+      - http
+      - openapi
+      - workflow
+      - headers
+      - race
+    description: HTTP response status code
+  response_headers:
+    name: response_headers
+    type: map[string,string]
+    family: http
+    producer:
+      - http
+      - openapi
+      - workflow
+      - headers
+    description: Response headers map
+  response_body_sample:
+    name: response_body_sample
+    type: string
+    family: http
+    producer:
+      - http
+      - openapi
+      - workflow
+    description: Redacted response body sample
+  response_contains_sensitive_data:
+    name: response_contains_sensitive_data
+    type: boolean
+    family: http
+    producer:
+      - http
+      - openapi
+      - workflow
+    description: Heuristic flag indicating response contains PII/secrets/debug data
+  request_redirect_target:
+    name: request_redirect_target
+    type: string
+    family: http
+    producer:
+      - http
+      - workflow
+    description: Final redirect target URL after following redirects
+  auth_accepted:
+    name: auth_accepted
+    type: boolean
+    family: http
+    producer:
+      - http
+      - openapi
+      - workflow
+      - jwt
+    description: Whether the provided auth was accepted by the endpoint
+  auth_scheme:
+    name: auth_scheme
+    type: string
+    family: http
+    producer:
+      - http
+      - openapi
+      - jwt
+    description: Observed authentication scheme from WWW-Authenticate or Authorization
+  upload_executed:
+    name: upload_executed
+    type: boolean
+    family: input-validation
+    producer:
+      - http
+      - workflow
+      - fuzz
+    description: Whether the upload payload was executed on the server
+  target_reachable:
+    name: target_reachable
+    type: boolean
+    family: runtime
+    producer:
+      - http
+      - tls
+      - nuclei
+      - openapi
+      - graphql
+      - workflow
+      - fuzz
+    description: Whether the target was reachable at all
+  prerequisites_missing:
+    name: prerequisites_missing
+    type: boolean
+    family: runtime
+    producer:
+      - http
+      - tls
+      - nuclei
+      - openapi
+      - graphql
+      - workflow
+      - fuzz
+    description: Whether required inputs/capabilities/prerequisites were missing
+  handler_signal:
+    name: handler_signal
+    type: string
+    family: runtime
+    producer:
+      - http
+      - openapi
+      - tls
+      - nuclei
+      - sqlmap
+      - jwt
+      - graphql
+      - websocket
+      - fuzz
+      - race
+      - headers
+      - workflow
+    description: Generic handler-provided finding signal
+  jwt_claims_aud:
+    name: jwt_claims_aud
+    type: string
+    family: jwt
+    producer:
+      - jwt
+    description: JWT audience claim
+  jwt_claims_exp:
+    name: jwt_claims_exp
+    type: integer
+    family: jwt
+    producer:
+      - jwt
+    description: JWT expiration timestamp
+  jwt_claims_iss:
+    name: jwt_claims_iss
+    type: string
+    family: jwt
+    producer:
+      - jwt
+    description: JWT issuer claim
+  jwt_claims_sub:
+    name: jwt_claims_sub
+    type: string
+    family: jwt
+    producer:
+      - jwt
+    description: JWT subject claim
+  jwt_alg:
+    name: jwt_alg
+    type: string
+    family: jwt
+    producer:
+      - jwt
+    description: JWT algorithm header
+  jwt_secret_bits:
+    name: jwt_secret_bits
+    type: integer
+    family: jwt
+    producer:
+      - jwt
+    description: Effective secret strength in bits for HMAC keys
+  jwt_signature_valid:
+    name: jwt_signature_valid
+    type: boolean
+    family: jwt
+    producer:
+      - jwt
+    description: Whether the signature is cryptographically valid
+  tls_cert_expired:
+    name: tls_cert_expired
+    type: boolean
+    family: tls
+    producer:
+      - tls
+    description: Whether the TLS certificate is expired
+  tls_hostname_mismatch:
+    name: tls_hostname_mismatch
+    type: boolean
+    family: tls
+    producer:
+      - tls
+    description: Whether certificate hostname does not match
+  tls_weak_ciphers:
+    name: tls_weak_ciphers
+    type: boolean
+    family: tls
+    producer:
+      - tls
+    description: Whether weak cipher suites were offered/accepted
+  tls_plaintext_allowed:
+    name: tls_plaintext_allowed
+    type: boolean
+    family: tls
+    producer:
+      - tls
+    description: Whether plaintext HTTP is accepted alongside or instead of HTTPS
+  rate_limit.triggered:
+    name: rate_limit.triggered
+    type: boolean
+    family: rate-resource
+    producer:
+      - http
+      - workflow
+      - fuzz
+    description: Whether the server enforced a rate limit
+  object.owner_id:
+    name: object.owner_id
+    type: string
+    family: authorization
+    producer:
+      - http
+      - workflow
+    description: Owner identifier on the returned object
+  subject.id:
+    name: subject.id
+    type: string
+    family: authorization
+    producer:
+      - http
+      - workflow
+    description: Authenticated subject identifier
+  entity.id:
+    name: entity.id
+    type: string
+    family: business-logic
+    producer:
+      - http
+      - workflow
+    description: Entity identifier for business-logic operations
+  entity.owner_id:
+    name: entity.owner_id
+    type: string
+    family: business-logic
+    producer:
+      - http
+      - workflow
+    description: Owner identifier on the entity
+  response_contains_schema:
+    name: response_contains_schema
+    type: boolean
+    family: discovery
+    producer:
+      - http
+      - openapi
+      - graphql
+      - workflow
+    description: Whether response contains schema/API definition data
+  openapi_security_schemes_present:
+    name: openapi_security_schemes_present
+    type: boolean
+    family: discovery
+    producer:
+      - openapi
+      - workflow
+    description: Whether OpenAPI security schemes are declared
+  race_duplicate_success:
+    name: race_duplicate_success
+    type: boolean
+    family: race
+    producer:
+      - race
+      - workflow
+    description: Whether a race condition produced a duplicate successful action
+  workflow_status:
+    name: workflow_status
+    type: string
+    family: workflow
+    producer:
+      - workflow
+    description: Final workflow outcome status

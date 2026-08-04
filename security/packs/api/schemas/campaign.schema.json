@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["apiVersion", "kind", "metadata", "selection", "execution"],
+  "properties": {
+    "apiVersion": {"const": "hex0r.io/v1alpha1"},
+    "kind": {"const": "ApiPentestCampaign"},
+    "metadata": {"type": "object", "required": ["id", "name"]},
+    "selection": {"type": "object", "properties": {"categories": {"type": "array", "items": {"type": "string"}}, "runbook_ids": {"type": "array", "items": {"type": "string"}}}},
+    "execution": {"type": "object", "required": ["mode", "max_parallel", "max_runbooks"], "properties": {"mode": {"enum": ["sequential", "parallel"]}, "max_parallel": {"type": "integer", "minimum": 1, "maximum": 10}, "max_runbooks": {"type": "integer", "minimum": 1, "maximum": 150}}}
+  }
+}

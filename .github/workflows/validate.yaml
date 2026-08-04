@@ -78,3 +78,35 @@ jobs:
         run: docker compose -f kali-mcp/compose.yaml config --quiet
       - name: Validate Juice Shop Compose
         run: docker compose -f platform/environments/web-api/juice-shop/compose.yaml config --quiet
+
+  security:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install security validation dependencies
+        run: python -m pip install --disable-pip-version-check PyYAML jsonschema pytest ruff
+      - name: Validate combined security catalog and platform bindings
+        run: python security/tools/securityctl.py validate
+      - name: Build disposable combined catalog
+        run: python security/tools/securityctl.py catalog --output /tmp/security-catalog.json
+      - name: Test common core
+        run: PYTHONPATH=security/core/src pytest -q security/core/tests
+      - name: Test API pack
+        run: PYTHONPATH=security/packs/api/src pytest -q security/packs/api/tests
+      - name: Test DevSecOps pack
+        run: pytest -q security/packs/devsecops/tests
+      - name: Test AI/MCP pack
+        run: pytest -q security/packs/ai-mcp/tests
+      - name: Test monorepo integration
+        run: pytest -q security/tests
+      - name: Lint security Python
+        run: |
+          ruff check --config security/pyproject.toml \
+            security/core/src security/core/tests \
+            security/packs/api/src security/packs/api/tests \
+            security/packs/devsecops/tools security/packs/devsecops/tests \
+            security/packs/ai-mcp/tools security/packs/ai-mcp/tests \
+            security/tools security/tests

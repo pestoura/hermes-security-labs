@@ -1,0 +1,60 @@
+apiVersion: hex0r.io/v1alpha1
+kind: ApiPentestRunbook
+metadata:
+  id: API-INPUT-SSRF-METADATA-011
+  name: Detect SSRF access to synthetic cloud metadata endpoints
+  version: 0.1.0
+  status: experimental
+  category: input-validation
+  tags:
+  - api
+  - input-validation
+  - http
+  - ssrf-metadata-synthetic
+mapping:
+  owasp_api:
+  - API7:2023
+  cwe:
+  - CWE-918
+selectors:
+  api_types:
+  - rest
+  auth_types:
+  - any
+  required_capabilities: []
+risk:
+  intrusiveness: medium
+  production_safe: false
+  destructive: false
+  max_requests: 20
+  max_response_bytes: 65536
+inputs:
+- name: base_url
+  type: uri
+  required: true
+  secret: false
+steps:
+- id: primary-probe
+  action: kali.action
+  handler: http
+  profile: ssrf-metadata-synthetic
+  arguments:
+    url: '{{ target.base_url }}'
+  timeout_seconds: 60
+  evidence:
+  - request_metadata
+  - response_status
+  - response_headers
+  - redacted_response_sample
+  - timestamps
+evaluation:
+  vulnerable_when:
+  - request_redirect_target != '' and request_redirect_target.startswith('http://')
+  secure_when:
+  - request_redirect_target == '' or request_redirect_target.startswith('https://')
+  inconclusive_when:
+  - target_reachable == false or prerequisites_missing == true
+outputs:
+  title: Detect SSRF access to synthetic cloud metadata endpoints
+  severity: critical
+  confidence: dynamic

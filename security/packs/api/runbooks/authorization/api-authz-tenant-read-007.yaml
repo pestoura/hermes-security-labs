@@ -1,0 +1,67 @@
+apiVersion: hex0r.io/v1alpha1
+kind: ApiPentestRunbook
+metadata:
+  id: API-AUTHZ-TENANT-READ-007
+  name: Test cross-tenant object reads
+  version: 0.1.0
+  status: experimental
+  category: authorization
+  tags:
+  - api
+  - authorization
+  - workflow
+  - cross-tenant-read
+mapping:
+  owasp_api:
+  - API1:2023
+  cwe:
+  - CWE-639
+selectors:
+  api_types:
+  - rest
+  auth_types:
+  - api_key
+  - bearer
+  - cookie
+  - jwt
+  - oauth2
+  - oidc
+  required_capabilities:
+  - multi_tenant
+  - two_test_identities
+risk:
+  intrusiveness: medium
+  production_safe: false
+  destructive: false
+  max_requests: 40
+  max_response_bytes: 65536
+inputs:
+- name: base_url
+  type: uri
+  required: true
+  secret: false
+steps:
+- id: primary-probe
+  action: kali.action
+  handler: workflow
+  profile: cross-tenant-read
+  arguments:
+    url: '{{ target.base_url }}'
+  timeout_seconds: 120
+  evidence:
+  - request_metadata
+  - response_status
+  - response_headers
+  - redacted_response_sample
+  - timestamps
+evaluation:
+  vulnerable_when:
+  - object.owner_id != subject.id and subject.id != '' and response_status == 200
+  secure_when:
+  - object.owner_id == subject.id or subject.id == ''
+  inconclusive_when:
+  - target_reachable == false or prerequisites_missing == true
+outputs:
+  title: Test cross-tenant object reads
+  severity: critical
+  confidence: dynamic

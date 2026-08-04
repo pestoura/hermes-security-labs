@@ -1,0 +1,59 @@
+apiVersion: hex0r.io/v1alpha1
+kind: ApiPentestRunbook
+metadata:
+  id: API-AUTH-BASIC-TRANSPORT-016
+  name: Validate Basic authentication transport protections
+  version: 0.1.0
+  status: experimental
+  category: authentication
+  tags:
+  - api
+  - authentication
+  - headers
+  - basic-auth-transport
+mapping:
+  owasp_api:
+  - API2:2023
+  cwe:
+  - CWE-319
+selectors:
+  api_types:
+  - rest
+  auth_types:
+  - any
+  required_capabilities: []
+risk:
+  intrusiveness: medium
+  production_safe: false
+  destructive: false
+  max_requests: 20
+  max_response_bytes: 65536
+inputs:
+- name: base_url
+  type: uri
+  required: true
+  secret: false
+steps:
+- id: primary-probe
+  action: kali.action
+  handler: headers
+  profile: basic-auth-transport
+  arguments:
+    url: '{{ target.base_url }}'
+  timeout_seconds: 60
+  evidence:
+  - request_metadata
+  - response_status
+  - response_headers
+  - redacted_response_sample
+  - timestamps
+evaluation:
+  vulnerable_when: []
+  secure_when: []
+  inconclusive_when:
+  - target_reachable == false or prerequisites_missing == true
+  - family_signal_producer_required
+outputs:
+  title: Validate Basic authentication transport protections
+  severity: high
+  confidence: dynamic

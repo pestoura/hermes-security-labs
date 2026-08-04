@@ -1,0 +1,16 @@
+apiVersion: security.hex0r.io/v1alpha1
+kind: SecurityCampaign
+metadata:
+  id: rag-memory-security
+  name: RAG and memory security
+  status: experimental
+domain: ai-mcp
+selectors:
+  categories:
+  - rag-poisoning
+  - memory-security
+execution:
+  mode: sequential
+  max_parallel: 1
+  stop_on_scope_violation: true
+  stop_on_cleanup_failure: true

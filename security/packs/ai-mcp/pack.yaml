@@ -1,0 +1,13 @@
+apiVersion: security.hex0r.io/v1alpha1
+kind: SecurityRunbookPack
+name: ai-mcp-security-runbooks
+domain: ai-mcp
+version: 1.0.0-alpha.1
+status: experimental
+runbooks_root: runbooks
+runbook_glob: runbooks/**/*.yaml
+schema: schemas/security-runbook.schema.json
+expected_runbooks: 100
+core:
+  repository: pestoura/security-runbook-core
+  api_version: security.hex0r.io/v1alpha1

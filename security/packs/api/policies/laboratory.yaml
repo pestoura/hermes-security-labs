@@ -1,0 +1,20 @@
+apiVersion: hex0r.io/v1alpha1
+kind: ApiPentestPolicy
+environment: laboratory
+scope:
+  allowed_hosts:
+    - crapi
+    - vampi
+    - dvapi
+    - graphql-vulnerable-lab
+    - juice-shop
+    - webgoat
+    - nodegoat
+    - pygoat
+    - wrongsecrets
+  allowed_cidrs: []
+execution:
+  allowed_intrusiveness: [passive, low, medium, high]
+  allow_destructive: false
+  max_parallel: 2
+  stop_on_scope_violation: true

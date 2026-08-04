@@ -1,0 +1,77 @@
+apiVersion: security.hex0r.io/v1alpha1
+kind: SecurityRunbook
+metadata:
+  id: DEVSEC-CICD-008
+  name: Verify Cache Poisoning
+  version: 1.0.0
+  status: experimental
+  domain: devsecops
+  category: cicd
+  tags:
+  - cache-poisoning
+  - cicd
+  - owasp-devsecops
+  - typed-execution
+selectors:
+  target_types:
+  - ci-pipeline
+  capabilities:
+  - workflow-read
+  - repository-read
+risk:
+  intrusiveness: passive
+  destructive: false
+  production_safe: true
+  max_actions: 5
+  timeout_seconds: 180
+steps:
+- id: collect-baseline
+  provider: repository
+  action: inventory
+  profile: cicd-baseline
+  arguments:
+    target_ref: '{{ target.ref }}'
+    evidence_ref: baseline/DEVSEC-CICD-008
+    read_only: true
+    redact_secrets: true
+- id: execute-control
+  provider: cicd
+  action: inspect
+  profile: cache-poisoning
+  arguments:
+    target_ref: '{{ target.ref }}'
+    control_id: DEVSEC-CICD-008
+    rule_profile: cache-poisoning
+    fail_closed: false
+    redact_secrets: true
+    collect_tool_version: true
+    evidence_ref: findings/DEVSEC-CICD-008
+- id: verify-evidence
+  provider: evidence
+  action: verify
+  profile: deterministic-finding-bundle
+  arguments:
+    target_ref: '{{ target.ref }}'
+    control_id: DEVSEC-CICD-008
+    required_artifacts:
+    - tool-version
+    - scan-summary
+    - sanitised-observations
+    redact_secrets: true
+evaluation:
+  vulnerable_when:
+  - control.cache_poisoning.status equals non_compliant
+  - control.cache_poisoning.evidence_count is greater than zero
+  - scanner.completed equals true and scanner.error_count equals zero
+  secure_when:
+  - control.cache_poisoning.status equals compliant
+  - control.cache_poisoning.evidence_count equals zero
+  - scanner.completed equals true and baseline.coverage_complete equals true
+  inconclusive_when:
+  - control.cache_poisoning.status equals unknown
+  - scanner.completed equals false or scanner.error_count is greater than zero
+  - baseline.coverage_complete equals false or required evidence is missing
+outputs:
+  title: Cache Poisoning control result
+  severity: high
+  confidence: dynamic

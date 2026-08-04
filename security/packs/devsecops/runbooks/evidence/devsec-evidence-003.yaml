@@ -1,0 +1,77 @@
+apiVersion: security.hex0r.io/v1alpha1
+kind: SecurityRunbook
+metadata:
+  id: DEVSEC-EVIDENCE-003
+  name: Verify Evidence Checksum
+  version: 1.0.0
+  status: experimental
+  domain: devsecops
+  category: evidence
+  tags:
+  - evidence
+  - evidence-checksum
+  - owasp-devsecops
+  - typed-execution
+selectors:
+  target_types:
+  - evidence-bundle
+  capabilities:
+  - evidence-read
+  - checksum-verify
+risk:
+  intrusiveness: low
+  destructive: false
+  production_safe: true
+  max_actions: 5
+  timeout_seconds: 180
+steps:
+- id: collect-baseline
+  provider: evidence
+  action: verify
+  profile: evidence-baseline
+  arguments:
+    target_ref: '{{ target.ref }}'
+    evidence_ref: baseline/DEVSEC-EVIDENCE-003
+    read_only: true
+    redact_secrets: true
+- id: execute-control
+  provider: evidence
+  action: verify
+  profile: evidence-checksum
+  arguments:
+    target_ref: '{{ target.ref }}'
+    control_id: DEVSEC-EVIDENCE-003
+    rule_profile: evidence-checksum
+    fail_closed: false
+    redact_secrets: true
+    collect_tool_version: true
+    evidence_ref: findings/DEVSEC-EVIDENCE-003
+- id: verify-evidence
+  provider: evidence
+  action: verify
+  profile: deterministic-finding-bundle
+  arguments:
+    target_ref: '{{ target.ref }}'
+    control_id: DEVSEC-EVIDENCE-003
+    required_artifacts:
+    - tool-version
+    - scan-summary
+    - sanitised-observations
+    redact_secrets: true
+evaluation:
+  vulnerable_when:
+  - control.evidence_checksum.status equals non_compliant
+  - control.evidence_checksum.evidence_count is greater than zero
+  - scanner.completed equals true and scanner.error_count equals zero
+  secure_when:
+  - control.evidence_checksum.status equals compliant
+  - control.evidence_checksum.evidence_count equals zero
+  - scanner.completed equals true and baseline.coverage_complete equals true
+  inconclusive_when:
+  - control.evidence_checksum.status equals unknown
+  - scanner.completed equals false or scanner.error_count is greater than zero
+  - baseline.coverage_complete equals false or required evidence is missing
+outputs:
+  title: Evidence Checksum control result
+  severity: medium
+  confidence: dynamic

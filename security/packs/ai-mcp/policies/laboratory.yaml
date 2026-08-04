@@ -1,0 +1,25 @@
+apiVersion: security.hex0r.io/v1alpha1
+kind: ExecutionPolicy
+metadata:
+  name: laboratory
+domain: ai-mcp
+allowed_targets:
+  - promptme
+  - vulnerable-mcp-servers
+  - llmforge
+  - damn-vulnerable-llm-agent
+  - prompt-injection-lab
+  - tool-poisoning-lab
+  - rag-poisoning-lab
+allowed_providers:
+  - agent
+  - mcp
+  - rag
+  - memory
+allow_destructive: false
+production_mode: false
+max_actions_per_runbook: 200
+max_parallel: 2
+require_registered_target: true
+require_evidence_redaction: true
+require_cleanup: true

@@ -1,0 +1,23 @@
+apiVersion: security.hex0r.io/v1alpha1
+kind: ExecutionPolicy
+metadata:
+  name: production-safe
+domain: devsecops
+allowed_targets: []
+allowed_providers:
+  - repository
+  - secrets
+  - sca
+  - sbom
+  - oci
+  - cicd
+  - supplychain
+  - iac
+  - evidence
+allow_destructive: false
+production_mode: true
+max_actions_per_runbook: 20
+max_parallel: 1
+require_registered_target: true
+require_evidence_redaction: true
+require_cleanup: true

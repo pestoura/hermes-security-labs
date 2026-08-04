@@ -1,0 +1,30 @@
+apiVersion: security.hex0r.io/v1alpha1
+kind: ExecutionPolicy
+metadata:
+  name: laboratory
+domain: devsecops
+allowed_targets:
+  - cicd-goat
+  - wrongsecrets
+  - damn-vulnerable-sca
+  - terragoat
+  - cdkgoat
+  - cfngoat
+  - bicepgoat
+allowed_providers:
+  - repository
+  - secrets
+  - sca
+  - sbom
+  - oci
+  - cicd
+  - supplychain
+  - iac
+  - evidence
+allow_destructive: false
+production_mode: false
+max_actions_per_runbook: 200
+max_parallel: 2
+require_registered_target: true
+require_evidence_redaction: true
+require_cleanup: true

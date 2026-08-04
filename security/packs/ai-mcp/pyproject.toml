@@ -1,0 +1,19 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "ai-mcp-security-runbooks"
+version = "0.1.0a1"
+requires-python = ">=3.11"
+dependencies = ["PyYAML>=6.0.2,<7", "jsonschema>=4.23,<5"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.3,<9", "ruff>=0.9,<1"]
+
+[tool.hatch.build.targets.wheel]
+include = ["pack.yaml", "runbooks", "schemas", "campaigns", "policies", "adapters", "labs"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"

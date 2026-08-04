@@ -1,0 +1,91 @@
+apiVersion: security.hex0r.io/v1alpha1
+kind: LaboratoryBindingCatalog
+source:
+  repository: pestoura/hermes-security-labs
+  environments_root: platform/environments
+  rollout: platform/rollout.yaml
+  kali_attacker: kali-mcp
+requirements:
+  - laboratory must exist in platform/environments
+  - target must be registered in the laboratory manifest
+  - Kali attaches only to the active isolated laboratory network
+  - egress remains disabled unless the laboratory explicitly permits it
+  - Kali disconnects after every campaign
+  - evidence is stored outside Git
+  - candidate and stable runbooks require positive and negative controls
+domains:
+  api:
+    pack: security/packs/api
+    laboratories:
+      - id: crapi
+        campaigns: [API-BASELINE-001, API-FULL-LAB-001, API-MULTITENANT-001]
+        calibration: pending
+      - id: vampi
+        campaigns: [API-BASELINE-001, API-FULL-LAB-001]
+        calibration: pending
+      - id: dvapi
+        campaigns: [API-BASELINE-001, API-FULL-LAB-001]
+        calibration: pending
+      - id: graphql-vulnerable-lab
+        campaigns: [API-GRAPHQL-001, API-FULL-LAB-001]
+        calibration: pending
+      - id: juice-shop
+        campaigns: [API-BASELINE-001]
+        calibration: pending
+      - id: webgoat
+        campaigns: [API-BASELINE-001]
+        calibration: pending
+      - id: nodegoat
+        campaigns: [API-BASELINE-001]
+        calibration: pending
+      - id: pygoat
+        campaigns: [API-BASELINE-001]
+        calibration: pending
+  devsecops:
+    pack: security/packs/devsecops
+    laboratories:
+      - id: cicd-goat
+        campaigns: [devsecops-baseline, cicd-complete]
+        calibration: pending
+      - id: wrongsecrets
+        campaigns: [devsecops-baseline]
+        calibration: pending
+      - id: damn-vulnerable-sca
+        campaigns: [devsecops-baseline, supply-chain-complete]
+        calibration: pending
+      - id: terragoat
+        campaigns: [iac-complete]
+        calibration: pending
+      - id: cdkgoat
+        campaigns: [iac-complete]
+        calibration: pending
+      - id: cfngoat
+        campaigns: [iac-complete]
+        calibration: pending
+      - id: bicepgoat
+        campaigns: [iac-complete]
+        calibration: pending
+  ai-mcp:
+    pack: security/packs/ai-mcp
+    laboratories:
+      - id: promptme
+        campaigns: [ai-mcp-baseline, prompt-injection-complete]
+        calibration: pending
+      - id: vulnerable-mcp-servers
+        campaigns: [ai-mcp-baseline, mcp-tool-security]
+        calibration: pending
+      - id: llmforge
+        campaigns: [ai-mcp-baseline, rag-memory-security]
+        calibration: pending
+      - id: damn-vulnerable-llm-agent
+        campaigns: [ai-mcp-baseline, mcp-tool-security]
+        calibration: pending
+      - id: prompt-injection-lab
+        campaigns: [prompt-injection-complete]
+        calibration: pending
+      - id: tool-poisoning-lab
+        campaigns: [mcp-tool-security]
+        calibration: pending
+      - id: rag-poisoning-lab
+        campaigns: [rag-memory-security]
+        calibration: pending

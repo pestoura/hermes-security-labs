@@ -1,0 +1,247 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hex0r.local/schemas/security-runbook.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "apiVersion",
+    "kind",
+    "metadata",
+    "selectors",
+    "risk",
+    "steps",
+    "evaluation",
+    "outputs"
+  ],
+  "properties": {
+    "apiVersion": {
+      "const": "security.hex0r.io/v1alpha1"
+    },
+    "kind": {
+      "const": "SecurityRunbook"
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "version",
+        "status",
+        "domain",
+        "category",
+        "tags"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Z0-9-]+$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 3
+        },
+        "version": {
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "experimental",
+            "candidate",
+            "stable",
+            "deprecated"
+          ]
+        },
+        "domain": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "selectors": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "target_types",
+        "capabilities"
+      ],
+      "properties": {
+        "target_types": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "risk": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "intrusiveness",
+        "destructive",
+        "production_safe",
+        "max_actions",
+        "timeout_seconds"
+      ],
+      "properties": {
+        "intrusiveness": {
+          "enum": [
+            "passive",
+            "low",
+            "medium",
+            "high"
+          ]
+        },
+        "destructive": {
+          "type": "boolean"
+        },
+        "production_safe": {
+          "type": "boolean"
+        },
+        "max_actions": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5000
+        },
+        "timeout_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 7200
+        }
+      }
+    },
+    "steps": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "provider",
+          "action",
+          "profile",
+          "arguments"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string"
+          },
+          "profile": {
+            "type": "string"
+          },
+          "arguments": {
+            "type": "object",
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "command"
+                  ]
+                },
+                {
+                  "required": [
+                    "script"
+                  ]
+                },
+                {
+                  "required": [
+                    "shell"
+                  ]
+                },
+                {
+                  "required": [
+                    "argv"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    "evaluation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "vulnerable_when",
+        "secure_when",
+        "inconclusive_when"
+      ],
+      "properties": {
+        "vulnerable_when": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "secure_when": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "inconclusive_when": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "outputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "title",
+        "severity",
+        "confidence"
+      ],
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "severity": {
+          "enum": [
+            "info",
+            "low",
+            "medium",
+            "high",
+            "critical",
+            "dynamic"
+          ]
+        },
+        "confidence": {
+          "enum": [
+            "low",
+            "medium",
+            "high",
+            "dynamic"
+          ]
+        }
+      }
+    }
+  }
+}

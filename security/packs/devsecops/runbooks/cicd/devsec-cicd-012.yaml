@@ -1,0 +1,77 @@
+apiVersion: security.hex0r.io/v1alpha1
+kind: SecurityRunbook
+metadata:
+  id: DEVSEC-CICD-012
+  name: Verify OIDC Subject Restriction
+  version: 1.0.0
+  status: experimental
+  domain: devsecops
+  category: cicd
+  tags:
+  - cicd
+  - oidc-subject-restriction
+  - owasp-devsecops
+  - typed-execution
+selectors:
+  target_types:
+  - ci-pipeline
+  capabilities:
+  - workflow-read
+  - repository-read
+risk:
+  intrusiveness: passive
+  destructive: false
+  production_safe: true
+  max_actions: 5
+  timeout_seconds: 180
+steps:
+- id: collect-baseline
+  provider: repository
+  action: inventory
+  profile: cicd-baseline
+  arguments:
+    target_ref: '{{ target.ref }}'
+    evidence_ref: baseline/DEVSEC-CICD-012
+    read_only: true
+    redact_secrets: true
+- id: execute-control
+  provider: cicd
+  action: inspect
+  profile: oidc-subject-restriction
+  arguments:
+    target_ref: '{{ target.ref }}'
+    control_id: DEVSEC-CICD-012
+    rule_profile: oidc-subject-restriction
+    fail_closed: false
+    redact_secrets: true
+    collect_tool_version: true
+    evidence_ref: findings/DEVSEC-CICD-012
+- id: verify-evidence
+  provider: evidence
+  action: verify
+  profile: deterministic-finding-bundle
+  arguments:
+    target_ref: '{{ target.ref }}'
+    control_id: DEVSEC-CICD-012
+    required_artifacts:
+    - tool-version
+    - scan-summary
+    - sanitised-observations
+    redact_secrets: true
+evaluation:
+  vulnerable_when:
+  - control.oidc_subject_restriction.status equals non_compliant
+  - control.oidc_subject_restriction.evidence_count is greater than zero
+  - scanner.completed equals true and scanner.error_count equals zero
+  secure_when:
+  - control.oidc_subject_restriction.status equals compliant
+  - control.oidc_subject_restriction.evidence_count equals zero
+  - scanner.completed equals true and baseline.coverage_complete equals true
+  inconclusive_when:
+  - control.oidc_subject_restriction.status equals unknown
+  - scanner.completed equals false or scanner.error_count is greater than zero
+  - baseline.coverage_complete equals false or required evidence is missing
+outputs:
+  title: OIDC Subject Restriction control result
+  severity: medium
+  confidence: dynamic

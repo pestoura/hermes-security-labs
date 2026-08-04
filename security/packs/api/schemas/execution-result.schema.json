@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["run_id", "runbook_id", "status", "decision", "evidence_refs"],
+  "properties": {
+    "run_id": {"type": "string"},
+    "runbook_id": {"type": "string"},
+    "status": {"enum": ["queued", "running", "completed", "failed", "cancelled"]},
+    "decision": {"enum": ["secure", "vulnerable", "inconclusive", "skipped", "error"]},
+    "evidence_refs": {"type": "array", "items": {"type": "string"}},
+    "metrics": {"type": "object"}
+  }
+}

@@ -1,0 +1,441 @@
+families:
+  - family: authentication
+    description: Authentication signals cover missing auth, bearer/JWT validation, API key handling, credential rate limits, and lockout/MFA enforcement. The canonical signals are auth_accepted, response_status, and jwt_claims_* where applicable.
+    scenarios:
+      - name: missing auth vulnerable
+        description: Endpoint accepts unauthenticated access with 200
+        signals:
+          auth_accepted: false
+          response_status: 200
+          target_reachable: true
+          prerequisites_missing: false
+        expected_decision: vulnerable
+        primary_runbook_id: API-AUTH-MISSING-001
+      - name: missing auth secure
+        description: Endpoint returns 401 without auth
+        signals:
+          auth_accepted: false
+          response_status: 401
+          target_reachable: true
+          prerequisites_missing: false
+        expected_decision: secure
+        primary_runbook_id: API-AUTH-MISSING-001
+      - name: missing auth inconclusive
+        description: Target unreachable
+        signals:
+          auth_accepted: false
+          response_status: 0
+          target_reachable: false
+          prerequisites_missing: false
+        expected_decision: inconclusive
+        primary_runbook_id: API-AUTH-MISSING-001
+      - name: jwt audience missing
+        description: JWT with missing audience claim and invalid signature
+        signals:
+          jwt_claims_aud: null
+          jwt_signature_valid: false
+          target_reachable: true
+          prerequisites_missing: false
+        expected_decision: vulnerable
+        primary_runbook_id: API-AUTH-JWT-AUDIENCE-008
+      - name: jwt audience valid
+        description: JWT with valid audience and signature
+        signals:
+          jwt_claims_aud: hex0r-api
+          jwt_signature_valid: true
+          target_reachable: true
+          prerequisites_missing: false
+        expected_decision: secure
+        primary_runbook_id: API-AUTH-JWT-AUDIENCE-008
+      - name: jwt audience inconclusive
+        description: Prerequisites missing for JWT validation
+        signals:
+          jwt_claims_aud: hex0r-api
+          jwt_signature_valid: false
+          target_reachable: false
+          prerequisites_missing: true
+        expected_decision: inconclusive
+        primary_runbook_id: API-AUTH-JWT-AUDIENCE-008
+
+  - family: authorization
+    description: Authorization signals use object.owner_id and subject.id to detect BOLA, BFLA, horizontal/vertical escalation, hidden fields, mass assignment, indirect references, method bypass, content-type bypass, relationship abuse, parameter pollution, path normalization, and webhook ownership issues. The canonical signals are object.owner_id, subject.id, and response_status.
+    scenarios:
+      - name: bola vulnerable
+        description: Owner mismatch on object access returns 200
+        signals:
+          object.owner_id: owner-1
+          subject.id: attacker
+          response_status: 200
+          target_reachable: true
+          prerequisites_missing: false
+        expected_decision: vulnerable
+        primary_runbook_id: API-AUTHZ-BOLA-READ-001
+      - name: bola secure
+        description: Same owner access returns 200
+        signals:
+          object.owner_id: owner-1
+          subject.id: owner-1
+          response_status: 200
+          target_reachable: true
+          prerequisites_missing: false
+        expected_decision: secure
+        primary_runbook_id: API-AUTHZ-BOLA-READ-001
+      - name: bola inconclusive
+        description: Target unreachable during authorization probe
+        signals:
+          object.owner_id: owner-1
+          subject.id: attacker
+          response_status: 0
+          target_reachable: false
+          prerequisites_missing: false
+        expected_decision: inconclusive
+        primary_runbook_id: API-AUTHZ-BOLA-READ-001
+
+  - family: business-logic
+    description: Business logic signals use entity.id, entity.owner_id, and subject.id to detect duplicate transactions, idempotency bypass, negative quantities, invalid price manipulation, race conditions, state transition bypass, step bypass, coupon reuse, refund amount abuse, and inventory inconsistencies. The canonical signals are entity.id, entity.owner_id, subject.id, and response_status.
+    scenarios:
+      - name: duplicate txn vulnerable
+        description: Entity owner mismatch on transaction operation returns 200
+        signals:
+          entity.id: txn-123
+          entity.owner_id: owner-1
+          subject.id: attacker
+          response_status: 200
+          target_reachable: true
+          prerequisites_missing: false
+        expected_decision: vulnerable
+        primary_runbook_id: API-LOGIC-DUPLICATE-TXN-003
+      - name: duplicate txn secure
+        description: Same owner transaction operation
+        signals:
+          entity.id: txn-123
+          entity.owner_id: owner-1
+          subject.id: owner-1
+          response_status: 200
+          target_reachable: true
+          prerequisites_missing: false
+        expected_decision: secure
+        primary_runbook_id: API-LOGIC-DUPLICATE-TXN-003
+      - name: duplicate txn inconclusive
+        description: Target unreachable during business logic probe
+        signals:
+          entity.id: txn-123
+          entity.owner_id: owner-1
+          subject.id: attacker
+          response_status: 0
+          target_reachable: false
+          prerequisites_missing: false
+        expected_decision: inconclusive
+        primary_runbook_id: API-LOGIC-DUPLICATE-TXN-003
+
+  - family: configuration
+    description: Configuration signals detect CORS misconfiguration, security header absence, debug mode exposure, default credentials, deprecated API versions, host trust issues, unsafe HTTP methods, server banner leakage, and content-type mismatches. The canonical signals are response_status, response_headers, and response_contains_sensitive_data.
+    scenarios:
+      - name: cors reflect vulnerable
+        description: CORS wildcard with credentials reflected
+        signals:
+          response_status: 200
+          response_headers:
+            access-control-allow-origin: "*"
+            access-control-allow-credentials: "true"
+          target_reachable: true
+          prerequisites_missing: false
+        expected_decision: vulnerable
+        primary_runbook_id: API-CONFIG-CORS-CREDENTIALS-001
+      - name: cors reflect secure
+        description: CORS headers absent or credentials not reflected
+        signals:
+          response_status: 200
+          response_headers: {}
+          target_reachable: true
+          prerequisites_missing: false
+        expected_decision: secure
+        primary_runbook_id: API-CONFIG-CORS-CREDENTIALS-001
+      - name: cors reflect inconclusive
+        description: Target unreachable during configuration probe
+        signals:
+          response_status: 0
+          response_headers: {}
+          target_reachable: false
+          prerequisites_missing: false
+        expected_decision: inconclusive
+        primary_runbook_id: API-CONFIG-CORS-CREDENTIALS-001
+      - name: debug mode vulnerable
+        description: X-Powered-By present with successful response
+        signals:
+          response_status: 200
+          response_headers:
+            x-powered-by: Express
+          target_reachable: true
+          prerequisites_missing: false
+        expected_decision: vulnerable
+        primary_runbook_id: API-CONFIG-DEBUG-MODE-008
+      - name: debug mode secure
+        description: X-Powered-By absent or blocked
+        signals:
+          response_status: 403
+          response_headers: {}
+          target_reachable: true
+          prerequisites_missing: false
+        expected_decision: secure
+        primary_runbook_id: API-CONFIG-DEBUG-MODE-008
+
+  - family: data-exposure
+    description: Data exposure signals detect excessive data, debug endpoints, directory listing, PII in responses, secrets in responses, sensitive headers, stack traces, verbose errors, and missing cache control. The canonical signals are response_status, response_contains_sensitive_data, and response_headers.
+    scenarios:
+      - name: stacktrace vulnerable
+        description: Response contains stack trace with successful status
+        signals:
+          response_status: 200
+          response_contains_sensitive_data: true
+          target_reachable: true
+          prerequisites_missing: false
+        expected_decision: vulnerable
+        primary_runbook_id: API-DATA-STACKTRACE-003
+      - name: stacktrace secure
+        description: Response does not contain sensitive data
+        signals:
+          response_status: 200
+          response_contains_sensitive_data: false
+          target_reachable: true
+          prerequisites_missing: false
+        expected_decision: secure
+        primary_runbook_id: API-DATA-STACKTRACE-003
+      - name: stacktrace inconclusive
+        description: Target unreachable during data exposure probe
+        signals:
+          response_status: 0
+          response_contains_sensitive_data: false
+          target_reachable: false
+          prerequisites_missing: false
+        expected_decision: inconclusive
+        primary_runbook_id: API-DATA-STACKTRACE-003
+
+  - family: discovery
+    description: Discovery signals detect OpenAPI/Swagger exposure, GraphQL endpoints and introspection, backup specification files, basepath variants, endpoint wordlist matches, gateway fingerprints, method enumeration, version enumeration, and WebSocket endpoints. The canonical signals are response_contains_schema and openapi_security_schemes_present.
+    scenarios:
+      - name: swagger ui vulnerable
+        description: Swagger UI and OpenAPI security schemes present
+        signals:
+          response_contains_schema: true
+          openapi_security_schemes_present: true
+          target_reachable: true
+          prerequisites_missing: false
+        expected_decision: vulnerable
+        primary_runbook_id: API-DISC-SWAGGER-UI-002
+      - name: swagger ui secure
+        description: No schema or security schemes exposed
+        signals:
+          response_contains_schema: false
+          openapi_security_schemes_present: false
+          target_reachable: true
+          prerequisites_missing: false
+        expected_decision: secure
+        primary_runbook_id: API-DISC-SWAGGER-UI-002
+      - name: swagger ui inconclusive
+        description: Target unreachable during discovery probe
+        signals:
+          response_contains_schema: false
+          openapi_security_schemes_present: false
+          target_reachable: false
+          prerequisites_missing: false
+        expected_decision: inconclusive
+        primary_runbook_id: API-DISC-SWAGGER-UI-002
+
+  - family: input-validation
+    description: Input validation signals detect SQL injection, NoSQL injection, command injection, LDAP injection, XPath injection, XXE, path traversal, SSRF, deserialization flaws, prototype pollution, CRLF injection, GraphQL batching/alias abuse, upload extension/MIME/polyglot issues, numeric overflow, request smuggling, regex DoS, type confusion, and JSON duplicate keys. The canonical signals are response_status and response_contains_sensitive_data.
+    scenarios:
+      - name: sqli query vulnerable
+        description: Successful SQLi with 200 and sensitive data
+        signals:
+          response_status: 200
+          response_contains_sensitive_data: true
+          target_reachable: true
+          prerequisites_missing: false
+        expected_decision: vulnerable
+        primary_runbook_id: API-INPUT-SQLI-QUERY-001
+      - name: sqli query secure
+        description: Input validation blocks injection with 400
+        signals:
+          response_status: 400
+          response_contains_sensitive_data: false
+          target_reachable: true
+          prerequisites_missing: false
+        expected_decision: secure
+        primary_runbook_id: API-INPUT-SQLI-QUERY-001
+      - name: sqli query inconclusive
+        description: Target unreachable during input validation probe
+        signals:
+          response_status: 0
+          response_contains_sensitive_data: false
+          target_reachable: false
+          prerequisites_missing: false
+        expected_decision: inconclusive
+        primary_runbook_id: API-INPUT-SQLI-QUERY-001
+      - name: ssrf localhost vulnerable
+        description: SSRF to localhost succeeds with 200
+        signals:
+          response_status: 200
+          response_contains_sensitive_data: true
+          target_reachable: true
+          prerequisites_missing: false
+        expected_decision: vulnerable
+        primary_runbook_id: API-INPUT-SSRF-LOCALHOST-010
+      - name: ssrf localhost secure
+        description: SSRF blocked with 403
+        signals:
+          response_status: 403
+          response_contains_sensitive_data: false
+          target_reachable: true
+          prerequisites_missing: false
+        expected_decision: secure
+        primary_runbook_id: API-INPUT-SSRF-LOCALHOST-010
+
+  - family: rate-resource
+    description: Rate and resource control signals detect missing rate limits on login, OTP, reset, endpoint burst, expensive queries, pagination abuse, upload size limits, body size limits, GraphQL depth limits, and WebSocket flooding. The canonical signals are rate_limit.triggered and response_status.
+    scenarios:
+      - name: login rate limit vulnerable
+        description: No rate limiting on login endpoint with repeated 200
+        signals:
+          rate_limit.triggered: false
+          response_status: 200
+          target_reachable: true
+          prerequisites_missing: false
+        expected_decision: vulnerable
+        primary_runbook_id: API-RATE-LOGIN-001
+      - name: login rate limit secure
+        description: Rate limiting triggered on login endpoint
+        signals:
+          rate_limit.triggered: true
+          response_status: 429
+          target_reachable: true
+          prerequisites_missing: false
+        expected_decision: secure
+        primary_runbook_id: API-RATE-LOGIN-001
+      - name: login rate limit inconclusive
+        description: Target unreachable during rate limit probe
+        signals:
+          rate_limit.triggered: false
+          response_status: 0
+          target_reachable: false
+          prerequisites_missing: false
+        expected_decision: inconclusive
+        primary_runbook_id: API-RATE-LOGIN-001
+
+  - family: token-session
+    description: Token and session signals detect insecure cookie flags, session fixation, logout not invalidating tokens, refresh token exposure, response leakage, URL token exposure, JWK/JKU/X5U trust issues, KID injection/traversal, concurrent session limits, absolute/idle timeouts, and clock skew. The canonical signals are jwt_claims_*, jwt_alg, jwt_secret_bits, jwt_signature_valid, and handler_signal where applicable.
+    scenarios:
+      - name: cookie secure flag missing
+        description: Secure cookie flag absent on token response
+        signals:
+          response_status: 200
+          response_headers:
+            set-cookie: session=abc; HttpOnly
+          target_reachable: true
+          prerequisites_missing: false
+        expected_decision: vulnerable
+        primary_runbook_id: API-TOKEN-COOKIE-SECURE-001
+      - name: cookie secure flag present
+        description: Secure cookie flag present
+        signals:
+          response_status: 200
+          response_headers:
+            set-cookie: session=abc; HttpOnly; Secure
+          target_reachable: true
+          prerequisites_missing: false
+        expected_decision: secure
+        primary_runbook_id: API-TOKEN-COOKIE-SECURE-001
+      - name: cookie secure flag inconclusive
+        description: Target unreachable during session probe
+        signals:
+          response_status: 0
+          response_headers: {}
+          target_reachable: false
+          prerequisites_missing: false
+        expected_decision: inconclusive
+        primary_runbook_id: API-TOKEN-COOKIE-SECURE-001
+      - name: jwt clock skew
+        description: Token with expired timestamp indicating clock skew
+        signals:
+          jwt_claims_exp: 1000000000
+          target_reachable: true
+          prerequisites_missing: false
+        expected_decision: vulnerable
+        primary_runbook_id: API-TOKEN-CLOCK-SKEW-016
+      - name: jwt clock skew secure
+        description: Token with future expiration timestamp
+        signals:
+          jwt_claims_exp: 9999999999
+          target_reachable: true
+          prerequisites_missing: false
+        expected_decision: secure
+        primary_runbook_id: API-TOKEN-CLOCK-SKEW-016
+
+  - family: transport
+    description: Transport signals detect plaintext HTTP, weak TLS versions/ciphers, certificate expiry, hostname mismatch, missing HSTS, and redirect downgrade attacks. The canonical signals are tls_cert_expired, tls_hostname_mismatch, tls_weak_ciphers, tls_plaintext_allowed, and response_headers for HSTS.
+    scenarios:
+      - name: plaintext http vulnerable
+        description: Plaintext HTTP accepted instead of HTTPS
+        signals:
+          tls_plaintext_allowed: true
+          target_reachable: true
+          prerequisites_missing: false
+        expected_decision: vulnerable
+        primary_runbook_id: API-TRANS-PLAINTEXT-HTTP-001
+      - name: plaintext http secure
+        description: Only HTTPS accepted
+        signals:
+          tls_plaintext_allowed: false
+          target_reachable: true
+          prerequisites_missing: false
+        expected_decision: secure
+        primary_runbook_id: API-TRANS-PLAINTEXT-HTTP-001
+      - name: plaintext http inconclusive
+        description: Target unreachable during transport probe
+        signals:
+          tls_plaintext_allowed: false
+          target_reachable: false
+          prerequisites_missing: false
+        expected_decision: inconclusive
+        primary_runbook_id: API-TRANS-PLAINTEXT-HTTP-001
+      - name: weak tls vulnerable
+        description: Expired certificate, hostname mismatch, weak ciphers
+        signals:
+          tls_cert_expired: true
+          tls_hostname_mismatch: true
+          tls_weak_ciphers: true
+          tls_plaintext_allowed: false
+          target_reachable: true
+          prerequisites_missing: false
+        expected_decision: vulnerable
+        primary_runbook_id: API-TRANS-WEAK-TLS-002
+      - name: weak tls secure
+        description: Valid TLS configuration
+        signals:
+          tls_cert_expired: false
+          tls_hostname_mismatch: false
+          tls_weak_ciphers: false
+          tls_plaintext_allowed: false
+          target_reachable: true
+          prerequisites_missing: false
+        expected_decision: secure
+        primary_runbook_id: API-TRANS-WEAK-TLS-002
+      - name: hsts missing vulnerable
+        description: HSTS header missing from response
+        signals:
+          response_status: 200
+          response_headers: {}
+          target_reachable: true
+          prerequisites_missing: false
+        expected_decision: vulnerable
+        primary_runbook_id: API-TRANS-HSTS-006
+      - name: hsts present secure
+        description: HSTS header present
+        signals:
+          response_status: 200
+          response_headers:
+            strict-transport-security: max-age=31536000
+          target_reachable: true
+          prerequisites_missing: false
+        expected_decision: secure
+        primary_runbook_id: API-TRANS-HSTS-006
