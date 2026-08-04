@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+
 from api_pentest_runbooks.adapter import extract_runner_meta
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -133,12 +134,57 @@ class _Evaluator(ast.NodeVisitor):
         return self._resolve_name(node.id)
 
 
+#: Dotted aliases historically emitted by the JWT/TLS normalizers.
+#: Each alias maps to an already existing canonical signal in the catalog.
+#: Aliases add no new vocabulary: unknown signals stay rejected.
+SIGNAL_ALIASES: dict[str, str] = {
+    "jwt.alg": "jwt_alg",
+    "jwt.claims.aud": "jwt_claims_aud",
+    "jwt.claims.exp": "jwt_claims_exp",
+    "jwt.claims.iss": "jwt_claims_iss",
+    "jwt.claims.sub": "jwt_claims_sub",
+    "jwt.secret_bits": "jwt_secret_bits",
+    "jwt.signature.valid": "jwt_signature_valid",
+    "tls.cert_expired": "tls_cert_expired",
+    "tls.hostname_mismatch": "tls_hostname_mismatch",
+    "tls.plaintext_allowed": "tls_plaintext_allowed",
+    "tls.weak_ciphers": "tls_weak_ciphers",
+}
+
+
+def canonical_signal_name(name: str) -> str:
+    """Return the canonical catalog name for a signal alias, else the name itself."""
+    return SIGNAL_ALIASES.get(name, name)
+
+
+def canonicalize_signals(signals: dict[str, Any]) -> dict[str, Any]:
+    """Remap known dotted aliases onto canonical catalog signals."""
+    canonical: dict[str, Any] = {}
+    for key, value in signals.items():
+        canonical[canonical_signal_name(key)] = value
+    return canonical
+
+
 def _produced_signals_from_expr(expr: str) -> list[str]:
     found: list[str] = []
     for signal in _load_signal_catalog():
         if signal in expr:
             found.append(signal)
     return found
+
+
+def _canonicalize_expression(expr: str) -> str:
+    canonical = expr
+    for alias in sorted(SIGNAL_ALIASES, key=len, reverse=True):
+        canonical = canonical.replace(alias, SIGNAL_ALIASES[alias])
+    return canonical
+
+
+def _canonicalize_criteria(criteria: dict[str, list[str]]) -> dict[str, list[str]]:
+    canonical: dict[str, list[str]] = dict(criteria)
+    for key in ("vulnerable_when", "secure_when", "inconclusive_when"):
+        canonical[key] = [_canonicalize_expression(expr) for expr in criteria.get(key, [])]
+    return canonical
 
 
 def _infer_signals_from_criteria(criteria: dict[str, list[str]]) -> set[str]:
@@ -151,6 +197,8 @@ def _infer_signals_from_criteria(criteria: dict[str, list[str]]) -> set[str]:
 
 
 def evaluate_signals(signals: dict[str, Any], criteria: dict[str, list[str]]) -> EvaluationResult:
+    signals = canonicalize_signals(signals)
+    criteria = _canonicalize_criteria(criteria)
     explicit = _infer_signals_from_criteria(criteria)
     unknown_provided = sorted(set(signals) - explicit)
     if unknown_provided:
@@ -372,7 +420,14 @@ def normalize_execution_output(handler: str, output: dict[str, Any] | None) -> d
     functional.update(_normalize_jwt(jwt_payload))
     functional.update(_normalize_tls(output))
     functional.update(_normalize_workflow(output.get("workflow") or output))
-    return {key: value for key, value in functional.items() if key not in _RUNNER_META_KEYS}
+    # Absent signals (None) are not emitted: an absent claim is not a functional signal.
+    return canonicalize_signals(
+        {
+            key: value
+            for key, value in functional.items()
+            if key not in _RUNNER_META_KEYS and value is not None
+        }
+    )
 
 
 def load_signal_catalog() -> dict[str, SignalDefinition]:
@@ -387,9 +442,12 @@ def load_canonical_mapping() -> dict[str, dict[str, Any]]:
 
 
 __all__ = [
+    "SIGNAL_ALIASES",
     "EvaluationResult",
     "SignalDefinition",
     "SignalError",
+    "canonical_signal_name",
+    "canonicalize_signals",
     "evaluate_signals",
     "extract_runner_meta",
     "load_canonical_mapping",
