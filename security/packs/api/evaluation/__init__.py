@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+from api_pentest_runbooks.adapter import extract_runner_meta
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SIGNAL_CATALOG_PATH = REPO_ROOT / "signals" / "signal-catalog.yaml"
@@ -384,8 +385,6 @@ def load_canonical_mapping() -> dict[str, dict[str, Any]]:
     data = yaml.safe_load(MAPPING_PATH.read_text(encoding="utf-8"))
     return {str(item.get("runbook_id")): item for item in (data.get("mappings") or []) if item.get("runbook_id")}
 
-
-from api_pentest_runbooks.adapter import extract_runner_meta
 
 __all__ = [
     "EvaluationResult",
