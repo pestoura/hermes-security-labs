@@ -1,3 +1,29 @@
+#!/usr/bin/env python3
+"""DevSecOps pack runner.
+
+Stable JSON boundary between the security layer and a laboratory. The runner
+is standard-library only so it can be copied verbatim into the Kali MCP
+container and invoked as::
+
+    python3 devsecops_runner.py execute --payload-b64 <urlsafe-base64-json>
+
+The payload is a JSON object::
+
+    {
+      "schema_version": 1,
+      "provider": "secrets",
+      "action": "scan",
+      "profile": "wrongsecrets-exposure",
+      "target_ref": "wrongsecrets",
+      "scope": "laboratory",
+      "control_id": "DEVSEC-SECRETS-002",
+      "arguments": {"base_url": "http://wrongsecrets:8080"}
+    }
+
+Exit codes: ``0`` result produced (any decision), ``2`` malformed invocation.
+Secret material is never emitted: every result is sanitised before printing.
+"""
+
 from __future__ import annotations
 
 import argparse
@@ -5,53 +31,100 @@ import base64
 import binascii
 import json
 import os
+import sys
+from pathlib import Path
 from typing import Any
 
-ALLOWED = {('sbom', 'verify'), ('iac', 'scan'), ('supplychain', 'verify'), ('repository', 'inventory'), ('cicd', 'inspect'), ('sca', 'scan'), ('secrets', 'scan'), ('oci', 'inspect'), ('evidence', 'verify'), ('repository', 'inspect')}
+_SRC = Path(__file__).resolve().parents[1] / "src"
+if _SRC.is_dir() and str(_SRC) not in sys.path:
+    sys.path.insert(0, str(_SRC))
+
+from devsecops_runbooks.contracts import Decision, ExecutionRequest, ExecutionResult, Status  # noqa: E402
+from devsecops_runbooks.dispatch import dispatch, sanitize_result  # noqa: E402
+
+EXECUTION_MODE_ENV = "SECURITY_RUNBOOK_EXECUTION_MODE"
+
+
+def _emit(document: dict[str, Any]) -> None:
+    print(json.dumps(document, sort_keys=True, separators=(",", ": ")))
 
 
 def fail(message: str) -> None:
-    print(json.dumps({"status": "error", "error": message}))
+    _emit({"schema_version": 1, "status": "error", "decision": "inconclusive", "reason": message})
     raise SystemExit(2)
 
 
-def execute(request: dict[str, Any]) -> dict[str, Any]:
-    pair = (request.get("provider"), request.get("action"))
-    if pair not in ALLOWED:
-        fail(f"provider/action {pair!r} is not allowed")
-    mode = os.environ.get("SECURITY_RUNBOOK_EXECUTION_MODE", "dry-run")
-    if mode != "enabled":
-        return {
-            "status": "dry-run",
-            "provider": pair[0],
-            "action": pair[1],
-            "profile": request.get("profile"),
-            "target_ref": request.get("arguments", {}).get("target_ref"),
-        }
-    return {
-        "status": "not-implemented",
-        "provider": pair[0],
-        "action": pair[1],
-        "profile": request.get("profile"),
-        "target_ref": request.get("arguments", {}).get("target_ref") or request.get("profile"),
-        "decision": "inconclusive",
-        "vulnerable_signals": [],
-        "secure_signals": [],
-        "reason": "real adapter execution pending calibration",
-    }
-
-
-def main() -> None:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--payload-b64", required=True)
-    args = parser.parse_args()
+def decode_payload(encoded: str) -> Any:
     try:
-        payload = base64.urlsafe_b64decode(args.payload_b64.encode())
-        request = json.loads(payload)
-    except (binascii.Error, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raw = base64.urlsafe_b64decode(encoded.encode())
+        return json.loads(raw)
+    except (binascii.Error, ValueError, UnicodeDecodeError) as exc:
         fail(f"invalid payload: {exc}")
-    print(json.dumps(execute(request), sort_keys=True))
+        raise  # unreachable, keeps type checkers happy
+
+
+def dry_run_result(payload: Any) -> dict[str, Any]:
+    try:
+        request = ExecutionRequest.from_payload(payload)
+    except ValueError as exc:
+        return sanitize_result(ExecutionResult.error(f"invalid request: {exc}"))
+    return sanitize_result(
+        ExecutionResult(
+            status=Status.DRY_RUN,
+            decision=Decision.NOT_APPLICABLE,
+            provider=request.provider,
+            action=request.action,
+            profile=request.profile,
+            target_ref=request.target_ref,
+            scope=request.scope,
+            control_id=request.control_id,
+            reason=f"dry-run: set {EXECUTION_MODE_ENV}=enabled to execute",
+            meta={"execution_mode": "dry-run"},
+        )
+    )
+
+
+def execute(payload: Any, force: bool = False) -> dict[str, Any]:
+    mode = os.environ.get(EXECUTION_MODE_ENV, "dry-run")
+    if not force and mode != "enabled":
+        return dry_run_result(payload)
+    return dispatch(payload)
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="DevSecOps pack runner")
+    sub = parser.add_subparsers(dest="command", required=True)
+    run = sub.add_parser("execute", help="execute an encoded handler request")
+    run.add_argument("--payload-b64", required=True)
+    run.add_argument(
+        "--force",
+        action="store_true",
+        help=f"execute even when {EXECUTION_MODE_ENV} is not 'enabled'",
+    )
+    handlers = sub.add_parser("handlers", help="list the allowed handler catalogue")
+    handlers.set_defaults(command="handlers")
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = build_parser().parse_args(argv)
+    if args.command == "handlers":
+        from devsecops_runbooks.policy import ALLOWED_HANDLERS
+
+        _emit(
+            {
+                "schema_version": 1,
+                "handlers": [
+                    {"provider": provider, "action": action, "implemented": implemented}
+                    for (provider, action), implemented in sorted(ALLOWED_HANDLERS.items())
+                ],
+            }
+        )
+        return 0
+    payload = decode_payload(args.payload_b64)
+    _emit(execute(payload, force=bool(getattr(args, "force", False))))
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

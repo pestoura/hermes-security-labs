@@ -48,8 +48,12 @@ domains:
         campaigns: [devsecops-baseline, cicd-complete]
         calibration: pending
       - id: wrongsecrets
-        campaigns: [devsecops-baseline]
-        calibration: pending
+        campaigns: [devsecops-baseline, wrongsecrets-vertical]
+        calibration: calibrated
+        calibrated_handlers:
+          - secrets/scan
+        adapter: security/packs/devsecops/src/devsecops_runbooks/adapters/wrongsecrets.py
+        runner: security/packs/devsecops/runner/devsecops_runner.py
       - id: damn-vulnerable-sca
         campaigns: [devsecops-baseline, supply-chain-complete]
         calibration: pending
