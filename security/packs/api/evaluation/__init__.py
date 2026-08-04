@@ -20,6 +20,55 @@ class SignalError(ValueError):
     """Raised when a signal contract is violated."""
 
 
+class _MissingSignal:
+    """Falsy, membership-safe placeholder for a known signal that was not provided.
+
+    Keeps the historical semantics of an absent signal (comparable to ``False``)
+    while making ``x in MISSING_SIGNAL`` return ``False`` instead of raising
+    ``TypeError``. It is never emitted in evaluation results or evidence.
+    """
+
+    _instance: _MissingSignal | None = None
+
+    def __new__(cls) -> _MissingSignal:  # noqa: PYI034
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+
+    def __bool__(self) -> bool:
+        return False
+
+    def __len__(self) -> int:
+        return 0
+
+    def __iter__(self) -> Any:
+        return iter(())
+
+    def __contains__(self, item: Any) -> bool:
+        return False
+
+    def __eq__(self, other: object) -> bool:
+        if other is self:
+            return True
+        return other is False or other is None
+
+    def __ne__(self, other: object) -> bool:
+        return not self.__eq__(other)
+
+    def __hash__(self) -> int:
+        return hash(False)
+
+    def __repr__(self) -> str:
+        return "MISSING_SIGNAL"
+
+
+#: Singleton returned when a known signal is absent from the provided signals.
+MISSING_SIGNAL = _MissingSignal()
+
+#: Container types accepted on the right-hand side of ``in`` / ``not in``.
+_MEMBERSHIP_TYPES = (str, bytes, dict, set, frozenset, list, tuple)
+
+
 @dataclass(frozen=True)
 class SignalDefinition:
     name: str
@@ -63,7 +112,7 @@ class _Evaluator(ast.NodeVisitor):
     def _resolve_name(self, name: str) -> Any:
         if name in self.signals:
             return self.signals[name]
-        return False
+        return MISSING_SIGNAL
 
     def visit_Expression(self, node: ast.Expression) -> Any:  # type: ignore[override]
         return self.visit(node.body)
@@ -82,6 +131,21 @@ class _Evaluator(ast.NodeVisitor):
             return not operand
         raise SignalError("unsupported unary operator")
 
+    @staticmethod
+    def _membership(left: Any, right: Any) -> bool:
+        if right is MISSING_SIGNAL:
+            return False
+        if isinstance(right, bool) or not isinstance(right, _MEMBERSHIP_TYPES):
+            raise SignalError(
+                f"membership test requires a container signal, got {type(right).__name__}"
+            )
+        if isinstance(right, (str, bytes)) and left is MISSING_SIGNAL:
+            return False
+        try:
+            return left in right
+        except TypeError as exc:  # unhashable or incompatible element type
+            raise SignalError(f"unsupported membership operand: {exc}") from exc
+
     def visit_Compare(self, node: ast.Compare) -> Any:  # type: ignore[override]
         left = self.visit(node.left)
         for op, comparator in zip(node.ops, node.comparators):
@@ -93,10 +157,10 @@ class _Evaluator(ast.NodeVisitor):
                 if left == right:
                     return False
             elif isinstance(op, ast.In):
-                if left not in right:
+                if not self._membership(left, right):
                     return False
             elif isinstance(op, ast.NotIn):
-                if left in right:
+                if self._membership(left, right):
                     return False
             elif isinstance(op, ast.Is):
                 if left is not right:
@@ -206,6 +270,8 @@ def evaluate_signals(signals: dict[str, Any], criteria: dict[str, list[str]]) ->
     catalog = _load_signal_catalog()
     for name, value in signals.items():
         expected = catalog[name].type if name in catalog else "string"
+        if expected.startswith("map[") and not isinstance(value, dict):
+            raise SignalError(f"type mismatch: {name} expected {expected}, got {type(value).__name__}")
         if expected == "integer" and not isinstance(value, int):
             raise SignalError(f"type mismatch: {name} expected {expected}, got {type(value).__name__}")
         if expected == "boolean" and not isinstance(value, bool):
