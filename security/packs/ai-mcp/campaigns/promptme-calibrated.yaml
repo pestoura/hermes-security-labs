@@ -1,0 +1,32 @@
+apiVersion: security.hex0r.io/v1alpha1
+kind: SecurityCampaign
+metadata:
+  id: promptme-calibrated
+  name: PromptMe calibrated direct prompt-injection vertical
+  status: candidate
+domain: ai-mcp
+description: >-
+  Minimal measurable vertical for the PromptMe deterministic laboratory. The
+  selection stays inside the direct prompt-injection category, which is the
+  only category answered by the calibrated agent/conversation-test handler, so
+  the campaign exercises the adapter end to end without pulling in categories
+  the laboratory runtime cannot answer.
+selectors:
+  categories:
+  - direct-prompt-injection
+  handlers:
+  - agent/conversation-test
+laboratory:
+  id: promptme
+  binding: security/bindings/labs.yaml
+  scope: laboratory
+execution:
+  mode: sequential
+  max_parallel: 1
+  stop_on_scope_violation: true
+  stop_on_cleanup_failure: true
+  require_evidence_redaction: true
+evidence:
+  redact_secrets: true
+  store: external
+  retention: campaign-scoped
