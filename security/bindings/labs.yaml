@@ -73,8 +73,12 @@ domains:
     pack: security/packs/ai-mcp
     laboratories:
       - id: promptme
-        campaigns: [ai-mcp-baseline, prompt-injection-complete]
-        calibration: pending
+        campaigns: [ai-mcp-baseline, prompt-injection-complete, promptme-calibrated]
+        calibration: calibrated
+        calibrated_handlers:
+          - agent/conversation-test
+        adapter: security/packs/ai-mcp/src/ai_mcp_runbooks/adapters/promptme.py
+        runner: security/packs/ai-mcp/runner/ai_mcp_runner.py
       - id: vulnerable-mcp-servers
         campaigns: [ai-mcp-baseline, mcp-tool-security]
         calibration: pending
