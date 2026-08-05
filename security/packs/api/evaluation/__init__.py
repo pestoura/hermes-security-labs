@@ -466,25 +466,77 @@ def _normalize_handler_output(handler: str, output: dict[str, Any] | None) -> di
     return normalized
 
 
-_UNSUCCESSFUL_RUNNER_STATUSES = {"error", "not-implemented", "not_implemented"}
+_UNSUCCESSFUL_RUNNER_STATUSES = {
+    "error",
+    "not-implemented",
+    "not_implemented",
+    "tool_unavailable",
+    "tool-unavailable",
+    "failed",
+    "failure",
+}
+
+#: Envelope-only keys: they carry transport/runner metadata, never evidence.
+_ENVELOPE_KEYS = {"meta"}
+
+
+def _is_failed_status(status: Any) -> bool:
+    return isinstance(status, str) and status.strip().lower() in _UNSUCCESSFUL_RUNNER_STATUSES
+
+
+def _is_failed_exit_code(exit_code: Any) -> bool:
+    if exit_code is None or isinstance(exit_code, bool):
+        return False
+    try:
+        return int(exit_code) != 0
+    except (TypeError, ValueError):
+        return False
 
 
 def _is_degraded_output(output: dict[str, Any] | None) -> bool:
     """True when the runner produced no usable functional evidence.
 
-    Covers a missing/invalid payload, an empty payload and any explicit runner
-    failure status. In those cases positive signals must never be inferred.
+    Degraded when the payload is missing/invalid, when it carries no functional
+    content beyond envelope metadata (``meta``), when the runner metadata inside
+    ``meta`` reports a failure/not-implemented status or a non-zero exit code, or
+    when the top-level status is itself a failure status.
     """
-    if not isinstance(output, dict) or not output:
+    if not isinstance(output, dict):
         return True
-    status = output.get("status")
-    return isinstance(status, str) and status.strip().lower() in _UNSUCCESSFUL_RUNNER_STATUSES
+    functional_keys = set(output) - _ENVELOPE_KEYS
+    if not functional_keys:
+        # Empty payload, or only the runner envelope: no functional evidence.
+        return True
+    meta = output.get("meta")
+    if isinstance(meta, dict):
+        if _is_failed_status(meta.get("runner_status")) or _is_failed_exit_code(
+            meta.get("runner_exit_code")
+        ):
+            return True
+    return _is_failed_status(output.get("status"))
 
 
-def normalize_execution_output(handler: str, output: dict[str, Any] | None) -> dict[str, Any]:
-    degraded = _is_degraded_output(output)
+def normalize_execution_output(
+    handler: str,
+    output: dict[str, Any] | None,
+    *,
+    runner_status: Any = None,
+    exit_code: Any = None,
+) -> dict[str, Any]:
+    """Normalize a runner payload into evaluation signals.
+
+    ``runner_status`` and ``exit_code`` are optional, backwards-compatible
+    out-of-band execution metadata. A failure status or a non-zero exit code
+    forces degradation. Runner metadata never becomes a signal.
+    """
+    degraded = (
+        _is_degraded_output(output)
+        or _is_failed_status(runner_status)
+        or _is_failed_exit_code(exit_code)
+    )
     if not isinstance(output, dict):
         output = {}
+    output = {key: value for key, value in output.items() if key not in _ENVELOPE_KEYS}
     functional = {
         "target_reachable": bool(output.get("target_reachable", not degraded)),
         "prerequisites_missing": bool(output.get("prerequisites_missing", degraded)),
