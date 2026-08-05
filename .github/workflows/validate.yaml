@@ -36,7 +36,7 @@ jobs:
           find . -type f -name '*.sh' -print0 | xargs -0 -r -n1 bash -n
       - name: Validate Phase 2 lifecycle race handling
         run: bash platform/scripts/phase2-compose-lifecycle-self-test.sh
-      - name: Validate WrongSecrets readiness lifecycle
+      - name: Validate WrongSecrets lifecycle and sanitized Challenge 3 harness
         run: bash platform/environments/devsecops/wrongsecrets/scripts/lifecycle-self-test.sh
       - name: Validate Phase 2 source archive safety
         run: python platform/runtime/phase2-safe-lab/fetch_source.py --self-test

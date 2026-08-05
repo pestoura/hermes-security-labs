@@ -53,8 +53,43 @@ O lifecycle usa a porta fixa `8082`, valida ownership das redes Compose, mantém
 
 ## Exercícios sanitizados
 
-- Challenge 3: resposta resolvida apenas em memória; valor não impresso nem persistido.
+### Challenge 3
+
+O contrato canónico da release fixada usa:
+
+- short-name `challenge-3`;
+- `GET /challenge/challenge-3` para estabelecer a sessão e obter o token CSRF;
+- `POST /challenge/challenge-3` com formulário `action=submit`;
+- resposta obtida de `DOCKER_ENV_PASSWORD` apenas a partir do container pertencente ao projeto.
+
+O harness versionado executa todo o fluxo dentro de um único processo Python. O valor não é colocado em argumentos, variáveis exportadas ou ficheiros, não é impresso, não é transformado em hash e é descartado após a validação booleana.
+
+Com o laboratório já iniciado:
+
+```bash
+python3 ./scripts/challenge3-sanitized-test.py
+```
+
+Resultado público esperado:
+
+```text
+challenge3_http_status=200
+challenge3_csrf=present
+Challenge 3 exercise: PASS — value processed in memory and not disclosed
+```
+
+O teste determinístico, sem Docker nem HTTP, é executado pelo lifecycle self-test e pode ser chamado diretamente:
+
+```bash
+python3 ./scripts/challenge3-sanitized-test.py --self-test
+```
+
+Não devem ser usadas rotas alternativas ou inferidas, como `/challenge/3`, `/api/challenge/3` ou endpoints de spoil, para provar este gate.
+
+### MCP
+
 - MCP `tools/call`: resposta processada em memória e validada através de `HERMES_WRONGSECRETS_SYNTHETIC_MARKER`, que não é uma credencial.
+- A resposta bruta do MCP e o conteúdo do ambiente nunca são persistidos em evidência pública.
 
 ## Limitações
 

@@ -4,6 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 LIFECYCLE="$SCRIPT_DIR/lifecycle.sh"
 COMPOSE_FILE="$SCRIPT_DIR/../compose.yaml"
+CHALLENGE3_HARNESS="$SCRIPT_DIR/challenge3-sanitized-test.py"
 
 # shellcheck source=platform/environments/devsecops/wrongsecrets/scripts/lifecycle.sh
 source "$LIFECYCLE"
@@ -127,11 +128,16 @@ self_test_egress_proof_is_topology_based() {
   fi
 }
 
+self_test_challenge3_harness() {
+  python3 "$CHALLENGE3_HARNESS" --self-test
+}
+
 self_test_compose_health_model
 self_test_http_readiness_recovers
 self_test_http_readiness_times_out
 self_test_health_poll_tolerates_replacement
 self_test_cleanup_waits_for_absence
 self_test_egress_proof_is_topology_based
+self_test_challenge3_harness
 
 echo "WRONGSECRETS_LIFECYCLE_SELF_TEST_OK"
