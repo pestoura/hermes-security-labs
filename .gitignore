@@ -41,6 +41,10 @@ node_modules/
 compose-effective.yaml
 container-inspect*.json
 deployment.local.json
+.deployment.json
+.deployment-snapshots/
+*.deploytmp
+*.rollbacktmp
 .runtime/
 security/**/dist/
 security/catalog/generated*.json

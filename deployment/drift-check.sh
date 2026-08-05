@@ -1,9 +1,28 @@
 #!/usr/bin/env bash
+# Report IN_SYNC, DRIFT_DETECTED or UNKNOWN. Never fails open to IN_SYNC.
 set -euo pipefail
-commit="$(git rev-parse --abbrev-ref --short HEAD 2>/dev/null || echo unknown)"
-status="$(git status --porcelain 2>/dev/null | wc -l)"
-if [ "$status" -gt 0 ]; then
-  echo "DRIFT_DETECTED commit=$commit dirty=$status"
-  exit 2
+
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+repo="${DEPLOY_REPO_DIR:-$(cd "${here}/.." && pwd)}"
+target="${DEPLOY_TARGET_DIR:-/home/estourpm/hermes-labs/hermes-security-labs}"
+
+args=()
+explicit_target=0
+for arg in "$@"; do
+  case "$arg" in
+    --target-dir=*) explicit_target=1 ;;
+  esac
+  args+=("$arg")
+done
+if [ "$explicit_target" -eq 0 ]; then
+  args+=("--target-dir=${target}")
 fi
-echo "IN_SYNC commit=$commit dirty=0"
+
+set +e
+python3 "${here}/deployment_tracking.py" drift-check --repo "${repo}" "${args[@]}"
+rc=$?
+set -e
+case "$rc" in
+  0|1|2) exit "$rc" ;;
+  *) echo '{"status": "UNKNOWN", "reason": "unexpected runner exit"}'; exit 2 ;;
+esac
