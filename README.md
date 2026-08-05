@@ -45,6 +45,8 @@ skills/                   instruções do agente Hermes
 
 A política de imagens próprias, packages privados, proveniência e consumo por digest está documentada em [`docs/ghcr-container-registry.md`](docs/ghcr-container-registry.md).
 
+Os repositórios autónomos que deram origem ao core e aos packs foram consolidados aqui e estão arquivados em read-only. O registo canónico está em [`docs/consolidation/superseded-repositories.md`](docs/consolidation/superseded-repositories.md).
+
 ## Catálogo de laboratórios
 
 A descoberta suporta temporariamente dois layouts:
