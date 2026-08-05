@@ -23,7 +23,7 @@ writes, snapshots) lives in Python.
 
 Environment overrides: `DEPLOY_TARGET_DIR`, `DEPLOY_REPO_DIR`,
 `DEPLOY_LOCK_FILE`. Default target: `/home/estourpm/hermes-labs/hermes-security-labs`.
-Default lock: `${TMPDIR:-/tmp}/hermes-security-labs-deployment.lock`.
+Default lock: `${TMPDIR:-/tmp}/security-labs-deployment-drift-issue7`.
 
 ## Approved scope
 

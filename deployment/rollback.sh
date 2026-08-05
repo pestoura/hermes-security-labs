@@ -5,7 +5,7 @@ set -euo pipefail
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo="${DEPLOY_REPO_DIR:-$(cd "${here}/.." && pwd)}"
 target="${DEPLOY_TARGET_DIR:-/home/estourpm/hermes-labs/hermes-security-labs}"
-lock="${DEPLOY_LOCK_FILE:-${TMPDIR:-/tmp}/hermes-security-labs-deployment.lock}"
+lock="${DEPLOY_LOCK_FILE:-${TMPDIR:-/tmp}/security-labs-deployment-drift-issue7}"
 
 args=()
 explicit_target=0

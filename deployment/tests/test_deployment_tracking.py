@@ -286,6 +286,37 @@ def test_rollback_without_snapshot_refuses(deployed):
     assert rc == dt.EXIT_PRECONDITION
 
 
+def test_default_lock_name_matches_issue7_contract(source_repo, tmp_path):
+    # Issue #7 requires the exclusive lock name exactly:
+    # security-labs-deployment-drift-issue7
+    # The name is internal to the bash wrapper; it only surfaces in stderr
+    # when lock acquisition fails. Hold the default lock first (forcing the
+    # wrapper's default TMPDIR) and assert the contention message names it.
+    import fcntl
+
+    custom_tmp = tmp_path / "locktmp"
+    custom_tmp.mkdir()
+    env = dict(os.environ)
+    env.pop("DEPLOY_LOCK_FILE", None)
+    env["TMPDIR"] = str(custom_tmp)
+    expected = custom_tmp / "security-labs-deployment-drift-issue7"
+    lf = open(expected, "w")
+    fcntl.flock(lf.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+    try:
+        target = tmp_path / "t-lockname"
+        out = subprocess.run(
+            ["bash", f"{DEPLOYMENT_DIR}/deploy.sh", f"--target-dir={target}", "--dry-run"],
+            capture_output=True,
+            text=True,
+            env=env,
+        )
+        assert out.returncode == 5, out.stderr
+        assert "security-labs-deployment-drift-issue7" in out.stderr, out.stderr
+    finally:
+        fcntl.flock(lf.fileno(), fcntl.LOCK_UN)
+        lf.close()
+
+
 def test_concurrent_lock_is_exclusive(source_repo, tmp_path):
     lock = tmp_path / "concurrency.lock"
     target = tmp_path / "locked"
