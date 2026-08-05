@@ -10,7 +10,7 @@ import subprocess
 import urllib.error
 import urllib.parse
 import urllib.request
-from typing import Any
+from typing import Any, NoReturn
 
 ALLOWED_HANDLERS = {
     "fuzz",
@@ -28,9 +28,30 @@ ALLOWED_HANDLERS = {
 }
 
 
-def fail(message: str, code: int = 2) -> None:
+def fail(message: str, code: int = 2) -> NoReturn:
     print(json.dumps({"status": "error", "error": message}))
     raise SystemExit(code)
+
+
+TOOL_UNAVAILABLE_EXIT_CODE = 127
+
+
+def tool_unavailable(handler: str, tool: str, reason: str) -> dict[str, Any]:
+    """Structured, sanitized error for an allowlisted tool that cannot be executed.
+
+    No filesystem paths, no traceback and no raw OS message are emitted: only the
+    handler, the tool basename, a stable error code and a deterministic exit code.
+    """
+    return {
+        "status": "error",
+        "error_code": "handler.tool_unavailable",
+        "handler": handler,
+        "tool": os.path.basename(tool),
+        "reason": reason,
+        "exit_code": TOOL_UNAVAILABLE_EXIT_CODE,
+        "target_reachable": False,
+        "prerequisites_missing": True,
+    }
 
 
 def allowed_host(url: str) -> str:
@@ -47,14 +68,21 @@ def allowed_host(url: str) -> str:
     return host
 
 
-def run_argv(argv: list[str], timeout: int) -> dict[str, Any]:
-    completed = subprocess.run(
-        argv,
-        text=True,
-        capture_output=True,
-        timeout=timeout,
-        check=False,
-    )
+def run_argv(argv: list[str], timeout: int, handler: str = "") -> dict[str, Any]:
+    try:
+        completed = subprocess.run(
+            argv,
+            text=True,
+            capture_output=True,
+            timeout=timeout,
+            check=False,
+        )
+    except FileNotFoundError:
+        return tool_unavailable(handler, argv[0], "executable not found")
+    except PermissionError:
+        return tool_unavailable(handler, argv[0], "executable not runnable")
+    except OSError:
+        return tool_unavailable(handler, argv[0], "executable could not be started")
     return {
         "status": "completed" if completed.returncode == 0 else "failed",
         "exit_code": completed.returncode,
@@ -113,11 +141,13 @@ def external_action(request: dict[str, Any]) -> dict[str, Any]:
         return run_argv(
             ["nmap", "-Pn", "-p", port, "--script", "ssl-enum-ciphers,ssl-cert", host],
             timeout,
+            handler,
         )
     if handler == "nuclei":
         return run_argv(
             ["nuclei", "-u", url, "-jsonl", "-silent", "-tags", profile],
             timeout,
+            handler,
         )
     if handler == "sqlmap":
         return run_argv(
@@ -131,6 +161,7 @@ def external_action(request: dict[str, Any]) -> dict[str, Any]:
                 "--output-dir=/tmp/sqlmap-output",
             ],
             timeout,
+            handler,
         )
     if handler == "fuzz":
         wordlist = args.get(
@@ -140,6 +171,7 @@ def external_action(request: dict[str, Any]) -> dict[str, Any]:
         return run_argv(
             ["ffuf", "-u", url, "-w", wordlist, "-of", "json", "-s"],
             timeout,
+            handler,
         )
     if handler == "jwt":
         token_ref = args.get("token_file", "/run/secrets/token")
@@ -155,13 +187,21 @@ def external_action(request: dict[str, Any]) -> dict[str, Any]:
                 "at",
             ],
             timeout,
+            handler,
         )
     if handler == "websocket":
-        return run_argv(["websocat", "-n1", url], timeout)
+        return run_argv(["websocat", "-n1", url], timeout, handler)
     if handler in {"openapi", "graphql", "headers", "workflow", "race"}:
         return http_action(request)
-    fail(f"handler/profile not implemented: {handler}/{profile}")
-    return {}
+    return {
+        "status": "not-implemented",
+        "error_code": "handler.not_implemented",
+        "handler": str(handler),
+        "profile": str(profile),
+        "exit_code": TOOL_UNAVAILABLE_EXIT_CODE,
+        "target_reachable": False,
+        "prerequisites_missing": True,
+    }
 
 
 def execute(request: dict[str, Any]) -> dict[str, Any]:
@@ -184,7 +224,30 @@ def main() -> None:
         request = json.loads(decoded)
     except (binascii.Error, UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
         fail(f"invalid payload: {exc}")
-    print(json.dumps(execute(request)))
+    try:
+        result = execute(request)
+    except subprocess.TimeoutExpired:
+        result = {
+            "status": "error",
+            "error_code": "handler.timeout",
+            "handler": str(request.get("handler") or ""),
+            "exit_code": 124,
+            "target_reachable": False,
+            "prerequisites_missing": True,
+        }
+    except SystemExit:
+        raise
+    except Exception:  # noqa: BLE001 - never leak a traceback to the bridge
+        result = {
+            "status": "error",
+            "error_code": "handler.unexpected_failure",
+            "handler": str(request.get("handler") or ""),
+            "exit_code": 1,
+            "target_reachable": False,
+            "prerequisites_missing": True,
+        }
+    # Structured results always use exit 0; the bridge parses JSON, not the exit code.
+    print(json.dumps(result))
 
 
 if __name__ == "__main__":

@@ -281,6 +281,19 @@ def evaluate_signals(signals: dict[str, Any], criteria: dict[str, list[str]]) ->
     evaluator = _Evaluator(signals)
     evaluated: list[str] = []
     reasons: list[str] = []
+    # Degradation gate: when the execution could not produce functional evidence,
+    # inconclusive criteria are evaluated first so an absent signal can never be
+    # read as a positive (secure) result.
+    if signals.get("prerequisites_missing") is True or signals.get("target_reachable") is False:
+        for expr in criteria.get("inconclusive_when", []):
+            evaluated.append(expr)
+            if evaluator.visit(ast.parse(expr, mode="eval").body):
+                reasons.append(f"inconclusive:{expr}")
+                return EvaluationResult(
+                    decision="inconclusive",
+                    reasons=tuple(reasons),
+                    evaluated=tuple(evaluated),
+                )
     for expr in criteria.get("vulnerable_when", []):
         evaluated.append(expr)
         if ast.parse(expr, mode="eval") and evaluator.visit(ast.parse(expr, mode="eval").body):
@@ -453,15 +466,34 @@ def _normalize_handler_output(handler: str, output: dict[str, Any] | None) -> di
     return normalized
 
 
+_UNSUCCESSFUL_RUNNER_STATUSES = {"error", "not-implemented", "not_implemented"}
+
+
+def _is_degraded_output(output: dict[str, Any] | None) -> bool:
+    """True when the runner produced no usable functional evidence.
+
+    Covers a missing/invalid payload, an empty payload and any explicit runner
+    failure status. In those cases positive signals must never be inferred.
+    """
+    if not isinstance(output, dict) or not output:
+        return True
+    status = output.get("status")
+    return isinstance(status, str) and status.strip().lower() in _UNSUCCESSFUL_RUNNER_STATUSES
+
+
 def normalize_execution_output(handler: str, output: dict[str, Any] | None) -> dict[str, Any]:
+    degraded = _is_degraded_output(output)
     if not isinstance(output, dict):
         output = {}
     functional = {
-        "target_reachable": bool(output.get("target_reachable", True)),
-        "prerequisites_missing": bool(output.get("prerequisites_missing", False)),
+        "target_reachable": bool(output.get("target_reachable", not degraded)),
+        "prerequisites_missing": bool(output.get("prerequisites_missing", degraded)),
         "handler_signal": str(output.get("finding") or output.get("status") or ""),
     }
-    if output.get("status") == "error":
+    if degraded:
+        # Fail safe: a degraded execution can never assert reachability or
+        # satisfied prerequisites, regardless of what the payload claims.
+        functional["target_reachable"] = False
         functional["prerequisites_missing"] = True
     for source, target in (
         (("status_code",), "response_status"),
