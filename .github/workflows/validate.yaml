@@ -74,6 +74,8 @@ jobs:
           done
           docker logs "$proxy" --tail 50 || true
           exit 1
+      - name: Test roadmap backlog integrity
+        run: python -m pytest -q roadmap/tests -p no:cacheprovider
       - name: Test deployment tracking tooling
         run: python -m pytest -q deployment/tests -p no:cacheprovider
       - name: Validate deployment tracking CLI help

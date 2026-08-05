@@ -23,6 +23,10 @@ security/   = como os targets são testados
 
 `platform/` gere ambientes, runtimes, redes, isolamento, lifecycle e deployment. `security/` contém o motor determinístico, 370 runbooks, campanhas, políticas, adapters e a ligação canónica aos laboratórios. Um runbook nunca é colocado dentro da pasta de um laboratório porque pode ser reutilizado por vários targets e campanhas.
 
+## Roadmap v2
+
+A visão de evolução para uma *Threat-Informed Continuous Security Validation Platform* está versionada no repositório: [roadmap](docs/roadmap/security-validation-platform-v2.md), [arquitetura de referência](docs/architecture/security-validation-reference-architecture.md), [crosswalk de frameworks](docs/architecture/framework-crosswalk.md), [knowledge fabric](docs/architecture/security-knowledge-fabric.md), [content factories](docs/architecture/continuous-content-factories.md) e [backlog](roadmap/README.md).
+
 ## Estrutura
 
 ```text

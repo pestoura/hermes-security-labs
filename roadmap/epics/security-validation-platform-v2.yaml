@@ -1,0 +1,689 @@
+schema_version: "1.0"
+backlog_id: security-validation-platform-v2
+title: Threat-Informed Continuous Security Validation Platform v2
+source_of_truth: docs/roadmap/security-validation-platform-v2.md
+
+pillars:
+  - id: A
+    name: Governance and Architecture
+    summary: Arquitetura canonica, ADRs, Rules of Engagement as Code, intrusividade L0-L4 e campaign state machine.
+  - id: B
+    name: Runtime Foundation
+    summary: Gateway de execucao tipado, Runner Protocol v2 e lifecycle transacional de laboratorios.
+  - id: C
+    name: Image and Capability Factory
+    summary: Base runtime minima non-root, capability registry, perfis e supply chain assinada.
+  - id: D
+    name: Evidence Observability and Assurance
+    summary: Evidence Plane v2, OpenTelemetry, testes de falha e maturidade de capacidades M0-M5.
+  - id: E
+    name: Security Knowledge Fabric
+    summary: Grafo de conhecimento, sync versionado de frameworks, confianca e precedencia de fontes.
+  - id: F
+    name: Threat-Informed Validation
+    summary: Threat profiles, attack graph, purple team, D3FEND e resiliencia inspirada em TIBER-EU.
+  - id: G
+    name: Vulnerability-Specific Validation
+    summary: Resolucao CVE para comportamento adversario e registo de validation providers confiaveis.
+  - id: H
+    name: Continuous Content Factories
+    summary: Sync incremental, coverage analyzer, geracao de candidatos e controlo de promocao e retirada.
+  - id: I
+    name: Lab Factory and Registry
+    summary: Lab Schema v2, familias e variantes, isolamento forte, reset deterministico e maturidade L0-L5.
+  - id: J
+    name: Risk Findings and Interoperability
+    summary: Scoring auditavel, ciclo de vida de findings e interoperabilidade OSCAL CACAO Attack Flow.
+  - id: K
+    name: SDK and Extensibility
+    summary: SDKs de extensao, conformance kit, manifestos de permissoes, assinatura e certificacao.
+  - id: L
+    name: Domain Expansion
+    summary: Expansao para Kubernetes identidade cloud mobile e IoT OT com constraints explicitas.
+
+phases:
+  - id: 0
+    name: Current-base closure and hygiene (referencia)
+  - id: 1
+    name: Architecture source of truth lifecycle and Runner Protocol v2
+  - id: 2
+    name: Typed MCP capability registry network policy and Evidence v2
+  - id: 3
+    name: Image factory and core runtime profiles
+  - id: 4
+    name: Complete pentest lifecycle and L3 L4 safety
+  - id: 5
+    name: Knowledge fabric and framework sync
+  - id: 6
+    name: Runbook lab runtime and detection factories
+  - id: 7
+    name: Threat-informed purple team risk and interoperability
+  - id: 8
+    name: Domain expansion
+
+epics:
+  - id: SVP2-A-01
+    title: Canonical security execution architecture and trust boundaries
+    pillar: A
+    priority: P0
+    phase: 1
+    status: proposed
+    rationale: >-
+      A separacao entre control plane e execution plane nao esta formalizada, o que
+      permite acumular autorizacao e execucao na mesma camada e impede auditoria.
+    scope:
+      - Definir Hermes como control plane e o gateway Kali MCP como execution plane
+      - Documentar trust boundaries TB0 a TB4 e regras de atravessamento
+      - Registar ADRs para as decisoes estruturantes
+      - Publicar o crosswalk de frameworks como anexo arquitetural
+    deliverables:
+      - docs/architecture/security-validation-reference-architecture.md mantido como canonico
+      - docs/architecture/framework-crosswalk.md mantido como canonico
+      - Conjunto inicial de ADRs numerados em docs/architecture/adr
+    dependencies: []
+    acceptance_criteria:
+      - Cada trust boundary tem responsabilidades e proibicoes explicitas
+      - Existe pelo menos um ADR por decisao estruturante do roadmap
+      - Nenhum documento contem instrucoes ofensivas executaveis
+    effort: M
+    risks:
+      - Arquitetura documentada divergir da implementacao existente
+      - ADRs tornarem-se desatualizados sem processo de revisao
+    labels: [roadmap, architecture, "pillar:A", "priority:P0", "status:proposed", "type:epic"]
+    references:
+      - docs/roadmap/security-validation-platform-v2.md
+      - docs/architecture/security-validation-reference-architecture.md
+
+  - id: SVP2-A-02
+    title: Rules of Engagement as Code and intrusiveness levels L0-L4
+    pillar: A
+    priority: P0
+    phase: 1
+    status: proposed
+    rationale: >-
+      Sem um contrato de autorizacao legivel por maquina nao e possivel recusar
+      deterministicamente passos fora de ambito nem sustentar acoes de alto impacto.
+    scope:
+      - Especificar o contrato RoE assinado com ambito janelas limites e aprovadores
+      - Definir os niveis de intrusividade L0 a L4 e requisitos por nivel
+      - Especificar stop conditions kill switch e dual approval para L4
+      - Especificar a campaign state machine e a sua relacao com o contrato
+    deliverables:
+      - Especificacao do schema de Rules of Engagement
+      - Definicao dos niveis L0-L4 e da campaign state machine na arquitetura de referencia
+    dependencies: [SVP2-A-01]
+    acceptance_criteria:
+      - Um passo nao coberto pelo contrato ativo e recusado por especificacao
+      - Cada nivel de intrusividade declara requisitos de aprovacao e de rollback
+      - O kill switch atua em qualquer estado ativo da campanha
+    effort: L
+    risks:
+      - Contrato demasiado rigido bloquear operacao legitima
+      - Ambiguidade na definicao de nivel levar a subclassificacao de risco
+    labels: [roadmap, architecture, "pillar:A", "priority:P0", "impact:L4", "status:proposed", "type:epic"]
+    references:
+      - docs/architecture/security-validation-reference-architecture.md
+
+  - id: SVP2-A-03
+    title: Governance labels definition of ready done and release roadmap
+    pillar: A
+    priority: P1
+    phase: 1
+    status: proposed
+    rationale: >-
+      O backlog precisa de disciplina de governacao estavel para evitar itens sem
+      criterios verificaveis e para tornar o progresso comparavel entre releases.
+    scope:
+      - Definir taxonomia de labels roadmap architecture pillar priority impact runtime status type
+      - Formalizar Definition of Ready e Definition of Done
+      - Definir objetivos de resiliencia e funcoes criticas do sistema
+      - Publicar o roadmap por releases e milestones
+    deliverables:
+      - Seccoes de governacao no documento de roadmap
+      - roadmap/README.md com o modelo de trabalho do backlog
+    dependencies: [SVP2-A-01]
+    acceptance_criteria:
+      - Todos os epics do YAML respeitam a taxonomia de labels definida
+      - Definition of Ready e Definition of Done sao verificaveis sem interpretacao
+    effort: S
+    risks:
+      - Proliferacao de labels sem valor operacional
+    labels: [roadmap, architecture, "pillar:A", "priority:P1", "status:proposed", "type:epic"]
+    references:
+      - roadmap/README.md
+
+  - id: SVP2-B-01
+    title: Typed Security Execution Gateway and Kali MCP Protocol v2
+    pillar: B
+    priority: P0
+    phase: 2
+    status: proposed
+    rationale: >-
+      A superficie generica de execucao de comandos impede validacao de contrato,
+      autorizacao granular e correlacao fiavel de evidencia.
+    scope:
+      - Definir operacoes tipadas com schema versao intrusividade e capacidades exigidas
+      - Recusar pedidos fora de schema sem execucao parcial
+      - Retirar execute_command do perfil normal e aplicar enforcement no gateway
+      - Definir uma unica fonte canonica de runtime e gating de deployment e drift
+    deliverables:
+      - Especificacao do protocolo tipado de execucao
+      - Politica de enforcement de operacoes e perfis no gateway
+    dependencies: [SVP2-A-01, SVP2-A-02]
+    acceptance_criteria:
+      - Nenhuma operacao pode ser invocada sem schema declarado e validado
+      - O perfil normal nao expoe execucao de comando arbitrario
+      - Divergencia entre runtime implantado e fonte canonica bloqueia execucao
+    effort: XL
+    risks:
+      - Perda temporaria de flexibilidade operacional
+      - Cobertura incompleta de operacoes obrigar a excecoes
+    labels: [roadmap, architecture, "pillar:B", "priority:P0", "runtime:gateway", "status:proposed", "type:epic"]
+    references:
+      - docs/architecture/security-validation-reference-architecture.md
+
+  - id: SVP2-B-02
+    title: Runner Protocol v2 with correlation cancellation and normalized errors
+    pillar: B
+    priority: P0
+    phase: 1
+    status: proposed
+    rationale: >-
+      Runners heterogeneos impedem correlacao de evidencia, cancelamento fiavel e
+      tratamento uniforme de erros e timeouts.
+    scope:
+      - Definir protocolo comum para runners api devsecops e ai-mcp
+      - Definir correlation IDs de campanha run step e attempt
+      - Definir idempotency cancellation retries e timeout budgets
+      - Definir taxonomia de erros normalizada sem exposicao de segredos
+    deliverables:
+      - Especificacao do Runner Protocol v2
+      - Matriz de compatibilidade de versoes de protocolo
+    dependencies: [SVP2-A-01]
+    acceptance_criteria:
+      - Todos os registos e evidencias transportam os quatro correlation IDs
+      - Repeticao de um passo com a mesma chave de idempotencia nao duplica efeitos
+      - Erros sao classificados por taxonomia estavel e nunca contem segredos
+    effort: L
+    risks:
+      - Divergencia entre runners existentes e o novo protocolo
+    labels: [roadmap, architecture, "pillar:B", "priority:P0", "runtime:runner", "status:proposed", "type:epic"]
+    references:
+      - docs/architecture/security-validation-reference-architecture.md
+
+  - id: SVP2-B-03
+    title: Transactional lab lifecycle cleanup proof and network egress profiles
+    pillar: B
+    priority: P0
+    phase: 2
+    status: proposed
+    rationale: >-
+      Attach e cleanup baseados em suposicao produzem residuo, contaminacao entre
+      execucoes e custo operacional nao controlado.
+    scope:
+      - Definir lifecycle transacional com compensacao em falha
+      - Garantir rede unica por laboratorio e attach detach por estado real
+      - Definir cleanup idempotente com prova de zero residuo e detetor de orfaos
+      - Definir perfis de rede e egress com default isolated
+      - Definir requisitos L3 e L4 com snapshots rollback TTL e data budgets
+    deliverables:
+      - Especificacao do lab lifecycle e dos perfis de rede
+      - Definicao do contrato de zero-residue proof
+    dependencies: [SVP2-B-02]
+    acceptance_criteria:
+      - Falha de cleanup coloca o laboratorio em quarentena e bloqueia reutilizacao
+      - Nenhum laboratorio obtem egress por omissao
+      - Existe deteccao periodica de recursos orfaos
+    effort: XL
+    risks:
+      - Compensacao incompleta deixar recursos parcialmente removidos
+      - Politicas de rede quebrarem laboratorios existentes
+    labels: [roadmap, architecture, "pillar:B", "priority:P0", "impact:L3", "runtime:docker", "status:proposed", "type:epic"]
+    references:
+      - docs/architecture/security-validation-reference-architecture.md
+
+  - id: SVP2-C-01
+    title: Minimal non-root runtime base and persistent runner layout
+    pillar: C
+    priority: P1
+    phase: 3
+    status: proposed
+    rationale: >-
+      Imagens monoliticas aumentam a superficie de ataque e tornam a proveniencia e a
+      manutencao dificeis de garantir.
+    scope:
+      - Definir base runtime minima non-root
+      - Formalizar paths gravaveis e runners persistentes em /opt/hermes/runners
+      - Separar browser e ferramentas pesadas em camadas dedicadas
+      - Definir politica de nmap com -sT por omissao e NET_RAW apenas em perfil explicito
+    deliverables:
+      - Especificacao da base runtime e do layout de runners
+      - Politica de capacidades de rede por perfil
+    dependencies: [SVP2-B-01]
+    acceptance_criteria:
+      - Nenhum perfil core corre como root
+      - Capacidades de rede elevadas exigem perfil explicito e justificacao
+    effort: L
+    risks:
+      - Regressao funcional em ferramentas que assumem root
+    labels: [roadmap, architecture, "pillar:C", "priority:P1", "runtime:image", "status:proposed", "type:epic"]
+    references:
+      - docs/architecture/security-validation-reference-architecture.md
+
+  - id: SVP2-C-02
+    title: Capability registry profiles and signed supply chain promotion
+    pillar: C
+    priority: P0
+    phase: 3
+    status: proposed
+    rationale: >-
+      Sem registo de capacidades nao e possivel saber se uma operacao tipada pode ser
+      executada nem garantir proveniencia das imagens usadas.
+    scope:
+      - Definir estados de capacidade installed executable functionally-tested authorized compatible
+      - Definir perfis web-api devsecops ai-mcp exploitation kubernetes identity cloud mobile iot-ot
+      - Exigir SBOM assinatura SLSA provenance e scanning
+      - Definir promocao development candidate stable com revocation e quarentena
+      - Versionar bundles de templates wordlists e politicas
+    deliverables:
+      - Especificacao do capability registry e dos perfis
+      - Politica de promocao e revogacao de imagens
+    dependencies: [SVP2-C-01, SVP2-B-01]
+    acceptance_criteria:
+      - Uma capacidade so e utilizavel quando esta functionally-tested e authorized
+      - Nenhuma imagem e promovida a stable sem SBOM assinatura e scan sem bloqueios
+      - Revogacao remove a imagem do conjunto utilizavel de forma imediata
+    effort: XL
+    risks:
+      - Registo desatualizado bloquear execucoes legitimas
+      - Custo de assinatura e scanning atrasar entregas
+    labels: [roadmap, architecture, "pillar:C", "priority:P0", "runtime:image", "status:proposed", "type:epic"]
+    references:
+      - docs/ghcr-container-registry.md
+
+  - id: SVP2-D-01
+    title: Evidence Plane v2 with chain of custody retention and replay
+    pillar: D
+    priority: P0
+    phase: 2
+    status: proposed
+    rationale: >-
+      Sem um plano de evidencia unico e normalizado nao existe cadeia de custodia nem
+      possibilidade de reproduzir ou auditar um resultado.
+    scope:
+      - Definir Evidence Schema v2 e raiz unica de evidencia
+      - Separar evidencia raw restricted sanitized e summary
+      - Registar campaign run step e attempt IDs hashes e retencao
+      - Definir deduplicacao export e replay
+      - Definir redaction contextual
+    deliverables:
+      - Especificacao do Evidence Plane v2
+      - Politica de retencao e de partilha de evidencia
+    dependencies: [SVP2-B-02]
+    acceptance_criteria:
+      - Toda a evidencia tem hash origem e identificadores de correlacao
+      - Evidencia bruta nunca e partilhada sem derivacao sanitizada
+      - Um resultado pode ser reproduzido a partir do registo de evidencia
+    effort: XL
+    risks:
+      - Volume de evidencia exceder o orcamento de armazenamento
+      - Redaction insuficiente expor dados sensiveis
+    labels: [roadmap, architecture, "pillar:D", "priority:P0", "status:proposed", "type:epic"]
+    references:
+      - docs/architecture/security-validation-reference-architecture.md
+
+  - id: SVP2-D-02
+    title: End-to-end observability chaos tests and capability maturity M0-M5
+    pillar: D
+    priority: P1
+    phase: 4
+    status: proposed
+    rationale: >-
+      A confianca numa capacidade tem de ser medida com evidencia de comportamento em
+      falha e nao assumida a partir de execucoes felizes.
+    scope:
+      - Adotar OpenTelemetry com W3C trace context semantic conventions e RED USE
+      - Consumir readiness real antes de iniciar campanha
+      - Definir testes de falha restart JSON invalido stdout vazio timeouts perda de rede disco cheio cleanup parcial concorrencia cancelamento e versoes incompativeis
+      - Definir maturidade M0-M5 com golden labs golden findings FP FN reprodutibilidade e cleanup score
+      - Remover ou renomear operacoes no-op para refletir comportamento real
+    deliverables:
+      - Especificacao de observabilidade e de testes de falha
+      - Modelo de maturidade de capacidades M0-M5
+    dependencies: [SVP2-D-01, SVP2-C-02]
+    acceptance_criteria:
+      - Nenhuma capacidade sobe de nivel de maturidade sem evidencia dos testes de falha
+      - Readiness e verificada antes de qualquer passo executavel
+      - Nao existem operacoes anunciadas que nao produzem efeito real
+    effort: L
+    risks:
+      - Testes de falha instaveis gerarem ruido
+    labels: [roadmap, architecture, "pillar:D", "priority:P1", "status:proposed", "type:epic"]
+    references:
+      - docs/architecture/security-validation-reference-architecture.md
+
+  - id: SVP2-E-01
+    title: Security knowledge graph schema provenance and framework sync
+    pillar: E
+    priority: P0
+    phase: 5
+    status: proposed
+    rationale: >-
+      O planeamento informado por ameaca exige conhecimento versionado com proveniencia
+      e nao mapeamentos manuais dispersos pela documentacao.
+    scope:
+      - Definir entidades relacoes e proveniencia do grafo
+      - Sync incremental CVE NVD CPE CWE CAPEC ATT&CK STIX TAXII ATLAS KEV EPSS CSAF VEX NIST OSCAL e OWASP
+      - Derivar CVE CWE CAPEC ATT&CK ATLAS com niveis de confianca
+      - Definir conflitos e source precedence
+      - Definir aplicabilidade por asset SBOM CPE e PURL
+    deliverables:
+      - docs/architecture/security-knowledge-fabric.md mantido como canonico
+      - Especificacao das fontes e do seu modo de sincronizacao
+    dependencies: [SVP2-A-01]
+    acceptance_criteria:
+      - Nenhuma relacao e publicada sem proveniencia completa
+      - Conflitos entre fontes sao persistidos e nao resolvidos silenciosamente
+      - Dados brutos ingeridos sao imutaveis
+    effort: XL
+    risks:
+      - Volume e ritmo das fontes tornarem o sync fragil
+      - Derivacoes heuristicas contaminarem decisoes de risco
+    labels: [roadmap, architecture, "pillar:E", "priority:P0", "status:proposed", "type:epic"]
+    references:
+      - docs/architecture/security-knowledge-fabric.md
+      - docs/architecture/framework-crosswalk.md
+
+  - id: SVP2-E-02
+    title: Security Knowledge API queries and per-campaign snapshots
+    pillar: E
+    priority: P1
+    phase: 5
+    status: proposed
+    rationale: >-
+      Resultados so sao interpretaveis contra o estado de conhecimento em que foram
+      produzidos, o que exige snapshots e consultas estaveis.
+    scope:
+      - Definir a Security Knowledge API e o conjunto de consultas suportadas
+      - Congelar um knowledge snapshot por campanha
+      - Suportar series temporais para EPSS KEV e estado VEX
+      - Produzir campaign proposals nao executaveis
+    deliverables:
+      - Especificacao da API de conhecimento e das consultas
+      - Modelo de snapshots e temporalidade
+    dependencies: [SVP2-E-01]
+    acceptance_criteria:
+      - Toda a consulta aceita filtro por snapshot e confianca minima
+      - Cada campanha regista o snapshot de conhecimento usado
+      - As propostas de campanha nao sao executaveis sem autorizacao do control plane
+    effort: L
+    risks:
+      - Crescimento de snapshots sem politica de retencao
+    labels: [roadmap, architecture, "pillar:E", "priority:P1", "status:proposed", "type:epic"]
+    references:
+      - docs/architecture/security-knowledge-fabric.md
+
+  - id: SVP2-F-01
+    title: Threat profiles adversary emulation plans and attack graph
+    pillar: F
+    priority: P1
+    phase: 7
+    status: proposed
+    rationale: >-
+      Validar controlos sem contexto de ameaca produz cobertura estatistica sem
+      relevancia para as funcoes criticas do negocio.
+    scope:
+      - Definir threat profiles e cenarios de funcoes criticas
+      - Definir planos de emulacao adversaria e import export de Attack Flow
+      - Definir attack graph com assets identidades confianca credenciais vulnerabilidades controlos e evidencia
+      - Definir path finder e metricas de centralidade
+    deliverables:
+      - Especificacao de threat profiles e emulacao adversaria
+      - Especificacao do attack graph e das suas consultas
+    dependencies: [SVP2-E-02]
+    acceptance_criteria:
+      - Cada plano de emulacao esta ligado a uma funcao critica e a um threat profile
+      - O attack graph distingue caminhos hipoteticos de caminhos com evidencia
+    effort: XL
+    risks:
+      - Complexidade do grafo dificultar interpretacao
+      - Emulacao avancada exigir niveis de intrusividade elevados
+    labels: [roadmap, architecture, "pillar:F", "priority:P1", "impact:L3", "status:proposed", "type:epic"]
+    references:
+      - docs/architecture/security-knowledge-fabric.md
+
+  - id: SVP2-F-02
+    title: Purple team outcomes detection expectations and resilience exercises
+    pillar: F
+    priority: P1
+    phase: 7
+    status: proposed
+    rationale: >-
+      O resultado util nao e apenas se um ataque funciona, mas se e prevenido detetado
+      e contido em tempo aceitavel.
+    scope:
+      - Definir estados PREVENTED DETECTED OBSERVED_NOT_DETECTED DETECTED_NOT_ACTIONABLE e NOT_OBSERVED
+      - Ligar expectativas de detecao a D3FEND
+      - Medir time-to-detect e time-to-contain
+      - Definir exercicios de resiliencia inspirados em TIBER-EU com injects recovery e licoes aprendidas
+    deliverables:
+      - Especificacao dos estados de purple team e das metricas associadas
+      - Modelo de exercicio de resiliencia
+    dependencies: [SVP2-F-01, SVP2-D-02]
+    acceptance_criteria:
+      - Cada passo de emulacao produz um estado de purple team explicito
+      - Ausencia de observacao nunca e registada como prevencao
+    effort: L
+    risks:
+      - Dependencia de telemetria defensiva fora do ambito da plataforma
+    labels: [roadmap, architecture, "pillar:F", "priority:P1", "status:proposed", "type:epic"]
+    references:
+      - docs/architecture/framework-crosswalk.md
+
+  - id: SVP2-G-01
+    title: Vulnerability resolution chain and trusted validation provider registry
+    pillar: G
+    priority: P1
+    phase: 7
+    status: proposed
+    rationale: >-
+      Validar uma vulnerabilidade concreta exige resolver produto versao fraqueza e
+      comportamento, e confiar apenas em fornecedores de validacao verificados.
+    scope:
+      - Resolver CVE para produto versao CWE CAPEC comportamento ATT&CK e controlo generico
+      - Declarar especificidade confianca e limitacoes de cada validacao
+      - Registar validation providers native runner Nuclei Metasploit vendor validation containerized reproducer integration test e procedimento manual
+      - Definir niveis de confianca TRUSTED_BUILTIN SIGNED_INTERNAL SIGNED_VENDOR REVIEWED_COMMUNITY QUARANTINED e UNTRUSTED
+      - Definir quarentena revisao e assinatura para PoC externo
+      - Definir planeador orientado por conhecimento com autorizacao no control plane
+    deliverables:
+      - Especificacao da cadeia de resolucao de vulnerabilidade
+      - Registo de validation providers e respetiva politica de confianca
+    dependencies: [SVP2-E-02, SVP2-C-02]
+    acceptance_criteria:
+      - Nenhum PoC externo e executado sem passar por quarentena e revisao
+      - Cada resultado declara especificidade confianca e limitacoes
+      - O planeamento propoe mas nao autoriza execucao
+    effort: XL
+    risks:
+      - Conteudo externo introduzir codigo nao confiavel
+      - Falta de reprodutor para vulnerabilidades relevantes
+    labels: [roadmap, architecture, "pillar:G", "priority:P1", "impact:L3", "status:proposed", "type:epic"]
+    references:
+      - docs/architecture/security-knowledge-fabric.md
+
+  - id: SVP2-H-01
+    title: Continuous content factories coverage analysis and promotion control
+    pillar: H
+    priority: P1
+    phase: 6
+    status: proposed
+    rationale: >-
+      A cobertura tem de crescer de forma continua sem degradar qualidade, duplicar
+      conteudo ou introduzir falsos positivos.
+    scope:
+      - Definir sync incremental diff e eventos
+      - Definir coverage analyzer e candidate generator nao executavel
+      - Definir runbook lab runtime image e detection factories
+      - Definir promotion e retirement controllers e o lifecycle de conteudo
+      - Definir gates anti-degradacao de cobertura duplicacao reprodutibilidade FP FN custo e staleness
+      - Preferir bindings fixtures e variantes a conteudo novo
+      - Aceitar learning proposals de evidencia sem auto-merge
+    deliverables:
+      - docs/architecture/continuous-content-factories.md mantido como canonico
+      - Especificacao dos gates de promocao e retirada
+    dependencies: [SVP2-E-02, SVP2-D-01]
+    acceptance_criteria:
+      - Nenhum conteudo gerado e integrado sem revisao humana registada
+      - Conteudo sem controlo positivo e negativo nao ultrapassa LAB_VALIDATED
+      - Propostas duplicadas sao marcadas e bloqueadas automaticamente
+    effort: XL
+    risks:
+      - Geracao automatica produzir volume ingerivel de propostas
+      - Gates mal calibrados bloquearem conteudo util
+    labels: [roadmap, architecture, "pillar:H", "priority:P1", "status:proposed", "type:epic"]
+    references:
+      - docs/architecture/continuous-content-factories.md
+
+  - id: SVP2-I-01
+    title: Lab Schema v2 families isolation and deterministic reset
+    pillar: I
+    priority: P0
+    phase: 6
+    status: proposed
+    rationale: >-
+      Um laboratorio por CVE e insustentavel e o isolamento fraco cria risco real no
+      host que suporta a plataforma.
+    scope:
+      - Definir Lab Schema v2 e tipos fixture single-service multi-service attack-path Kubernetes VM identity cloud sandbox e external hardware
+      - Definir familias e variantes de laboratorio
+      - Suportar estados VULNERABLE MITIGATED FIXED com controlos positivos e negativos
+      - Definir build isolado para labs gerados ou nao confiaveis
+      - Aplicar limites de recursos TTL e proibicao de privileged host network Docker socket e host mounts
+      - Aplicar egress default-deny reset deterministico prova de cleanup e maturidade L0-L5
+      - Definir Lab Registry Selection Engine e reproducao de vulnerabilidade
+    deliverables:
+      - Especificacao do Lab Schema v2 e do Lab Registry
+      - Politica de isolamento e de maturidade de laboratorios
+    dependencies: [SVP2-B-03, SVP2-H-01]
+    acceptance_criteria:
+      - Nenhum laboratorio corre com privileged host network ou Docker socket
+      - Cada familia suporta os tres estados e os controlos positivo e negativo
+      - O reset produz um estado identico verificavel entre execucoes
+    effort: XL
+    risks:
+      - Migracao dos laboratorios existentes para o novo schema
+      - Custo de manter variantes multiplas por familia
+    labels: [roadmap, architecture, "pillar:I", "priority:P0", "runtime:docker", "status:proposed", "type:epic"]
+    references:
+      - docs/architecture/continuous-content-factories.md
+
+  - id: SVP2-J-01
+    title: Auditable risk scoring and finding lifecycle
+    pillar: J
+    priority: P1
+    phase: 7
+    status: proposed
+    rationale: >-
+      Um numero unico de risco esconde os seus componentes e impede contestacao
+      informada por parte de quem remedia.
+    scope:
+      - Compor risco com CVSS 4.0 EPSS KEV criticidade do ativo alcancabilidade importancia no attack path relevancia de ameaca controlos compensatorios detetabilidade e custo de remediacao
+      - Manter componentes separados e auditaveis
+      - Definir ciclo de vida OBSERVED VALIDATED TRIAGED ASSIGNED FIXED RETEST VERIFIED CLOSED com ACCEPTED_RISK e REGRESSED
+      - Registar causa raiz findings sistemicos evidencia antes depois e eficacia da remediacao
+    deliverables:
+      - Especificacao do modelo de risco e do ciclo de vida de findings
+    dependencies: [SVP2-D-01, SVP2-F-01]
+    acceptance_criteria:
+      - Cada score expoe os seus componentes e a sua origem
+      - Uma regressao reabre o finding com evidencia comparavel
+    effort: L
+    risks:
+      - Complexidade do modelo dificultar adocao
+    labels: [roadmap, architecture, "pillar:J", "priority:P1", "status:proposed", "type:epic"]
+    references:
+      - docs/architecture/framework-crosswalk.md
+
+  - id: SVP2-J-02
+    title: Interoperability with OSCAL CACAO and Attack Flow
+    pillar: J
+    priority: P2
+    phase: 7
+    status: proposed
+    rationale: >-
+      Os resultados devem ser consumiveis por processos de conformidade e resposta sem
+      transformacao manual.
+    scope:
+      - Exportar OSCAL Assessment Results e POA&M
+      - Suportar CACAO 2.0 e Attack Flow
+      - Aplicar data markings assinaturas e verificacao de conformidade
+    deliverables:
+      - Especificacao dos formatos de exportacao e das suas garantias
+    dependencies: [SVP2-J-01]
+    acceptance_criteria:
+      - Cada exportacao valida contra o schema do formato alvo
+      - Documentos exportados transportam data markings e assinatura
+    effort: M
+    risks:
+      - Evolucao dos formatos exigir manutencao continua
+    labels: [roadmap, architecture, "pillar:J", "priority:P2", "status:proposed", "type:epic"]
+    references:
+      - docs/architecture/framework-crosswalk.md
+
+  - id: SVP2-K-01
+    title: Extension SDKs conformance kit and certification
+    pillar: K
+    priority: P2
+    phase: 6
+    status: proposed
+    rationale: >-
+      Sem contratos de extensao estaveis qualquer nova capacidade exige alteracoes no
+      nucleo e aumenta o risco de regressao.
+    scope:
+      - Definir SDKs de Capability Runner Runtime Lab Driver Evidence Adapter e Evaluator
+      - Definir conformance kit e manifestos de permissoes
+      - Definir assinatura compatibilidade quarentena depreciacao e certificacao
+    deliverables:
+      - Especificacao dos SDKs e do conformance kit
+    dependencies: [SVP2-B-02, SVP2-D-01]
+    acceptance_criteria:
+      - Uma extensao so e ativada apos passar o conformance kit
+      - Cada extensao declara permissoes explicitas e esta assinada
+    effort: L
+    risks:
+      - APIs de extensao estabilizarem demasiado cedo
+    labels: [roadmap, architecture, "pillar:K", "priority:P2", "status:proposed", "type:epic"]
+    references:
+      - docs/architecture/security-validation-reference-architecture.md
+
+  - id: SVP2-L-01
+    title: Domain expansion to Kubernetes identity cloud mobile and IoT OT
+    pillar: L
+    priority: P2
+    phase: 8
+    status: proposed
+    rationale: >-
+      A expansao de dominio so e segura depois de existirem lifecycle isolamento
+      evidencia e capacidades maduras nos dominios ja suportados.
+    scope:
+      - Kubernetes com kind ou k3d cluster unico kubeconfig efemero e cleanup
+      - Identidade e Active Directory com drivers de VM ou hypervisor snapshots e budgets
+      - Cloud sandboxes com credenciais efemeras budgets e TTL
+      - Mobile com ADB APK e sidecar MobSF e ciclo de vida de dispositivo
+      - IoT e OT com runtime externo ou hardware fronteiras USB simuladores e aprovacao humana
+      - Declarar dependencias e constraints explicitas por dominio
+    deliverables:
+      - Especificacao dos requisitos e constraints por dominio de expansao
+    dependencies: [SVP2-I-01, SVP2-D-02, SVP2-A-02]
+    acceptance_criteria:
+      - Nenhum dominio e ativado sem lifecycle de cleanup demonstrado
+      - Credenciais de cloud sao efemeras e limitadas por budget e TTL
+      - Interacao com hardware externo exige aprovacao humana explicita
+    effort: XL
+    risks:
+      - Custo e disponibilidade de recursos externos
+      - Hardware externo introduzir risco fisico e de dados
+    labels: [roadmap, architecture, "pillar:L", "priority:P2", "impact:L4", "status:proposed", "type:epic"]
+    references:
+      - docs/roadmap/security-validation-platform-v2.md
