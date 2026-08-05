@@ -288,7 +288,17 @@ def validate_schema(state: dict[str, Any]) -> list[str]:
             problems.append("git.commit is not a full sha1")
     if not isinstance(state.get("inventory"), dict) or not state.get("inventory"):
         problems.append("inventory must be a non-empty object")
-    if contains_secret_like(state):
+    else:
+        allowed = {"sha256", "size", "mode"}
+        for rel, meta in state["inventory"].items():
+            if not isinstance(meta, dict) or set(meta) - allowed:
+                problems.append(f"inventory entry has unexpected fields: {rel}")
+                break
+    # Inventory keys are relative file paths (which may legitimately contain
+    # words like "secrets"); only non-inventory blocks are scanned for
+    # secret-like keys.
+    scanned = {k: v for k, v in state.items() if k != "inventory"}
+    if contains_secret_like(scanned):
         problems.append("state contains secret-like keys")
     return problems
 

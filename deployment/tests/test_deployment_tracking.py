@@ -93,6 +93,29 @@ def test_state_has_no_secret_material(deployed):
     assert "services: {}" not in raw
 
 
+def test_secret_like_paths_do_not_invalidate_schema(deployed):
+    """Inventory keys are paths; a path named 'secrets' is not a secret value."""
+    _, _, state_file = deployed
+    state = json.loads(state_file.read_text(encoding="utf-8"))
+    entry = state["inventory"]["compose.yaml"]
+    state["inventory"]["config/wrongsecrets-token.yaml"] = dict(entry)
+    assert dt.validate_schema(state) == []
+
+
+def test_secret_like_value_outside_inventory_is_rejected(deployed):
+    _, _, state_file = deployed
+    state = json.loads(state_file.read_text(encoding="utf-8"))
+    state["git"]["api_token"] = "x"
+    assert "state contains secret-like keys" in dt.validate_schema(state)
+
+
+def test_inventory_entry_with_content_field_is_rejected(deployed):
+    _, _, state_file = deployed
+    state = json.loads(state_file.read_text(encoding="utf-8"))
+    state["inventory"]["compose.yaml"]["content"] = "services: {}"
+    assert any("unexpected fields" in p for p in dt.validate_schema(state))
+
+
 def test_in_sync(deployed):
     repo, target, _ = deployed
     rc, report = drift(target, repo)
