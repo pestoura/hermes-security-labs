@@ -17,7 +17,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install validation dependencies
-        run: python -m pip install --disable-pip-version-check PyYAML jsonschema
+        run: python -m pip install --disable-pip-version-check PyYAML jsonschema pytest
       - name: Parse YAML files
         run: |
           python - <<'PY'
@@ -74,6 +74,10 @@ jobs:
           done
           docker logs "$proxy" --tail 50 || true
           exit 1
+      - name: Test deployment tracking tooling
+        run: python -m pytest -q deployment/tests -p no:cacheprovider
+      - name: Validate deployment tracking CLI help
+        run: python deployment/deployment_tracking.py --help >/dev/null
       - name: Validate Kali MCP Compose
         run: docker compose -f kali-mcp/compose.yaml config --quiet
       - name: Validate Juice Shop Compose
@@ -109,4 +113,5 @@ jobs:
             security/packs/api/src security/packs/api/tests \
             security/packs/devsecops/tools security/packs/devsecops/tests \
             security/packs/ai-mcp/tools security/packs/ai-mcp/tests \
-            security/tools security/tests
+            security/tools security/tests \
+            deployment
