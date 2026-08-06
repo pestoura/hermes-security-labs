@@ -505,6 +505,57 @@ def validate_compatibility_matrix() -> None:
             "DevSecOps supervised-process declaration is inconsistent"
         )
 
+    ai_mcp_expected = {
+        "implementation_status": "candidate",
+        "protocol_status": "conformance_only",
+        "conformance": "PASS_SYNTHETIC_PROCESS",
+        "execution_integration": "NOT_RUN",
+        "promotion_status": "blocked",
+        "supported_scope": "fixed_synthetic_worker_only",
+        "activation": "explicit_flag",
+        "adapter_path": (
+            "security/packs/ai-mcp/src/ai_mcp_runbooks/"
+            "supervised_runner_protocol_adapter.py"
+        ),
+        "activation_argument": "--conformance-only",
+    }
+    ai_mcp = by_id["ai-mcp"]
+    for key, expected in ai_mcp_expected.items():
+        if ai_mcp.get(key) != expected:
+            raise ProtocolValidationError(
+                f"AI/MCP candidate field {key!r} must be {expected!r}"
+            )
+
+    ai_mcp_supervised_expected = {
+        "status": "PASS_SYNTHETIC_PROCESS",
+        "integration_scope": "fixed_synthetic_worker_only",
+        "adapter_path": (
+            "security/packs/ai-mcp/src/ai_mcp_runbooks/"
+            "supervised_runner_protocol_adapter.py"
+        ),
+        "worker_path": (
+            "security/packs/ai-mcp/src/ai_mcp_runbooks/"
+            "synthetic_supervised_worker.py"
+        ),
+        "activation_arguments": [
+            "--conformance-only",
+            "--synthetic-process-only",
+            "--durable-ledger",
+        ],
+        "durable_claim_before_spawn": "PASS_SYNTHETIC_PROCESS",
+        "async_cancellation": "PASS_SYNTHETIC_PROCESS",
+        "hard_timeout": "PASS_SYNTHETIC_PROCESS",
+        "descendant_residue": "fail_closed_inconclusive",
+        "raw_output_persistence": "none",
+        "sandbox_status": "NOT_IMPLEMENTED",
+        "production_effect_claim": "none",
+    }
+    if ai_mcp.get("supervised_process") != ai_mcp_supervised_expected:
+        raise ProtocolValidationError(
+            "AI/MCP supervised-process declaration is inconsistent"
+        )
+
+
     repository_root = root.parents[1]
     candidate_declarations = (
         (
@@ -530,6 +581,14 @@ def validate_compatibility_matrix() -> None:
             ),
             "DevSecOps supervised synthetic-process candidate",
         ),
+        (
+            str(ai_mcp_supervised_expected["adapter_path"]),
+            tuple(
+                str(value)
+                for value in ai_mcp_supervised_expected["activation_arguments"]
+            ),
+            "AI/MCP supervised synthetic-process candidate",
+        ),
     )
     for relative_path, required_arguments, candidate_name in candidate_declarations:
         _validate_candidate_adapter(
@@ -549,24 +608,13 @@ def validate_compatibility_matrix() -> None:
         relative_path=str(devsecops_supervised_expected["worker_path"]),
         family_name="DevSecOps",
     )
+    _validate_synthetic_worker(
+        repository_root,
+        relative_path=str(ai_mcp_supervised_expected["worker_path"]),
+        family_name="AI/MCP",
+    )
 
-    ai_mcp_expected = {
-        "implementation_status": "not_started",
-        "protocol_status": "contract_only",
-        "conformance": "NOT_RUN",
-        "execution_integration": "NOT_RUN",
-        "promotion_status": "blocked",
-        "supported_scope": "none",
-        "activation": "none",
-        "adapter_path": None,
-        "activation_argument": None,
-    }
-    ai_mcp = by_id["ai-mcp"]
-    for key, expected in ai_mcp_expected.items():
-        if ai_mcp.get(key) != expected:
-            raise ProtocolValidationError(
-                f"ai-mcp field {key!r} must remain {expected!r}"
-            )
+
 
     if data["runtime_declaration"] != "NO_RUNTIME_CHANGE":
         raise ProtocolValidationError("runtime declaration must be NO_RUNTIME_CHANGE")
