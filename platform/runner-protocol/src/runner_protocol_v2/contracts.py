@@ -47,7 +47,11 @@ def contract_root() -> Path:
     ``schemas/`` and ``compatibility.yaml`` artefacts.
     """
     configured = os.environ.get("RUNNER_PROTOCOL_CONTRACT_ROOT")
-    candidate = Path(configured).expanduser().resolve() if configured else Path(__file__).resolve().parents[2]
+    candidate = (
+        Path(configured).expanduser().resolve()
+        if configured
+        else Path(__file__).resolve().parents[2]
+    )
     required = (
         candidate / "schemas" / "runner-protocol-v2.schema.json",
         candidate / "schemas" / "conformance-report.schema.json",

@@ -1,3 +1,12 @@
+Metadata-Version: 2.4
+Name: runner-protocol-v2
+Version: 2.0.0
+Summary: Repository-local SDK for the Security Validation Platform Runner Protocol v2
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+Requires-Dist: jsonschema>=4.23
+Requires-Dist: PyYAML>=6.0
+
 # Runner Protocol v2
 
 Runner Protocol v2 is the canonical contract between an execution gateway and a runner. It normalizes dispatch, correlation, progress, cancellation, timeout, idempotency, errors and terminal evidence without granting authorization or changing any existing runner.

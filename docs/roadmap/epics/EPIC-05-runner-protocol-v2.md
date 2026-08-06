@@ -10,7 +10,7 @@
 | Phase | 1 |
 | Priority | P0 |
 | Delivery umbrella | `SVP2-B-02` (issue [#80](https://github.com/pestoura/hermes-security-labs/issues/80)) |
-| Document version | 1.3.0 |
+| Document version | 1.3.1 |
 | Document date | 2026-08-06 |
 | Catalogue | [Epic catalogue 45](../epic-catalogue-45.md) |
 | Lifecycle contract | [Architecture documentation lifecycle](../../architecture/architecture-documentation-lifecycle.md) |
@@ -23,6 +23,8 @@ again on `main`. The vendor-neutral conformance kit was subsequently integrated 
 pull request [#107](https://github.com/pestoura/hermes-security-labs/pull/107) and also
 validated on `main`. `FINAL` remains false because no real runner adapter has yet
 demonstrated end-to-end conformance, idempotent effects or bounded live cancellation.
+A repository-local importable SDK is being extracted as block 3 before any real adapter
+is implemented, preventing adapter-specific copies of canonical validation logic.
 
 | Lifecycle state | Reached |
 | --- | --- |
@@ -264,6 +266,22 @@ The merged self-test accepts the deterministic test-only reference adapter and r
 controlled duplicate-effect and secret-leaking adapters. This is evidence about the kit,
 not production conformance evidence for any real runner family.
 
+### Block 3 — repository-local importable SDK (`IMPLEMENTING`)
+
+- Branch: `refactor/epic-05-runner-protocol-sdk`
+- Package: `runner_protocol_v2`
+- Source: `platform/runner-protocol/src/runner_protocol_v2/`
+- Canonical schemas: retained once under `platform/runner-protocol/schemas/`
+- CLI: thin wrapper over the SDK
+- Contract resolution: editable repository root or explicit `RUNNER_PROTOCOL_CONTRACT_ROOT`
+- Missing contract artefacts: fail closed
+- Existing API, DevSecOps and AI/MCP adapters: `NOT_RUN`
+- Runtime declaration: `NO_RUNTIME_CHANGE`
+
+This block is a prerequisite for adapters. It must demonstrate direct package import, canonical
+contract resolution, rejection of an incomplete explicit contract root and absence of duplicate
+validation implementations before merge.
+
 ## 15. As-built / final architecture
 
 > Reserved lifecycle section. This is the AS_BUILT record for the contract-only block. The
@@ -390,3 +408,4 @@ It does not dispatch work and it has no process, network, container or laborator
 | 2026-08-06 | 1.2.0 | Record contract block AS_BUILT, merge/CI evidence, acceptance assessment and residual limitations. |
 | 2026-08-06 | 1.2.1 | Start block 2 vendor-neutral conformance kit while preserving all real adapters as NOT_RUN. |
 | 2026-08-06 | 1.3.0 | Record conformance kit AS_BUILT, merge/CI evidence, controlled rejection proofs and residual limitations. |
+| 2026-08-06 | 1.3.1 | Start block 3 repository-local SDK extraction before implementing real adapters. |

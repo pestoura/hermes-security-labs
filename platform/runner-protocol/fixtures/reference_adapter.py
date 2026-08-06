@@ -13,9 +13,11 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT))
+SDK_SRC = ROOT / "src"
+if str(SDK_SRC) not in sys.path:
+    sys.path.insert(0, str(SDK_SRC))
 
-from validate_protocol import request_fingerprint, validate_semantics  # noqa: E402
+from runner_protocol_v2 import request_fingerprint, validate_semantics  # noqa: E402
 
 PROTOCOL_VERSION = "2.0.0"
 STARTED_AT = "2026-08-06T06:00:00Z"
