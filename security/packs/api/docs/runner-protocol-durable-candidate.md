@@ -2,7 +2,7 @@
 
 ## Status
 
-`IMPLEMENTING` — block 6 of `EPIC-05 — Runner Protocol v2`.
+`AS_BUILT` — block 6 of `EPIC-05 — Runner Protocol v2`, integrated through PR #115 at `3ff427e4c5122f0733bc04c9291acfdfc28b1448`.
 
 The durable candidate is a synthetic-only integration between the API-family conformance
 candidate and the repository-owned `SQLiteIdempotencyLedger`. It is not an API execution
@@ -115,6 +115,20 @@ This proves protocol semantics only. It is not live process supervision or force
 - retain AST guards against legacy execution and network/subprocess dependencies;
 - run all API, protocol, pack, integration, Ruff and gitleaks gates.
 
+## As-built evidence
+
+- validated head: `dc08ff3779ef47fd48846efc6149b022617b107e`;
+- squash merge: `3ff427e4c5122f0733bc04c9291acfdfc28b1448`;
+- directed protocol/API/roadmap/docs suite: 929 passed;
+- PR validate: `31090758807` — success;
+- PR security/gitleaks: `31090759705` — success;
+- post-merge validate: `31090875891` — success;
+- post-merge security/gitleaks: `31090875979` — success;
+- vendor-neutral conformance: `PASS_SYNTHETIC`;
+- production execution integration: `NOT_RUN`;
+- runtime validation: `NOT_APPLICABLE` — `NO_RUNTIME_CHANGE`.
+
+## Explicit non-goals
 ## Explicit non-goals
 
 - no production API capability mapping;
