@@ -10,7 +10,7 @@
 | Phase | 1 |
 | Priority | P0 |
 | Delivery umbrella | `SVP2-B-02` (issue [#80](https://github.com/pestoura/hermes-security-labs/issues/80)) |
-| Document version | 1.4.1 |
+| Document version | 1.5.0 |
 | Document date | 2026-08-06 |
 | Catalogue | [Epic catalogue 45](../epic-catalogue-45.md) |
 | Lifecycle contract | [Architecture documentation lifecycle](../../architecture/architecture-documentation-lifecycle.md) |
@@ -23,10 +23,11 @@ again on `main`. The vendor-neutral conformance kit was subsequently integrated 
 pull request [#107](https://github.com/pestoura/hermes-security-labs/pull/107) and also
 validated on `main`. The repository-local SDK was then integrated through pull request
 [#109](https://github.com/pestoura/hermes-security-labs/pull/109) and validated again on
-`main`. `FINAL` remains false because no real runner adapter has yet demonstrated
-end-to-end production conformance, durable idempotent effects or bounded live
-cancellation. An API-family candidate is now being implemented in synthetic-only, opt-in
-mode; this does not satisfy the remaining epic-level criteria.
+`main`. The API-family synthetic-only candidate was subsequently integrated through pull
+request [#111](https://github.com/pestoura/hermes-security-labs/pull/111) and validated
+again on `main`. `FINAL` remains false: production execution integration is `NOT_RUN`,
+promotion is blocked, and no runner family has demonstrated durable idempotent effects
+or bounded live cancellation against real execution.
 
 | Lifecycle state | Reached |
 | --- | --- |
@@ -287,9 +288,12 @@ The merged implementation demonstrates editable installation, direct import in a
 canonical contract resolution, rejection of an incomplete explicit contract root and a guard
 against reintroducing validation logic into the CLI wrapper.
 
-### Block 4 — API-family conformance candidate (`IMPLEMENTING`)
+### Block 4 — API-family conformance candidate (`AS_BUILT`)
 
 - Branch: `feat/epic-05-api-adapter-candidate`
+- Pull request: [#111](https://github.com/pestoura/hermes-security-labs/pull/111)
+- Validated head: `7227cd52eafef7a7f3042a3a088c24e907447758`
+- Squash merge: `be74ee87c30620ec811b062d3a85e216d7751b50`
 - Adapter path: `security/packs/api/src/api_pentest_runbooks/runner_protocol_adapter.py`
 - Activation: explicit `--conformance-only`
 - Supported scope: synthetic `conformance.*` capabilities only
@@ -301,9 +305,9 @@ against reintroducing validation logic into the CLI wrapper.
 - Legacy `execute_runbook` / bridge path: unchanged and disconnected
 - Runtime declaration: `NO_RUNTIME_CHANGE`
 
-The block must prove conformance, refusal of real capabilities and authorization references,
-absence of legacy execution imports/calls and absence of persistent/network/process side effects.
-A green result is not production conformance evidence.
+The merged candidate passes the vendor-neutral protocol kit, refuses real capabilities and
+authorization references without effect, and is structurally disconnected from persistence,
+network, subprocess and legacy execution paths. This remains synthetic conformance only.
 
 ## 15. As-built / final architecture
 
@@ -321,8 +325,10 @@ flowchart LR
   KIT[Vendor-neutral conformance kit] --> SDK
   GW[Execution gateway contract] --> REQ[runner.step.request]
   REQ --> VAL
-  VAL --> RUN[Future runner adapter]
-  RUN -. optional progress .-> PROG[runner.progress]
+  VAL --> API[API synthetic-only candidate]
+  VAL --> RUN[Future production runner adapter]
+  API -. synthetic progress .-> PROG[runner.progress]
+  RUN -. optional progress .-> PROG
   GW -. cancellation .-> CANCEL[request and acknowledgement]
   RUN --> EV[Sanitized evidence reference]
   RUN --> OUT[runner.outcome]
@@ -367,6 +373,15 @@ It does not dispatch work and it has no process, network, container or laborator
 | Editable install and direct import | passed |
 | Incomplete explicit contract root | rejected fail-closed |
 | Generated package metadata | removed and ignored |
+| PR #111 validated head | `7227cd52eafef7a7f3042a3a088c24e907447758` |
+| API candidate merge SHA | `be74ee87c30620ec811b062d3a85e216d7751b50` |
+| PR #111 validate workflow | success — run `31080984814` |
+| PR #111 security/gitleaks workflow | success — run `31080984997` |
+| Post-merge API candidate validate workflow | success — run `31081085159` |
+| Post-merge API candidate security/gitleaks workflow | success — run `31081085183` |
+| API candidate conformance | `PASS_SYNTHETIC` |
+| API execution integration | `NOT_RUN` |
+| API promotion status | blocked |
 
 ### Block 1 acceptance assessment
 
@@ -407,6 +422,19 @@ It does not dispatch work and it has no process, network, container or laborator
 | Standard-library `platform` collision avoided | met | explicit package namespace |
 | Real runner conformance | `NOT_RUN` | API, DevSecOps and AI/MCP unchanged |
 
+### Block 4 acceptance assessment
+
+| Criterion | Result | Evidence |
+| --- | --- | --- |
+| Explicit conformance-only activation | met | CLI negative/positive tests |
+| Synthetic protocol conformance | `PASS_SYNTHETIC` | canonical conformance kit in CI |
+| Real capabilities refused without effect | met | candidate tests and zero effect/ledger checks |
+| Real authorization reference refused | met | authorization negative test |
+| Legacy executor and bridge disconnected | met | AST structural guard and unchanged legacy files |
+| Network/subprocess/file/database effects absent | met | AST guard and candidate implementation |
+| Production execution integration | `NOT_RUN` | no real capability mapping or execution path |
+| Production promotion | blocked | compatibility catalogue and no automatic promotion |
+
 ### Epic-level criteria not yet met
 
 | Criterion | State | Required next evidence |
@@ -433,10 +461,13 @@ It does not dispatch work and it has no process, network, container or laborator
   with Python's standard-library `platform` module.
 - The SDK deliberately does not package duplicate schemas; non-editable consumers must
   provide the canonical contract root explicitly.
+- The first family-specific candidate is deliberately separate from the legacy API executor;
+  production integration requires a later capability-mapping and supervised execution block.
 
 ### Limitations and residual risk
 
-- No existing runner adapter consumes or emits Runner Protocol v2 messages.
+- No production runner adapter consumes or emits Runner Protocol v2 messages; the API
+  candidate is limited to synthetic conformance and cannot execute real capabilities.
 - Schema-valid requests may still be unauthorized; Hermes authorization remains mandatory.
 - Cancellation and hard timeout are contract semantics only until supervised runtime support
   is implemented.
@@ -462,3 +493,4 @@ It does not dispatch work and it has no process, network, container or laborator
 | 2026-08-06 | 1.3.1 | Start block 3 repository-local SDK extraction before implementing real adapters. |
 | 2026-08-06 | 1.4.0 | Record repository-local SDK AS_BUILT, merge/CI evidence and fail-closed contract resolution. |
 | 2026-08-06 | 1.4.1 | Start block 4 API-family candidate in synthetic-only conformance mode with production promotion blocked. |
+| 2026-08-06 | 1.5.0 | Record API synthetic candidate AS_BUILT with PASS_SYNTHETIC evidence, execution NOT_RUN and promotion blocked. |

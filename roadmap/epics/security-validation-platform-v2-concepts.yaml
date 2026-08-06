@@ -114,7 +114,7 @@ concept_epics:
     umbrella_issue: 80
     dependencies: [EPIC-01]
     doc_path: docs/roadmap/epics/EPIC-05-runner-protocol-v2.md
-    current_state: "AS_BUILT for contract, conformance-kit and SDK blocks; an API-family synthetic-only candidate is IMPLEMENTING with PASS_SYNTHETIC, execution integration NOT_RUN and promotion blocked. DevSecOps and AI/MCP remain NOT_RUN."
+    current_state: "AS_BUILT for contract, conformance-kit, SDK and API synthetic-candidate blocks. The API candidate has PASS_SYNTHETIC with execution integration NOT_RUN and promotion blocked; DevSecOps and AI/MCP remain NOT_RUN."
     target_state: "A single Runner Protocol covering correlation identifiers, cancellation, timeouts, progress, normalized errors and evidence emission."
   - concept_id: EPIC-06
     slug: kali-image-factory
