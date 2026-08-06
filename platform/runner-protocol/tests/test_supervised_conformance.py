@@ -26,6 +26,14 @@ def report() -> dict[str, Any]:
     return run_supervised_conformance()
 
 
+def test_supervised_family_inventory_is_fixed_and_repository_owned() -> None:
+    assert set(FAMILY_ADAPTERS) == {"api", "devsecops", "ai-mcp"}
+    for adapter in FAMILY_ADAPTERS.values():
+        resolved = adapter.resolve()
+        assert resolved.is_file()
+        assert ROOT.parents[1] in resolved.parents
+
+
 def test_repository_candidates_pass_cross_family_supervised_conformance(
     report: dict[str, Any],
 ) -> None:
