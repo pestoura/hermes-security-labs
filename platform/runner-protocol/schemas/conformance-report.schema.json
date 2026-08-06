@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/pestoura/hermes-security-labs/platform/runner-protocol/schemas/conformance-report.schema.json",
+  "title": "Runner Protocol v2 conformance report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "protocol_version",
+    "adapter_id",
+    "command_sha256",
+    "verdict",
+    "cases"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "protocol_version": { "const": "2.0.0" },
+    "adapter_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9._:-]+$"
+    },
+    "command_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "verdict": { "type": "string", "enum": ["PASS", "FAIL", "ERROR"] },
+    "cases": {
+      "type": "array",
+      "minItems": 0,
+      "maxItems": 32,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["case_id", "status"],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          },
+          "status": { "type": "string", "enum": ["PASS", "FAIL"] },
+          "evidence_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "detail": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^[^\\r\\n\\x00-\\x08\\x0b\\x0c\\x0e-\\x1f]*$"
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": { "status": { "const": "PASS" } },
+              "required": ["status"]
+            },
+            "then": { "required": ["evidence_sha256"] }
+          },
+          {
+            "if": {
+              "properties": { "status": { "const": "FAIL" } },
+              "required": ["status"]
+            },
+            "then": { "required": ["detail"] }
+          }
+        ]
+      }
+    },
+    "transport_error": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512,
+      "pattern": "^[^\\r\\n\\x00-\\x08\\x0b\\x0c\\x0e-\\x1f]*$"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "verdict": { "const": "ERROR" } },
+        "required": ["verdict"]
+      },
+      "then": { "required": ["transport_error"] }
+    }
+  ]
+}
