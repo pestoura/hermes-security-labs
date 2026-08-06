@@ -10,7 +10,7 @@
 | Phase | 1 |
 | Priority | P0 |
 | Delivery umbrella | `SVP2-B-02` (issue [#80](https://github.com/pestoura/hermes-security-labs/issues/80)) |
-| Document version | 2.0.0 |
+| Document version | 2.1.0 |
 | Document date | 2026-08-06 |
 | Catalogue | [Epic catalogue 45](../epic-catalogue-45.md) |
 | Lifecycle contract | [Architecture documentation lifecycle](../../architecture/architecture-documentation-lifecycle.md) |
@@ -41,9 +41,15 @@ synthetic engine was subsequently reused by an isolated DevSecOps candidate thro
 [#121](https://github.com/pestoura/hermes-security-labs/pull/121), with its canonical compatibility
 declaration promoted atomically through pull request
 [#122](https://github.com/pestoura/hermes-security-labs/pull/122). API and DevSecOps now have
-fixed-worker synthetic process evidence only. `FINAL` remains false: production execution
-integration is `NOT_RUN`, promotion is blocked, AI/MCP remains `NOT_RUN`, and no sandboxed real
-capability has been demonstrated.
+fixed-worker synthetic process evidence only. The same shared supervised engine was then reused
+by an isolated AI/MCP candidate through pull request
+[#124](https://github.com/pestoura/hermes-security-labs/pull/124), with its canonical compatibility
+declaration promoted through pull request
+[#125](https://github.com/pestoura/hermes-security-labs/pull/125). All three runner families now
+have fixed-worker synthetic process evidence only. The calibrated AI/MCP runtime, handlers,
+providers, agents, memory/RAG adapters and campaigns remain separate and disconnected from Runner
+Protocol. `FINAL` remains false: production execution integration is `NOT_RUN`, promotion is
+blocked, and no sandboxed real capability has been demonstrated.
 
 | Lifecycle state | Reached |
 | --- | --- |
@@ -444,6 +450,37 @@ across runner families without creating an API-to-DevSecOps dependency or copyin
 does not run scanners, pipelines, repositories, networks, customer targets or commands supplied by
 requests. The lifecycle declaration remains constrained to the fixed synthetic worker boundary.
 
+### Block 10 — AI/MCP supervised synthetic portability (`AS_BUILT`)
+
+- Technical branch: `feat/epic-05-ai-mcp-supervised-synthetic`
+- Technical pull request: [#124](https://github.com/pestoura/hermes-security-labs/pull/124)
+- Technical squash merge: `128371b9c53f4128c3747c32eb03951a21f4cab5`
+- Lifecycle branch: `chore/epic-05-ai-mcp-lifecycle`
+- Lifecycle pull request: [#125](https://github.com/pestoura/hermes-security-labs/pull/125)
+- Lifecycle validated head: `b716de04a0a722d46f571dccb724d65302c02bd8`
+- Lifecycle squash merge: `40b0e60bbf0fecf0f76da648ab3b3560e02cb41c`
+- Shared engine: `platform/runner-protocol/src/runner_protocol_v2/synthetic_supervised.py`
+- AI/MCP adapter: `security/packs/ai-mcp/src/ai_mcp_runbooks/supervised_runner_protocol_adapter.py`
+- AI/MCP worker: `security/packs/ai-mcp/src/ai_mcp_runbooks/synthetic_supervised_worker.py`
+- Activation: `--conformance-only --synthetic-process-only --durable-ledger <absolute-path>`
+- Scope: fixed synthetic worker modes only
+- Durable replay: completed outcomes do not start a second process
+- Cancellation and timeout: shared POSIX supervisor with bounded cleanup
+- Residue: fail-closed `INCONCLUSIVE`, never `PASS`
+- Output: hashes, lengths and bounded supervision metadata; no raw stdout/stderr
+- Compatibility status: `PASS_SYNTHETIC_PROCESS`
+- Calibrated AI/MCP runtime linkage: not connected
+- Sandbox status: `NOT_IMPLEMENTED`
+- Production AI/MCP Runner Protocol execution: `NOT_RUN`
+- Promotion status: blocked
+- Runtime declaration: `NO_RUNTIME_CHANGE`
+
+The merged block proves that the shared lifecycle can be reused by the AI/MCP family without
+importing API or DevSecOps implementations and without invoking the existing calibrated AI/MCP
+runtime. It does not execute handlers, providers, agents, memory/RAG adapters, campaigns, Docker,
+networks, customer targets or commands supplied by requests. The lifecycle declaration remains
+constrained to the fixed synthetic worker boundary.
+
 ## 15. As-built / final architecture
 
 > Reserved lifecycle section. This is the AS_BUILT record for the contract-only block. The
@@ -468,10 +505,13 @@ flowchart LR
   VAL --> RUN[Future production runner adapter]
   SUP --> SAPI[API fixed-worker supervised candidate]
   SUP --> SDEV[DevSecOps fixed-worker supervised candidate]
+  SUP --> SAI[AI/MCP fixed-worker supervised candidate]
   SAPI --> LEDGER
   SDEV --> LEDGER
+  SAI --> LEDGER
   SAPI -. no production capability .-> RUN
   SDEV -. no production capability .-> RUN
+  SAI -. no production capability .-> RUN
   API -. synthetic progress .-> PROG[runner.progress]
   RUN -. optional progress .-> PROG
   GW -. cancellation .-> CANCEL[request and acknowledgement]
@@ -487,9 +527,9 @@ flowchart LR
 
 The delivered implementation is a repository-owned protocol contract, validation library and
 optional local enforcement primitives for durable idempotency and POSIX process supervision. The
-fixed-worker synthetic API and DevSecOps candidates dispatch controlled repository test processes
-through the shared supervisor. No production adapter, network, container, laboratory or customer
-target is used.
+fixed-worker synthetic API, DevSecOps and AI/MCP candidates dispatch controlled repository test
+processes through the shared supervisor. The calibrated AI/MCP runtime remains disconnected. No
+production adapter, network, container, laboratory or customer target is used.
 
 ### Evidence
 
@@ -576,6 +616,16 @@ target is used.
 | DevSecOps compatibility state | `PASS_SYNTHETIC_PROCESS` |
 | Production DevSecOps execution integration | `NOT_RUN` |
 | AI/MCP execution integration | `NOT_RUN` |
+| PR #124 technical squash merge | `128371b9c53f4128c3747c32eb03951a21f4cab5` |
+| PR #125 lifecycle validated head | `b716de04a0a722d46f571dccb724d65302c02bd8` |
+| PR #125 lifecycle squash merge | `40b0e60bbf0fecf0f76da648ab3b3560e02cb41c` |
+| PR #125 validate workflow | success — run `31114183976` |
+| PR #125 security/gitleaks workflow | success — run `31114182111` |
+| Post-merge AI/MCP lifecycle validate workflow | success — run `31114427115` |
+| Post-merge AI/MCP lifecycle security/gitleaks workflow | success — run `31114427152` |
+| AI/MCP compatibility state | `PASS_SYNTHETIC_PROCESS` |
+| Calibrated AI/MCP runtime linkage | not connected to Runner Protocol |
+| Production AI/MCP Runner Protocol execution integration | `NOT_RUN` |
 
 ### Block 1 acceptance assessment
 
@@ -602,7 +652,7 @@ target is used.
 | Controlled secret leak detected | met | canary and broken-adapter self-test |
 | Report sanitized and schema-backed | met | report schema and tests |
 | Automatic promotion prevented | met | compatibility declaration `promotion_effect: none` |
-| Real runner conformance | `NOT_RUN` | API and DevSecOps have synthetic candidates only; AI/MCP remains unchanged |
+| Real runner conformance | `NOT_RUN` | API, DevSecOps and AI/MCP have synthetic candidates only; production adapters remain unimplemented |
 
 ### Block 3 acceptance assessment
 
@@ -614,7 +664,7 @@ target is used.
 | Canonical artefacts remain single-source | met | schemas and compatibility remain outside package copies |
 | Missing explicit contract root fails closed | met | negative SDK test |
 | Standard-library `platform` collision avoided | met | explicit package namespace |
-| Real runner conformance | `NOT_RUN` | API and DevSecOps have synthetic candidates only; AI/MCP remains unchanged |
+| Real runner conformance | `NOT_RUN` | API, DevSecOps and AI/MCP have synthetic candidates only; production adapters remain unimplemented |
 
 ### Block 4 acceptance assessment
 
@@ -711,17 +761,39 @@ target is used.
 | Production DevSecOps capability execution | `NOT_RUN` | fixed synthetic worker only |
 | Production promotion | blocked | explicit compatibility declaration |
 
+### Block 10 acceptance assessment
+
+| Criterion | Result | Evidence |
+| --- | --- | --- |
+| Shared engine has no family-specific imports | met | source boundary and monorepo tests |
+| AI/MCP does not depend on API or DevSecOps implementation | met | isolated wrapper and import guards |
+| Calibrated AI/MCP runtime remains disconnected | met | import guards and unchanged runtime modules |
+| Request input cannot form process specification | met | caller-shaped input and source tests |
+| Durable claim precedes fixed-worker process creation | met | shared lifecycle tests |
+| Completed request replays without a second process | met | reopen/replay tests and zero effect count |
+| Non-zero exit, timeout and cancellation normalize safely | met | AI/MCP pack tests |
+| Descendant residue cannot yield `PASS` | met | residue maps to non-retryable `INCONCLUSIVE` |
+| Raw worker streams are not persisted | met | hashes and bounded metadata only |
+| Real handlers, providers, agents and MCP operations are refused | met | refusal-before-claim and isolation tests |
+| Canonical matrix and validator agree atomically | met | PR #125 compatibility validation |
+| Sandbox and resource isolation | `NOT_RUN` | process groups are not a sandbox |
+| Production AI/MCP Runner Protocol execution | `NOT_RUN` | fixed synthetic worker only |
+| Production promotion | blocked | explicit compatibility declaration |
+
 ### Epic-level criteria not yet met
 
 | Criterion | State | Required next evidence |
 | --- | --- | --- |
-| Correlation propagated by every adapter | `PARTIAL` | API and DevSecOps synthetic candidates preserve correlation; production adapters and AI/MCP remain `NOT_RUN` |
+| Correlation propagated by every adapter | `PARTIAL` | all three synthetic candidates preserve correlation; production adapters remain `NOT_RUN` |
 | Same idempotency key never duplicates effects | `PARTIAL` | synthetic effect and fixed-process replay are AS_BUILT; production effect integration remains `NOT_RUN` |
-| Cancellation observable and bounded live | `PARTIAL` | fixed synthetic API and DevSecOps processes are AS_BUILT; production adapter cancellation remains `NOT_RUN` |
-| Error taxonomy normalized end to end | `PARTIAL` | API and DevSecOps synthetic process states are normalized; gateway and production adapters remain `NOT_RUN` |
+| Cancellation observable and bounded live | `PARTIAL` | fixed synthetic API, DevSecOps and AI/MCP processes are AS_BUILT; production adapter cancellation remains `NOT_RUN` |
+| Error taxonomy normalized end to end | `PARTIAL` | all three synthetic process states are normalized; gateway and production adapters remain `NOT_RUN` |
 
 ### Differences from intent
 
+- The AI/MCP pack already contains a calibrated runtime, handlers, providers and campaign
+  infrastructure, but Block 10 deliberately does not connect those components to Runner Protocol.
+  The candidate is a separate fixed synthetic conformance boundary only.
 - The contract is a single versioned schema bundle with message variants rather than separate
   top-level schemas. This keeps one protocol version and one compatibility boundary.
 - Progress is optional by default. Required progress can be selected per capability later.
@@ -785,3 +857,4 @@ target is used.
 | 2026-08-06 | 1.8.1 | Start fixed-worker API supervised synthetic-process integration with production execution blocked. |
 | 2026-08-06 | 1.9.0 | Record fixed-worker API supervised synthetic-process integration AS_BUILT with sandbox and production execution NOT_RUN. |
 | 2026-08-06 | 2.0.0 | Record shared supervised engine and DevSecOps fixed-worker synthetic portability AS_BUILT with production execution NOT_RUN. |
+| 2026-08-06 | 2.1.0 | Record isolated AI/MCP fixed-worker synthetic portability AS_BUILT while keeping the calibrated runtime disconnected. |
