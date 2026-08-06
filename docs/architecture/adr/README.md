@@ -1,0 +1,97 @@
+# Architecture Decision Records
+
+This directory is the canonical Architecture Decision Record (ADR) register for Security Validation Platform v2. ADRs explain **why** a structural decision exists; the reference architecture explains the resulting model; epic documents record implementation and evidence.
+
+## Governance
+
+### Numbering and filenames
+
+- identifiers are immutable and sequential: `ADR-0001`, `ADR-0002`, …;
+- filenames use `ADR-NNNN-short-title.md`;
+- a withdrawn or rejected number is never reused;
+- supersession creates a new ADR and links both records.
+
+### States
+
+| State | Meaning |
+| --- | --- |
+| `Proposed` | under review; not authoritative |
+| `Accepted` | current architectural decision |
+| `Superseded` | replaced by a later ADR; retained as history |
+| `Rejected` | considered but not adopted |
+
+### Mandatory sections
+
+Every ADR contains:
+
+1. metadata and status;
+2. context;
+3. decision;
+4. positive and negative consequences;
+5. security implications;
+6. alternatives considered;
+7. evidence and validation;
+8. review triggers.
+
+ADRs contain no secrets, executable offensive instructions or target-specific payloads.
+
+### When a new ADR is required
+
+Create or supersede an ADR when a change:
+
+- changes a plane responsibility or trust boundary;
+- changes authorization or refusal authority;
+- introduces or changes a cross-plane contract;
+- changes a fail-safe, isolation, provenance or evidence invariant;
+- introduces a new architectural source of truth;
+- changes an epic dependency or materially diverges from accepted intent.
+
+Editorial clarification that does not alter behaviour or authority does not require a new ADR.
+
+## Decision index
+
+| ADR | Decision | Status | Primary scope |
+| --- | --- | --- | --- |
+| [ADR-0001](ADR-0001-plane-separation-and-authorization-authority.md) | Separate proposal, authorization, execution, evidence and assurance responsibilities; Hermes is the authorization authority | Accepted | planes and authority |
+| [ADR-0002](ADR-0002-canonical-trust-boundary-numbering.md) | Number TB0–TB4 by trust-domain crossing, not by component | Accepted | trust boundaries |
+| [ADR-0003](ADR-0003-typed-contracts-over-generic-execution.md) | Use versioned typed contracts instead of generic execution in the normal profile | Accepted | execution contracts |
+| [ADR-0004](ADR-0004-fail-safe-evaluation.md) | Missing or invalid evidence never produces a successful security verdict | Accepted | assurance |
+| [ADR-0005](ADR-0005-isolation-by-default.md) | Default to isolated networks, denied egress and prohibited host-level privileges | Accepted | runtime and labs |
+| [ADR-0006](ADR-0006-versioned-source-of-truth-and-provenance.md) | Use Git and immutable revisions as the versioned source of truth with explicit provenance | Accepted | provenance and drift |
+| [ADR-0007](ADR-0007-evidence-classification-and-publication.md) | Separate raw, restricted, sanitized and summary evidence; control publication at TB4 | Accepted | evidence |
+| [ADR-0008](ADR-0008-human-controlled-content-promotion.md) | Generated content remains a proposal until recorded human promotion | Accepted | content lifecycle |
+
+## Structural-decision coverage
+
+The initial ADR set covers the structural principles already accepted in the roadmap. A single ADR may cover related principles, but no principle is left without an authoritative decision record.
+
+| Roadmap structural decision | ADR |
+| --- | --- |
+| Knowledge proposes, Hermes authorizes, runtimes execute, evidence attests | ADR-0001 |
+| Stable trust-domain crossings TB0–TB4 | ADR-0002 |
+| Typed execution instead of generic commands | ADR-0003 |
+| Fail-safe evaluation | ADR-0004 |
+| Isolation and least privilege by default | ADR-0005 |
+| Versioned source of truth and provenance | ADR-0006 |
+| Raw and sanitized evidence separation | ADR-0007 |
+| Generated content never auto-merges | ADR-0008 |
+| Reproducibility before acceptance | ADR-0008 |
+| Explicit authorization for higher-impact work | ADR-0001 and ADR-0005 |
+
+## Supersession process
+
+1. create the replacement ADR as `Proposed`;
+2. identify the earlier ADR in `Supersedes`;
+3. review consequences and migration impact;
+4. accept the replacement through a pull request;
+5. mark the earlier ADR `Superseded` and link `Superseded by`;
+6. update this index, the reference architecture and affected epic documents in the same pull request.
+
+Historical decision text is not rewritten to make it appear consistent with a later decision.
+
+## Relationship to other documents
+
+- [Reference architecture](../security-validation-reference-architecture.md) — current canonical architecture resulting from accepted decisions.
+- [Canonical contract inventory](../contracts/README.md) — ownership and lifecycle of cross-plane contracts.
+- [Architecture documentation lifecycle](../architecture-documentation-lifecycle.md) — how intent becomes as-built and final documentation.
+- [EPIC-01](../../roadmap/epics/EPIC-01-architecture-and-canonical-contracts.md) — delivery and evidence for this initial ADR set.
