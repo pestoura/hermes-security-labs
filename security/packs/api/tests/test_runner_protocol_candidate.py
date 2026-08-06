@@ -158,7 +158,7 @@ def test_invalid_control_action_is_fail_closed() -> None:
 
 def test_dispatch_rejects_non_request_message() -> None:
     candidate = ApiRunnerProtocolCandidate()
-    with pytest.raises(Exception):
+    with pytest.raises(ValueError, match="runner.step.request"):
         candidate.dispatch(
             {
                 "message_type": "runner.progress",
