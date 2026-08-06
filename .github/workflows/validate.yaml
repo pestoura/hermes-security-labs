@@ -35,9 +35,10 @@ jobs:
         run: python platform/scripts/validate_source_of_truth.py validate
       - name: Test runtime source-of-truth contract
         run: python -m pytest -q platform/tests -p no:cacheprovider
-      - name: Validate Runner Protocol v2 contract
+      - name: Validate Runner Protocol v2 contract and conformance kit
         run: |
           python platform/runner-protocol/validate_protocol.py --contract-only
+          python platform/runner-protocol/conformance.py --self-test
           python -m pytest -q platform/runner-protocol/tests -p no:cacheprovider
       - name: Validate rollout plan
         run: python platform/scripts/labctl.py plan >/tmp/lab-rollout.tsv
@@ -142,5 +143,4 @@ jobs:
             deployment \
             platform/scripts/validate_source_of_truth.py \
             platform/tests \
-            platform/runner-protocol/validate_protocol.py \
-            platform/runner-protocol/tests
+            platform/runner-protocol
