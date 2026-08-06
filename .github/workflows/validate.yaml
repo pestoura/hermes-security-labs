@@ -27,6 +27,8 @@ jobs:
               yaml.safe_load(path.read_text(encoding='utf-8'))
           print('YAML_OK')
           PY
+      - name: Validate documentation, links and Mermaid diagrams
+        run: python -m pytest -q docs/tests -p no:cacheprovider
       - name: Validate environment catalog
         run: python platform/scripts/labctl.py validate
       - name: Validate rollout plan
@@ -116,4 +118,5 @@ jobs:
             security/packs/devsecops/tools security/packs/devsecops/tests \
             security/packs/ai-mcp/tools security/packs/ai-mcp/tests \
             security/tools security/tests \
+            docs/tests \
             deployment

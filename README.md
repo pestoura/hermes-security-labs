@@ -2,6 +2,23 @@
 
 Plataforma segregada de laboratórios de cibersegurança para o Hermes, com Kali MCP, ambientes vulneráveis multi-runtime, automação de lifecycle, biblioteca de runbooks e verificação de deployment.
 
+## Documentação
+
+A navegação canónica da documentação está em [`docs/README.md`](docs/README.md).
+
+| Documento | Conteúdo |
+| --- | --- |
+| [Project overview](docs/project-overview.md) | propósito, limites, estado atual e roadmap |
+| [Repository tour](docs/repository-tour.md) | estrutura, fonte de verdade e artefactos ignorados |
+| [Architecture](docs/architecture.md) | planos, fluxo de execução e diagramas |
+| [Getting started](docs/getting-started.md) | onboarding e validação local |
+| [Operator guide](docs/operator-guide.md) | operação diária, lifecycle e recuperação |
+| [Contributor guide](docs/contributor-guide.md) | como contribuir e o que testar |
+| [Troubleshooting](docs/troubleshooting.md) | sintomas, diagnóstico e ação |
+| [Security model](docs/security-model.md) | autorização, isolamento, redaction e proibições |
+| [Glossary and references](docs/glossary-and-references.md) | termos e frameworks |
+| [Documentation governance](docs/documentation-governance.md) | owner, versionamento e checklists |
+
 ## Modelo operacional
 
 - **GitHub:** fonte de verdade de código, configuração, manifestos, runbooks, campanhas, documentação e workflows.
