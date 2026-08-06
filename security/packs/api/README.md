@@ -9,6 +9,25 @@ Biblioteca canónica e machine-readable de runbooks de pentest autorizado a APIs
 
 A versão `v0.1.0-alpha` contém a fundação do motor, políticas e 150 runbooks individuais. Estes runbooks preservam nesta migração os critérios de avaliação genéricos do pack de origem; continuam `experimental` e pendentes de implementação/calibração específica, evidência e análise de falsos positivos.
 
+## Runner Protocol v2 — candidato isolado
+
+O pack inclui um candidato opt-in em
+`src/api_pentest_runbooks/runner_protocol_adapter.py`, destinado exclusivamente ao conformance
+kit do Runner Protocol v2.
+
+Este candidato:
+
+- só arranca com `--conformance-only`;
+- aceita apenas capabilities sintéticas `conformance.*`;
+- usa apenas estado em memória;
+- não importa nem chama `execute_runbook`, `ProcessBridgeAdapter` ou `execute_command`;
+- não executa rede, subprocessos, ficheiros ou ferramentas de segurança;
+- recusa capabilities e referências de autorização reais;
+- está desligado do caminho operacional descrito abaixo.
+
+O resultado atual é `PASS_SYNTHETIC`, com integração de execução `NOT_RUN` e promoção bloqueada.
+Não representa um runner API operacional nem altera o comportamento existente do pack.
+
 ## Princípio operacional
 
 ```text

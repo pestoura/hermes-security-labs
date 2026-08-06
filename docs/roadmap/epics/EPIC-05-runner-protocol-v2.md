@@ -10,7 +10,7 @@
 | Phase | 1 |
 | Priority | P0 |
 | Delivery umbrella | `SVP2-B-02` (issue [#80](https://github.com/pestoura/hermes-security-labs/issues/80)) |
-| Document version | 1.4.0 |
+| Document version | 1.4.1 |
 | Document date | 2026-08-06 |
 | Catalogue | [Epic catalogue 45](../epic-catalogue-45.md) |
 | Lifecycle contract | [Architecture documentation lifecycle](../../architecture/architecture-documentation-lifecycle.md) |
@@ -24,7 +24,9 @@ pull request [#107](https://github.com/pestoura/hermes-security-labs/pull/107) a
 validated on `main`. The repository-local SDK was then integrated through pull request
 [#109](https://github.com/pestoura/hermes-security-labs/pull/109) and validated again on
 `main`. `FINAL` remains false because no real runner adapter has yet demonstrated
-end-to-end conformance, idempotent effects or bounded live cancellation.
+end-to-end production conformance, durable idempotent effects or bounded live
+cancellation. An API-family candidate is now being implemented in synthetic-only, opt-in
+mode; this does not satisfy the remaining epic-level criteria.
 
 | Lifecycle state | Reached |
 | --- | --- |
@@ -285,6 +287,24 @@ The merged implementation demonstrates editable installation, direct import in a
 canonical contract resolution, rejection of an incomplete explicit contract root and a guard
 against reintroducing validation logic into the CLI wrapper.
 
+### Block 4 — API-family conformance candidate (`IMPLEMENTING`)
+
+- Branch: `feat/epic-05-api-adapter-candidate`
+- Adapter path: `security/packs/api/src/api_pentest_runbooks/runner_protocol_adapter.py`
+- Activation: explicit `--conformance-only`
+- Supported scope: synthetic `conformance.*` capabilities only
+- Authorization: synthetic `authz/conformance/active` only
+- State: in-memory test ledger only
+- Vendor-neutral conformance: `PASS_SYNTHETIC`
+- Execution integration: `NOT_RUN`
+- Promotion status: blocked
+- Legacy `execute_runbook` / bridge path: unchanged and disconnected
+- Runtime declaration: `NO_RUNTIME_CHANGE`
+
+The block must prove conformance, refusal of real capabilities and authorization references,
+absence of legacy execution imports/calls and absence of persistent/network/process side effects.
+A green result is not production conformance evidence.
+
 ## 15. As-built / final architecture
 
 > Reserved lifecycle section. This is the AS_BUILT record for the contract-only block. The
@@ -441,3 +461,4 @@ It does not dispatch work and it has no process, network, container or laborator
 | 2026-08-06 | 1.3.0 | Record conformance kit AS_BUILT, merge/CI evidence, controlled rejection proofs and residual limitations. |
 | 2026-08-06 | 1.3.1 | Start block 3 repository-local SDK extraction before implementing real adapters. |
 | 2026-08-06 | 1.4.0 | Record repository-local SDK AS_BUILT, merge/CI evidence and fail-closed contract resolution. |
+| 2026-08-06 | 1.4.1 | Start block 4 API-family candidate in synthetic-only conformance mode with production promotion blocked. |

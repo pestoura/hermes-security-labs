@@ -273,5 +273,5 @@ def test_cancellation_messages_are_typed() -> None:
     validate_semantics(acknowledgement)
 
 
-def test_compatibility_matrix_is_contract_only() -> None:
+def test_compatibility_matrix_accepts_scoped_api_candidate() -> None:
     validate_compatibility_matrix()

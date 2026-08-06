@@ -264,6 +264,8 @@ def validate_compatibility_matrix() -> None:
     """Validate the compatibility and conformance declaration."""
     root = contract_root()
     data = yaml.safe_load((root / "compatibility.yaml").read_text(encoding="utf-8"))
+    if data.get("schema_version") != "1.1":
+        raise ProtocolValidationError("compatibility schema version must be 1.1")
     if data["protocol"] != {
         "name": "runner-protocol",
         "version": "2.0.0",
@@ -326,24 +328,67 @@ def validate_compatibility_matrix() -> None:
         raise ProtocolValidationError("migration gate inventory is incomplete or unexpected")
 
     families = data["runner_families"]
-    ids = {family["id"] for family in families}
-    if ids != EXPECTED_RUNNER_FAMILIES:
+    if not isinstance(families, list):
+        raise ProtocolValidationError("runner family inventory must be a list")
+    ids = [family.get("id") for family in families]
+    if len(ids) != len(set(ids)) or set(ids) != EXPECTED_RUNNER_FAMILIES:
         raise ProtocolValidationError(
-            f"runner family inventory mismatch: {sorted(ids)}"
+            f"runner family inventory mismatch: {sorted(str(value) for value in ids)}"
         )
-    for family in families:
-        if family["implementation_status"] != "not_started":
+    by_id = {family["id"]: family for family in families}
+
+    api_expected = {
+        "implementation_status": "candidate",
+        "protocol_status": "conformance_only",
+        "conformance": "PASS_SYNTHETIC",
+        "execution_integration": "NOT_RUN",
+        "promotion_status": "blocked",
+        "supported_scope": "synthetic_conformance_only",
+        "activation": "explicit_flag",
+        "adapter_path": (
+            "security/packs/api/src/api_pentest_runbooks/"
+            "runner_protocol_adapter.py"
+        ),
+        "activation_argument": "--conformance-only",
+    }
+    api = by_id["api"]
+    for key, expected in api_expected.items():
+        if api.get(key) != expected:
             raise ProtocolValidationError(
-                f"{family['id']} cannot claim implementation before an adapter block"
+                f"API candidate field {key!r} must be {expected!r}"
             )
-        if family["protocol_status"] != "contract_only":
+
+    repository_root = root.parents[1]
+    adapter_path = (repository_root / str(api["adapter_path"])).resolve()
+    if repository_root not in adapter_path.parents or not adapter_path.is_file():
+        raise ProtocolValidationError("API candidate path is missing or outside repository")
+    adapter_source = adapter_path.read_text(encoding="utf-8")
+    for forbidden in ("execute_runbook", "execute_command"):
+        if forbidden in adapter_source:
             raise ProtocolValidationError(
-                f"{family['id']} protocol status must remain contract_only"
+                f"API conformance candidate must not reference {forbidden}"
             )
-        if family["conformance"] != "NOT_RUN":
-            raise ProtocolValidationError(
-                f"{family['id']} conformance must remain NOT_RUN"
-            )
+    if str(api["activation_argument"]) not in adapter_source:
+        raise ProtocolValidationError("API candidate activation flag is not enforced")
+
+    not_started_expected = {
+        "implementation_status": "not_started",
+        "protocol_status": "contract_only",
+        "conformance": "NOT_RUN",
+        "execution_integration": "NOT_RUN",
+        "promotion_status": "blocked",
+        "supported_scope": "none",
+        "activation": "none",
+        "adapter_path": None,
+        "activation_argument": None,
+    }
+    for family_id in ("devsecops", "ai-mcp"):
+        family = by_id[family_id]
+        for key, expected in not_started_expected.items():
+            if family.get(key) != expected:
+                raise ProtocolValidationError(
+                    f"{family_id} field {key!r} must remain {expected!r}"
+                )
 
     if data["runtime_declaration"] != "NO_RUNTIME_CHANGE":
         raise ProtocolValidationError("runtime declaration must be NO_RUNTIME_CHANGE")
