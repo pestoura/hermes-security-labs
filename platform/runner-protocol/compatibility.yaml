@@ -1,0 +1,43 @@
+schema_version: "1.0"
+protocol:
+  name: runner-protocol
+  version: "2.0.0"
+  status: contract_only
+
+compatibility_rules:
+  major_version: exact_match
+  unknown_major: fail_closed
+  unknown_message_type: fail_closed
+  invalid_schema: fail_closed
+  progress_default: optional
+  terminal_outcome: mandatory
+  terminal_evidence_reference: mandatory
+  authorization_source: hermes_control_plane
+
+runner_families:
+  - id: api
+    implementation_status: not_started
+    protocol_status: contract_only
+    conformance: NOT_RUN
+    notes: Existing API pack semantics are unchanged by this block.
+  - id: devsecops
+    implementation_status: not_started
+    protocol_status: contract_only
+    conformance: NOT_RUN
+    notes: Existing DevSecOps pack semantics are unchanged by this block.
+  - id: ai-mcp
+    implementation_status: not_started
+    protocol_status: contract_only
+    conformance: NOT_RUN
+    notes: Existing AI/MCP pack semantics are unchanged by this block.
+
+migration_gates:
+  - schema_validation
+  - semantic_validation
+  - correlation_propagation
+  - idempotency_replay_test
+  - cancellation_timeout_test
+  - evidence_reference_test
+  - secret_redaction_test
+
+runtime_declaration: NO_RUNTIME_CHANGE
