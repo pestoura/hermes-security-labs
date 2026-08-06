@@ -1,0 +1,41 @@
+name: Apply EPIC-05 conformance patch once
+
+on:
+  push:
+    branches:
+      - feat/epic-05-conformance-kit
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/epic-05-conformance-kit
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Apply exact patch
+        run: python tools/tmp_epic05_conformance_patch.py
+      - name: Install validation dependencies
+        run: python -m pip install --disable-pip-version-check -q pytest pyyaml jsonschema ruff
+      - name: Validate conformance kit
+        run: |
+          python platform/runner-protocol/validate_protocol.py --contract-only
+          python platform/runner-protocol/conformance.py --self-test
+          python -m pytest -q platform/runner-protocol/tests -p no:cacheprovider
+          python -m pytest -q roadmap/tests docs/tests -p no:cacheprovider
+          ruff check --config security/pyproject.toml platform/runner-protocol
+          git diff --check
+      - name: Commit validated patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "feat(epic-05): validate Runner Protocol conformance kit"
+          git push origin HEAD:feat/epic-05-conformance-kit
