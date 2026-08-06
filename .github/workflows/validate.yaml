@@ -16,8 +16,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Install validation dependencies
-        run: python -m pip install --disable-pip-version-check PyYAML jsonschema pytest
+      - name: Install validation dependencies and Runner Protocol SDK
+        run: python -m pip install --disable-pip-version-check pytest -e platform/runner-protocol
       - name: Parse YAML files
         run: |
           python - <<'PY'
@@ -35,8 +35,9 @@ jobs:
         run: python platform/scripts/validate_source_of_truth.py validate
       - name: Test runtime source-of-truth contract
         run: python -m pytest -q platform/tests -p no:cacheprovider
-      - name: Validate Runner Protocol v2 contract and conformance kit
+      - name: Validate Runner Protocol v2 SDK, contract and conformance kit
         run: |
+          python -c "import runner_protocol_v2; assert runner_protocol_v2.__version__ == '2.0.0'"
           python platform/runner-protocol/validate_protocol.py --contract-only
           python platform/runner-protocol/conformance.py --self-test
           python -m pytest -q platform/runner-protocol/tests -p no:cacheprovider
@@ -115,8 +116,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Install security validation dependencies
-        run: python -m pip install --disable-pip-version-check PyYAML jsonschema pytest ruff
+      - name: Install security validation dependencies and Runner Protocol SDK
+        run: python -m pip install --disable-pip-version-check pytest ruff -e platform/runner-protocol
       - name: Validate combined security catalog and platform bindings
         run: python security/tools/securityctl.py validate
       - name: Build disposable combined catalog

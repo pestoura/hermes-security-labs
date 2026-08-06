@@ -22,9 +22,13 @@ from typing import Any
 
 import jsonschema
 
-from validate_protocol import request_fingerprint, validate_semantics
-
 ROOT = Path(__file__).resolve().parent
+SDK_SRC = ROOT / "src"
+if str(SDK_SRC) not in sys.path:
+    sys.path.insert(0, str(SDK_SRC))
+
+from runner_protocol_v2 import request_fingerprint, validate_semantics  # noqa: E402
+
 REPORT_SCHEMA = ROOT / "schemas" / "conformance-report.schema.json"
 REFERENCE_ADAPTER = ROOT / "fixtures" / "reference_adapter.py"
 PROTOCOL_VERSION = "2.0.0"

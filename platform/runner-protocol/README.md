@@ -6,7 +6,7 @@ Runner Protocol v2 is the canonical contract between an execution gateway and a 
 
 - Owner: `EPIC-05` / delivery umbrella `SVP2-B-02`.
 - Protocol version: `2.0.0`.
-- Current implementation state: contract and vendor-neutral conformance kit available; no existing API, DevSecOps or AI/MCP runner is claimed conformant.
+- Current implementation state: contract, repository-local SDK and vendor-neutral conformance kit available; no existing API, DevSecOps or AI/MCP runner is claimed conformant.
 - Hermes remains the authorization authority. A valid protocol message cannot create, extend or replace authorization.
 - Unknown versions, invalid messages, missing correlation or missing evidence fail closed.
 
@@ -124,6 +124,35 @@ Errors expose a stable code, category, retryability flag, bounded human-readable
 
 The initial stable codes are declared in the JSON Schema. Adding a code is a compatibility change; changing the meaning of an existing code is breaking and requires a protocol major version.
 
+## Repository-local Python SDK
+
+The canonical validation, compatibility, progress and fingerprint logic is exposed through the
+`runner_protocol_v2` package under [`src/runner_protocol_v2/`](src/runner_protocol_v2/). The
+root [`validate_protocol.py`](validate_protocol.py) file is only a CLI wrapper and contains no
+duplicate protocol logic.
+
+For repository development, install the package in editable mode:
+
+```bash
+python -m pip install -e platform/runner-protocol
+```
+
+Consumers import the explicit package name rather than `platform.*`, avoiding collision with
+the Python standard-library `platform` module:
+
+```python
+from runner_protocol_v2 import request_fingerprint, validate_semantics
+```
+
+The SDK deliberately does not package copied schemas. In an editable repository checkout it
+resolves the canonical `schemas/` and `compatibility.yaml` artefacts beside the project. A
+non-editable installation must set `RUNNER_PROTOCOL_CONTRACT_ROOT` to that canonical contract
+directory. Missing or incomplete contract artefacts fail closed.
+
+The SDK is side-effect free: it does not dispatch, authorize, cancel or execute work. It is a
+shared dependency for future adapters so validation and fingerprint semantics are not copied or
+reinterpreted per runner family.
+
 ## Conformance kit
 
 The vendor-neutral conformance kit is implemented in [`conformance.py`](conformance.py). It
@@ -170,13 +199,16 @@ Compatibility rules and current adapter status are in [`compatibility.yaml`](com
 ## Canonical artefacts
 
 - [`schemas/runner-protocol-v2.schema.json`](schemas/runner-protocol-v2.schema.json)
-- [`validate_protocol.py`](validate_protocol.py)
+- [`pyproject.toml`](pyproject.toml)
+- [`src/runner_protocol_v2/`](src/runner_protocol_v2/)
+- [`validate_protocol.py`](validate_protocol.py) — thin CLI wrapper
 - [`compatibility.yaml`](compatibility.yaml)
 - [`conformance.py`](conformance.py)
 - [`schemas/conformance-report.schema.json`](schemas/conformance-report.schema.json)
 - [`fixtures/reference_adapter.py`](fixtures/reference_adapter.py) — test-only
 - [`tests/test_runner_protocol.py`](tests/test_runner_protocol.py)
 - [`tests/test_conformance.py`](tests/test_conformance.py)
+- [`tests/test_sdk.py`](tests/test_sdk.py)
 
 ## Non-goals of this block
 

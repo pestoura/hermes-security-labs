@@ -7,9 +7,11 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT))
+SDK_SRC = ROOT / "src"
+if str(SDK_SRC) not in sys.path:
+    sys.path.insert(0, str(SDK_SRC))
 
-from validate_protocol import (  # noqa: E402
+from runner_protocol_v2 import (  # noqa: E402
     ProtocolValidationError,
     classify_idempotency,
     load_schema,
