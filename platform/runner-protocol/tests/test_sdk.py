@@ -19,7 +19,14 @@ from runner_protocol_v2 import ProtocolValidationError, contract_root  # noqa: E
 def test_public_sdk_version_and_exports() -> None:
     assert runner_protocol_v2.__version__ == "2.0.0"
     assert set(runner_protocol_v2.__all__) == {
+        "LedgerConflictError",
+        "LedgerDecision",
+        "LedgerError",
+        "LedgerRecord",
+        "LedgerStateError",
+        "LedgerUnavailableError",
         "ProtocolValidationError",
+        "SQLiteIdempotencyLedger",
         "__version__",
         "classify_idempotency",
         "contract_root",
