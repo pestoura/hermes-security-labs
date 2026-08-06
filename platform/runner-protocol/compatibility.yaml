@@ -61,16 +61,32 @@ runner_families:
       production_effect_claim: none
     notes: The opt-in API candidates prove synthetic protocol, durable restart replay and fixed-worker process supervision. They remain disconnected from execute_runbook and the legacy ProcessBridgeAdapter; no real API capability is integrated.
   - id: devsecops
-    implementation_status: not_started
-    protocol_status: contract_only
-    conformance: NOT_RUN
+    implementation_status: candidate
+    protocol_status: conformance_only
+    conformance: PASS_SYNTHETIC_PROCESS
     execution_integration: NOT_RUN
     promotion_status: blocked
-    supported_scope: none
-    activation: none
-    adapter_path: null
-    activation_argument: null
-    notes: Existing DevSecOps pack semantics are unchanged; no Runner Protocol adapter exists.
+    supported_scope: fixed_synthetic_worker_only
+    activation: explicit_flag
+    adapter_path: security/packs/devsecops/src/devsecops_runbooks/supervised_runner_protocol_adapter.py
+    activation_argument: --conformance-only
+    supervised_process:
+      status: PASS_SYNTHETIC_PROCESS
+      integration_scope: fixed_synthetic_worker_only
+      adapter_path: security/packs/devsecops/src/devsecops_runbooks/supervised_runner_protocol_adapter.py
+      worker_path: security/packs/devsecops/src/devsecops_runbooks/synthetic_supervised_worker.py
+      activation_arguments:
+        - --conformance-only
+        - --synthetic-process-only
+        - --durable-ledger
+      durable_claim_before_spawn: PASS_SYNTHETIC_PROCESS
+      async_cancellation: PASS_SYNTHETIC_PROCESS
+      hard_timeout: PASS_SYNTHETIC_PROCESS
+      descendant_residue: fail_closed_inconclusive
+      raw_output_persistence: none
+      sandbox_status: NOT_IMPLEMENTED
+      production_effect_claim: none
+    notes: The opt-in DevSecOps candidate proves fixed-worker synthetic process supervision and durable replay through the shared SDK engine. It cannot run scanners, pipelines, repositories, networks or request-supplied commands; production DevSecOps execution is not integrated.
   - id: ai-mcp
     implementation_status: not_started
     protocol_status: contract_only

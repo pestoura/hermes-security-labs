@@ -260,6 +260,56 @@ def validate_progress_sequence(events: Iterable[Mapping[str, Any]]) -> None:
             previous_percent = percent
 
 
+def _validate_candidate_adapter(
+    repository_root: Path,
+    *,
+    relative_path: str,
+    required_arguments: tuple[str, ...],
+    candidate_name: str,
+) -> None:
+    adapter_path = (repository_root / relative_path).resolve()
+    if repository_root not in adapter_path.parents or not adapter_path.is_file():
+        raise ProtocolValidationError(
+            f"{candidate_name} path is missing or outside repository"
+        )
+    adapter_source = adapter_path.read_text(encoding="utf-8")
+    for forbidden in ("execute_runbook", "execute_command"):
+        if forbidden in adapter_source:
+            raise ProtocolValidationError(
+                f"{candidate_name} must not reference {forbidden}"
+            )
+    for argument in required_arguments:
+        if argument not in adapter_source:
+            raise ProtocolValidationError(
+                f"{candidate_name} activation argument {argument!r} is not enforced"
+            )
+
+
+def _validate_synthetic_worker(
+    repository_root: Path,
+    *,
+    relative_path: str,
+    family_name: str,
+) -> None:
+    worker_path = (repository_root / relative_path).resolve()
+    if repository_root not in worker_path.parents or not worker_path.is_file():
+        raise ProtocolValidationError(
+            f"{family_name} supervised synthetic worker path is missing or outside repository"
+        )
+    worker_source = worker_path.read_text(encoding="utf-8")
+    for forbidden in (
+        "socket",
+        "requests",
+        "urllib",
+        "execute_runbook",
+        "execute_command",
+    ):
+        if forbidden in worker_source:
+            raise ProtocolValidationError(
+                f"{family_name} supervised synthetic worker must not reference {forbidden}"
+            )
+
+
 def validate_compatibility_matrix() -> None:
     """Validate the compatibility and conformance declaration."""
     root = contract_root()
@@ -376,7 +426,7 @@ def validate_compatibility_matrix() -> None:
             "API durable-idempotency declaration is inconsistent"
         )
 
-    supervised_expected = {
+    api_supervised_expected = {
         "status": "PASS_SYNTHETIC_PROCESS",
         "integration_scope": "fixed_synthetic_worker_only",
         "adapter_path": (
@@ -400,9 +450,59 @@ def validate_compatibility_matrix() -> None:
         "sandbox_status": "NOT_IMPLEMENTED",
         "production_effect_claim": "none",
     }
-    if api.get("supervised_process") != supervised_expected:
+    if api.get("supervised_process") != api_supervised_expected:
         raise ProtocolValidationError(
             "API supervised-process declaration is inconsistent"
+        )
+
+    devsecops_expected = {
+        "implementation_status": "candidate",
+        "protocol_status": "conformance_only",
+        "conformance": "PASS_SYNTHETIC_PROCESS",
+        "execution_integration": "NOT_RUN",
+        "promotion_status": "blocked",
+        "supported_scope": "fixed_synthetic_worker_only",
+        "activation": "explicit_flag",
+        "adapter_path": (
+            "security/packs/devsecops/src/devsecops_runbooks/"
+            "supervised_runner_protocol_adapter.py"
+        ),
+        "activation_argument": "--conformance-only",
+    }
+    devsecops = by_id["devsecops"]
+    for key, expected in devsecops_expected.items():
+        if devsecops.get(key) != expected:
+            raise ProtocolValidationError(
+                f"DevSecOps candidate field {key!r} must be {expected!r}"
+            )
+
+    devsecops_supervised_expected = {
+        "status": "PASS_SYNTHETIC_PROCESS",
+        "integration_scope": "fixed_synthetic_worker_only",
+        "adapter_path": (
+            "security/packs/devsecops/src/devsecops_runbooks/"
+            "supervised_runner_protocol_adapter.py"
+        ),
+        "worker_path": (
+            "security/packs/devsecops/src/devsecops_runbooks/"
+            "synthetic_supervised_worker.py"
+        ),
+        "activation_arguments": [
+            "--conformance-only",
+            "--synthetic-process-only",
+            "--durable-ledger",
+        ],
+        "durable_claim_before_spawn": "PASS_SYNTHETIC_PROCESS",
+        "async_cancellation": "PASS_SYNTHETIC_PROCESS",
+        "hard_timeout": "PASS_SYNTHETIC_PROCESS",
+        "descendant_residue": "fail_closed_inconclusive",
+        "raw_output_persistence": "none",
+        "sandbox_status": "NOT_IMPLEMENTED",
+        "production_effect_claim": "none",
+    }
+    if devsecops.get("supervised_process") != devsecops_supervised_expected:
+        raise ProtocolValidationError(
+            "DevSecOps supervised-process declaration is inconsistent"
         )
 
     repository_root = root.parents[1]
@@ -418,42 +518,39 @@ def validate_compatibility_matrix() -> None:
             "API durable conformance candidate",
         ),
         (
-            str(supervised_expected["adapter_path"]),
-            tuple(str(value) for value in supervised_expected["activation_arguments"]),
+            str(api_supervised_expected["adapter_path"]),
+            tuple(str(value) for value in api_supervised_expected["activation_arguments"]),
             "API supervised synthetic-process candidate",
+        ),
+        (
+            str(devsecops_supervised_expected["adapter_path"]),
+            tuple(
+                str(value)
+                for value in devsecops_supervised_expected["activation_arguments"]
+            ),
+            "DevSecOps supervised synthetic-process candidate",
         ),
     )
     for relative_path, required_arguments, candidate_name in candidate_declarations:
-        adapter_path = (repository_root / relative_path).resolve()
-        if repository_root not in adapter_path.parents or not adapter_path.is_file():
-            raise ProtocolValidationError(
-                f"{candidate_name} path is missing or outside repository"
-            )
-        adapter_source = adapter_path.read_text(encoding="utf-8")
-        for forbidden in ("execute_runbook", "execute_command"):
-            if forbidden in adapter_source:
-                raise ProtocolValidationError(
-                    f"{candidate_name} must not reference {forbidden}"
-                )
-        for argument in required_arguments:
-            if argument not in adapter_source:
-                raise ProtocolValidationError(
-                    f"{candidate_name} activation argument {argument!r} is not enforced"
-                )
-
-    worker_path = (repository_root / str(supervised_expected["worker_path"])).resolve()
-    if repository_root not in worker_path.parents or not worker_path.is_file():
-        raise ProtocolValidationError(
-            "API supervised synthetic worker path is missing or outside repository"
+        _validate_candidate_adapter(
+            repository_root,
+            relative_path=relative_path,
+            required_arguments=required_arguments,
+            candidate_name=candidate_name,
         )
-    worker_source = worker_path.read_text(encoding="utf-8")
-    for forbidden in ("socket", "requests", "urllib", "execute_runbook", "execute_command"):
-        if forbidden in worker_source:
-            raise ProtocolValidationError(
-                f"API supervised synthetic worker must not reference {forbidden}"
-            )
 
-    not_started_expected = {
+    _validate_synthetic_worker(
+        repository_root,
+        relative_path=str(api_supervised_expected["worker_path"]),
+        family_name="API",
+    )
+    _validate_synthetic_worker(
+        repository_root,
+        relative_path=str(devsecops_supervised_expected["worker_path"]),
+        family_name="DevSecOps",
+    )
+
+    ai_mcp_expected = {
         "implementation_status": "not_started",
         "protocol_status": "contract_only",
         "conformance": "NOT_RUN",
@@ -464,13 +561,12 @@ def validate_compatibility_matrix() -> None:
         "adapter_path": None,
         "activation_argument": None,
     }
-    for family_id in ("devsecops", "ai-mcp"):
-        family = by_id[family_id]
-        for key, expected in not_started_expected.items():
-            if family.get(key) != expected:
-                raise ProtocolValidationError(
-                    f"{family_id} field {key!r} must remain {expected!r}"
-                )
+    ai_mcp = by_id["ai-mcp"]
+    for key, expected in ai_mcp_expected.items():
+        if ai_mcp.get(key) != expected:
+            raise ProtocolValidationError(
+                f"ai-mcp field {key!r} must remain {expected!r}"
+            )
 
     if data["runtime_declaration"] != "NO_RUNTIME_CHANGE":
         raise ProtocolValidationError("runtime declaration must be NO_RUNTIME_CHANGE")
