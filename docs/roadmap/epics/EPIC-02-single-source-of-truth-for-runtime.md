@@ -10,23 +10,23 @@
 | Phase | 1 |
 | Priority | P0 |
 | Delivery umbrella | `SVP2-A-01` (issue [#76](https://github.com/pestoura/hermes-security-labs/issues/76)) |
-| Document version | 1.1.1 |
+| Document version | 1.2.0 |
 | Document date | 2026-08-06 |
 | Catalogue | [Epic catalogue 45](../epic-catalogue-45.md) |
 | Lifecycle contract | [Architecture documentation lifecycle](../../architecture/architecture-documentation-lifecycle.md) |
 
 ## 2. Current status
 
-**IMPLEMENTING** — the first implementation block is active in pull request
-[#102](https://github.com/pestoura/hermes-security-labs/pull/102) from branch
-`feat/epic-02-runtime-source-of-truth`. It formalizes and validates repository-owned runtime
-intent without changing deployment or live runtime behaviour.
+**AS_BUILT** — the source-of-truth implementation was integrated through pull request
+[#102](https://github.com/pestoura/hermes-security-labs/pull/102) and validated again on
+`main`. `FINAL` remains pending until umbrella #76 completes its catalogue and lifecycle
+closure.
 
 | Lifecycle state | Reached |
 | --- | --- |
 | INTENT | yes |
 | IMPLEMENTING | yes |
-| AS_BUILT | no |
+| AS_BUILT | yes |
 | FINAL | no |
 
 ## 3. Problem and motivation
@@ -71,7 +71,7 @@ remain the platform-wide authority model.
 
 ## 8. Dependencies and sequencing
 
-- [EPIC-01 — Architecture and canonical contracts](EPIC-01-architecture-and-canonical-contracts.md) — `AS_BUILT` on `main` before this branch was created.
+- [EPIC-01 — Architecture and canonical contracts](EPIC-01-architecture-and-canonical-contracts.md) — `AS_BUILT` on `main` before this implementation began.
 
 Sequencing follows the phase model in the
 [intent document](../../architecture/security-validation-platform-v2-intent.md).
@@ -115,8 +115,7 @@ Platform-wide invariants that this epic must not weaken:
 - Run repository, catalogue, security and gitleaks workflows
 - Record runtime gates as `NOT_APPLICABLE` for this no-runtime-change block
 
-Evidence must be referenced from the delivery umbrella issue before the umbrella can
-be closed, and this document must record the references in section 15.
+Evidence is recorded in section 15 and in delivery umbrella issue #76.
 
 ## 13. Decisions and open questions
 
@@ -139,19 +138,18 @@ be closed, and this document must record the references in section 15.
 
 ### Open questions
 
-- None for this block. Runtime release manifests themselves remain a later implementation
-  capability and must follow ADR-0009 when introduced.
+- None for this block. Runtime release manifests remain a later implementation capability
+  governed by ADR-0009.
 
 ## 14. Implementation notes
-
-> Reserved lifecycle section. Updated during implementation with pull request references,
-> deviations from intent and decisions taken while building. Do not delete this heading.
 
 ### Block 1 — canonical runtime source of truth
 
 - Branch: `feat/epic-02-runtime-source-of-truth`
 - Umbrella issue: [#76](https://github.com/pestoura/hermes-security-labs/issues/76)
 - Pull request: [#102](https://github.com/pestoura/hermes-security-labs/pull/102)
+- Validated head: `5a4eb63ffc00ed785bd52a3740a7d004ef4eb79f`
+- Squash merge: `122c567f862ab4576cb26c961125586679082bfc`
 - Runtime declaration: `NO_RUNTIME_CHANGE`
 - Normalized the five existing runtime profiles instead of creating duplicate declarations.
 - Added a runtime-profile JSON Schema and a read-only source-of-truth validator.
@@ -170,13 +168,69 @@ be closed, and this document must record the references in section 15.
 | live host/container/network state | non-authoritative observation |
 | GitHub issues/comments | work tracking, not configuration authority |
 
+### CI corrections before merge
+
+- A negative fixture exposed that diagnostic paths assumed all test files were inside the repository; diagnostics were made fixture-safe.
+- Ruff detected an unused import in the validator; it was removed.
+- Both corrections were revalidated on the final head without weakening the contract.
+
 ## 15. As-built / final architecture
 
-> Reserved. Populate after the implementation pull request is merged. Must record what
-> was actually built, evidence links, and every divergence from sections 6 to 11.
-> No umbrella may be closed while this section is empty.
+### Delivered architecture
 
-_Not yet merged._
+```mermaid
+flowchart LR
+  REG[platform/registry.yaml] --> RO[platform/rollout.yaml]
+  REG --> RP[Runtime profiles]
+  REG --> EM[Environment manifests]
+  REG --> RT[Runtime templates]
+  RP --> VAL[Schema and source-of-truth validator]
+  EM --> VAL
+  OBS[Applied and observed state] --> CMP[Existing drift comparator]
+  REG --> CMP
+  CMP --> TRI[IN_SYNC / DRIFT_DETECTED / UNKNOWN]
+```
+
+The implementation delivered repository-owned declarations and CI enforcement. It did not
+change live runtime state or the existing operational drift comparator.
+
+### Evidence
+
+| Evidence | Result |
+| --- | --- |
+| PR #102 validated head | `5a4eb63ffc00ed785bd52a3740a7d004ef4eb79f` |
+| Merge SHA | `122c567f862ab4576cb26c961125586679082bfc` |
+| PR validate workflow | success — run `31065385239` |
+| PR security/gitleaks workflow | success — run `31065385238` |
+| Post-merge main validate workflow | success — run `31065443977` |
+| Post-merge main security/gitleaks workflow | success — run `31065444012` |
+| Runtime validation | `NOT_APPLICABLE` — no runtime change |
+
+### Acceptance assessment
+
+| Criterion | Result | Evidence |
+| --- | --- | --- |
+| Every registered runtime has one authoritative declaration | met | one-to-one registry references, orphan/duplicate tests |
+| Missing or unparsable evidence maps to `UNKNOWN` | met | machine-readable policy and tests |
+| Runtime profiles validate against one schema | met | runtime-profile schema and CI validator |
+| Observed state remains non-authoritative | met | registry policy, ADR-0009 and documentation |
+| Existing comparator remains unchanged | met | no diff to `deployment/deployment_tracking.py` |
+
+### Differences from intent
+
+- The existing `platform/registry.yaml`, rollout and runtime profiles were strengthened
+  rather than replaced by a new inventory.
+- Image identity was resolved at runtime-release scope. Concrete release manifests remain
+  future work; host-driver profiles use `NOT_APPLICABLE` where no image is identified.
+- The epic reused the existing tri-state comparator rather than implementing a duplicate.
+
+### Limitations and residual risk
+
+- Repository validation proves declaration integrity, not live runtime synchronization.
+- Runtime release manifests and immutable image promotion are not yet implemented.
+- Valid runtime observation may still produce `UNKNOWN` when evidence is incomplete or stale;
+  this is deliberate fail-safe behaviour.
+- Automatic drift remediation remains forbidden.
 
 ## 16. Document change log
 
@@ -185,3 +239,4 @@ _Not yet merged._
 | 2026-08-06 | 1.0.0 | Initial intent document created from the concept epic catalogue. |
 | 2026-08-06 | 1.1.0 | Set IMPLEMENTING; record canonical registry, tri-state drift, release identity decision, validator and CI plan. |
 | 2026-08-06 | 1.1.1 | Link implementation pull request #102. |
+| 2026-08-06 | 1.2.0 | Record AS_BUILT architecture, CI evidence, acceptance results, corrections and limitations. |
