@@ -1,0 +1,48 @@
+name: Record EPIC-05 API candidate as-built once
+
+on:
+  push:
+    branches:
+      - docs/epic-05-api-candidate-as-built
+
+permissions:
+  contents: write
+
+jobs:
+  record:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: docs/epic-05-api-candidate-as-built
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Apply exact lifecycle patch
+        run: python tools/tmp_epic05_api_candidate_as_built.py
+      - name: Install validation dependencies and SDK
+        run: python -m pip install --disable-pip-version-check -q pytest ruff -e platform/runner-protocol
+      - name: Validate lifecycle record
+        env:
+          PYTHONPATH: security/packs/api/src
+        run: |
+          python platform/runner-protocol/validate_protocol.py --contract-only
+          python platform/runner-protocol/conformance.py \
+            --command "python security/packs/api/src/api_pentest_runbooks/runner_protocol_adapter.py --conformance-only" \
+            --adapter-id api-runner-candidate \
+            --output /tmp/api-runner-candidate-conformance.json
+          python -m pytest -q platform/runner-protocol/tests security/packs/api/tests roadmap/tests docs/tests -p no:cacheprovider
+          ruff check --config security/pyproject.toml \
+            platform/runner-protocol \
+            security/packs/api/src security/packs/api/tests \
+            docs/tests roadmap/tests
+          git diff --check
+      - name: Commit as-built record
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "docs(epic-05): record API candidate as-built"
+          git push origin HEAD:docs/epic-05-api-candidate-as-built
