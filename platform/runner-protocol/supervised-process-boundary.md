@@ -2,7 +2,8 @@
 
 ## Status
 
-`IMPLEMENTING` — block 7 of `EPIC-05 — Runner Protocol v2`.
+`AS_BUILT` — block 7 of `EPIC-05 — Runner Protocol v2`, integrated through pull request
+[#117](https://github.com/pestoura/hermes-security-labs/pull/117).
 
 This block provides a reusable POSIX process-supervision primitive. It is not a runner
 adapter, does not authorize work, does not select capabilities or targets, and is not yet
@@ -110,6 +111,20 @@ This primitive is necessary but not sufficient for production execution.
 - It does not reconcile uncertain external effects.
 - Captured output remains untrusted data and must be parsed and redacted by the adapter.
 - A later sandbox/runtime block must add stronger containment before real tools are connected.
+
+## Integrated evidence
+
+- Validated head: `daeaeb02c194fec776c981e8f0f6298fe3a03c1d`
+- Squash merge: `bf71fd7c6da2dcd2e179462677341a90f4f22b7a`
+- PR validate: `31093149197` — success
+- PR security/gitleaks: `31093149060` — success
+- Post-merge validate: `31093252331` — success
+- Post-merge security/gitleaks: `31093252418` — success
+- Runner Protocol suite: 43 passed
+- Runtime declaration: `NO_RUNTIME_CHANGE`
+
+The tests use only the fixed synthetic worker under `platform/runner-protocol/tests/fixtures/`.
+No real capability, security tool, target, laboratory, Hermes or Kali MCP execution occurred.
 
 ## Promotion boundary
 
