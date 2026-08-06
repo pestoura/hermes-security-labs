@@ -1,0 +1,127 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hexor.local/schemas/roe-step-request-1.0.0.json",
+  "title": "Hexor RoE Step Authorization Request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "request_id",
+    "campaign_id",
+    "requested_at",
+    "campaign_state",
+    "kill_switch",
+    "active_stop_conditions",
+    "target",
+    "capability",
+    "intrusiveness_level",
+    "approval_ids",
+    "requested_controls",
+    "estimated_limits"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "request_id": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+    },
+    "campaign_id": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+    },
+    "requested_at": {"type": "string", "format": "date-time"},
+    "campaign_state": {
+      "enum": [
+        "DRAFT",
+        "AUTHORIZED",
+        "READY",
+        "RUNNING",
+        "PAUSED",
+        "STOPPING",
+        "STOPPED",
+        "COMPLETED",
+        "ABORTED",
+        "EXPIRED"
+      ]
+    },
+    "kill_switch": {"type": "boolean"},
+    "active_stop_conditions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 3,
+        "maxLength": 128,
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+      },
+      "uniqueItems": true
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "value"],
+      "properties": {
+        "type": {"enum": ["domain", "ip", "cidr", "uri-prefix", "lab-asset"]},
+        "value": {"type": "string", "minLength": 1, "maxLength": 2048}
+      }
+    },
+    "capability": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 128,
+      "pattern": "^[a-z0-9][a-z0-9._-]*$"
+    },
+    "intrusiveness_level": {"enum": ["L0", "L1", "L2", "L3", "L4"]},
+    "approval_ids": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 3,
+        "maxLength": 128,
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+      },
+      "uniqueItems": true
+    },
+    "rollback_plan_ref": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 256,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*$"
+    },
+    "requested_controls": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "credential_use",
+          "lateral_movement",
+          "persistence",
+          "evasion",
+          "destructive_actions",
+          "data_exfiltration",
+          "denial_of_service",
+          "mass_data_access"
+        ]
+      },
+      "uniqueItems": true
+    },
+    "estimated_limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requests_per_second",
+        "concurrency",
+        "data_bytes",
+        "duration_seconds"
+      ],
+      "properties": {
+        "requests_per_second": {"type": "number", "minimum": 0},
+        "concurrency": {"type": "integer", "minimum": 1},
+        "data_bytes": {"type": "integer", "minimum": 0},
+        "duration_seconds": {"type": "integer", "minimum": 1}
+      }
+    }
+  }
+}

@@ -1,0 +1,40 @@
+version: 1.0.0
+levels:
+  L0:
+    name: passive
+    minimum_step_approvals: 0
+    distinct_approval_sides: 0
+    rollback_plan_required: false
+  L1:
+    name: safe_active
+    minimum_step_approvals: 0
+    distinct_approval_sides: 0
+    rollback_plan_required: false
+  L2:
+    name: intrusive_validation
+    minimum_step_approvals: 1
+    distinct_approval_sides: 1
+    rollback_plan_required: false
+  L3:
+    name: controlled_exploitation
+    minimum_step_approvals: 1
+    distinct_approval_sides: 1
+    rollback_plan_required: true
+  L4:
+    name: high_impact
+    minimum_step_approvals: 2
+    distinct_approval_sides: 2
+    rollback_plan_required: true
+active_campaign_state: RUNNING
+kill_switch_transition:
+  from:
+    - AUTHORIZED
+    - READY
+    - RUNNING
+    - PAUSED
+  to: STOPPING
+terminal_states:
+  - STOPPED
+  - COMPLETED
+  - ABORTED
+  - EXPIRED

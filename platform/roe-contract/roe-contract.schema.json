@@ -1,0 +1,266 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hexor.local/schemas/roe-contract-1.0.0.json",
+  "title": "Hexor Rules of Engagement Contract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "contract_id",
+    "campaign_id",
+    "revision",
+    "state",
+    "issued_at",
+    "valid_from",
+    "valid_until",
+    "issuer",
+    "customer",
+    "authorization"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "contract_id": {"$ref": "#/$defs/identifier"},
+    "campaign_id": {"$ref": "#/$defs/identifier"},
+    "revision": {"type": "integer", "minimum": 1},
+    "state": {"enum": ["draft", "active", "expired", "revoked"]},
+    "issued_at": {"type": "string", "format": "date-time"},
+    "valid_from": {"type": "string", "format": "date-time"},
+    "valid_until": {"type": "string", "format": "date-time"},
+    "previous_contract_digest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "issuer": {"$ref": "#/$defs/party"},
+    "customer": {"$ref": "#/$defs/party"},
+    "authorization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "allowed_targets",
+        "excluded_targets",
+        "allowed_capabilities",
+        "prohibited_capabilities",
+        "intrusiveness_ceiling",
+        "execution_windows",
+        "approvers",
+        "emergency_contacts",
+        "limits",
+        "stop_conditions",
+        "high_risk_actions"
+      ],
+      "properties": {
+        "allowed_targets": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/target"}
+        },
+        "excluded_targets": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/target"}
+        },
+        "allowed_capabilities": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/capability"},
+          "uniqueItems": true
+        },
+        "prohibited_capabilities": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/capability"},
+          "uniqueItems": true
+        },
+        "intrusiveness_ceiling": {"enum": ["L0", "L1", "L2", "L3", "L4"]},
+        "execution_windows": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/execution_window"}
+        },
+        "approvers": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/approver"}
+        },
+        "emergency_contacts": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/emergency_contact"}
+        },
+        "limits": {"$ref": "#/$defs/limits"},
+        "stop_conditions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/stop_condition"}
+        },
+        "high_risk_actions": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "credential_use",
+            "lateral_movement",
+            "persistence",
+            "evasion",
+            "destructive_actions",
+            "data_exfiltration",
+            "denial_of_service",
+            "mass_data_access"
+          ],
+          "properties": {
+            "credential_use": {"$ref": "#/$defs/high_risk_action"},
+            "lateral_movement": {"$ref": "#/$defs/high_risk_action"},
+            "persistence": {"$ref": "#/$defs/high_risk_action"},
+            "evasion": {"$ref": "#/$defs/high_risk_action"},
+            "destructive_actions": {"$ref": "#/$defs/high_risk_action"},
+            "data_exfiltration": {"$ref": "#/$defs/high_risk_action"},
+            "denial_of_service": {"$ref": "#/$defs/high_risk_action"},
+            "mass_data_access": {"$ref": "#/$defs/high_risk_action"}
+          }
+        }
+      }
+    },
+    "signature": {"$ref": "#/$defs/signature"}
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+    },
+    "party": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["party_id", "legal_name"],
+      "properties": {
+        "party_id": {"$ref": "#/$defs/identifier"},
+        "legal_name": {"type": "string", "minLength": 1, "maxLength": 256}
+      }
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "value", "match"],
+      "properties": {
+        "type": {"enum": ["domain", "ip", "cidr", "uri-prefix", "lab-asset"]},
+        "value": {"type": "string", "minLength": 1, "maxLength": 2048},
+        "match": {"enum": ["exact", "subdomains", "contained"]}
+      }
+    },
+    "capability": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 128,
+      "pattern": "^[a-z0-9][a-z0-9._-]*(\\.\\*)?$"
+    },
+    "execution_window": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["window_id", "start", "end"],
+      "properties": {
+        "window_id": {"$ref": "#/$defs/identifier"},
+        "start": {"type": "string", "format": "date-time"},
+        "end": {"type": "string", "format": "date-time"}
+      }
+    },
+    "approver": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "approval_id",
+        "subject_id",
+        "side",
+        "role",
+        "approved_at",
+        "valid_until",
+        "levels"
+      ],
+      "properties": {
+        "approval_id": {"$ref": "#/$defs/identifier"},
+        "subject_id": {"$ref": "#/$defs/identifier"},
+        "side": {"enum": ["customer", "provider", "independent"]},
+        "role": {"type": "string", "minLength": 1, "maxLength": 128},
+        "approved_at": {"type": "string", "format": "date-time"},
+        "valid_until": {"type": "string", "format": "date-time"},
+        "levels": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"enum": ["L0", "L1", "L2", "L3", "L4"]},
+          "uniqueItems": true
+        }
+      }
+    },
+    "emergency_contact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contact_id", "name", "channel", "value", "authority"],
+      "properties": {
+        "contact_id": {"$ref": "#/$defs/identifier"},
+        "name": {"type": "string", "minLength": 1, "maxLength": 128},
+        "channel": {"enum": ["phone", "email", "pager", "secure-chat"]},
+        "value": {"type": "string", "minLength": 3, "maxLength": 256},
+        "authority": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"enum": ["pause", "stop", "revoke"]},
+          "uniqueItems": true
+        }
+      }
+    },
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requests_per_second",
+        "max_concurrency",
+        "max_data_bytes",
+        "max_duration_seconds"
+      ],
+      "properties": {
+        "requests_per_second": {"type": "number", "exclusiveMinimum": 0, "maximum": 10000},
+        "max_concurrency": {"type": "integer", "minimum": 1, "maximum": 1000},
+        "max_data_bytes": {"type": "integer", "minimum": 0},
+        "max_duration_seconds": {"type": "integer", "minimum": 1, "maximum": 604800}
+      }
+    },
+    "stop_condition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["condition_id", "description", "severity", "automatic"],
+      "properties": {
+        "condition_id": {"$ref": "#/$defs/identifier"},
+        "description": {"type": "string", "minLength": 1, "maxLength": 512},
+        "severity": {"enum": ["pause", "stop", "revoke"]},
+        "automatic": {"type": "boolean"}
+      }
+    },
+    "high_risk_action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "minimum_level"],
+      "properties": {
+        "status": {"enum": ["denied", "allowed"]},
+        "minimum_level": {"enum": ["L0", "L1", "L2", "L3", "L4"]},
+        "conditions": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1, "maxLength": 256},
+          "uniqueItems": true
+        }
+      }
+    },
+    "signature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["algorithm", "key_id", "payload_sha256", "value"],
+      "properties": {
+        "algorithm": {"enum": ["Ed25519", "ECDSA-P256-SHA256"]},
+        "key_id": {"$ref": "#/$defs/identifier"},
+        "payload_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "value": {
+          "type": "string",
+          "minLength": 16,
+          "maxLength": 2048,
+          "pattern": "^[A-Za-z0-9+/]+={0,2}$"
+        }
+      }
+    }
+  }
+}
