@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Synthetic-process-only API Runner Protocol v2 candidate.
+"""Synthetic-process-only DevSecOps Runner Protocol v2 candidate.
 
-The wrapper supplies a fixed API worker to the shared repository-owned supervised
-synthetic engine. It remains disconnected from the legacy runbook executor,
-ProcessBridgeAdapter, security tools, networks, laboratories and customer targets.
+The wrapper supplies a fixed DevSecOps worker to the shared repository-owned
+supervised synthetic engine. It cannot invoke runbooks, scanners, pipeline tools,
+repositories, networks or commands supplied by a request.
 """
 
 from __future__ import annotations
@@ -21,8 +21,10 @@ from runner_protocol_v2.synthetic_supervised import (
 WORKER = Path(__file__).with_name("synthetic_supervised_worker.py").resolve()
 
 
-class SupervisedSyntheticApiRunnerCandidate(SyntheticSupervisedRunnerCandidate):
-    """Fixed-worker API wrapper for synthetic conformance only."""
+class SupervisedSyntheticDevSecOpsRunnerCandidate(
+    SyntheticSupervisedRunnerCandidate
+):
+    """Fixed-worker DevSecOps wrapper for synthetic conformance only."""
 
     def __init__(
         self,
@@ -33,14 +35,14 @@ class SupervisedSyntheticApiRunnerCandidate(SyntheticSupervisedRunnerCandidate):
     ) -> None:
         if supervisor is None:
             super().__init__(
-                family="api",
+                family="devsecops",
                 worker_path=WORKER,
                 durable_ledger=durable_ledger,
                 working_directory=working_directory,
             )
         else:
             super().__init__(
-                family="api",
+                family="devsecops",
                 worker_path=WORKER,
                 durable_ledger=durable_ledger,
                 working_directory=working_directory,
@@ -72,7 +74,9 @@ def main() -> int:
 
     try:
         ledger = SQLiteIdempotencyLedger(args.durable_ledger)
-        candidate = SupervisedSyntheticApiRunnerCandidate(durable_ledger=ledger)
+        candidate = SupervisedSyntheticDevSecOpsRunnerCandidate(
+            durable_ledger=ledger,
+        )
     except (OSError, RuntimeError, ValueError) as exc:
         parser.error(f"synthetic supervised candidate unavailable: {exc}")
     return serve_json_lines(candidate)

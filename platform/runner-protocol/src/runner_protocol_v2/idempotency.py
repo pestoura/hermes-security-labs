@@ -213,7 +213,12 @@ class SQLiteIdempotencyLedger:
                 if not isinstance(loaded, dict):
                     raise TypeError("outcome is not an object")
                 _canonical_outcome(loaded)
-            except (TypeError, json.JSONDecodeError, LedgerStateError, ProtocolValidationError) as exc:
+            except (
+                TypeError,
+                json.JSONDecodeError,
+                LedgerStateError,
+                ProtocolValidationError,
+            ) as exc:
                 raise LedgerUnavailableError(
                     "idempotency ledger contains an invalid outcome"
                 ) from exc
@@ -370,6 +375,30 @@ class SQLiteIdempotencyLedger:
             raise
         except sqlite3.Error as exc:
             raise LedgerUnavailableError("idempotency read failed safely") from exc
+        finally:
+            if connection is not None:
+                connection.close()
+
+    def count(self) -> int:
+        """Return the number of trusted records without changing ledger state."""
+        connection: sqlite3.Connection | None = None
+        try:
+            connection = self._connect()
+            row = connection.execute(
+                "SELECT COUNT(*) AS record_count FROM idempotency_records"
+            ).fetchone()
+            if row is None:
+                raise LedgerUnavailableError("idempotency count returned no result")
+            count = row["record_count"]
+            if not isinstance(count, int) or count < 0:
+                raise LedgerUnavailableError(
+                    "idempotency count returned an invalid result"
+                )
+            return count
+        except LedgerError:
+            raise
+        except sqlite3.Error as exc:
+            raise LedgerUnavailableError("idempotency count failed safely") from exc
         finally:
             if connection is not None:
                 connection.close()

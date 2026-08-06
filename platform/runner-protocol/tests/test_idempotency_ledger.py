@@ -166,3 +166,17 @@ def test_in_memory_and_symlink_paths_are_rejected(tmp_path: Path) -> None:
         pytest.skip("symbolic links are unavailable on this platform")
     with pytest.raises(LedgerUnavailableError, match="symbolic link"):
         SQLiteIdempotencyLedger(link)
+
+
+def test_count_is_consistent_across_claim_completion_and_reopen(tmp_path: Path) -> None:
+    database = tmp_path / "idempotency.sqlite3"
+    store = SQLiteIdempotencyLedger(database)
+    assert store.count() == 0
+
+    store.claim(KEY, FINGERPRINT)
+    assert store.count() == 1
+    store.complete(KEY, FINGERPRINT, terminal_outcome())
+    assert store.count() == 1
+
+    reopened = SQLiteIdempotencyLedger(database)
+    assert reopened.count() == 1
