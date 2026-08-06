@@ -1,4 +1,52 @@
-version: 2
+version: 3
+source_of_truth:
+  contract_version: 1
+  repository: pestoura/hermes-security-labs
+  canonical_root: platform/registry.yaml
+  authoritative:
+    rollout_plan:
+      path: platform/rollout.yaml
+    runtime_profiles:
+      root: platform/runtimes
+      pattern: '*.yaml'
+      schema: platform/schemas/runtime-profile.schema.json
+    environment_manifests:
+      root: platform/environments
+      schema: platform/schemas/lab-manifest.schema.json
+      discovery:
+        - flat-yaml
+        - directory-manifest
+    runtime_templates:
+      root: platform/runtime
+  non_authoritative:
+    - class: applied-deployment-state
+      path_pattern: '**/.deployment.json'
+      purpose: observed and applied-state evidence
+    - class: host-runtime-state
+      path_pattern: host-observation
+      purpose: read-only runtime observation
+    - class: issue-tracking
+      path_pattern: github-issues-and-comments
+      purpose: delivery and blocker tracking
+    - class: generated-output
+      path_pattern: generated-or-temporary-output
+      purpose: disposable validation artefacts
+  drift:
+    states:
+      - IN_SYNC
+      - DRIFT_DETECTED
+      - UNKNOWN
+    missing_observation: UNKNOWN
+    unparsable_observation: UNKNOWN
+    unverifiable_observation: UNKNOWN
+    remediation: manual-review
+    automatic_reconciliation: forbidden
+    comparator: deployment/deployment_tracking.py
+  release_identity:
+    image_digest_scope: runtime-release
+    environment_digest_override: forbidden
+    missing_required_digest: UNKNOWN
+
 catalog:
   environments_root: environments
   rollout: rollout.yaml
@@ -19,40 +67,12 @@ statuses:
 
 runtimes:
   - id: docker
-    name: Docker
-    status: CURRENT
-    drivers:
-      - docker-compose
-
+    manifest: runtimes/docker.yaml
   - id: kubernetes
-    name: Kubernetes
-    status: CURRENT-LIMITED
-    drivers:
-      - kind
-      - k3d
-      - k3s-vm
-      - kubeadm-vm
-
+    manifest: runtimes/kubernetes.yaml
   - id: virtual-machine
-    name: Virtual Machine
-    status: CURRENT-LIMITED
-    drivers:
-      - libvirt
-      - proxmox
-      - external-hypervisor
-
+    manifest: runtimes/virtual-machine.yaml
   - id: cloud
-    name: Cloud
-    status: CLOUD-SANDBOX
-    drivers:
-      - local-emulation
-      - terraform-sandbox
-
+    manifest: runtimes/cloud.yaml
   - id: emulator
-    name: Emulator
-    status: EXTERNAL-HARDWARE
-    drivers:
-      - qemu
-      - android-emulator
-      - eve-ng
-      - gns3
+    manifest: runtimes/emulator.yaml
