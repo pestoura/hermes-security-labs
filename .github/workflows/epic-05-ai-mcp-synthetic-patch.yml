@@ -1,0 +1,128 @@
+name: epic-05-ai-mcp-synthetic-patch
+
+on:
+  push:
+    branches:
+      - feat/epic-05-ai-mcp-supervised-synthetic
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Create isolated AI-MCP synthetic candidate
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          repo = Path.cwd()
+
+          wrapper_source = (
+              repo / "security/packs/devsecops/src/devsecops_runbooks/supervised_runner_protocol_adapter.py"
+          ).read_text(encoding="utf-8")
+          wrapper_source = wrapper_source.replace(
+              "Synthetic-process-only DevSecOps Runner Protocol v2 candidate.",
+              "Synthetic-process-only AI/MCP Runner Protocol v2 candidate.",
+          )
+          wrapper_source = wrapper_source.replace(
+              "The wrapper supplies a fixed DevSecOps worker to the shared repository-owned\n"
+              "supervised synthetic engine. It cannot invoke runbooks, scanners, pipeline tools,\n"
+              "repositories, networks or commands supplied by a request.",
+              "The wrapper supplies a fixed AI/MCP worker to the shared repository-owned\n"
+              "supervised synthetic engine. It cannot invoke runtime handlers, MCP providers,\n"
+              "agents, memory/RAG adapters, networks or commands supplied by a request.",
+          )
+          wrapper_source = wrapper_source.replace(
+              "SupervisedSyntheticDevSecOpsRunnerCandidate",
+              "SupervisedSyntheticAiMcpRunnerCandidate",
+          )
+          wrapper_source = wrapper_source.replace(
+              '"""Fixed-worker DevSecOps wrapper for synthetic conformance only."""',
+              '"""Fixed-worker AI/MCP wrapper for synthetic conformance only."""',
+          )
+          wrapper_source = wrapper_source.replace('family="devsecops"', 'family="ai-mcp"')
+          wrapper_target = repo / "security/packs/ai-mcp/src/ai_mcp_runbooks/supervised_runner_protocol_adapter.py"
+          if wrapper_target.exists():
+              raise SystemExit("AI/MCP supervised wrapper already exists")
+          wrapper_target.write_text(wrapper_source, encoding="utf-8")
+
+          worker_source = (
+              repo / "security/packs/devsecops/src/devsecops_runbooks/synthetic_supervised_worker.py"
+          ).read_text(encoding="utf-8")
+          worker_source = worker_source.replace(
+              "Fixed synthetic worker for DevSecOps Runner Protocol supervision tests.",
+              "Fixed synthetic worker for AI/MCP Runner Protocol supervision tests.",
+          )
+          worker_source = worker_source.replace("synthetic-devsecops-", "synthetic-ai-mcp-")
+          worker_target = repo / "security/packs/ai-mcp/src/ai_mcp_runbooks/synthetic_supervised_worker.py"
+          if worker_target.exists():
+              raise SystemExit("AI/MCP synthetic worker already exists")
+          worker_target.write_text(worker_source, encoding="utf-8")
+
+          test_source = (
+              repo / "security/packs/devsecops/tests/test_supervised_runner_protocol_candidate.py"
+          ).read_text(encoding="utf-8")
+          replacements = (
+              ("devsecops_runbooks", "ai_mcp_runbooks"),
+              ("SupervisedSyntheticDevSecOpsRunnerCandidate", "SupervisedSyntheticAiMcpRunnerCandidate"),
+              ("test_success_uses_devsecops_worker", "test_success_uses_ai_mcp_worker"),
+              ("synthetic-devsecops-", "synthetic-ai-mcp-"),
+              ("devsecops-supervised", "ai-mcp-supervised"),
+              (".devsecops-", ".ai-mcp-"),
+              ('"devsecops.sca.scan"', '"ai-mcp.agent.execute"'),
+          )
+          for old, new in replacements:
+              test_source = test_source.replace(old, new)
+          test_source = test_source.replace(
+              "assert all(not module.startswith(\"api_pentest_runbooks\") for module in imported_modules)",
+              "assert all(\n"
+              "        not module.startswith((\"api_pentest_runbooks\", \"devsecops_runbooks\"))\n"
+              "        for module in imported_modules\n"
+              "    )\n"
+              "    assert imported_modules.isdisjoint(\n"
+              "        {\n"
+              "            \"ai_mcp_runbooks.dispatch\",\n"
+              "            \"ai_mcp_runbooks.execution\",\n"
+              "            \"ai_mcp_runbooks.adapters\",\n"
+              "        }\n"
+              "    )",
+          )
+          test_source = test_source.replace(
+              '            "execute_command",\n',
+              '            "execute_command",\n'
+              '            "execute_operation",\n'
+              '            "execute_handler",\n'
+              '            "dispatch_operation",\n',
+          )
+          test_source = test_source.replace(
+              '    assert "api_pentest_runbooks" not in shared_source\n'
+              '    assert "ai_mcp_runbooks" not in shared_source\n',
+              '    assert "api_pentest_runbooks" not in shared_source\n'
+              '    assert "devsecops_runbooks" not in shared_source\n'
+              '    assert "ai_mcp_runbooks" not in shared_source\n',
+          )
+          test_target = repo / "security/packs/ai-mcp/tests/test_supervised_runner_protocol_candidate.py"
+          if test_target.exists():
+              raise SystemExit("AI/MCP supervised candidate tests already exist")
+          test_target.write_text(test_source, encoding="utf-8")
+          PY
+          python -m py_compile \
+            security/packs/ai-mcp/src/ai_mcp_runbooks/supervised_runner_protocol_adapter.py \
+            security/packs/ai-mcp/src/ai_mcp_runbooks/synthetic_supervised_worker.py \
+            security/packs/ai-mcp/tests/test_supervised_runner_protocol_candidate.py
+          git diff --check
+      - name: Commit candidate and remove temporary workflow
+        shell: bash
+        run: |
+          rm .github/workflows/epic-05-ai-mcp-synthetic-patch.yml
+          git config user.name "Pedro"
+          git config user.email "pedro.estoura@gmail.com"
+          git add -A
+          git commit -m "feat(epic-05): add AI-MCP supervised synthetic candidate"
+          git push origin HEAD:feat/epic-05-ai-mcp-supervised-synthetic
