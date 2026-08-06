@@ -1,12 +1,24 @@
+schema_version: 1
 id: docker
 name: Docker
-driver: docker-compose
-network_per_lab: true
+status: CURRENT
+drivers:
+  - docker-compose
+release_identity:
+  digest_scope: runtime-release
+  environment_override: forbidden
+  current_state: NOT_APPLICABLE
 lifecycle:
   - start
+  - status
+  - smoke
   - stop
   - reset
   - destroy
-egress:
-  allowed_profiles:
+isolation:
+  network_per_lab: true
+  default_egress: false
+  allowed_egress_profiles:
     - maintenance
+limitations:
+  - Runtime profile describes the host driver; individual laboratory images remain owned by their manifests or compose definitions until release manifests are introduced.
