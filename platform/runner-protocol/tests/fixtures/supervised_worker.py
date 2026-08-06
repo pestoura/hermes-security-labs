@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import signal
 import subprocess
 import sys
@@ -26,13 +27,23 @@ def _spawn_stubborn_child(pid_file: Path) -> subprocess.Popen[bytes]:
             str(Path(__file__).resolve()),
             "--mode",
             "stubborn-child",
+            "--pid-file",
+            str(pid_file),
         ],
         stdin=subprocess.DEVNULL,
         stdout=None,
         stderr=None,
         close_fds=True,
     )
-    _write_pid(pid_file, child.pid)
+    deadline = time.monotonic() + 2
+    while not pid_file.is_file():
+        if child.poll() is not None:
+            raise RuntimeError("stubborn child exited before readiness")
+        if time.monotonic() >= deadline:
+            child.kill()
+            child.wait()
+            raise RuntimeError("stubborn child readiness timed out")
+        time.sleep(0.01)
     return child
 
 
@@ -64,7 +75,10 @@ def main() -> int:
             time.sleep(1)
 
     if args.mode == "stubborn-child":
+        if args.pid_file is None:
+            parser.error("--pid-file is required for stubborn-child")
         _ignore_term()
+        _write_pid(args.pid_file, os.getpid())
         while True:
             time.sleep(1)
 
