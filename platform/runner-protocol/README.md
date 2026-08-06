@@ -6,7 +6,7 @@ Runner Protocol v2 is the canonical contract between an execution gateway and a 
 
 - Owner: `EPIC-05` / delivery umbrella `SVP2-B-02`.
 - Protocol version: `2.0.0`.
-- Current implementation state: contract, repository-local SDK, vendor-neutral conformance kit, durable transactional idempotency ledger and POSIX process supervisor are available; API-family in-memory and durable candidates pass synthetic conformance, and a fixed-worker supervised candidate is `IMPLEMENTING` with `PASS_SYNTHETIC_PROCESS`; real execution for API, DevSecOps and AI/MCP remains unimplemented.
+- Current implementation state: contract, repository-local SDK, vendor-neutral conformance kit, durable transactional idempotency ledger and POSIX process supervisor are available; API-family in-memory and durable candidates pass synthetic conformance, and a fixed-worker supervised candidate is `AS_BUILT` with `PASS_SYNTHETIC_PROCESS`; real execution for API, DevSecOps and AI/MCP remains unimplemented.
 - Hermes remains the authorization authority. A valid protocol message cannot create, extend or replace authorization.
 - Unknown versions, invalid messages, missing correlation or missing evidence fail closed.
 

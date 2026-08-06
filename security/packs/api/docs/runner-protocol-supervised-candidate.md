@@ -2,7 +2,8 @@
 
 ## Status
 
-`IMPLEMENTING` — block 8 of `EPIC-05 — Runner Protocol v2`.
+`AS_BUILT` — block 8 of `EPIC-05 — Runner Protocol v2`, integrated through pull request
+[#119](https://github.com/pestoura/hermes-security-labs/pull/119).
 
 This candidate connects the durable idempotency ledger to the repository-owned POSIX
 process supervisor using one fixed synthetic worker. It is not an API execution adapter,
@@ -146,6 +147,20 @@ execution evidence and is not integrated with the future Evidence Plane.
 - source guards prove no legacy executor, network client or direct subprocess invocation in the
   adapter;
 - full repository, packs, integration, Ruff and gitleaks gates remain green.
+
+## Integrated evidence
+
+- Validated head: `0c73ae7cb63ac8a5545c8d4ddc55b00d1543fba2`
+- Squash merge: `bc7e301baf977e041ff267a045bbb8ee592c6455`
+- PR validate: `31094891644` — success
+- PR security/gitleaks: `31094891414` — success
+- Post-merge validate: `31095007408` — success
+- Post-merge security/gitleaks: `31095007428` — success
+- Compatibility: `PASS_SYNTHETIC_PROCESS`
+- Runtime declaration: `NO_RUNTIME_CHANGE`
+
+All process execution used only the fixed synthetic worker. No real capability, customer target,
+laboratory, Hermes, Kali MCP or security tool was invoked.
 
 ## Explicit limitations
 
