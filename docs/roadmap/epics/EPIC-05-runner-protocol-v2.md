@@ -10,7 +10,7 @@
 | Phase | 1 |
 | Priority | P0 |
 | Delivery umbrella | `SVP2-B-02` (issue [#80](https://github.com/pestoura/hermes-security-labs/issues/80)) |
-| Document version | 1.8.0 |
+| Document version | 1.8.1 |
 | Document date | 2026-08-06 |
 | Catalogue | [Epic catalogue 45](../epic-catalogue-45.md) |
 | Lifecycle contract | [Architecture documentation lifecycle](../../architecture/architecture-documentation-lifecycle.md) |
@@ -33,9 +33,11 @@ validated again on `main`. It uses the durable ledger for restart replay without
 real capabilities or the legacy executor. The repository-local POSIX process supervisor was then
 integrated through pull request [#117](https://github.com/pestoura/hermes-security-labs/pull/117)
 and validated again on `main`. It owns bounded process-group timeout, cancellation and residue
-cleanup but remains disconnected from every adapter. `FINAL` remains false: production execution
-integration is `NOT_RUN`, promotion is blocked, DevSecOps and AI/MCP remain `NOT_RUN`, and
-bounded live cancellation has not been demonstrated through a Runner Protocol adapter.
+cleanup. Block 8 is now `IMPLEMENTING`: an API-family fixed-worker synthetic candidate consumes
+the ledger and supervisor, proving claim-before-spawn, timeout, asynchronous cancellation and
+fail-closed residue handling without real capabilities. `FINAL` remains false: production
+execution integration is `NOT_RUN`, promotion is blocked, DevSecOps and AI/MCP remain `NOT_RUN`,
+and no sandboxed real capability has been demonstrated.
 
 | Lifecycle state | Reached |
 | --- | --- |
@@ -382,6 +384,28 @@ The merged block proves clean exit, hard timeout, external cancellation, forced 
 descendant cleanup, output truncation and unsafe-specification refusal. It remains an execution
 primitive rather than authorization, sandboxing, capability mapping or evidence handling.
 
+### Block 8 — API supervised synthetic-process integration (`IMPLEMENTING`)
+
+- Branch: `feat/epic-05-api-supervised-synthetic-adapter`
+- Adapter: `security/packs/api/src/api_pentest_runbooks/supervised_runner_protocol_adapter.py`
+- Worker: `security/packs/api/src/api_pentest_runbooks/synthetic_supervised_worker.py`
+- Activation: `--conformance-only --synthetic-process-only --durable-ledger <absolute-path>`
+- Scope: fixed synthetic worker modes only
+- Durable claim: before process creation
+- Cancellation: asynchronous progress then bounded process-group cleanup
+- Timeout: hard timeout enforced by the POSIX supervisor
+- Residue: `INCONCLUSIVE`, never `PASS`
+- Output: stream hashes, lengths and supervision metadata; no raw stdout/stderr
+- Compatibility status: `PASS_SYNTHETIC_PROCESS`
+- Sandbox status: `NOT_IMPLEMENTED`
+- Production API execution: `NOT_RUN`
+- Promotion status: blocked
+- Runtime declaration: `NO_RUNTIME_CHANGE`
+
+The block must prove that request input cannot form a command, completed outcomes replay without
+a second process, cancellation persists across restart, and cleanup uncertainty cannot become
+success. It remains synthetic process-level evidence only.
+
 ## 15. As-built / final architecture
 
 > Reserved lifecycle section. This is the AS_BUILT record for the contract-only block. The
@@ -404,7 +428,9 @@ flowchart LR
   VAL --> DAPI[API durable synthetic candidate]
   DAPI --> LEDGER
   VAL --> RUN[Future production runner adapter]
-  SUP -. no adapter consumer .-> RUN
+  SUP --> SAPI[API fixed-worker supervised candidate]
+  SAPI --> LEDGER
+  SAPI -. no production capability .-> RUN
   API -. synthetic progress .-> PROG[runner.progress]
   RUN -. optional progress .-> PROG
   GW -. cancellation .-> CANCEL[request and acknowledgement]
@@ -420,8 +446,8 @@ flowchart LR
 
 The delivered implementation is a repository-owned protocol contract, validation library and
 optional local enforcement primitives for durable idempotency and POSIX process supervision. No
-runner adapter dispatches work through the supervisor; its process side effects are limited to
-controlled repository tests and do not access networks, containers or laboratories.
+the fixed-worker synthetic API candidate dispatches controlled repository test processes through
+the supervisor. No production adapter, network, container, laboratory or customer target is used.
 
 ### Evidence
 
@@ -657,3 +683,4 @@ controlled repository tests and do not access networks, containers or laboratori
 | 2026-08-06 | 1.7.0 | Record API durable synthetic restart replay AS_BUILT with production execution NOT_RUN and promotion blocked. |
 | 2026-08-06 | 1.7.1 | Start supervised POSIX process boundary with adapter integration and real execution NOT_RUN. |
 | 2026-08-06 | 1.8.0 | Record supervised process boundary AS_BUILT with adapter integration and real execution NOT_RUN. |
+| 2026-08-06 | 1.8.1 | Start fixed-worker API supervised synthetic-process integration with production execution blocked. |

@@ -11,30 +11,30 @@ A versão `v0.1.0-alpha` contém a fundação do motor, políticas e 150 runbook
 
 ## Runner Protocol v2 — candidatos isolados
 
-O pack inclui dois candidatos opt-in destinados exclusivamente ao conformance kit do Runner
+O pack inclui três candidatos opt-in destinados exclusivamente a validação sintética do Runner
 Protocol v2:
 
 - `src/api_pentest_runbooks/runner_protocol_adapter.py`: estado apenas em memória;
-- `src/api_pentest_runbooks/durable_runner_protocol_adapter.py`: integração sintética com o
-  `SQLiteIdempotencyLedger`, usando uma base explícita fora do repositório.
+- `src/api_pentest_runbooks/durable_runner_protocol_adapter.py`: replay sintético através do
+  `SQLiteIdempotencyLedger`;
+- `src/api_pentest_runbooks/supervised_runner_protocol_adapter.py`: processo sintético fixo,
+  claim durável anterior ao spawn e timeout/cancelamento através do supervisor POSIX.
 
-Ambos:
+Todos recusam capabilities e referências de autorização reais e permanecem desligados de
+`execute_runbook`, `ProcessBridgeAdapter`, `execute_command`, redes, laboratórios e ferramentas de
+segurança. Os dois primeiros não executam subprocessos. O terceiro exige também
+`--synthetic-process-only` e só pode invocar `synthetic_supervised_worker.py` com modos fixos; o
+pedido não consegue definir comando, argumentos, diretório, ambiente ou alvo.
 
-- só arrancam com `--conformance-only`;
-- aceitam apenas capabilities sintéticas `conformance.*`;
-- não importam nem chamam `execute_runbook`, `ProcessBridgeAdapter` ou `execute_command`;
-- não executam rede, subprocessos ou ferramentas de segurança;
-- recusam capabilities e referências de autorização reais;
-- estão desligados do caminho operacional descrito abaixo.
+O candidato durável suporta replay após reinício. O candidato supervisionado acrescenta processo
+fixo, timeout forte, cancelamento assíncrono, limpeza de descendentes e outcomes sem stdout/stderr
+bruto. Claims `IN_PROGRESS` não são recuperadas automaticamente. Ver
+[`docs/runner-protocol-durable-candidate.md`](docs/runner-protocol-durable-candidate.md) e
+[`docs/runner-protocol-supervised-candidate.md`](docs/runner-protocol-supervised-candidate.md).
 
-O candidato durável exige também `--durable-ledger <caminho-absoluto>`, faz claim antes do
-efeito sintético e suporta replay após reinício. Claims `IN_PROGRESS` não são recuperadas
-automaticamente. Ver
-[`docs/runner-protocol-durable-candidate.md`](docs/runner-protocol-durable-candidate.md).
-
-O resultado continua limitado a `PASS_SYNTHETIC`: a integração de execução é `NOT_RUN` e a
-promoção permanece bloqueada. Nenhum candidato representa um runner API operacional nem altera
-o comportamento existente do pack.
+Os estados permanecem limitados a `PASS_SYNTHETIC` e `PASS_SYNTHETIC_PROCESS`: a execução de
+produção é `NOT_RUN`, não existe sandbox completa e a promoção continua bloqueada. Nenhum
+candidato representa um runner API operacional nem altera o caminho existente do pack.
 
 ## Princípio operacional
 
