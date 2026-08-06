@@ -1,0 +1,52 @@
+name: epic-05-devsecops-as-built-fix
+
+on:
+  push:
+    branches:
+      - docs/epic-05-devsecops-as-built
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Correct multiline selectors
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('.github/workflows/epic-05-devsecops-as-built-patch.yml')
+          text = path.read_text(encoding='utf-8')
+          corrections = {
+              '\n          stronger sandbox, authorization, target and evidence controls.': '\n            stronger sandbox, authorization, target and evidence controls.',
+              '\n          and reused it through an isolated DevSecOps wrapper; real capability mapping still requires stronger': '\n            and reused it through an isolated DevSecOps wrapper; real capability mapping still requires stronger',
+              '\n          sandbox, authorization, target and evidence controls.': '\n            sandbox, authorization, target and evidence controls.',
+              '\n          candidate is limited to synthetic conformance and cannot execute real capabilities.': '\n            candidate is limited to synthetic conformance and cannot execute real capabilities.',
+              '\n          DevSecOps candidates are limited to synthetic conformance and cannot execute real capabilities.': '\n            DevSecOps candidates are limited to synthetic conformance and cannot execute real capabilities.',
+              '\n          synthetic API candidate, but no production Runner Protocol adapter invokes the supervisor or': '\n            synthetic API candidate, but no production Runner Protocol adapter invokes the supervisor or',
+              '\n          executes a real capability.': '\n            executes a real capability.',
+              '\n          synthetic API and DevSecOps candidates, but no production Runner Protocol adapter invokes the': '\n            synthetic API and DevSecOps candidates, but no production Runner Protocol adapter invokes the',
+              '\n          supervisor or executes a real capability.': '\n            supervisor or executes a real capability.',
+          }
+          for old, new in corrections.items():
+              if old not in text:
+                  raise SystemExit(f'missing selector line: {old!r}')
+              text = text.replace(old, new)
+          path.write_text(text, encoding='utf-8')
+          PY
+          git diff --check
+      - name: Commit corrected selector workflow
+        shell: bash
+        run: |
+          rm .github/workflows/epic-05-devsecops-as-built-fix.yml
+          git config user.name "Pedro"
+          git config user.email "pedro.estoura@gmail.com"
+          git add -A
+          git commit -m "fix(epic-05): correct as-built patch selectors"
+          git push origin HEAD:docs/epic-05-devsecops-as-built
