@@ -14,22 +14,31 @@ compatibility_rules:
   terminal_evidence_reference: mandatory
   authorization_source: hermes_control_plane
 
+conformance_kit:
+  status: available
+  transport: json_lines
+  execution_model: isolated_candidate_process
+  reference_adapter: test_only
+  report_schema: schemas/conformance-report.schema.json
+  promotion_effect: none
+  required_verdict_for_promotion: PASS
+
 runner_families:
   - id: api
     implementation_status: not_started
     protocol_status: contract_only
     conformance: NOT_RUN
-    notes: Existing API pack semantics are unchanged by this block.
+    notes: Existing API pack semantics are unchanged; conformance has not been executed against an API adapter.
   - id: devsecops
     implementation_status: not_started
     protocol_status: contract_only
     conformance: NOT_RUN
-    notes: Existing DevSecOps pack semantics are unchanged by this block.
+    notes: Existing DevSecOps pack semantics are unchanged; conformance has not been executed against a DevSecOps adapter.
   - id: ai-mcp
     implementation_status: not_started
     protocol_status: contract_only
     conformance: NOT_RUN
-    notes: Existing AI/MCP pack semantics are unchanged by this block.
+    notes: Existing AI/MCP pack semantics are unchanged; conformance has not been executed against an AI/MCP adapter.
 
 migration_gates:
   - schema_validation
@@ -39,5 +48,7 @@ migration_gates:
   - cancellation_timeout_test
   - evidence_reference_test
   - secret_redaction_test
+  - conformance_report_pass
+  - human_review_before_promotion
 
 runtime_declaration: NO_RUNTIME_CHANGE
