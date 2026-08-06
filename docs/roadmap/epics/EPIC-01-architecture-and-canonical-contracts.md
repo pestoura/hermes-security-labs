@@ -10,14 +10,15 @@
 | Phase | 1 |
 | Priority | P0 |
 | Delivery umbrella | `SVP2-A-01` (issue [#76](https://github.com/pestoura/hermes-security-labs/issues/76)) |
-| Document version | 1.1.0 |
+| Document version | 1.1.1 |
 | Document date | 2026-08-06 |
 | Catalogue | [Epic catalogue 45](../epic-catalogue-45.md) |
 | Lifecycle contract | [Architecture documentation lifecycle](../../architecture/architecture-documentation-lifecycle.md) |
 
 ## 2. Current status
 
-**IMPLEMENTING** — the first delivery block is active on branch
+**IMPLEMENTING** — the first delivery block is active in pull request
+[#100](https://github.com/pestoura/hermes-security-labs/pull/100) from branch
 `docs/epic-01-canonical-contracts`. The architecture contracts, initial ADR set and
 mechanical documentation gates are being implemented. No runtime enforcement is claimed.
 
@@ -148,7 +149,7 @@ be closed, and this document must record the references in section 15.
 
 - Branch: `docs/epic-01-canonical-contracts`
 - Umbrella issue: [#76](https://github.com/pestoura/hermes-security-labs/issues/76)
-- Pull request: pending creation from this branch
+- Pull request: [#100](https://github.com/pestoura/hermes-security-labs/pull/100)
 - Runtime declaration: `NO_RUNTIME_CHANGE`
 - Added the ADR governance/index and eight initial structural ADRs.
 - Added the canonical cross-plane contract inventory.
@@ -176,3 +177,4 @@ _Not yet merged._
 | --- | --- | --- |
 | 2026-08-06 | 1.0.0 | Initial intent document created from the concept epic catalogue. |
 | 2026-08-06 | 1.1.0 | Set IMPLEMENTING; record branch, initial ADR decisions, contract inventory and trust-boundary divergence. |
+| 2026-08-06 | 1.1.1 | Link implementation pull request #100. |
