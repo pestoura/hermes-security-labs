@@ -10,24 +10,23 @@
 | Phase | 1 |
 | Priority | P0 |
 | Delivery umbrella | `SVP2-A-01` (issue [#76](https://github.com/pestoura/hermes-security-labs/issues/76)) |
-| Document version | 1.2.1 |
+| Document version | 1.3.0 |
 | Document date | 2026-08-06 |
 | Catalogue | [Epic catalogue 45](../epic-catalogue-45.md) |
 | Lifecycle contract | [Architecture documentation lifecycle](../../architecture/architecture-documentation-lifecycle.md) |
 
 ## 2. Current status
 
-**AS_BUILT** — the source-of-truth implementation was integrated through pull request
-[#102](https://github.com/pestoura/hermes-security-labs/pull/102) and validated again on
-`main`. `FINAL` remains pending until umbrella #76 completes its catalogue and lifecycle
-closure.
+**FINAL** — the source-of-truth implementation is integrated and validated on `main`;
+EPIC-01 and EPIC-02 are synchronized with the machine-readable catalogues and umbrella
+#76 is ready for completed closure.
 
 | Lifecycle state | Reached |
 | --- | --- |
 | INTENT | yes |
 | IMPLEMENTING | yes |
 | AS_BUILT | yes |
-| FINAL | no |
+| FINAL | yes |
 
 ## 3. Problem and motivation
 
@@ -233,6 +232,8 @@ change live runtime state or the existing operational drift comparator.
 - Valid runtime observation may still produce `UNKNOWN` when evidence is incomplete or stale;
   this is deliberate fail-safe behaviour.
 - Automatic drift remediation remains forbidden.
+- FINAL records completion of the repository contract and catalogue synchronization only;
+  it does not claim live runtime reconciliation or image promotion.
 
 ## 16. Document change log
 
@@ -243,3 +244,4 @@ change live runtime state or the existing operational drift comparator.
 | 2026-08-06 | 1.1.1 | Link implementation pull request #102. |
 | 2026-08-06 | 1.2.0 | Record AS_BUILT architecture, CI evidence, acceptance results, corrections and limitations. |
 | 2026-08-06 | 1.2.1 | Retain the reserved lifecycle marker required by the epic documentation contract. |
+| 2026-08-06 | 1.3.0 | Mark FINAL after catalogue synchronization and umbrella closure validation. |

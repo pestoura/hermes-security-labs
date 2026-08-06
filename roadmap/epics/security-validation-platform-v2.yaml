@@ -67,7 +67,7 @@ epics:
     pillar: A
     priority: P0
     phase: 1
-    status: proposed
+    status: completed
     rationale: >-
       A separacao entre control plane e execution plane nao esta formalizada, o que
       permite acumular autorizacao e execucao na mesma camada e impede auditoria.
@@ -89,7 +89,7 @@ epics:
     risks:
       - Arquitetura documentada divergir da implementacao existente
       - ADRs tornarem-se desatualizados sem processo de revisao
-    labels: [roadmap, architecture, "pillar:A", "priority:P0", "status:proposed", "type:epic"]
+    labels: [roadmap, architecture, "pillar:A", "priority:P0", "status:completed", "type:epic"]
     references:
       - docs/roadmap/security-validation-platform-v2.md
       - docs/architecture/security-validation-reference-architecture.md

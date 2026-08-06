@@ -57,12 +57,12 @@ concept_epics:
     pillar: A
     phase: 1
     priority: P0
-    status: intent
+    status: final
     umbrella_id: SVP2-A-01
     umbrella_issue: 76
     dependencies: []
     doc_path: docs/roadmap/epics/EPIC-01-architecture-and-canonical-contracts.md
-    current_state: "Not implemented. Concept documented as intent only."
+    current_state: "FINAL. Canonical trust boundaries, ADR governance and cross-plane contract inventory are integrated and CI-enforced; runtime enforcement remains assigned to later epics."
     target_state: "A canonical reference architecture with numbered trust boundaries TB0-TB4, ADRs for every structural decision, and contract artefacts that all other epics reference instead of restating."
   - concept_id: EPIC-02
     slug: single-source-of-truth-for-runtime
@@ -70,12 +70,12 @@ concept_epics:
     pillar: A
     phase: 1
     priority: P0
-    status: intent
+    status: final
     umbrella_id: SVP2-A-01
     umbrella_issue: 76
     dependencies: [EPIC-01]
     doc_path: docs/roadmap/epics/EPIC-02-single-source-of-truth-for-runtime.md
-    current_state: "Not implemented. Concept documented as intent only."
+    current_state: "FINAL. The registry-backed runtime source-of-truth, schema validation and fail-safe tri-state drift contract are integrated; live reconciliation remains intentionally out of scope."
     target_state: "One versioned declarative source describes runtime intent; deployed state is compared against it and divergence is reported, never silently reconciled."
   - concept_id: EPIC-03
     slug: typed-kali-mcp

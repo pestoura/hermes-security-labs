@@ -1,8 +1,9 @@
 # Epic catalogue — 45 concept epics for Security Validation Platform v2
 
-> **Status: INTENT.** Nothing in this catalogue is implemented. It documents the
-> conceptual design space discussed for the platform. The delivery backlog remains the
-> 21 umbrella epics in
+> **Status: MIXED LIFECYCLE.** EPIC-01 and EPIC-02 are `FINAL` under completed umbrella
+> `SVP2-A-01`; the remaining concept epics retain their declared lifecycle state. This
+> catalogue records both implemented foundation contracts and the remaining design intent.
+> The delivery backlog remains the 21 umbrella epics in
 > [`roadmap/epics/security-validation-platform-v2.yaml`](../../roadmap/epics/security-validation-platform-v2.yaml).
 
 ## 1. Two distinct layers

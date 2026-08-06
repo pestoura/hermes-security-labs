@@ -120,11 +120,14 @@ def test_declared_pillars_and_phases_are_used(concepts: dict) -> None:
         assert item["phase"] in phases
 
 
-def test_all_statuses_are_intent_for_now(concepts: dict) -> None:
+def test_statuses_match_document_lifecycle(concepts: dict) -> None:
     for item in concepts["concept_epics"]:
-        assert item["status"] == "intent", (
-            f"{item['concept_id']} claims a non-intent status; update the epic document "
-            "as-built section before changing this"
+        document = ROOT / item["doc_path"]
+        text = document.read_text(encoding="utf-8")
+        marker = item["status"].upper()
+        assert f"**{marker}**" in text, (
+            f"{item['concept_id']} catalogue status {item['status']!r} "
+            "does not match its epic document"
         )
 
 
