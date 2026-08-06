@@ -10,7 +10,7 @@
 | Phase | 1 |
 | Priority | P0 |
 | Delivery umbrella | `SVP2-B-02` (issue [#80](https://github.com/pestoura/hermes-security-labs/issues/80)) |
-| Document version | 1.9.0 |
+| Document version | 2.0.0 |
 | Document date | 2026-08-06 |
 | Catalogue | [Epic catalogue 45](../epic-catalogue-45.md) |
 | Lifecycle contract | [Architecture documentation lifecycle](../../architecture/architecture-documentation-lifecycle.md) |
@@ -36,9 +36,14 @@ and validated again on `main`. It owns bounded process-group timeout, cancellati
 cleanup. The API-family fixed-worker synthetic candidate was then integrated through pull
 request [#119](https://github.com/pestoura/hermes-security-labs/pull/119) and validated again on
 `main`. It consumes the ledger and supervisor, proving claim-before-spawn, timeout, asynchronous
-cancellation and fail-closed residue handling without real capabilities. `FINAL` remains false:
-production execution integration is `NOT_RUN`, promotion is blocked, DevSecOps and AI/MCP remain
-`NOT_RUN`, and no sandboxed real capability has been demonstrated.
+cancellation and fail-closed residue handling without real capabilities. The shared supervised
+synthetic engine was subsequently reused by an isolated DevSecOps candidate through pull request
+[#121](https://github.com/pestoura/hermes-security-labs/pull/121), with its canonical compatibility
+declaration promoted atomically through pull request
+[#122](https://github.com/pestoura/hermes-security-labs/pull/122). API and DevSecOps now have
+fixed-worker synthetic process evidence only. `FINAL` remains false: production execution
+integration is `NOT_RUN`, promotion is blocked, AI/MCP remains `NOT_RUN`, and no sandboxed real
+capability has been demonstrated.
 
 | Lifecycle state | Reached |
 | --- | --- |
@@ -410,6 +415,35 @@ The merged block proves that request input cannot form a command, completed outc
 without a second process, cancellation persists across restart, and cleanup uncertainty cannot
 become success. It remains synthetic process-level evidence only.
 
+### Block 9 — shared supervised engine and DevSecOps synthetic portability (`AS_BUILT`)
+
+- Technical branch: `feat/epic-05-devsecops-supervised-synthetic`
+- Technical pull request: [#121](https://github.com/pestoura/hermes-security-labs/pull/121)
+- Technical squash merge: `16384cdb4223b78da8ed26f8f2ad61038e7e5636`
+- Lifecycle branch: `chore/epic-05-devsecops-lifecycle`
+- Lifecycle pull request: [#122](https://github.com/pestoura/hermes-security-labs/pull/122)
+- Lifecycle validated head: `057ae3041989a6f57f9f4cc5d7f505042d7f9a30`
+- Lifecycle squash merge: `f2be46da70601aafe92a436636d8c09201a1b259`
+- Shared engine: `platform/runner-protocol/src/runner_protocol_v2/synthetic_supervised.py`
+- DevSecOps adapter: `security/packs/devsecops/src/devsecops_runbooks/supervised_runner_protocol_adapter.py`
+- DevSecOps worker: `security/packs/devsecops/src/devsecops_runbooks/synthetic_supervised_worker.py`
+- Activation: `--conformance-only --synthetic-process-only --durable-ledger <absolute-path>`
+- Scope: fixed synthetic worker modes only
+- Durable replay: completed outcomes do not start a second process
+- Cancellation and timeout: shared POSIX supervisor with bounded cleanup
+- Residue: fail-closed `INCONCLUSIVE`, never `PASS`
+- Output: hashes, lengths and bounded supervision metadata; no raw stdout/stderr
+- Compatibility status: `PASS_SYNTHETIC_PROCESS`
+- Sandbox status: `NOT_IMPLEMENTED`
+- Production DevSecOps execution: `NOT_RUN`
+- Promotion status: blocked
+- Runtime declaration: `NO_RUNTIME_CHANGE`
+
+The merged block proves that the repository-owned supervisor and durable lifecycle can be reused
+across runner families without creating an API-to-DevSecOps dependency or copying the engine. It
+does not run scanners, pipelines, repositories, networks, customer targets or commands supplied by
+requests. The lifecycle declaration remains constrained to the fixed synthetic worker boundary.
+
 ## 15. As-built / final architecture
 
 > Reserved lifecycle section. This is the AS_BUILT record for the contract-only block. The
@@ -433,8 +467,11 @@ flowchart LR
   DAPI --> LEDGER
   VAL --> RUN[Future production runner adapter]
   SUP --> SAPI[API fixed-worker supervised candidate]
+  SUP --> SDEV[DevSecOps fixed-worker supervised candidate]
   SAPI --> LEDGER
+  SDEV --> LEDGER
   SAPI -. no production capability .-> RUN
+  SDEV -. no production capability .-> RUN
   API -. synthetic progress .-> PROG[runner.progress]
   RUN -. optional progress .-> PROG
   GW -. cancellation .-> CANCEL[request and acknowledgement]
@@ -450,8 +487,9 @@ flowchart LR
 
 The delivered implementation is a repository-owned protocol contract, validation library and
 optional local enforcement primitives for durable idempotency and POSIX process supervision. The
-fixed-worker synthetic API candidate dispatches controlled repository test processes through the
-supervisor. No production adapter, network, container, laboratory or customer target is used.
+fixed-worker synthetic API and DevSecOps candidates dispatch controlled repository test processes
+through the shared supervisor. No production adapter, network, container, laboratory or customer
+target is used.
 
 ### Evidence
 
@@ -528,6 +566,16 @@ supervisor. No production adapter, network, container, laboratory or customer ta
 | Compatibility state | `PASS_SYNTHETIC_PROCESS` |
 | Production API execution integration | `NOT_RUN` |
 | Sandbox status | `NOT_IMPLEMENTED` |
+| PR #121 technical squash merge | `16384cdb4223b78da8ed26f8f2ad61038e7e5636` |
+| PR #122 lifecycle validated head | `057ae3041989a6f57f9f4cc5d7f505042d7f9a30` |
+| PR #122 lifecycle squash merge | `f2be46da70601aafe92a436636d8c09201a1b259` |
+| PR #122 validate workflow | success — run `31110205273` |
+| PR #122 security/gitleaks workflow | success — run `31110206988` |
+| Post-merge DevSecOps lifecycle validate workflow | success — run `31110364765` |
+| Post-merge DevSecOps lifecycle security/gitleaks workflow | success — run `31110364958` |
+| DevSecOps compatibility state | `PASS_SYNTHETIC_PROCESS` |
+| Production DevSecOps execution integration | `NOT_RUN` |
+| AI/MCP execution integration | `NOT_RUN` |
 
 ### Block 1 acceptance assessment
 
@@ -554,7 +602,7 @@ supervisor. No production adapter, network, container, laboratory or customer ta
 | Controlled secret leak detected | met | canary and broken-adapter self-test |
 | Report sanitized and schema-backed | met | report schema and tests |
 | Automatic promotion prevented | met | compatibility declaration `promotion_effect: none` |
-| Real runner conformance | `NOT_RUN` | API, DevSecOps and AI/MCP remain unchanged |
+| Real runner conformance | `NOT_RUN` | API and DevSecOps have synthetic candidates only; AI/MCP remains unchanged |
 
 ### Block 3 acceptance assessment
 
@@ -566,7 +614,7 @@ supervisor. No production adapter, network, container, laboratory or customer ta
 | Canonical artefacts remain single-source | met | schemas and compatibility remain outside package copies |
 | Missing explicit contract root fails closed | met | negative SDK test |
 | Standard-library `platform` collision avoided | met | explicit package namespace |
-| Real runner conformance | `NOT_RUN` | API, DevSecOps and AI/MCP unchanged |
+| Real runner conformance | `NOT_RUN` | API and DevSecOps have synthetic candidates only; AI/MCP remains unchanged |
 
 ### Block 4 acceptance assessment
 
@@ -645,14 +693,32 @@ supervisor. No production adapter, network, container, laboratory or customer ta
 | Production API capability execution | `NOT_RUN` | fixed synthetic worker only |
 | Production promotion | blocked | compatibility 1.3 and explicit no-promotion status |
 
+### Block 9 acceptance assessment
+
+| Criterion | Result | Evidence |
+| --- | --- | --- |
+| Shared engine has no family-specific imports | met | source boundary and monorepo tests |
+| DevSecOps does not depend on API implementation | met | isolated wrapper and import guards |
+| Request input cannot form process specification | met | caller-shaped input and source tests |
+| Durable claim precedes fixed-worker process creation | met | shared lifecycle tests |
+| Completed request replays without a second process | met | reopen/replay tests and zero effect count |
+| Non-zero exit, timeout and cancellation normalize safely | met | DevSecOps pack tests |
+| Descendant residue cannot yield `PASS` | met | residue maps to non-retryable `INCONCLUSIVE` |
+| Raw worker streams are not persisted | met | hashes and bounded metadata only |
+| Real scanners, pipelines and repositories are refused | met | refusal-before-claim tests |
+| Canonical matrix and validator agree atomically | met | PR #122 compatibility validation |
+| Sandbox and resource isolation | `NOT_RUN` | process groups are not a sandbox |
+| Production DevSecOps capability execution | `NOT_RUN` | fixed synthetic worker only |
+| Production promotion | blocked | explicit compatibility declaration |
+
 ### Epic-level criteria not yet met
 
 | Criterion | State | Required next evidence |
 | --- | --- | --- |
-| Correlation propagated by every adapter | `NOT_RUN` | API, DevSecOps and AI/MCP adapter conformance |
+| Correlation propagated by every adapter | `PARTIAL` | API and DevSecOps synthetic candidates preserve correlation; production adapters and AI/MCP remain `NOT_RUN` |
 | Same idempotency key never duplicates effects | `PARTIAL` | synthetic effect and fixed-process replay are AS_BUILT; production effect integration remains `NOT_RUN` |
-| Cancellation observable and bounded live | `PARTIAL` | fixed synthetic API process is AS_BUILT; production adapter cancellation remains `NOT_RUN` |
-| Error taxonomy normalized end to end | `PARTIAL` | fixed synthetic process states are normalized; gateway and production adapters remain `NOT_RUN` |
+| Cancellation observable and bounded live | `PARTIAL` | fixed synthetic API and DevSecOps processes are AS_BUILT; production adapter cancellation remains `NOT_RUN` |
+| Error taxonomy normalized end to end | `PARTIAL` | API and DevSecOps synthetic process states are normalized; gateway and production adapters remain `NOT_RUN` |
 
 ### Differences from intent
 
@@ -675,17 +741,18 @@ supervisor. No production adapter, network, container, laboratory or customer ta
   the durable variant proves restart replay only for synthetic effects.
 - The process supervisor was delivered as a reusable SDK primitive before adapter integration so
   timeout and cancellation behaviour could be reviewed independently from capability mapping.
-  Block 8 then connected only a fixed synthetic worker; real capability mapping still requires
-  stronger sandbox, authorization, target and evidence controls.
+  Block 8 then connected only a fixed API synthetic worker. Block 9 extracted the common lifecycle
+  and reused it through an isolated DevSecOps wrapper; real capability mapping still requires stronger
+  sandbox, authorization, target and evidence controls.
 
 ### Limitations and residual risk
 
-- No production runner adapter consumes or emits Runner Protocol v2 messages; the API
-  candidate is limited to synthetic conformance and cannot execute real capabilities.
+- No production runner adapter consumes or emits Runner Protocol v2 messages; the API and
+  DevSecOps candidates are limited to synthetic conformance and cannot execute real capabilities.
 - Schema-valid requests may still be unauthorized; Hermes authorization remains mandatory.
 - Local cancellation, hard timeout and process-group cleanup are integrated with the fixed
-  synthetic API candidate, but no production Runner Protocol adapter invokes the supervisor or
-  executes a real capability.
+  synthetic API and DevSecOps candidates, but no production Runner Protocol adapter invokes the
+  supervisor or executes a real capability.
 - The API durable synthetic candidate now consumes the atomic ledger, but duplicate real effects
   remain possible until production adapters claim before execution and persist the terminal outcome.
 - Evidence references are structurally validated but the Evidence Plane and chain-of-custody
@@ -717,3 +784,4 @@ supervisor. No production adapter, network, container, laboratory or customer ta
 | 2026-08-06 | 1.8.0 | Record supervised process boundary AS_BUILT with adapter integration and real execution NOT_RUN. |
 | 2026-08-06 | 1.8.1 | Start fixed-worker API supervised synthetic-process integration with production execution blocked. |
 | 2026-08-06 | 1.9.0 | Record fixed-worker API supervised synthetic-process integration AS_BUILT with sandbox and production execution NOT_RUN. |
+| 2026-08-06 | 2.0.0 | Record shared supervised engine and DevSecOps fixed-worker synthetic portability AS_BUILT with production execution NOT_RUN. |

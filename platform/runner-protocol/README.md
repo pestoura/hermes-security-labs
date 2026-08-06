@@ -6,7 +6,7 @@ Runner Protocol v2 is the canonical contract between an execution gateway and a 
 
 - Owner: `EPIC-05` / delivery umbrella `SVP2-B-02`.
 - Protocol version: `2.0.0`.
-- Current implementation state: contract, repository-local SDK, vendor-neutral conformance kit, durable transactional idempotency ledger and POSIX process supervisor are available; API-family in-memory and durable candidates pass synthetic conformance, and a fixed-worker supervised candidate is `AS_BUILT` with `PASS_SYNTHETIC_PROCESS`; real execution for API, DevSecOps and AI/MCP remains unimplemented.
+- Current implementation state: contract, repository-local SDK, vendor-neutral conformance kit, durable transactional idempotency ledger and POSIX process supervisor are available; API-family in-memory and durable candidates pass synthetic conformance, while fixed-worker API and DevSecOps supervised candidates are `AS_BUILT` with `PASS_SYNTHETIC_PROCESS`; production execution remains unimplemented for every family and AI/MCP has no candidate.
 - Hermes remains the authorization authority. A valid protocol message cannot create, extend or replace authorization.
 - Unknown versions, invalid messages, missing correlation or missing evidence fail closed.
 
@@ -155,8 +155,8 @@ idempotency state and validated terminal outcomes. The optional
 [`PosixProcessSupervisor`](supervised-process-boundary.md) is an execution primitive that starts
 only an absolute executable without a shell and owns bounded process-group cleanup. It does not
 authorize, select capabilities, map targets or produce protocol evidence. Only the fixed-worker
-synthetic-process candidate consumes it; no production adapter does. The SDK remains the shared
-dependency so protocol and lifecycle semantics are not copied per family.
+API and DevSecOps synthetic-process candidates consume it; no production adapter does. The SDK
+remains the shared dependency so protocol and lifecycle semantics are not copied per family.
 
 ## Supervised process boundary
 
@@ -167,9 +167,9 @@ bounded output, escalates `SIGTERM` to `SIGKILL`, and refuses to classify root e
 while descendants remain. `CLEANUP_FAILED` is never eligible for protocol `PASS`.
 
 This is not a sandbox. It provides no cgroup, namespace, seccomp, network, privilege or resource
-quota enforcement. The API fixed-worker synthetic candidate exercises it without accepting a
-caller-controlled command; no production adapter consumes it and real capability execution remains
-`NOT_RUN`.
+quota enforcement. The API and DevSecOps fixed-worker synthetic candidates exercise it without
+accepting a caller-controlled command; no production adapter consumes it and real capability
+execution remains `NOT_RUN`.
 
 ### API supervised synthetic-process candidate
 
@@ -183,6 +183,20 @@ validated terminal outcomes, and raw worker streams are replaced by hashes and b
 Its compatibility state is `PASS_SYNTHETIC_PROCESS`, not production conformance. Sandboxing, real
 authorization lookup, target allowlisting, Evidence Plane integration and real API execution remain
 `NOT_RUN`; promotion remains blocked.
+
+### DevSecOps supervised synthetic-process candidate
+
+The block-9 candidate is implemented at
+[`security/packs/devsecops/src/devsecops_runbooks/supervised_runner_protocol_adapter.py`](../../security/packs/devsecops/src/devsecops_runbooks/supervised_runner_protocol_adapter.py)
+and documented in
+[`security/packs/devsecops/docs/runner-protocol-supervised-candidate.md`](../../security/packs/devsecops/docs/runner-protocol-supervised-candidate.md).
+It uses the same shared supervised engine and fixed activation controls as the API candidate, but
+supplies a separate DevSecOps worker and imports no API-family implementation. It cannot invoke a
+scanner, pipeline, repository, network, target or command supplied by a request.
+
+Its compatibility state is `PASS_SYNTHETIC_PROCESS` for fixed synthetic process evidence only.
+Sandboxing, production authorization, repository credentials, pipeline integration, real DevSecOps
+capability execution and Evidence Plane integration remain `NOT_RUN`; promotion remains blocked.
 
 ## Conformance kit
 
@@ -225,7 +239,7 @@ Compatibility rules and current adapter status are in [`compatibility.yaml`](com
 - an unknown major version fails closed before execution;
 - optional fields may be added only when older consumers safely ignore them;
 - removing or reinterpreting a required field requires a new major version;
-- API remains `conformance_only`; DevSecOps and AI/MCP remain `contract_only` until adapters and conformance evidence are integrated.
+- API and DevSecOps remain `conformance_only` with synthetic evidence only; AI/MCP remains `contract_only` until an adapter and conformance evidence are integrated.
 
 ## Canonical artefacts
 
