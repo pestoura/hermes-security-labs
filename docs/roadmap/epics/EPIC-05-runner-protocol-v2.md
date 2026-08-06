@@ -10,7 +10,7 @@
 | Phase | 1 |
 | Priority | P0 |
 | Delivery umbrella | `SVP2-B-02` (issue [#80](https://github.com/pestoura/hermes-security-labs/issues/80)) |
-| Document version | 1.6.0 |
+| Document version | 1.6.1 |
 | Document date | 2026-08-06 |
 | Catalogue | [Epic catalogue 45](../epic-catalogue-45.md) |
 | Lifecycle contract | [Architecture documentation lifecycle](../../architecture/architecture-documentation-lifecycle.md) |
@@ -27,9 +27,10 @@ validated on `main`. The repository-local SDK was then integrated through pull r
 request [#111](https://github.com/pestoura/hermes-security-labs/pull/111) and validated
 again on `main`. A reusable durable SQLite idempotency ledger was then integrated through
 pull request [#113](https://github.com/pestoura/hermes-security-labs/pull/113) and validated
-again on `main`. `FINAL` remains false: no runner consumes the durable ledger, production
-execution integration is `NOT_RUN`, promotion is blocked, and bounded live cancellation
-has not been demonstrated against real execution.
+again on `main`. Block 6 is now `IMPLEMENTING`: a separate API-family synthetic candidate
+uses the durable ledger for restart replay without connecting to real capabilities or the legacy
+executor. `FINAL` remains false: production execution integration is `NOT_RUN`, promotion is
+blocked, and bounded live cancellation has not been demonstrated against real execution.
 
 | Lifecycle state | Reached |
 | --- | --- |
@@ -331,6 +332,25 @@ terminal replay without a second effect decision, immutable fingerprint/outcome 
 fail-closed corrupt or unknown state. It is an enforcement component, not authorization and
 not evidence that any real runner is idempotent.
 
+### Block 6 — API durable synthetic integration (`IMPLEMENTING`)
+
+- Branch: `feat/epic-05-api-durable-ledger-integration`
+- Candidate path: `security/packs/api/src/api_pentest_runbooks/durable_runner_protocol_adapter.py`
+- Activation: `--conformance-only --durable-ledger <absolute-path>`
+- Scope: synthetic `conformance.*` only
+- Authorization: synthetic `authz/conformance/active` only
+- Durable claim: before the synthetic effect path
+- Restart replay: validated with a new candidate instance over the same database
+- Uncertain `IN_PROGRESS`: refused; automatic reclaim blocked
+- Real API execution: `NOT_RUN`
+- Legacy executor and bridge: unchanged and disconnected
+- Promotion status: blocked
+- Runtime declaration: `NO_RUNTIME_CHANGE`
+
+The block must pass the vendor-neutral conformance kit with disposable durable state and prove
+that restart replay does not increase the synthetic effect counter. This remains synthetic
+effect-level evidence only.
+
 ## 15. As-built / final architecture
 
 > Reserved lifecycle section. This is the AS_BUILT record for the contract-only block. The
@@ -540,3 +560,4 @@ It does not dispatch work and it has no process, network, container or laborator
 | 2026-08-06 | 1.4.1 | Start block 4 API-family candidate in synthetic-only conformance mode with production promotion blocked. |
 | 2026-08-06 | 1.5.0 | Record API synthetic candidate AS_BUILT with PASS_SYNTHETIC evidence, execution NOT_RUN and promotion blocked. |
 | 2026-08-06 | 1.6.0 | Record durable transactional idempotency ledger AS_BUILT with adapter integration NOT_RUN. |
+| 2026-08-06 | 1.6.1 | Start API durable synthetic integration with restart replay and production execution blocked. |

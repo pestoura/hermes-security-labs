@@ -6,7 +6,7 @@ Runner Protocol v2 is the canonical contract between an execution gateway and a 
 
 - Owner: `EPIC-05` / delivery umbrella `SVP2-B-02`.
 - Protocol version: `2.0.0`.
-- Current implementation state: contract, repository-local SDK, vendor-neutral conformance kit and durable transactional idempotency ledger are available; an API-family candidate passes synthetic conformance only, while durable-ledger adapter integration and real execution for API, DevSecOps and AI/MCP remain unimplemented.
+- Current implementation state: contract, repository-local SDK, vendor-neutral conformance kit and durable transactional idempotency ledger are available; API-family in-memory and durable candidates pass synthetic conformance only, while real execution for API, DevSecOps and AI/MCP remains unimplemented.
 - Hermes remains the authorization authority. A valid protocol message cannot create, extend or replace authorization.
 - Unknown versions, invalid messages, missing correlation or missing evidence fail closed.
 
@@ -151,8 +151,9 @@ directory. Missing or incomplete contract artefacts fail closed.
 
 The SDK does not dispatch, authorize, cancel or execute work. Its validation functions are
 side-effect free; the optional [`SQLiteIdempotencyLedger`](durable-idempotency-ledger.md) persists
-only caller-supplied idempotency state and validated terminal outcomes. No adapter uses the ledger
-yet. The SDK remains the shared dependency so protocol semantics are not copied per family.
+only caller-supplied idempotency state and validated terminal outcomes. The API durable synthetic
+candidate uses it solely for conformance and restart-replay tests. The SDK remains the shared
+dependency so protocol semantics are not copied per family.
 
 ## Conformance kit
 
@@ -195,7 +196,7 @@ Compatibility rules and current adapter status are in [`compatibility.yaml`](com
 - an unknown major version fails closed before execution;
 - optional fields may be added only when older consumers safely ignore them;
 - removing or reinterpreting a required field requires a new major version;
-- the three existing runner families remain `contract_only` until adapters and conformance evidence are integrated.
+- API remains `conformance_only`; DevSecOps and AI/MCP remain `contract_only` until adapters and conformance evidence are integrated.
 
 ## Canonical artefacts
 
@@ -219,10 +220,13 @@ The first family-specific candidate is implemented at
 [`security/packs/api/src/api_pentest_runbooks/runner_protocol_adapter.py`](../../security/packs/api/src/api_pentest_runbooks/runner_protocol_adapter.py).
 It is an opt-in protocol candidate, not a production runner.
 
-The process starts only with `--conformance-only`, accepts only synthetic `conformance.*`
-capabilities and the synthetic authorization reference `authz/conformance/active`, and uses an
-in-memory ledger. It has no network, subprocess, file, bridge or legacy executor dependency.
-Any real API capability, real authorization reference or unsupported control action fails closed.
+The in-memory process starts only with `--conformance-only`. The durable candidate at
+[`security/packs/api/src/api_pentest_runbooks/durable_runner_protocol_adapter.py`](../../security/packs/api/src/api_pentest_runbooks/durable_runner_protocol_adapter.py)
+requires both `--conformance-only` and `--durable-ledger` with an absolute path outside the
+working tree. Both accept only synthetic `conformance.*` capabilities and the synthetic
+authorization reference `authz/conformance/active`. Neither has a network, subprocess, bridge or
+legacy executor dependency. Any real API capability, real authorization reference or unsupported
+control action fails closed before a durable claim.
 
 The vendor-neutral conformance kit returns `PASS` for this candidate. The compatibility record
 therefore uses the deliberately narrower state `PASS_SYNTHETIC`, while preserving:
@@ -231,7 +235,7 @@ therefore uses the deliberately narrower state `PASS_SYNTHETIC`, while preservin
 - `promotion_status: blocked`;
 - no connection to `execute_runbook()`;
 - no connection to `ProcessBridgeAdapter` or `execute_command`;
-- no persistent idempotency ledger;
+- durable persistence limited to synthetic conformance and disposable external SQLite state;
 - no live process cancellation or customer-target execution.
 
 `PASS_SYNTHETIC` proves protocol behaviour only. It cannot be used as evidence of production
@@ -242,6 +246,6 @@ safety, operational readiness or real API-runner conformance.
 - no runner adapter or gateway enforcement;
 - no change to existing pack/runbook semantics;
 - no live cancellation or process termination;
-- no adapter integration of the durable idempotency ledger;
+- no production adapter integration of the durable idempotency ledger;
 - no Evidence Plane implementation;
 - no deployment, laboratory, Hermes or Kali MCP change.

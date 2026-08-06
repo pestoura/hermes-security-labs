@@ -37,6 +37,9 @@ jobs:
         run: python -m pytest -q platform/tests -p no:cacheprovider
       - name: Validate Runner Protocol v2 SDK, contract and conformance kit
         run: |
+          set -euo pipefail
+          durable_dir=$(mktemp -d)
+          trap 'rm -rf "$durable_dir"' EXIT
           python -c "import runner_protocol_v2; assert runner_protocol_v2.__version__ == '2.0.0'"
           python platform/runner-protocol/validate_protocol.py --contract-only
           python platform/runner-protocol/conformance.py --self-test
@@ -44,6 +47,10 @@ jobs:
             --command "python security/packs/api/src/api_pentest_runbooks/runner_protocol_adapter.py --conformance-only" \
             --adapter-id api-runner-candidate \
             --output /tmp/api-runner-candidate-conformance.json
+          python platform/runner-protocol/conformance.py \
+            --command "python security/packs/api/src/api_pentest_runbooks/durable_runner_protocol_adapter.py --conformance-only --durable-ledger $durable_dir/api-runner-durable.sqlite3" \
+            --adapter-id api-runner-durable-candidate \
+            --output /tmp/api-runner-durable-candidate-conformance.json
           python -m pytest -q platform/runner-protocol/tests -p no:cacheprovider
       - name: Validate rollout plan
         run: python platform/scripts/labctl.py plan >/tmp/lab-rollout.tsv

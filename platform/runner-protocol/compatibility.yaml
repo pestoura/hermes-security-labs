@@ -1,4 +1,4 @@
-schema_version: "1.1"
+schema_version: "1.2"
 protocol:
   name: runner-protocol
   version: "2.0.0"
@@ -34,7 +34,16 @@ runner_families:
     activation: explicit_flag
     adapter_path: security/packs/api/src/api_pentest_runbooks/runner_protocol_adapter.py
     activation_argument: --conformance-only
-    notes: The opt-in API candidate passes synthetic protocol conformance but is disconnected from execute_runbook and the legacy ProcessBridgeAdapter; no real API capability is integrated.
+    durable_idempotency:
+      status: PASS_SYNTHETIC
+      integration_scope: synthetic_conformance_only
+      adapter_path: security/packs/api/src/api_pentest_runbooks/durable_runner_protocol_adapter.py
+      activation_argument: --durable-ledger
+      storage_requirement: absolute_path_outside_working_tree
+      restart_replay: PASS_SYNTHETIC
+      abandoned_claim_reclaim: blocked
+      production_effect_claim: none
+    notes: The opt-in API candidates pass synthetic protocol conformance, including durable restart replay in the dedicated candidate, but remain disconnected from execute_runbook and the legacy ProcessBridgeAdapter; no real API capability is integrated.
   - id: devsecops
     implementation_status: not_started
     protocol_status: contract_only
