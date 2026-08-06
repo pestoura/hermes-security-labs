@@ -1,0 +1,638 @@
+schema_version: "1.0"
+catalogue_id: security-validation-platform-v2-concepts
+title: Security Validation Platform v2 concept epic catalogue
+source_of_truth: docs/roadmap/epic-catalogue-45.md
+delivery_backlog: roadmap/epics/security-validation-platform-v2.yaml
+concept_count: 45
+umbrella_count: 21
+
+pillars:
+  - id: A
+    name: Governance and Architecture
+  - id: B
+    name: Runtime Foundation
+  - id: C
+    name: Image and Capability Factory
+  - id: D
+    name: Evidence Observability and Assurance
+  - id: E
+    name: Security Knowledge Fabric
+  - id: F
+    name: Threat-Informed Validation
+  - id: G
+    name: Vulnerability-Specific Validation
+  - id: H
+    name: Continuous Content Factories
+  - id: I
+    name: Lab Factory and Registry
+  - id: J
+    name: Risk Findings and Interoperability
+  - id: K
+    name: SDK and Extensibility
+  - id: L
+    name: Domain Expansion
+
+phases:
+  - id: 1
+    name: Architecture source of truth lifecycle and Runner Protocol v2
+  - id: 2
+    name: Typed MCP capability registry network policy and Evidence v2
+  - id: 3
+    name: Image factory and core runtime profiles
+  - id: 4
+    name: Complete pentest lifecycle and L3 L4 safety
+  - id: 5
+    name: Knowledge fabric and framework sync
+  - id: 6
+    name: Runbook lab runtime and detection factories
+  - id: 7
+    name: Threat-informed purple team risk and interoperability
+  - id: 8
+    name: Domain expansion
+
+concept_epics:
+  - concept_id: EPIC-01
+    slug: architecture-and-canonical-contracts
+    title: "Architecture and canonical contracts"
+    pillar: A
+    phase: 1
+    priority: P0
+    status: intent
+    umbrella_id: SVP2-A-01
+    umbrella_issue: 76
+    dependencies: []
+    doc_path: docs/roadmap/epics/EPIC-01-architecture-and-canonical-contracts.md
+    current_state: "Not implemented. Concept documented as intent only."
+    target_state: "A canonical reference architecture with numbered trust boundaries TB0-TB4, ADRs for every structural decision, and contract artefacts that all other epics reference instead of restating."
+  - concept_id: EPIC-02
+    slug: single-source-of-truth-for-runtime
+    title: "Single source of truth for runtime"
+    pillar: A
+    phase: 1
+    priority: P0
+    status: intent
+    umbrella_id: SVP2-A-01
+    umbrella_issue: 76
+    dependencies: [EPIC-01]
+    doc_path: docs/roadmap/epics/EPIC-02-single-source-of-truth-for-runtime.md
+    current_state: "Not implemented. Concept documented as intent only."
+    target_state: "One versioned declarative source describes runtime intent; deployed state is compared against it and divergence is reported, never silently reconciled."
+  - concept_id: EPIC-03
+    slug: typed-kali-mcp
+    title: "Typed Kali MCP"
+    pillar: B
+    phase: 2
+    priority: P0
+    status: intent
+    umbrella_id: SVP2-B-01
+    umbrella_issue: 79
+    dependencies: [EPIC-01, EPIC-02]
+    doc_path: docs/roadmap/epics/EPIC-03-typed-kali-mcp.md
+    current_state: "Not implemented. Concept documented as intent only."
+    target_state: "A typed Security Execution Gateway protocol where each operation is a declared capability with typed inputs, typed outputs, declared intrusiveness and declared side effects."
+  - concept_id: EPIC-04
+    slug: transactional-lifecycle-and-isolation
+    title: "Transactional lifecycle and isolation"
+    pillar: B
+    phase: 2
+    priority: P0
+    status: intent
+    umbrella_id: SVP2-B-03
+    umbrella_issue: 81
+    dependencies: [EPIC-03]
+    doc_path: docs/roadmap/epics/EPIC-04-transactional-lifecycle-and-isolation.md
+    current_state: "Not implemented. Concept documented as intent only."
+    target_state: "Lab lifecycle is transactional: either the environment reaches the declared state, or it is rolled back with proof of zero residue."
+  - concept_id: EPIC-05
+    slug: runner-protocol-v2
+    title: "Runner Protocol v2"
+    pillar: B
+    phase: 1
+    priority: P0
+    status: intent
+    umbrella_id: SVP2-B-02
+    umbrella_issue: 80
+    dependencies: [EPIC-01]
+    doc_path: docs/roadmap/epics/EPIC-05-runner-protocol-v2.md
+    current_state: "Not implemented. Concept documented as intent only."
+    target_state: "A single Runner Protocol covering correlation identifiers, cancellation, timeouts, progress, normalized errors and evidence emission."
+  - concept_id: EPIC-06
+    slug: kali-image-factory
+    title: "Kali Image Factory"
+    pillar: C
+    phase: 3
+    priority: P1
+    status: intent
+    umbrella_id: SVP2-C-01
+    umbrella_issue: 82
+    dependencies: [EPIC-03]
+    doc_path: docs/roadmap/epics/EPIC-06-kali-image-factory.md
+    current_state: "Not implemented. Concept documented as intent only."
+    target_state: "A factory that produces minimal, non-root, pinned and attested execution images with a defined promotion lifecycle."
+  - concept_id: EPIC-07
+    slug: capability-registry
+    title: "Capability Registry"
+    pillar: C
+    phase: 3
+    priority: P0
+    status: intent
+    umbrella_id: SVP2-C-02
+    umbrella_issue: 83
+    dependencies: [EPIC-03, EPIC-06]
+    doc_path: docs/roadmap/epics/EPIC-07-capability-registry.md
+    current_state: "Not implemented. Concept documented as intent only."
+    target_state: "A versioned capability registry that the gateway consults to authorize, route and bound every typed operation."
+  - concept_id: EPIC-08
+    slug: network-and-egress-policy
+    title: "Network and egress policy"
+    pillar: B
+    phase: 2
+    priority: P0
+    status: intent
+    umbrella_id: SVP2-B-03
+    umbrella_issue: 81
+    dependencies: [EPIC-04]
+    doc_path: docs/roadmap/epics/EPIC-08-network-and-egress-policy.md
+    current_state: "Not implemented. Concept documented as intent only."
+    target_state: "A declarative network policy model with default-deny egress, explicit allowlists per lab family and auditable exceptions."
+  - concept_id: EPIC-09
+    slug: exploitation-safety
+    title: "Exploitation safety"
+    pillar: A
+    phase: 4
+    priority: P0
+    status: intent
+    umbrella_id: SVP2-A-02
+    umbrella_issue: 77
+    dependencies: [EPIC-03, EPIC-07]
+    doc_path: docs/roadmap/epics/EPIC-09-exploitation-safety.md
+    current_state: "Not implemented. Concept documented as intent only."
+    target_state: "Intrusiveness levels L0-L4 with per-level requirements, stop conditions, kill switch and dual approval for the highest level."
+  - concept_id: EPIC-10
+    slug: evidence-plane
+    title: "Evidence Plane"
+    pillar: D
+    phase: 2
+    priority: P0
+    status: intent
+    umbrella_id: SVP2-D-01
+    umbrella_issue: 84
+    dependencies: [EPIC-05]
+    doc_path: docs/roadmap/epics/EPIC-10-evidence-plane.md
+    current_state: "Not implemented. Concept documented as intent only."
+    target_state: "An Evidence Plane v2 with normalized records, chain of custody, retention policy, separation of raw and sanitized artefacts and deterministic replay."
+  - concept_id: EPIC-11
+    slug: technical-observability
+    title: "Technical observability"
+    pillar: D
+    phase: 4
+    priority: P1
+    status: intent
+    umbrella_id: SVP2-D-02
+    umbrella_issue: 85
+    dependencies: [EPIC-10]
+    doc_path: docs/roadmap/epics/EPIC-11-technical-observability.md
+    current_state: "Not implemented. Concept documented as intent only."
+    target_state: "Structured logs, metrics and traces with consistent correlation identifiers and documented signal semantics."
+  - concept_id: EPIC-12
+    slug: redaction-and-data-classification
+    title: "Redaction and data classification"
+    pillar: D
+    phase: 2
+    priority: P0
+    status: intent
+    umbrella_id: SVP2-D-01
+    umbrella_issue: 84
+    dependencies: [EPIC-10]
+    doc_path: docs/roadmap/epics/EPIC-12-redaction-and-data-classification.md
+    current_state: "Not implemented. Concept documented as intent only."
+    target_state: "A data classification scheme with enforced redaction at emission and clear rules on what may ever be persisted or published."
+  - concept_id: EPIC-13
+    slug: reliability-and-chaos-testing
+    title: "Reliability and chaos testing"
+    pillar: D
+    phase: 4
+    priority: P1
+    status: intent
+    umbrella_id: SVP2-D-02
+    umbrella_issue: 85
+    dependencies: [EPIC-04, EPIC-05, EPIC-10]
+    doc_path: docs/roadmap/epics/EPIC-13-reliability-and-chaos-testing.md
+    current_state: "Not implemented. Concept documented as intent only."
+    target_state: "A failure-injection programme that demonstrates fail-safe behaviour for timeouts, crashes, partial evidence, network loss and cancellation."
+  - concept_id: EPIC-14
+    slug: real-operations-and-maintenance
+    title: "Real operations and maintenance"
+    pillar: D
+    phase: 4
+    priority: P1
+    status: intent
+    umbrella_id: SVP2-D-02
+    umbrella_issue: 85
+    dependencies: [EPIC-02, EPIC-11]
+    doc_path: docs/roadmap/epics/EPIC-14-real-operations-and-maintenance.md
+    current_state: "Not implemented. Concept documented as intent only."
+    target_state: "An operating model with runbooks for routine maintenance, drift response, incident handling and capability maturity assessment M0-M5."
+  - concept_id: EPIC-15
+    slug: backlog-and-documentation-quality
+    title: "Backlog and documentation quality"
+    pillar: A
+    phase: 1
+    priority: P1
+    status: intent
+    umbrella_id: SVP2-A-03
+    umbrella_issue: 78
+    dependencies: [EPIC-01]
+    doc_path: docs/roadmap/epics/EPIC-15-backlog-and-documentation-quality.md
+    current_state: "Not implemented. Concept documented as intent only."
+    target_state: "A governed documentation and backlog system where 45 concept epics map to 21 delivery umbrellas and every epic document evolves intent to as-built to final."
+  - concept_id: EPIC-16
+    slug: kubernetes-runtime
+    title: "Kubernetes Runtime"
+    pillar: L
+    phase: 8
+    priority: P2
+    status: intent
+    umbrella_id: SVP2-L-01
+    umbrella_issue: 96
+    dependencies: [EPIC-04, EPIC-07]
+    doc_path: docs/roadmap/epics/EPIC-16-kubernetes-runtime.md
+    current_state: "Not implemented. Concept documented as intent only."
+    target_state: "A Kubernetes runtime family with isolated clusters, declared capabilities and the same lifecycle, evidence and policy guarantees."
+  - concept_id: EPIC-17
+    slug: identity-and-active-directory-runtime
+    title: "Identity and Active Directory Runtime"
+    pillar: L
+    phase: 8
+    priority: P2
+    status: intent
+    umbrella_id: SVP2-L-01
+    umbrella_issue: 96
+    dependencies: [EPIC-04, EPIC-07]
+    doc_path: docs/roadmap/epics/EPIC-17-identity-and-active-directory-runtime.md
+    current_state: "Not implemented. Concept documented as intent only."
+    target_state: "An identity runtime family covering directory services and federation scenarios under strict isolation."
+  - concept_id: EPIC-18
+    slug: cloud-runtime
+    title: "Cloud Runtime"
+    pillar: L
+    phase: 8
+    priority: P2
+    status: intent
+    umbrella_id: SVP2-L-01
+    umbrella_issue: 96
+    dependencies: [EPIC-04, EPIC-07, EPIC-08]
+    doc_path: docs/roadmap/epics/EPIC-18-cloud-runtime.md
+    current_state: "Not implemented. Concept documented as intent only."
+    target_state: "A cloud runtime family based on emulated or strictly scoped disposable environments with explicit cost and blast-radius controls."
+  - concept_id: EPIC-19
+    slug: mobile-runtime
+    title: "Mobile Runtime"
+    pillar: L
+    phase: 8
+    priority: P3
+    status: intent
+    umbrella_id: SVP2-L-01
+    umbrella_issue: 96
+    dependencies: [EPIC-04, EPIC-07]
+    doc_path: docs/roadmap/epics/EPIC-19-mobile-runtime.md
+    current_state: "Not implemented. Concept documented as intent only."
+    target_state: "A mobile runtime family using emulators and instrumented builds, with the same lifecycle and evidence guarantees."
+  - concept_id: EPIC-20
+    slug: iot-ot-and-external-hardware
+    title: "IoT/OT and external hardware"
+    pillar: L
+    phase: 8
+    priority: P3
+    status: intent
+    umbrella_id: SVP2-L-01
+    umbrella_issue: 96
+    dependencies: [EPIC-04, EPIC-08, EPIC-09]
+    doc_path: docs/roadmap/epics/EPIC-20-iot-ot-and-external-hardware.md
+    current_state: "Not implemented. Concept documented as intent only."
+    target_state: "A documented approach for protocol simulation first, with a strictly bounded and separately authorized path for external hardware."
+  - concept_id: EPIC-21
+    slug: framework-crosswalk-and-canonical-methodology
+    title: "Framework Crosswalk and canonical methodology"
+    pillar: E
+    phase: 5
+    priority: P0
+    status: intent
+    umbrella_id: SVP2-E-01
+    umbrella_issue: 86
+    dependencies: [EPIC-01]
+    doc_path: docs/roadmap/epics/EPIC-21-framework-crosswalk-and-canonical-methodology.md
+    current_state: "Not implemented. Concept documented as intent only."
+    target_state: "A canonical crosswalk with declared confidence levels, plus a canonical methodology describing how a validation activity is structured end to end."
+  - concept_id: EPIC-22
+    slug: threat-informed-security-validation
+    title: "Threat-Informed Security Validation"
+    pillar: F
+    phase: 7
+    priority: P1
+    status: intent
+    umbrella_id: SVP2-F-01
+    umbrella_issue: 88
+    dependencies: [EPIC-21, EPIC-43]
+    doc_path: docs/roadmap/epics/EPIC-22-threat-informed-security-validation.md
+    current_state: "Not implemented. Concept documented as intent only."
+    target_state: "Threat profiles drive campaign content: relevant techniques are selected from threat intelligence and asset context, not from tool catalogues."
+  - concept_id: EPIC-23
+    slug: attack-graph-and-attack-flow
+    title: "Attack Graph and Attack Flow"
+    pillar: F
+    phase: 7
+    priority: P1
+    status: intent
+    umbrella_id: SVP2-F-01
+    umbrella_issue: 88
+    dependencies: [EPIC-22]
+    doc_path: docs/roadmap/epics/EPIC-23-attack-graph-and-attack-flow.md
+    current_state: "Not implemented. Concept documented as intent only."
+    target_state: "Campaigns produce attack graphs and exportable attack flows showing preconditions, techniques, outcomes and reachable impact."
+  - concept_id: EPIC-24
+    slug: purple-team-and-detection-validation
+    title: "Purple Team and detection validation"
+    pillar: F
+    phase: 7
+    priority: P1
+    status: intent
+    umbrella_id: SVP2-F-02
+    umbrella_issue: 89
+    dependencies: [EPIC-23, EPIC-11]
+    doc_path: docs/roadmap/epics/EPIC-24-purple-team-and-detection-validation.md
+    current_state: "Not implemented. Concept documented as intent only."
+    target_state: "Every technique execution carries a detection expectation, and the outcome records prevented, detected, alerted or missed."
+  - concept_id: EPIC-25
+    slug: continuous-security-validation
+    title: "Continuous Security Validation"
+    pillar: H
+    phase: 7
+    priority: P1
+    status: intent
+    umbrella_id: SVP2-H-01
+    umbrella_issue: 91
+    dependencies: [EPIC-10, EPIC-22]
+    doc_path: docs/roadmap/epics/EPIC-25-continuous-security-validation.md
+    current_state: "Not implemented. Concept documented as intent only."
+    target_state: "A continuous validation model with scheduled, low-intrusiveness recurring checks and trend reporting over time."
+  - concept_id: EPIC-26
+    slug: interoperable-playbooks-and-results
+    title: "Interoperable playbooks and results"
+    pillar: J
+    phase: 7
+    priority: P2
+    status: intent
+    umbrella_id: SVP2-J-02
+    umbrella_issue: 94
+    dependencies: [EPIC-10, EPIC-23]
+    doc_path: docs/roadmap/epics/EPIC-26-interoperable-playbooks-and-results.md
+    current_state: "Not implemented. Concept documented as intent only."
+    target_state: "Import and export mappings for recognised interchange formats covering playbooks, results and control assessments."
+  - concept_id: EPIC-27
+    slug: risk-intelligence-and-contextual-prioritization
+    title: "Risk Intelligence and contextual prioritization"
+    pillar: J
+    phase: 7
+    priority: P1
+    status: intent
+    umbrella_id: SVP2-J-01
+    umbrella_issue: 93
+    dependencies: [EPIC-23, EPIC-37]
+    doc_path: docs/roadmap/epics/EPIC-27-risk-intelligence-and-contextual-prioritization.md
+    current_state: "Not implemented. Concept documented as intent only."
+    target_state: "An auditable scoring model combining severity, exploitability intelligence, asset criticality and validated attack-path reachability."
+  - concept_id: EPIC-28
+    slug: rules-of-engagement-as-code
+    title: "Rules of Engagement as Code"
+    pillar: A
+    phase: 1
+    priority: P0
+    status: intent
+    umbrella_id: SVP2-A-02
+    umbrella_issue: 77
+    dependencies: [EPIC-01]
+    doc_path: docs/roadmap/epics/EPIC-28-rules-of-engagement-as-code.md
+    current_state: "Not implemented. Concept documented as intent only."
+    target_state: "A signed, machine-readable Rules of Engagement contract declaring scope, targets, windows, limits, approvers and stop conditions."
+  - concept_id: EPIC-29
+    slug: ai-and-agentic-security
+    title: "AI and Agentic Security"
+    pillar: L
+    phase: 8
+    priority: P2
+    status: intent
+    umbrella_id: SVP2-L-01
+    umbrella_issue: 96
+    dependencies: [EPIC-03, EPIC-07]
+    doc_path: docs/roadmap/epics/EPIC-29-ai-and-agentic-security.md
+    current_state: "Not implemented. Concept documented as intent only."
+    target_state: "A validation domain for AI and agentic systems, covering model endpoints, tool-calling surfaces and agent autonomy boundaries."
+  - concept_id: EPIC-30
+    slug: supply-chain-attestations
+    title: "Supply-chain attestations"
+    pillar: C
+    phase: 3
+    priority: P0
+    status: intent
+    umbrella_id: SVP2-C-02
+    umbrella_issue: 83
+    dependencies: [EPIC-06]
+    doc_path: docs/roadmap/epics/EPIC-30-supply-chain-attestations.md
+    current_state: "Not implemented. Concept documented as intent only."
+    target_state: "Every project-built artefact carries provenance and is verified before use; unverifiable artefacts are refused."
+  - concept_id: EPIC-31
+    slug: opentelemetry-end-to-end
+    title: "OpenTelemetry end-to-end"
+    pillar: D
+    phase: 4
+    priority: P1
+    status: intent
+    umbrella_id: SVP2-D-02
+    umbrella_issue: 85
+    dependencies: [EPIC-11]
+    doc_path: docs/roadmap/epics/EPIC-31-opentelemetry-end-to-end.md
+    current_state: "Not implemented. Concept documented as intent only."
+    target_state: "A single vendor-neutral telemetry contract with consistent trace context propagation from campaign start to evidence persistence."
+  - concept_id: EPIC-32
+    slug: resilience-validation-and-tlpt
+    title: "Resilience Validation and TLPT"
+    pillar: F
+    phase: 7
+    priority: P2
+    status: intent
+    umbrella_id: SVP2-F-02
+    umbrella_issue: 89
+    dependencies: [EPIC-22, EPIC-24]
+    doc_path: docs/roadmap/epics/EPIC-32-resilience-validation-and-tlpt.md
+    current_state: "Not implemented. Concept documented as intent only."
+    target_state: "A structured resilience exercise model aligned with recognised threat-led testing practices, including roles, phases, control and reporting."
+  - concept_id: EPIC-33
+    slug: finding-and-remediation-lifecycle
+    title: "Finding and remediation lifecycle"
+    pillar: J
+    phase: 7
+    priority: P1
+    status: intent
+    umbrella_id: SVP2-J-01
+    umbrella_issue: 93
+    dependencies: [EPIC-10, EPIC-27]
+    doc_path: docs/roadmap/epics/EPIC-33-finding-and-remediation-lifecycle.md
+    current_state: "Not implemented. Concept documented as intent only."
+    target_state: "A finding lifecycle from detection through remediation and evidence-backed retest to closure, with explicit risk acceptance."
+  - concept_id: EPIC-34
+    slug: maturity-benchmarking-and-scientific-quality
+    title: "Maturity, benchmarking and scientific quality"
+    pillar: D
+    phase: 4
+    priority: P2
+    status: intent
+    umbrella_id: SVP2-D-02
+    umbrella_issue: 85
+    dependencies: [EPIC-13, EPIC-10]
+    doc_path: docs/roadmap/epics/EPIC-34-maturity-benchmarking-and-scientific-quality.md
+    current_state: "Not implemented. Concept documented as intent only."
+    target_state: "A maturity model M0-M5 per capability plus reproducibility and benchmarking requirements that make quality claims measurable."
+  - concept_id: EPIC-35
+    slug: sdk-plugins-and-runtime-certification
+    title: "SDK, plugins and runtime certification"
+    pillar: K
+    phase: 6
+    priority: P2
+    status: intent
+    umbrella_id: SVP2-K-01
+    umbrella_issue: 95
+    dependencies: [EPIC-05, EPIC-07]
+    doc_path: docs/roadmap/epics/EPIC-35-sdk-plugins-and-runtime-certification.md
+    current_state: "Not implemented. Concept documented as intent only."
+    target_state: "Extension SDKs with a conformance kit, permission manifests, signing and a certification process before an extension may run."
+  - concept_id: EPIC-36
+    slug: security-knowledge-fabric
+    title: "Security Knowledge Fabric"
+    pillar: E
+    phase: 5
+    priority: P0
+    status: intent
+    umbrella_id: SVP2-E-01
+    umbrella_issue: 86
+    dependencies: [EPIC-21]
+    doc_path: docs/roadmap/epics/EPIC-36-security-knowledge-fabric.md
+    current_state: "Not implemented. Concept documented as intent only."
+    target_state: "A versioned knowledge graph linking CVE, CWE, CAPEC, ATT&CK, controls, runbooks and evidence with provenance and confidence on every edge."
+  - concept_id: EPIC-37
+    slug: vulnerability-intelligence-synchronization
+    title: "Vulnerability Intelligence Synchronization"
+    pillar: E
+    phase: 5
+    priority: P1
+    status: intent
+    umbrella_id: SVP2-E-01
+    umbrella_issue: 86
+    dependencies: [EPIC-36]
+    doc_path: docs/roadmap/epics/EPIC-37-vulnerability-intelligence-synchronization.md
+    current_state: "Not implemented. Concept documented as intent only."
+    target_state: "Versioned, incremental synchronization of vulnerability and exploitability intelligence with declared source precedence."
+  - concept_id: EPIC-38
+    slug: cwe-capec-attack-semantic-chain
+    title: "CWE/CAPEC/ATT&CK Semantic Chain"
+    pillar: E
+    phase: 5
+    priority: P1
+    status: intent
+    umbrella_id: SVP2-E-01
+    umbrella_issue: 86
+    dependencies: [EPIC-36, EPIC-37]
+    doc_path: docs/roadmap/epics/EPIC-38-cwe-capec-attack-semantic-chain.md
+    current_state: "Not implemented. Concept documented as intent only."
+    target_state: "An explicit semantic chain resolving vulnerability to weakness to attack pattern to technique, with confidence at each hop."
+  - concept_id: EPIC-39
+    slug: attack-synchronization-service
+    title: "ATT&CK Synchronization Service"
+    pillar: E
+    phase: 5
+    priority: P1
+    status: intent
+    umbrella_id: SVP2-E-01
+    umbrella_issue: 86
+    dependencies: [EPIC-36]
+    doc_path: docs/roadmap/epics/EPIC-39-attack-synchronization-service.md
+    current_state: "Not implemented. Concept documented as intent only."
+    target_state: "A managed synchronization process for ATT&CK content with version pinning, deprecation handling and migration reporting."
+  - concept_id: EPIC-40
+    slug: nist-control-knowledge-layer
+    title: "NIST Control Knowledge Layer"
+    pillar: E
+    phase: 5
+    priority: P1
+    status: intent
+    umbrella_id: SVP2-E-02
+    umbrella_issue: 87
+    dependencies: [EPIC-36, EPIC-21]
+    doc_path: docs/roadmap/epics/EPIC-40-nist-control-knowledge-layer.md
+    current_state: "Not implemented. Concept documented as intent only."
+    target_state: "A control knowledge layer linking controls to techniques, runbooks and evidence, enabling control-oriented reporting without compliance claims."
+  - concept_id: EPIC-41
+    slug: vulnerability-specific-test-synthesis
+    title: "Vulnerability-Specific Test Synthesis"
+    pillar: G
+    phase: 7
+    priority: P1
+    status: intent
+    umbrella_id: SVP2-G-01
+    umbrella_issue: 90
+    dependencies: [EPIC-38, EPIC-42]
+    doc_path: docs/roadmap/epics/EPIC-41-vulnerability-specific-test-synthesis.md
+    current_state: "Not implemented. Concept documented as intent only."
+    target_state: "A synthesis process that resolves a vulnerability into candidate validation content, marking gaps where no trusted content exists."
+  - concept_id: EPIC-42
+    slug: exploit-and-validation-provider-registry
+    title: "Exploit and Validation Provider Registry"
+    pillar: G
+    phase: 7
+    priority: P1
+    status: intent
+    umbrella_id: SVP2-G-01
+    umbrella_issue: 90
+    dependencies: [EPIC-07, EPIC-30]
+    doc_path: docs/roadmap/epics/EPIC-42-exploit-and-validation-provider-registry.md
+    current_state: "Not implemented. Concept documented as intent only."
+    target_state: "A registry of trusted validation providers with vetting criteria, provenance, trust levels and revocation."
+  - concept_id: EPIC-43
+    slug: knowledge-driven-campaign-planner
+    title: "Knowledge-Driven Campaign Planner"
+    pillar: E
+    phase: 6
+    priority: P1
+    status: intent
+    umbrella_id: SVP2-E-02
+    umbrella_issue: 87
+    dependencies: [EPIC-36, EPIC-28, EPIC-07]
+    doc_path: docs/roadmap/epics/EPIC-43-knowledge-driven-campaign-planner.md
+    current_state: "Not implemented. Concept documented as intent only."
+    target_state: "A planner that derives a campaign plan from asset context, threat profile, knowledge snapshot and the active authorization contract, with a recorded rationale."
+  - concept_id: EPIC-44
+    slug: knowledge-quality-and-conflict-resolution
+    title: "Knowledge Quality and Conflict Resolution"
+    pillar: E
+    phase: 5
+    priority: P1
+    status: intent
+    umbrella_id: SVP2-E-02
+    umbrella_issue: 87
+    dependencies: [EPIC-36, EPIC-37, EPIC-39]
+    doc_path: docs/roadmap/epics/EPIC-44-knowledge-quality-and-conflict-resolution.md
+    current_state: "Not implemented. Concept documented as intent only."
+    target_state: "Explicit conflict detection, precedence rules, quality metrics and a curation process that keeps the graph trustworthy."
+  - concept_id: EPIC-45
+    slug: operational-query-and-discovery
+    title: "Operational Query and Discovery"
+    pillar: E
+    phase: 7
+    priority: P1
+    status: intent
+    umbrella_id: SVP2-E-02
+    umbrella_issue: 87
+    dependencies: [EPIC-36, EPIC-43, EPIC-33]
+    doc_path: docs/roadmap/epics/EPIC-45-operational-query-and-discovery.md
+    current_state: "Not implemented. Concept documented as intent only."
+    target_state: "A defined query surface answering operational questions across knowledge, campaigns, evidence and findings, with reproducible results."

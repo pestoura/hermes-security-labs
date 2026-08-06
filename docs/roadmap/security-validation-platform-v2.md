@@ -221,6 +221,9 @@ segredos; e o comportamento em falha é fail-safe.
 
 ## 13. Documentos relacionados
 
+- [Platform v2 intent (45 concept epics)](../architecture/security-validation-platform-v2-intent.md)
+- [Epic catalogue — 45 concept epics e mapping 45→21](epic-catalogue-45.md)
+- [Architecture documentation lifecycle](../architecture/architecture-documentation-lifecycle.md)
 - [Reference architecture](../architecture/security-validation-reference-architecture.md)
 - [Framework crosswalk](../architecture/framework-crosswalk.md)
 - [Security knowledge fabric](../architecture/security-knowledge-fabric.md)

@@ -131,7 +131,24 @@ packs. O CI corre por diretório.
 - evidência sanitizada quando houve execução;
 - issues referenciadas com estado factual;
 - sem resíduos de containers, redes, locks, worktrees ou branches locais;
-- árvore limpa e `main` atualizado por fast-forward.
+- árvore limpa e `main` atualizado por fast-forward;
+- se a alteração pertence a uma umbrella `SVP2-*`, o documento da concept epic
+  correspondente em [`roadmap/epics/`](roadmap/epics/) está atualizado: secção 14
+  (implementation notes) em cada PR, e secção 15 (as-built) preenchida com evidência
+  antes de fechar a umbrella. Ver
+  [architecture-documentation-lifecycle](architecture/architecture-documentation-lifecycle.md).
+
+## 7.1 Concept epics vs umbrella epics
+
+O desenho da plataforma v2 está documentado como 45 concept epics
+([catálogo](roadmap/epic-catalogue-45.md)); a entrega continua a ser feita nas 21 umbrella
+issues `SVP2-*` (#76–#96). Não se abrem issues para concept epics. Ao contribuir:
+
+1. identifica a umbrella;
+2. identifica as concept epics que a umbrella cobre no
+   [mapping 45→21](roadmap/epic-catalogue-45.md#5-mapping-45--21);
+3. atualiza esses documentos na mesma PR;
+4. regista divergências entre intenção e implementação em vez de reescrever a intenção.
 
 ## 8. Branch, PR e CI
 
