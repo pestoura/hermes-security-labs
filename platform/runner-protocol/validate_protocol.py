@@ -62,12 +62,27 @@ def _format_path(path: Iterable[Any]) -> str:
     return ".".join(parts) if parts else "<root>"
 
 
+def _leaf_errors(
+    error: jsonschema.ValidationError,
+) -> Iterable[jsonschema.ValidationError]:
+    """Yield actionable leaf errors instead of an opaque oneOf summary."""
+    if error.context:
+        for child in error.context:
+            yield from _leaf_errors(child)
+        return
+    yield error
+
+
 def validate_schema(message: Mapping[str, Any]) -> None:
     """Validate one protocol message against the canonical schema bundle."""
-    errors = sorted(_validator().iter_errors(message), key=lambda error: list(error.path))
+    root_errors = _validator().iter_errors(message)
+    errors = [leaf for root in root_errors for leaf in _leaf_errors(root)]
     if errors:
+        diagnostics = {
+            (_format_path(error.absolute_path), error.message) for error in errors
+        }
         details = "; ".join(
-            f"{_format_path(error.absolute_path)}: {error.message}" for error in errors
+            f"{path}: {message}" for path, message in sorted(diagnostics)
         )
         raise ProtocolValidationError(details)
 
