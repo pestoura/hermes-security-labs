@@ -92,7 +92,7 @@ def test_labels_follow_the_governance_taxonomy(backlog: dict) -> None:
         labels = epic["labels"]
         assert f"pillar:{epic['pillar']}" in labels
         assert f"priority:{epic['priority']}" in labels
-        assert "status:proposed" in labels
+        assert f"status:{epic['status']}" in labels
         assert "type:epic" in labels
         for label in labels:
             assert label in allowed_plain or label.startswith(allowed_prefixes), label

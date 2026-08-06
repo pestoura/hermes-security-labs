@@ -10,24 +10,23 @@
 | Phase | 1 |
 | Priority | P0 |
 | Delivery umbrella | `SVP2-A-01` (issue [#76](https://github.com/pestoura/hermes-security-labs/issues/76)) |
-| Document version | 1.2.0 |
+| Document version | 1.3.0 |
 | Document date | 2026-08-06 |
 | Catalogue | [Epic catalogue 45](../epic-catalogue-45.md) |
 | Lifecycle contract | [Architecture documentation lifecycle](../../architecture/architecture-documentation-lifecycle.md) |
 
 ## 2. Current status
 
-**AS_BUILT** — the canonical architecture contract block was integrated through pull request
-[#100](https://github.com/pestoura/hermes-security-labs/pull/100) and validated again on
-`main`. The documentation now records what was delivered and the limits of the block.
-`FINAL` remains pending because delivery umbrella #76 also contains EPIC-02.
+**FINAL** — the canonical architecture contract block and the runtime source-of-truth
+contract covered by umbrella #76 are integrated, validated on `main`, synchronized with
+the machine-readable catalogues and closed as the completed SVP2-A-01 foundation.
 
 | Lifecycle state | Reached |
 | --- | --- |
 | INTENT | yes |
 | IMPLEMENTING | yes |
 | AS_BUILT | yes |
-| FINAL | no |
+| FINAL | yes |
 
 ## 3. Problem and motivation
 
@@ -167,8 +166,8 @@ be closed, and this document must record the references in section 15.
 
 ## 15. As-built / final architecture
 
-> Reserved lifecycle section. This section records the implementation integrated in `main`.
-> It is AS_BUILT evidence for EPIC-01; FINAL remains pending until umbrella #76 is closed.
+> Reserved lifecycle section. This section records the implementation integrated in `main`
+> and is the FINAL architecture record for EPIC-01 under umbrella #76.
 
 ### Delivered architecture
 
@@ -224,11 +223,10 @@ protocol enforcement. The authoritative artefacts are:
 
 - These contracts are not yet enforced by the gateway, runners or laboratory lifecycle.
 - ADR freshness depends on future epics updating decisions when implementation diverges.
-- EPIC-02 must still define the runtime source-of-truth and drift contract before umbrella
-  #76 can become FINAL.
-- The machine-readable concept catalogue remains at its pre-closure lifecycle value; it will
-  be updated with the catalogue and umbrella state during the FINAL transition required by
-  the documentation lifecycle contract.
+- Runtime enforcement of the contracts remains assigned to later gateway, runner and
+  laboratory lifecycle epics.
+- The FINAL transition synchronizes the concept catalogue and delivery umbrella state; it
+  does not claim implementation of later runtime capabilities.
 
 ## 16. Document change log
 
@@ -238,3 +236,4 @@ protocol enforcement. The authoritative artefacts are:
 | 2026-08-06 | 1.1.0 | Set IMPLEMENTING; record branch, initial ADR decisions, contract inventory and trust-boundary divergence. |
 | 2026-08-06 | 1.1.1 | Link implementation pull request #100. |
 | 2026-08-06 | 1.2.0 | Record AS_BUILT architecture, merge/CI evidence, acceptance results, divergences and limitations. |
+| 2026-08-06 | 1.3.0 | Mark FINAL after EPIC-02 completion, catalogue synchronization and umbrella closure validation. |
