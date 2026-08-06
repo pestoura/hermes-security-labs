@@ -10,7 +10,7 @@
 | Phase | 1 |
 | Priority | P0 |
 | Delivery umbrella | `SVP2-A-01` (issue [#76](https://github.com/pestoura/hermes-security-labs/issues/76)) |
-| Document version | 1.2.0 |
+| Document version | 1.2.1 |
 | Document date | 2026-08-06 |
 | Catalogue | [Epic catalogue 45](../epic-catalogue-45.md) |
 | Lifecycle contract | [Architecture documentation lifecycle](../../architecture/architecture-documentation-lifecycle.md) |
@@ -143,6 +143,8 @@ Evidence is recorded in section 15 and in delivery umbrella issue #76.
 
 ## 14. Implementation notes
 
+> Reserved lifecycle section retained for future implementation blocks and corrections.
+
 ### Block 1 — canonical runtime source of truth
 
 - Branch: `feat/epic-02-runtime-source-of-truth`
@@ -240,3 +242,4 @@ change live runtime state or the existing operational drift comparator.
 | 2026-08-06 | 1.1.0 | Set IMPLEMENTING; record canonical registry, tri-state drift, release identity decision, validator and CI plan. |
 | 2026-08-06 | 1.1.1 | Link implementation pull request #102. |
 | 2026-08-06 | 1.2.0 | Record AS_BUILT architecture, CI evidence, acceptance results, corrections and limitations. |
+| 2026-08-06 | 1.2.1 | Retain the reserved lifecycle marker required by the epic documentation contract. |
