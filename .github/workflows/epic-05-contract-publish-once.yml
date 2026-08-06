@@ -1,0 +1,146 @@
+name: Publish EPIC-05 contract once
+
+on:
+  push:
+    branches:
+      - feat/epic-05-runner-protocol-v2
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/epic-05-runner-protocol-v2
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Apply validated contract and lifecycle patches
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path: str, old: str, new: str) -> None:
+              file_path = Path(path)
+              text = file_path.read_text(encoding="utf-8")
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(
+                      f"{path}: expected one occurrence, found {count}: {old!r}"
+                  )
+              file_path.write_text(text.replace(old, new, 1), encoding="utf-8")
+
+          def replace_in_section(
+              path: str, start: str, end: str, old: str, new: str
+          ) -> None:
+              file_path = Path(path)
+              text = file_path.read_text(encoding="utf-8")
+              start_at = text.index(start)
+              end_at = text.index(end, start_at + len(start))
+              section = text[start_at:end_at]
+              count = section.count(old)
+              if count != 1:
+                  raise SystemExit(
+                      f"{path}: section {start.strip()!r} expected one occurrence, "
+                      f"found {count}: {old!r}"
+                  )
+              section = section.replace(old, new, 1)
+              file_path.write_text(
+                  text[:start_at] + section + text[end_at:], encoding="utf-8"
+              )
+
+          validator = "platform/runner-protocol/validate_protocol.py"
+          replace_once(
+              validator,
+              "def validate_schema(message: Mapping[str, Any]) -> None:\n"
+              "    \"\"\"Validate one protocol message against the canonical schema bundle.\"\"\"\n"
+              "    errors = sorted(_validator().iter_errors(message), key=lambda error: list(error.path))\n"
+              "    if errors:\n"
+              "        details = \"; \".join(\n"
+              "            f\"{_format_path(error.absolute_path)}: {error.message}\" for error in errors\n"
+              "        )\n"
+              "        raise ProtocolValidationError(details)\n",
+              "def _leaf_errors(\n"
+              "    error: jsonschema.ValidationError,\n"
+              ") -> Iterable[jsonschema.ValidationError]:\n"
+              "    \"\"\"Yield actionable leaf errors instead of an opaque oneOf summary.\"\"\"\n"
+              "    if error.context:\n"
+              "        for child in error.context:\n"
+              "            yield from _leaf_errors(child)\n"
+              "        return\n"
+              "    yield error\n\n\n"
+              "def validate_schema(message: Mapping[str, Any]) -> None:\n"
+              "    \"\"\"Validate one protocol message against the canonical schema bundle.\"\"\"\n"
+              "    root_errors = _validator().iter_errors(message)\n"
+              "    errors = [leaf for root in root_errors for leaf in _leaf_errors(root)]\n"
+              "    if errors:\n"
+              "        diagnostics = {\n"
+              "            (_format_path(error.absolute_path), error.message) for error in errors\n"
+              "        }\n"
+              "        details = \"; \".join(\n"
+              "            f\"{path}: {message}\" for path, message in sorted(diagnostics)\n"
+              "        )\n"
+              "        raise ProtocolValidationError(details)\n",
+          )
+
+          contracts = "docs/architecture/contracts/README.md"
+          replace_once(
+              contracts,
+              "| Runner dispatch and result | internal execution boundary | Runner Protocol owner / `SVP2-B-02` | gateway → runner → gateway | Runner Protocol v2 (`EPIC-05`) | `INTENT` | missing correlation, incompatibility, timeout or cancellation is a normalized non-success outcome |",
+              "| Runner dispatch and result | internal execution boundary | Runner Protocol owner / `SVP2-B-02` | gateway → runner → gateway | Runner Protocol v2 (`EPIC-05`) | `IMPLEMENTING`; contract in [`platform/runner-protocol/`](../../../platform/runner-protocol/README.md) | missing correlation, incompatibility, timeout or cancellation is a normalized non-success outcome |",
+          )
+
+          concepts = "roadmap/epics/security-validation-platform-v2-concepts.yaml"
+          replace_in_section(
+              concepts,
+              "  - concept_id: EPIC-05\n",
+              "  - concept_id: EPIC-06\n",
+              "    status: intent\n",
+              "    status: implementing\n",
+          )
+          replace_in_section(
+              concepts,
+              "  - concept_id: EPIC-05\n",
+              "  - concept_id: EPIC-06\n",
+              '    current_state: "Not implemented. Concept documented as intent only."\n',
+              '    current_state: "IMPLEMENTING. Runner Protocol v2 contract bundle, semantic validator, compatibility matrix and conformance tests are active; no existing runner is yet conformant."\n',
+          )
+
+          for workflow in (
+              ".github/workflows/epic-05-contract-once.yml",
+              ".github/workflows/epic-05-contract-fix-once.yml",
+              ".github/workflows/epic-05-contract-publish-once.yml",
+          ):
+              path = Path(workflow)
+              if path.exists():
+                  path.unlink()
+          PY
+
+      - name: Validate non-workflow contract changes
+        shell: bash
+        run: |
+          python -m pip install --disable-pip-version-check -q pytest pyyaml jsonschema ruff
+          python platform/runner-protocol/validate_protocol.py --contract-only
+          python -m pytest -q platform/runner-protocol/tests -p no:cacheprovider
+          python -m pytest -q roadmap/tests docs/tests -p no:cacheprovider
+          ruff check --config security/pyproject.toml \
+            platform/runner-protocol/validate_protocol.py \
+            platform/runner-protocol/tests
+          git diff --check
+
+      - name: Commit validated contract changes
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "feat(epic-05): integrate Runner Protocol v2 contract"
+          git push origin HEAD:feat/epic-05-runner-protocol-v2
