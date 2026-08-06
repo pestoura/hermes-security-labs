@@ -9,24 +9,32 @@ Biblioteca canónica e machine-readable de runbooks de pentest autorizado a APIs
 
 A versão `v0.1.0-alpha` contém a fundação do motor, políticas e 150 runbooks individuais. Estes runbooks preservam nesta migração os critérios de avaliação genéricos do pack de origem; continuam `experimental` e pendentes de implementação/calibração específica, evidência e análise de falsos positivos.
 
-## Runner Protocol v2 — candidato isolado
+## Runner Protocol v2 — candidatos isolados
 
-O pack inclui um candidato opt-in em
-`src/api_pentest_runbooks/runner_protocol_adapter.py`, destinado exclusivamente ao conformance
-kit do Runner Protocol v2.
+O pack inclui dois candidatos opt-in destinados exclusivamente ao conformance kit do Runner
+Protocol v2:
 
-Este candidato:
+- `src/api_pentest_runbooks/runner_protocol_adapter.py`: estado apenas em memória;
+- `src/api_pentest_runbooks/durable_runner_protocol_adapter.py`: integração sintética com o
+  `SQLiteIdempotencyLedger`, usando uma base explícita fora do repositório.
 
-- só arranca com `--conformance-only`;
-- aceita apenas capabilities sintéticas `conformance.*`;
-- usa apenas estado em memória;
-- não importa nem chama `execute_runbook`, `ProcessBridgeAdapter` ou `execute_command`;
-- não executa rede, subprocessos, ficheiros ou ferramentas de segurança;
-- recusa capabilities e referências de autorização reais;
-- está desligado do caminho operacional descrito abaixo.
+Ambos:
 
-O resultado atual é `PASS_SYNTHETIC`, com integração de execução `NOT_RUN` e promoção bloqueada.
-Não representa um runner API operacional nem altera o comportamento existente do pack.
+- só arrancam com `--conformance-only`;
+- aceitam apenas capabilities sintéticas `conformance.*`;
+- não importam nem chamam `execute_runbook`, `ProcessBridgeAdapter` ou `execute_command`;
+- não executam rede, subprocessos ou ferramentas de segurança;
+- recusam capabilities e referências de autorização reais;
+- estão desligados do caminho operacional descrito abaixo.
+
+O candidato durável exige também `--durable-ledger <caminho-absoluto>`, faz claim antes do
+efeito sintético e suporta replay após reinício. Claims `IN_PROGRESS` não são recuperadas
+automaticamente. Ver
+[`docs/runner-protocol-durable-candidate.md`](docs/runner-protocol-durable-candidate.md).
+
+O resultado continua limitado a `PASS_SYNTHETIC`: a integração de execução é `NOT_RUN` e a
+promoção permanece bloqueada. Nenhum candidato representa um runner API operacional nem altera
+o comportamento existente do pack.
 
 ## Princípio operacional
 

@@ -264,8 +264,8 @@ def validate_compatibility_matrix() -> None:
     """Validate the compatibility and conformance declaration."""
     root = contract_root()
     data = yaml.safe_load((root / "compatibility.yaml").read_text(encoding="utf-8"))
-    if data.get("schema_version") != "1.1":
-        raise ProtocolValidationError("compatibility schema version must be 1.1")
+    if data.get("schema_version") != "1.2":
+        raise ProtocolValidationError("compatibility schema version must be 1.2")
     if data["protocol"] != {
         "name": "runner-protocol",
         "version": "2.0.0",
@@ -358,18 +358,54 @@ def validate_compatibility_matrix() -> None:
                 f"API candidate field {key!r} must be {expected!r}"
             )
 
+    durable_expected = {
+        "status": "PASS_SYNTHETIC",
+        "integration_scope": "synthetic_conformance_only",
+        "adapter_path": (
+            "security/packs/api/src/api_pentest_runbooks/"
+            "durable_runner_protocol_adapter.py"
+        ),
+        "activation_argument": "--durable-ledger",
+        "storage_requirement": "absolute_path_outside_working_tree",
+        "restart_replay": "PASS_SYNTHETIC",
+        "abandoned_claim_reclaim": "blocked",
+        "production_effect_claim": "none",
+    }
+    if api.get("durable_idempotency") != durable_expected:
+        raise ProtocolValidationError(
+            "API durable-idempotency declaration is inconsistent"
+        )
+
     repository_root = root.parents[1]
-    adapter_path = (repository_root / str(api["adapter_path"])).resolve()
-    if repository_root not in adapter_path.parents or not adapter_path.is_file():
-        raise ProtocolValidationError("API candidate path is missing or outside repository")
-    adapter_source = adapter_path.read_text(encoding="utf-8")
-    for forbidden in ("execute_runbook", "execute_command"):
-        if forbidden in adapter_source:
+    candidate_declarations = (
+        (
+            str(api["adapter_path"]),
+            (str(api["activation_argument"]),),
+            "API conformance candidate",
+        ),
+        (
+            str(durable_expected["adapter_path"]),
+            ("--conformance-only", str(durable_expected["activation_argument"])),
+            "API durable conformance candidate",
+        ),
+    )
+    for relative_path, required_arguments, candidate_name in candidate_declarations:
+        adapter_path = (repository_root / relative_path).resolve()
+        if repository_root not in adapter_path.parents or not adapter_path.is_file():
             raise ProtocolValidationError(
-                f"API conformance candidate must not reference {forbidden}"
+                f"{candidate_name} path is missing or outside repository"
             )
-    if str(api["activation_argument"]) not in adapter_source:
-        raise ProtocolValidationError("API candidate activation flag is not enforced")
+        adapter_source = adapter_path.read_text(encoding="utf-8")
+        for forbidden in ("execute_runbook", "execute_command"):
+            if forbidden in adapter_source:
+                raise ProtocolValidationError(
+                    f"{candidate_name} must not reference {forbidden}"
+                )
+        for argument in required_arguments:
+            if argument not in adapter_source:
+                raise ProtocolValidationError(
+                    f"{candidate_name} activation argument {argument!r} is not enforced"
+                )
 
     not_started_expected = {
         "implementation_status": "not_started",
