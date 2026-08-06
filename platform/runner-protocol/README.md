@@ -6,7 +6,7 @@ Runner Protocol v2 is the canonical contract between an execution gateway and a 
 
 - Owner: `EPIC-05` / delivery umbrella `SVP2-B-02`.
 - Protocol version: `2.0.0`.
-- Current implementation state: contract-only; no existing API, DevSecOps or AI/MCP runner is claimed conformant.
+- Current implementation state: contract and vendor-neutral conformance kit available; no existing API, DevSecOps or AI/MCP runner is claimed conformant.
 - Hermes remains the authorization authority. A valid protocol message cannot create, extend or replace authorization.
 - Unknown versions, invalid messages, missing correlation or missing evidence fail closed.
 
@@ -124,6 +124,39 @@ Errors expose a stable code, category, retryability flag, bounded human-readable
 
 The initial stable codes are declared in the JSON Schema. Adding a code is a compatibility change; changing the meaning of an existing code is breaking and requires a protocol major version.
 
+## Conformance kit
+
+The vendor-neutral conformance kit is implemented in [`conformance.py`](conformance.py). It
+starts a candidate adapter as a disposable process and exchanges language-neutral JSON-lines
+control messages over standard input and output.
+
+The candidate must support the test-only control actions `reset`, `dispatch`, `cancel`, `stats`
+and `shutdown`. The kit exercises only synthetic `conformance.*` capabilities; it does not
+invoke real security tools, customer targets or operational credentials.
+
+The mandatory cases demonstrate:
+
+- propagation of all four correlation identifiers and terminal evidence;
+- replay of the same logical effect without increasing the candidate's effect counter;
+- refusal of a changed effect under the same idempotency key;
+- normalized hard timeout and transient dependency errors;
+- cooperative cancellation with acknowledgement and terminal outcome;
+- rejection of a controlled secret canary leak.
+
+Results are written as a sanitized report conforming to
+[`schemas/conformance-report.schema.json`](schemas/conformance-report.schema.json). The raw
+candidate command is not persisted; only its SHA-256 digest is recorded.
+
+A `PASS` verdict is necessary but not sufficient for promotion. It has no automatic promotion
+effect, and human review remains mandatory. Third-party or untrusted candidates must run in an
+isolated sandbox without customer network access, customer data, real credentials or production
+secrets.
+
+The adapter in [`fixtures/reference_adapter.py`](fixtures/reference_adapter.py) is test-only. It
+proves the kit can accept a deterministic reference implementation and reject controlled broken
+implementations. It is not an API, DevSecOps or AI/MCP runner and provides no production
+conformance evidence.
+
 ## Compatibility
 
 Compatibility rules and current adapter status are in [`compatibility.yaml`](compatibility.yaml).
@@ -139,7 +172,11 @@ Compatibility rules and current adapter status are in [`compatibility.yaml`](com
 - [`schemas/runner-protocol-v2.schema.json`](schemas/runner-protocol-v2.schema.json)
 - [`validate_protocol.py`](validate_protocol.py)
 - [`compatibility.yaml`](compatibility.yaml)
+- [`conformance.py`](conformance.py)
+- [`schemas/conformance-report.schema.json`](schemas/conformance-report.schema.json)
+- [`fixtures/reference_adapter.py`](fixtures/reference_adapter.py) — test-only
 - [`tests/test_runner_protocol.py`](tests/test_runner_protocol.py)
+- [`tests/test_conformance.py`](tests/test_conformance.py)
 
 ## Non-goals of this block
 

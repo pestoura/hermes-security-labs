@@ -10,7 +10,7 @@
 | Phase | 1 |
 | Priority | P0 |
 | Delivery umbrella | `SVP2-B-02` (issue [#80](https://github.com/pestoura/hermes-security-labs/issues/80)) |
-| Document version | 1.2.0 |
+| Document version | 1.2.1 |
 | Document date | 2026-08-06 |
 | Catalogue | [Epic catalogue 45](../epic-catalogue-45.md) |
 | Lifecycle contract | [Architecture documentation lifecycle](../../architecture/architecture-documentation-lifecycle.md) |
@@ -20,7 +20,8 @@
 **AS_BUILT** — the contract-only Runner Protocol v2 block was integrated through pull
 request [#105](https://github.com/pestoura/hermes-security-labs/pull/105) and validated
 again on `main`. `FINAL` remains false because no runner adapter has yet demonstrated
-end-to-end conformance, idempotent effects or bounded live cancellation.
+end-to-end conformance, idempotent effects or bounded live cancellation. A vendor-neutral
+conformance kit is now being implemented as block 2; real runner states remain `NOT_RUN`.
 
 | Lifecycle state | Reached |
 | --- | --- |
@@ -245,6 +246,19 @@ Evidence must be referenced from issue #80 and section 15 before the umbrella ca
   gate was applied through the GitHub connector. No permission was broadened.
 - Temporary branch-local workflows were removed before the PR diff and merge.
 
+### Block 2 — vendor-neutral conformance kit (`IMPLEMENTING`)
+
+- Branch: `feat/epic-05-conformance-kit`
+- Candidate transport: isolated JSON-lines process
+- Test capabilities: synthetic `conformance.*` only
+- Report: schema-backed, sanitized and command-hashed
+- Promotion effect: none; human review mandatory
+- Real API, DevSecOps and AI/MCP adapters: `NOT_RUN`
+- Runtime declaration: `NO_RUNTIME_CHANGE`
+
+The block must prove that the kit accepts a deterministic reference adapter and rejects
+controlled duplicate-effect and secret-leaking adapters before a pull request may be merged.
+
 ## 15. As-built / final architecture
 
 > Reserved lifecycle section. This is the AS_BUILT record for the contract-only block. The
@@ -334,3 +348,4 @@ It does not dispatch work and it has no process, network, container or laborator
 | 2026-08-06 | 1.0.0 | Initial intent document created from the concept epic catalogue. |
 | 2026-08-06 | 1.1.0 | Set IMPLEMENTING; define block 1 contract scope, decisions, validation plan and limits. |
 | 2026-08-06 | 1.2.0 | Record contract block AS_BUILT, merge/CI evidence, acceptance assessment and residual limitations. |
+| 2026-08-06 | 1.2.1 | Start block 2 vendor-neutral conformance kit while preserving all real adapters as NOT_RUN. |

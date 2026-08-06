@@ -16,7 +16,6 @@ import selectors
 import shlex
 import subprocess
 import sys
-import uuid
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
