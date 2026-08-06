@@ -114,7 +114,7 @@ concept_epics:
     umbrella_issue: 80
     dependencies: [EPIC-01]
     doc_path: docs/roadmap/epics/EPIC-05-runner-protocol-v2.md
-    current_state: "AS_BUILT for contract, conformance-kit, SDK, API synthetic candidate and durable ledger; API durable synthetic restart-replay integration is IMPLEMENTING. Production execution remains NOT_RUN, promotion blocked, and DevSecOps/AI-MCP NOT_RUN."
+    current_state: "AS_BUILT for contract, conformance-kit, SDK, durable ledger, API in-memory candidate and API durable synthetic restart replay. Production execution remains NOT_RUN, promotion blocked, and DevSecOps/AI-MCP NOT_RUN."
     target_state: "A single Runner Protocol covering correlation identifiers, cancellation, timeouts, progress, normalized errors and evidence emission."
   - concept_id: EPIC-06
     slug: kali-image-factory

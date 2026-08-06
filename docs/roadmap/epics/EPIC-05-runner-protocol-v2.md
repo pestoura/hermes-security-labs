@@ -10,7 +10,7 @@
 | Phase | 1 |
 | Priority | P0 |
 | Delivery umbrella | `SVP2-B-02` (issue [#80](https://github.com/pestoura/hermes-security-labs/issues/80)) |
-| Document version | 1.6.1 |
+| Document version | 1.7.0 |
 | Document date | 2026-08-06 |
 | Catalogue | [Epic catalogue 45](../epic-catalogue-45.md) |
 | Lifecycle contract | [Architecture documentation lifecycle](../../architecture/architecture-documentation-lifecycle.md) |
@@ -27,10 +27,12 @@ validated on `main`. The repository-local SDK was then integrated through pull r
 request [#111](https://github.com/pestoura/hermes-security-labs/pull/111) and validated
 again on `main`. A reusable durable SQLite idempotency ledger was then integrated through
 pull request [#113](https://github.com/pestoura/hermes-security-labs/pull/113) and validated
-again on `main`. Block 6 is now `IMPLEMENTING`: a separate API-family synthetic candidate
-uses the durable ledger for restart replay without connecting to real capabilities or the legacy
-executor. `FINAL` remains false: production execution integration is `NOT_RUN`, promotion is
-blocked, and bounded live cancellation has not been demonstrated against real execution.
+again on `main`. A separate API-family durable synthetic candidate was then integrated
+through pull request [#115](https://github.com/pestoura/hermes-security-labs/pull/115) and
+validated again on `main`. It uses the durable ledger for restart replay without connecting to
+real capabilities or the legacy executor. `FINAL` remains false: production execution integration
+is `NOT_RUN`, promotion is blocked, DevSecOps and AI/MCP remain `NOT_RUN`, and bounded live
+cancellation has not been demonstrated against real execution.
 
 | Lifecycle state | Reached |
 | --- | --- |
@@ -332,9 +334,12 @@ terminal replay without a second effect decision, immutable fingerprint/outcome 
 fail-closed corrupt or unknown state. It is an enforcement component, not authorization and
 not evidence that any real runner is idempotent.
 
-### Block 6 — API durable synthetic integration (`IMPLEMENTING`)
+### Block 6 — API durable synthetic integration (`AS_BUILT`)
 
 - Branch: `feat/epic-05-api-durable-ledger-integration`
+- Pull request: [#115](https://github.com/pestoura/hermes-security-labs/pull/115)
+- Validated head: `dc08ff3779ef47fd48846efc6149b022617b107e`
+- Squash merge: `3ff427e4c5122f0733bc04c9291acfdfc28b1448`
 - Candidate path: `security/packs/api/src/api_pentest_runbooks/durable_runner_protocol_adapter.py`
 - Activation: `--conformance-only --durable-ledger <absolute-path>`
 - Scope: synthetic `conformance.*` only
@@ -347,9 +352,10 @@ not evidence that any real runner is idempotent.
 - Promotion status: blocked
 - Runtime declaration: `NO_RUNTIME_CHANGE`
 
-The block must pass the vendor-neutral conformance kit with disposable durable state and prove
-that restart replay does not increase the synthetic effect counter. This remains synthetic
-effect-level evidence only.
+The merged block passes the vendor-neutral conformance kit with disposable durable state and
+proves that restart replay does not increase the synthetic effect counter. It also persists and
+replays cancellation outcomes, refuses changed or uncertain effects, and fails closed when the
+terminal outcome cannot be committed. This remains synthetic effect-level evidence only.
 
 ## 15. As-built / final architecture
 
@@ -368,7 +374,9 @@ flowchart LR
   KIT[Vendor-neutral conformance kit] --> SDK
   GW[Execution gateway contract] --> REQ[runner.step.request]
   REQ --> VAL
-  VAL --> API[API synthetic-only candidate]
+  VAL --> API[API in-memory synthetic candidate]
+  VAL --> DAPI[API durable synthetic candidate]
+  DAPI --> LEDGER
   VAL --> RUN[Future production runner adapter]
   API -. synthetic progress .-> PROG[runner.progress]
   RUN -. optional progress .-> PROG
@@ -379,6 +387,7 @@ flowchart LR
   KIT --> REF[Test-only reference adapter]
   KIT --> BAD1[Duplicate-effect adapter]
   KIT --> BAD2[Secret-leaking adapter]
+  KIT --> DAPI
   KIT --> REPORT[Sanitized conformance report]
 ```
 
@@ -433,7 +442,16 @@ It does not dispatch work and it has no process, network, container or laborator
 | Post-merge ledger security/gitleaks workflow | success — run `31089022565` |
 | Runner Protocol tests with ledger | 36 passed |
 | Concurrent claim winners | exactly one `NEW` |
-| Adapter integration with durable ledger | `NOT_RUN` |
+| Adapter integration with durable ledger | synthetic API integration `AS_BUILT`; production `NOT_RUN` |
+| PR #115 validated head | `dc08ff3779ef47fd48846efc6149b022617b107e` |
+| API durable synthetic merge SHA | `3ff427e4c5122f0733bc04c9291acfdfc28b1448` |
+| PR #115 validate workflow | success — run `31090758807` |
+| PR #115 security/gitleaks workflow | success — run `31090759705` |
+| Post-merge durable API validate workflow | success — run `31090875891` |
+| Post-merge durable API security/gitleaks workflow | success — run `31090875979` |
+| Directed protocol/API/roadmap/docs tests | 929 passed |
+| Durable restart replay | `PASS_SYNTHETIC`; no second synthetic effect |
+| Production API execution integration | `NOT_RUN` |
 
 ### Block 1 acceptance assessment
 
@@ -500,12 +518,27 @@ It does not dispatch work and it has no process, network, container or laborator
 | Automatic reclaim of uncertain effects | deliberately absent | abandoned `IN_PROGRESS` requires reconciliation |
 | Real runner effect deduplication | `NOT_RUN` | no adapter consumes the ledger |
 
+### Block 6 acceptance assessment
+
+| Criterion | Result | Evidence |
+| --- | --- | --- |
+| Durable claim precedes synthetic effect | met | candidate control flow and tests |
+| Restart replay avoids second synthetic effect | met | new candidate instance; effect counter remains zero |
+| Retry correlation is reconstructed | met | replay carries current `attempt_id` |
+| Changed effect under the same key is refused | met | restart conflict test |
+| Uncertain `IN_PROGRESS` is not reclaimed | met | restart refusal and persisted active state |
+| Cancellation outcome persists and replays | met | same-process cancellation plus restart replay |
+| Completion failure fails closed | met | non-retryable `INCONCLUSIVE` test |
+| Real capability and authorization create no claim | met | negative ledger-record tests |
+| Production API effect deduplication | `NOT_RUN` | no real capability mapping or executor integration |
+| Live bounded process cancellation | `NOT_RUN` | synthetic protocol cancellation only |
+
 ### Epic-level criteria not yet met
 
 | Criterion | State | Required next evidence |
 | --- | --- | --- |
 | Correlation propagated by every adapter | `NOT_RUN` | API, DevSecOps and AI/MCP adapter conformance |
-| Same idempotency key never duplicates effects | `PARTIAL` | durable ledger is AS_BUILT; adapter effect-level integration remains `NOT_RUN` |
+| Same idempotency key never duplicates effects | `PARTIAL` | synthetic API restart replay is AS_BUILT; production adapter effect-level integration remains `NOT_RUN` |
 | Cancellation observable and bounded live | `NOT_RUN` | supervised process/cancellation integration tests |
 | Error taxonomy normalized end to end | `NOT_RUN` | adapter and gateway integration tests |
 
@@ -526,8 +559,9 @@ It does not dispatch work and it has no process, network, container or laborator
   with Python's standard-library `platform` module.
 - The SDK deliberately does not package duplicate schemas; non-editable consumers must
   provide the canonical contract root explicitly.
-- The first family-specific candidate is deliberately separate from the legacy API executor;
-  production integration requires a later capability-mapping and supervised execution block.
+- The first family-specific candidates are deliberately separate from the legacy API executor;
+  the durable variant proves restart replay only for synthetic effects. Production integration
+  requires a later capability-mapping and supervised execution block.
 
 ### Limitations and residual risk
 
@@ -536,8 +570,8 @@ It does not dispatch work and it has no process, network, container or laborator
 - Schema-valid requests may still be unauthorized; Hermes authorization remains mandatory.
 - Cancellation and hard timeout are contract semantics only until supervised runtime support
   is implemented.
-- A durable atomic ledger now exists, but it does not prevent duplicate real effects until each
-  adapter claims before execution and persists the terminal outcome after effect completion.
+- The API durable synthetic candidate now consumes the atomic ledger, but duplicate real effects
+  remain possible until production adapters claim before execution and persist the terminal outcome.
 - Evidence references are structurally validated but the Evidence Plane and chain-of-custody
   implementation remain later work.
 - A conformance-kit `PASS` is necessary but not sufficient for promotion and requires human
@@ -561,3 +595,4 @@ It does not dispatch work and it has no process, network, container or laborator
 | 2026-08-06 | 1.5.0 | Record API synthetic candidate AS_BUILT with PASS_SYNTHETIC evidence, execution NOT_RUN and promotion blocked. |
 | 2026-08-06 | 1.6.0 | Record durable transactional idempotency ledger AS_BUILT with adapter integration NOT_RUN. |
 | 2026-08-06 | 1.6.1 | Start API durable synthetic integration with restart replay and production execution blocked. |
+| 2026-08-06 | 1.7.0 | Record API durable synthetic restart replay AS_BUILT with production execution NOT_RUN and promotion blocked. |
