@@ -51,6 +51,14 @@ def load_json(path: Path) -> Any:
         raise ValueError(f"invalid JSON in {path}: {exc}") from exc
 
 
+def display_path(path: Path) -> str:
+    """Return a stable repository-relative path, with a fixture-safe fallback."""
+    try:
+        return path.relative_to(REPOSITORY_ROOT).as_posix()
+    except ValueError:
+        return str(path)
+
+
 def repository_path(value: object) -> Path | None:
     if not isinstance(value, str) or not value.strip():
         return None
@@ -67,30 +75,27 @@ def validate_runtime_profile(
     statuses: set[str],
 ) -> list[str]:
     errors: list[str] = []
+    label = display_path(path)
     try:
         data = load_yaml(path)
     except ValueError as exc:
         return [str(exc)]
     if not isinstance(data, dict):
-        return [f"{path.relative_to(REPOSITORY_ROOT)}: profile must be an object"]
+        return [f"{label}: profile must be an object"]
 
     validator = Draft7Validator(schema)
     for error in sorted(validator.iter_errors(data), key=lambda item: list(item.path)):
         location = ".".join(str(part) for part in error.path) or "$"
-        errors.append(
-            f"{path.relative_to(REPOSITORY_ROOT)}: schema {location}: {error.message}"
-        )
+        errors.append(f"{label}: schema {location}: {error.message}")
 
     actual_id = str(data.get("id", ""))
     if actual_id != expected_id:
         errors.append(
-            f"{path.relative_to(REPOSITORY_ROOT)}: id '{actual_id}' does not match registry id '{expected_id}'"
+            f"{label}: id '{actual_id}' does not match registry id '{expected_id}'"
         )
     status = str(data.get("status", ""))
     if status not in statuses:
-        errors.append(
-            f"{path.relative_to(REPOSITORY_ROOT)}: status '{status}' is not registered"
-        )
+        errors.append(f"{label}: status '{status}' is not registered")
     return errors
 
 
@@ -249,7 +254,7 @@ def validate_repository() -> list[str]:
     declared_files = set(RUNTIME_DIR.glob("*.yaml"))
     for orphan in sorted(declared_files - runtime_paths):
         errors.append(
-            f"orphan runtime profile not referenced by registry: {orphan.relative_to(REPOSITORY_ROOT)}"
+            f"orphan runtime profile not referenced by registry: {display_path(orphan)}"
         )
 
     environment_runtimes, environment_errors = discover_environment_runtimes()
