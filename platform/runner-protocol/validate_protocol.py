@@ -263,6 +263,44 @@ def validate_compatibility_matrix() -> None:
                 f"compatibility rule {key!r} must be {expected!r}"
             )
 
+    kit = data.get("conformance_kit")
+    expected_kit = {
+        "status": "available",
+        "transport": "json_lines",
+        "execution_model": "isolated_candidate_process",
+        "reference_adapter": "test_only",
+        "report_schema": "schemas/conformance-report.schema.json",
+        "promotion_effect": "none",
+        "required_verdict_for_promotion": "PASS",
+    }
+    if kit != expected_kit:
+        raise ProtocolValidationError("conformance kit declaration is inconsistent")
+
+    report_schema_path = ROOT / str(kit["report_schema"])
+    if not report_schema_path.is_file():
+        raise ProtocolValidationError("conformance report schema is missing")
+    report_schema = json.loads(report_schema_path.read_text(encoding="utf-8"))
+    jsonschema.Draft202012Validator.check_schema(report_schema)
+
+    migration_gates = data.get("migration_gates")
+    required_gates = {
+        "schema_validation",
+        "semantic_validation",
+        "correlation_propagation",
+        "idempotency_replay_test",
+        "cancellation_timeout_test",
+        "evidence_reference_test",
+        "secret_redaction_test",
+        "conformance_report_pass",
+        "human_review_before_promotion",
+    }
+    if not isinstance(migration_gates, list) or len(migration_gates) != len(
+        set(migration_gates)
+    ):
+        raise ProtocolValidationError("migration gates must be a unique list")
+    if set(migration_gates) != required_gates:
+        raise ProtocolValidationError("migration gate inventory is incomplete or unexpected")
+
     families = data["runner_families"]
     ids = {family["id"] for family in families}
     if ids != EXPECTED_RUNNER_FAMILIES:
