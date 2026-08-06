@@ -26,7 +26,7 @@ jobs:
         run: python -m pip install --disable-pip-version-check -q pytest ruff -e platform/runner-protocol
       - name: Validate shared API and DevSecOps supervision
         env:
-          PYTHONPATH: security/packs/api/src:security/packs/devsecops/src
+          PYTHONPATH: "security/packs/api/src:security/packs/devsecops/src"
         run: |
           python platform/runner-protocol/validate_protocol.py --contract-only
           python -m pytest -q \
