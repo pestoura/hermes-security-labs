@@ -1,0 +1,378 @@
+name: epic-05-lifecycle-patch
+
+on:
+  push:
+    branches:
+      - chore/epic-05-devsecops-lifecycle
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Apply atomic lifecycle promotion
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(text: str, old: str, new: str, label: str) -> str:
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{label}: expected one match, found {count}")
+              return text.replace(old, new, 1)
+
+          compatibility_path = Path("platform/runner-protocol/compatibility.yaml")
+          compatibility = compatibility_path.read_text(encoding="utf-8")
+          old_devsecops = '''  - id: devsecops
+              implementation_status: not_started
+              protocol_status: contract_only
+              conformance: NOT_RUN
+              execution_integration: NOT_RUN
+              promotion_status: blocked
+              supported_scope: none
+              activation: none
+              adapter_path: null
+              activation_argument: null
+              notes: Existing DevSecOps pack semantics are unchanged; no Runner Protocol adapter exists.
+          '''
+          new_devsecops = '''  - id: devsecops
+              implementation_status: candidate
+              protocol_status: conformance_only
+              conformance: PASS_SYNTHETIC_PROCESS
+              execution_integration: NOT_RUN
+              promotion_status: blocked
+              supported_scope: fixed_synthetic_worker_only
+              activation: explicit_flag
+              adapter_path: security/packs/devsecops/src/devsecops_runbooks/supervised_runner_protocol_adapter.py
+              activation_argument: --conformance-only
+              supervised_process:
+                status: PASS_SYNTHETIC_PROCESS
+                integration_scope: fixed_synthetic_worker_only
+                adapter_path: security/packs/devsecops/src/devsecops_runbooks/supervised_runner_protocol_adapter.py
+                worker_path: security/packs/devsecops/src/devsecops_runbooks/synthetic_supervised_worker.py
+                activation_arguments:
+                  - --conformance-only
+                  - --synthetic-process-only
+                  - --durable-ledger
+                durable_claim_before_spawn: PASS_SYNTHETIC_PROCESS
+                async_cancellation: PASS_SYNTHETIC_PROCESS
+                hard_timeout: PASS_SYNTHETIC_PROCESS
+                descendant_residue: fail_closed_inconclusive
+                raw_output_persistence: none
+                sandbox_status: NOT_IMPLEMENTED
+                production_effect_claim: none
+              notes: The opt-in DevSecOps candidate proves fixed-worker synthetic process supervision and durable replay through the shared SDK engine. It cannot run scanners, pipelines, repositories, networks or request-supplied commands; production DevSecOps execution is not integrated.
+          '''
+          compatibility = replace_once(
+              compatibility,
+              old_devsecops,
+              new_devsecops,
+              "compatibility DevSecOps declaration",
+          )
+          compatibility_path.write_text(compatibility, encoding="utf-8")
+
+          contracts_path = Path(
+              "platform/runner-protocol/src/runner_protocol_v2/contracts.py"
+          )
+          contracts = contracts_path.read_text(encoding="utf-8")
+
+          helper_marker = "\n\ndef validate_compatibility_matrix() -> None:\n"
+          helpers = '''
+
+          def _validate_candidate_adapter(
+              repository_root: Path,
+              *,
+              relative_path: str,
+              required_arguments: tuple[str, ...],
+              candidate_name: str,
+          ) -> None:
+              adapter_path = (repository_root / relative_path).resolve()
+              if repository_root not in adapter_path.parents or not adapter_path.is_file():
+                  raise ProtocolValidationError(
+                      f"{candidate_name} path is missing or outside repository"
+                  )
+              adapter_source = adapter_path.read_text(encoding="utf-8")
+              for forbidden in ("execute_runbook", "execute_command"):
+                  if forbidden in adapter_source:
+                      raise ProtocolValidationError(
+                          f"{candidate_name} must not reference {forbidden}"
+                      )
+              for argument in required_arguments:
+                  if argument not in adapter_source:
+                      raise ProtocolValidationError(
+                          f"{candidate_name} activation argument {argument!r} is not enforced"
+                      )
+
+
+          def _validate_synthetic_worker(
+              repository_root: Path,
+              *,
+              relative_path: str,
+              family_name: str,
+          ) -> None:
+              worker_path = (repository_root / relative_path).resolve()
+              if repository_root not in worker_path.parents or not worker_path.is_file():
+                  raise ProtocolValidationError(
+                      f"{family_name} supervised synthetic worker path is missing or outside repository"
+                  )
+              worker_source = worker_path.read_text(encoding="utf-8")
+              for forbidden in (
+                  "socket",
+                  "requests",
+                  "urllib",
+                  "execute_runbook",
+                  "execute_command",
+              ):
+                  if forbidden in worker_source:
+                      raise ProtocolValidationError(
+                          f"{family_name} supervised synthetic worker must not reference {forbidden}"
+                      )
+
+
+          def validate_compatibility_matrix() -> None:
+          '''
+          contracts = replace_once(
+              contracts,
+              helper_marker,
+              helpers,
+              "compatibility validator helpers",
+          )
+          contracts = replace_once(
+              contracts,
+              "    supervised_expected = {\n",
+              "    api_supervised_expected = {\n",
+              "API supervised declaration name",
+          )
+          contracts = replace_once(
+              contracts,
+              '''    if api.get("supervised_process") != supervised_expected:
+                  raise ProtocolValidationError(
+                      "API supervised-process declaration is inconsistent"
+                  )
+
+              repository_root = root.parents[1]
+          ''',
+              '''    if api.get("supervised_process") != api_supervised_expected:
+                  raise ProtocolValidationError(
+                      "API supervised-process declaration is inconsistent"
+                  )
+
+              devsecops_expected = {
+                  "implementation_status": "candidate",
+                  "protocol_status": "conformance_only",
+                  "conformance": "PASS_SYNTHETIC_PROCESS",
+                  "execution_integration": "NOT_RUN",
+                  "promotion_status": "blocked",
+                  "supported_scope": "fixed_synthetic_worker_only",
+                  "activation": "explicit_flag",
+                  "adapter_path": (
+                      "security/packs/devsecops/src/devsecops_runbooks/"
+                      "supervised_runner_protocol_adapter.py"
+                  ),
+                  "activation_argument": "--conformance-only",
+              }
+              devsecops = by_id["devsecops"]
+              for key, expected in devsecops_expected.items():
+                  if devsecops.get(key) != expected:
+                      raise ProtocolValidationError(
+                          f"DevSecOps candidate field {key!r} must be {expected!r}"
+                      )
+
+              devsecops_supervised_expected = {
+                  "status": "PASS_SYNTHETIC_PROCESS",
+                  "integration_scope": "fixed_synthetic_worker_only",
+                  "adapter_path": (
+                      "security/packs/devsecops/src/devsecops_runbooks/"
+                      "supervised_runner_protocol_adapter.py"
+                  ),
+                  "worker_path": (
+                      "security/packs/devsecops/src/devsecops_runbooks/"
+                      "synthetic_supervised_worker.py"
+                  ),
+                  "activation_arguments": [
+                      "--conformance-only",
+                      "--synthetic-process-only",
+                      "--durable-ledger",
+                  ],
+                  "durable_claim_before_spawn": "PASS_SYNTHETIC_PROCESS",
+                  "async_cancellation": "PASS_SYNTHETIC_PROCESS",
+                  "hard_timeout": "PASS_SYNTHETIC_PROCESS",
+                  "descendant_residue": "fail_closed_inconclusive",
+                  "raw_output_persistence": "none",
+                  "sandbox_status": "NOT_IMPLEMENTED",
+                  "production_effect_claim": "none",
+              }
+              if devsecops.get("supervised_process") != devsecops_supervised_expected:
+                  raise ProtocolValidationError(
+                      "DevSecOps supervised-process declaration is inconsistent"
+                  )
+
+              repository_root = root.parents[1]
+          ''',
+              "DevSecOps canonical declaration",
+          )
+          contracts = contracts.replace("supervised_expected[", "api_supervised_expected[")
+
+          old_api_candidate = '''        (
+                      str(api_supervised_expected["adapter_path"]),
+                      tuple(str(value) for value in api_supervised_expected["activation_arguments"]),
+                      "API supervised synthetic-process candidate",
+                  ),
+          '''
+          new_candidates = old_api_candidate + '''        (
+                      str(devsecops_supervised_expected["adapter_path"]),
+                      tuple(
+                          str(value)
+                          for value in devsecops_supervised_expected["activation_arguments"]
+                      ),
+                      "DevSecOps supervised synthetic-process candidate",
+                  ),
+          '''
+          contracts = replace_once(
+              contracts,
+              old_api_candidate,
+              new_candidates,
+              "DevSecOps candidate source validation",
+          )
+
+          old_adapter_loop = '''    for relative_path, required_arguments, candidate_name in candidate_declarations:
+                  adapter_path = (repository_root / relative_path).resolve()
+                  if repository_root not in adapter_path.parents or not adapter_path.is_file():
+                      raise ProtocolValidationError(
+                          f"{candidate_name} path is missing or outside repository"
+                      )
+                  adapter_source = adapter_path.read_text(encoding="utf-8")
+                  for forbidden in ("execute_runbook", "execute_command"):
+                      if forbidden in adapter_source:
+                          raise ProtocolValidationError(
+                              f"{candidate_name} must not reference {forbidden}"
+                          )
+                  for argument in required_arguments:
+                      if argument not in adapter_source:
+                          raise ProtocolValidationError(
+                              f"{candidate_name} activation argument {argument!r} is not enforced"
+                          )
+
+          '''
+          new_adapter_loop = '''    for relative_path, required_arguments, candidate_name in candidate_declarations:
+                  _validate_candidate_adapter(
+                      repository_root,
+                      relative_path=relative_path,
+                      required_arguments=required_arguments,
+                      candidate_name=candidate_name,
+                  )
+
+          '''
+          contracts = replace_once(
+              contracts,
+              old_adapter_loop,
+              new_adapter_loop,
+              "candidate adapter helper use",
+          )
+
+          old_worker = '''    worker_path = (repository_root / str(api_supervised_expected["worker_path"])).resolve()
+              if repository_root not in worker_path.parents or not worker_path.is_file():
+                  raise ProtocolValidationError(
+                      "API supervised synthetic worker path is missing or outside repository"
+                  )
+              worker_source = worker_path.read_text(encoding="utf-8")
+              for forbidden in ("socket", "requests", "urllib", "execute_runbook", "execute_command"):
+                  if forbidden in worker_source:
+                      raise ProtocolValidationError(
+                          f"API supervised synthetic worker must not reference {forbidden}"
+                      )
+
+          '''
+          new_worker = '''    _validate_synthetic_worker(
+                  repository_root,
+                  relative_path=str(api_supervised_expected["worker_path"]),
+                  family_name="API",
+              )
+              _validate_synthetic_worker(
+                  repository_root,
+                  relative_path=str(devsecops_supervised_expected["worker_path"]),
+                  family_name="DevSecOps",
+              )
+
+          '''
+          contracts = replace_once(
+              contracts,
+              old_worker,
+              new_worker,
+              "synthetic worker validation",
+          )
+
+          old_not_started = '''    not_started_expected = {
+                  "implementation_status": "not_started",
+                  "protocol_status": "contract_only",
+                  "conformance": "NOT_RUN",
+                  "execution_integration": "NOT_RUN",
+                  "promotion_status": "blocked",
+                  "supported_scope": "none",
+                  "activation": "none",
+                  "adapter_path": None,
+                  "activation_argument": None,
+              }
+              for family_id in ("devsecops", "ai-mcp"):
+                  family = by_id[family_id]
+                  for key, expected in not_started_expected.items():
+                      if family.get(key) != expected:
+                          raise ProtocolValidationError(
+                              f"{family_id} field {key!r} must remain {expected!r}"
+                          )
+
+          '''
+          new_not_started = '''    ai_mcp_expected = {
+                  "implementation_status": "not_started",
+                  "protocol_status": "contract_only",
+                  "conformance": "NOT_RUN",
+                  "execution_integration": "NOT_RUN",
+                  "promotion_status": "blocked",
+                  "supported_scope": "none",
+                  "activation": "none",
+                  "adapter_path": None,
+                  "activation_argument": None,
+              }
+              ai_mcp = by_id["ai-mcp"]
+              for key, expected in ai_mcp_expected.items():
+                  if ai_mcp.get(key) != expected:
+                      raise ProtocolValidationError(
+                          f"ai-mcp field {key!r} must remain {expected!r}"
+                      )
+
+          '''
+          contracts = replace_once(
+              contracts,
+              old_not_started,
+              new_not_started,
+              "AI/MCP unchanged declaration",
+          )
+          contracts_path.write_text(contracts, encoding="utf-8")
+
+          test_path = Path("platform/runner-protocol/tests/test_runner_protocol.py")
+          tests = test_path.read_text(encoding="utf-8")
+          tests = replace_once(
+              tests,
+              "def test_compatibility_matrix_accepts_scoped_api_candidate() -> None:\n",
+              "def test_compatibility_matrix_accepts_scoped_api_and_devsecops_candidates() -> None:\n",
+              "compatibility test name",
+          )
+          test_path.write_text(tests, encoding="utf-8")
+          PY
+          python -m py_compile platform/runner-protocol/src/runner_protocol_v2/contracts.py
+          git diff --check
+      - name: Commit lifecycle promotion and remove temporary workflow
+        shell: bash
+        run: |
+          rm .github/workflows/epic-05-lifecycle-patch.yml
+          git config user.name "Pedro"
+          git config user.email "pedro.estoura@gmail.com"
+          git add -A
+          git commit -m "docs(epic-05): promote DevSecOps synthetic candidate"
+          git push origin HEAD:chore/epic-05-devsecops-lifecycle
