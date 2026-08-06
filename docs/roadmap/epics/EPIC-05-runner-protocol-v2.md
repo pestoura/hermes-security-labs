@@ -10,7 +10,7 @@
 | Phase | 1 |
 | Priority | P0 |
 | Delivery umbrella | `SVP2-B-02` (issue [#80](https://github.com/pestoura/hermes-security-labs/issues/80)) |
-| Document version | 1.2.1 |
+| Document version | 1.3.0 |
 | Document date | 2026-08-06 |
 | Catalogue | [Epic catalogue 45](../epic-catalogue-45.md) |
 | Lifecycle contract | [Architecture documentation lifecycle](../../architecture/architecture-documentation-lifecycle.md) |
@@ -19,9 +19,10 @@
 
 **AS_BUILT** — the contract-only Runner Protocol v2 block was integrated through pull
 request [#105](https://github.com/pestoura/hermes-security-labs/pull/105) and validated
-again on `main`. `FINAL` remains false because no runner adapter has yet demonstrated
-end-to-end conformance, idempotent effects or bounded live cancellation. A vendor-neutral
-conformance kit is now being implemented as block 2; real runner states remain `NOT_RUN`.
+again on `main`. The vendor-neutral conformance kit was subsequently integrated through
+pull request [#107](https://github.com/pestoura/hermes-security-labs/pull/107) and also
+validated on `main`. `FINAL` remains false because no real runner adapter has yet
+demonstrated end-to-end conformance, idempotent effects or bounded live cancellation.
 
 | Lifecycle state | Reached |
 | --- | --- |
@@ -246,9 +247,12 @@ Evidence must be referenced from issue #80 and section 15 before the umbrella ca
   gate was applied through the GitHub connector. No permission was broadened.
 - Temporary branch-local workflows were removed before the PR diff and merge.
 
-### Block 2 — vendor-neutral conformance kit (`IMPLEMENTING`)
+### Block 2 — vendor-neutral conformance kit (`AS_BUILT`)
 
 - Branch: `feat/epic-05-conformance-kit`
+- Pull request: [#107](https://github.com/pestoura/hermes-security-labs/pull/107)
+- Validated head: `61fae45bcc096d8fe71464b5c19dec7146447906`
+- Squash merge: `944d198a106ebf106631fd18b9c5c5b9aef63942`
 - Candidate transport: isolated JSON-lines process
 - Test capabilities: synthetic `conformance.*` only
 - Report: schema-backed, sanitized and command-hashed
@@ -256,8 +260,9 @@ Evidence must be referenced from issue #80 and section 15 before the umbrella ca
 - Real API, DevSecOps and AI/MCP adapters: `NOT_RUN`
 - Runtime declaration: `NO_RUNTIME_CHANGE`
 
-The block must prove that the kit accepts a deterministic reference adapter and rejects
-controlled duplicate-effect and secret-leaking adapters before a pull request may be merged.
+The merged self-test accepts the deterministic test-only reference adapter and rejects
+controlled duplicate-effect and secret-leaking adapters. This is evidence about the kit,
+not production conformance evidence for any real runner family.
 
 ## 15. As-built / final architecture
 
@@ -265,7 +270,7 @@ controlled duplicate-effect and secret-leaking adapters before a pull request ma
 > umbrella may not be closed until the runner adapters and epic-level acceptance criteria are
 > implemented and this section is updated to `FINAL`.
 
-### Delivered contract architecture
+### Delivered contract and conformance architecture
 
 ```mermaid
 flowchart LR
@@ -278,6 +283,10 @@ flowchart LR
   RUN --> EV[Sanitized evidence reference]
   RUN --> OUT[runner.outcome]
   EV --> OUT
+  KIT[Vendor-neutral conformance kit] --> REF[Test-only reference adapter]
+  KIT --> BAD1[Duplicate-effect adapter]
+  KIT --> BAD2[Secret-leaking adapter]
+  KIT --> REPORT[Sanitized conformance report]
 ```
 
 The delivered implementation is a repository-owned protocol contract and validation library.
@@ -296,6 +305,15 @@ It does not dispatch work and it has no process, network, container or laborator
 | Runner Protocol tests | 17 passed |
 | Roadmap/document lifecycle directed tests | 751 passed before PR |
 | Runtime validation | `NOT_APPLICABLE` — `NO_RUNTIME_CHANGE` |
+| PR #107 validated head | `61fae45bcc096d8fe71464b5c19dec7146447906` |
+| Conformance-kit merge SHA | `944d198a106ebf106631fd18b9c5c5b9aef63942` |
+| PR #107 validate workflow | success — run `31078067384` |
+| PR #107 security/gitleaks workflow | success — run `31078067277` |
+| Post-merge conformance validate workflow | success — run `31078149317` |
+| Post-merge conformance security/gitleaks workflow | success — run `31078149409` |
+| Reference adapter | accepted by self-test |
+| Duplicate-effect adapter | rejected by self-test |
+| Secret-leaking adapter | rejected by self-test |
 
 ### Block 1 acceptance assessment
 
@@ -309,6 +327,20 @@ It does not dispatch work and it has no process, network, container or laborator
 | Retries limited to transient taxonomy | met | stable retryability validation |
 | Raw secret fields rejected | met | recursive semantic check and test |
 | No false runner conformance claim | met | compatibility matrix remains `contract_only` / `NOT_RUN` |
+
+### Block 2 acceptance assessment
+
+| Criterion | Result | Evidence |
+| --- | --- | --- |
+| Language-neutral isolated candidate transport | met | JSON-lines process harness |
+| Correlation and terminal evidence checked | met | conformance case and protocol validator |
+| Replay proves no duplicate effect | met for kit/reference adapter | effect-counter case |
+| Changed effect under same key refused | met for kit/reference adapter | conflict case |
+| Hard timeout and cooperative cancellation normalized | met for kit/reference adapter | timeout/cancellation cases |
+| Controlled secret leak detected | met | canary and broken-adapter self-test |
+| Report sanitized and schema-backed | met | report schema and tests |
+| Automatic promotion prevented | met | compatibility declaration `promotion_effect: none` |
+| Real runner conformance | `NOT_RUN` | API, DevSecOps and AI/MCP remain unchanged |
 
 ### Epic-level criteria not yet met
 
@@ -328,6 +360,10 @@ It does not dispatch work and it has no process, network, container or laborator
   use decision/protocol evidence and do not falsely claim execution evidence.
 - The block introduced deterministic fingerprint classification but deliberately did not
   implement a persistent replay ledger.
+- The conformance kit uses a language-neutral JSON-lines control protocol so adapters can
+  be tested without importing repository-specific Python modules.
+- The kit validates synthetic effects and adapter behaviour; it does not invoke real
+  security tools or authorize production execution.
 
 ### Limitations and residual risk
 
@@ -339,7 +375,11 @@ It does not dispatch work and it has no process, network, container or laborator
   atomic idempotency ledger.
 - Evidence references are structurally validated but the Evidence Plane and chain-of-custody
   implementation remain later work.
-- The umbrella #80 remains `IMPLEMENTING`; this block must not be treated as `FINAL`.
+- A conformance-kit `PASS` is necessary but not sufficient for promotion and requires human
+  review plus adapter-specific integration evidence.
+- External candidates require an additional sandbox boundary; the harness process boundary
+  alone is not a complete containment mechanism.
+- The umbrella #80 remains `IMPLEMENTING`; these blocks must not be treated as `FINAL`.
 
 ## 16. Document change log
 
@@ -349,3 +389,4 @@ It does not dispatch work and it has no process, network, container or laborator
 | 2026-08-06 | 1.1.0 | Set IMPLEMENTING; define block 1 contract scope, decisions, validation plan and limits. |
 | 2026-08-06 | 1.2.0 | Record contract block AS_BUILT, merge/CI evidence, acceptance assessment and residual limitations. |
 | 2026-08-06 | 1.2.1 | Start block 2 vendor-neutral conformance kit while preserving all real adapters as NOT_RUN. |
+| 2026-08-06 | 1.3.0 | Record conformance kit AS_BUILT, merge/CI evidence, controlled rejection proofs and residual limitations. |
