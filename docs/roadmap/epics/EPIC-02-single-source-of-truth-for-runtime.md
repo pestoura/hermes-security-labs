@@ -10,14 +10,15 @@
 | Phase | 1 |
 | Priority | P0 |
 | Delivery umbrella | `SVP2-A-01` (issue [#76](https://github.com/pestoura/hermes-security-labs/issues/76)) |
-| Document version | 1.1.0 |
+| Document version | 1.1.1 |
 | Document date | 2026-08-06 |
 | Catalogue | [Epic catalogue 45](../epic-catalogue-45.md) |
 | Lifecycle contract | [Architecture documentation lifecycle](../../architecture/architecture-documentation-lifecycle.md) |
 
 ## 2. Current status
 
-**IMPLEMENTING** — the first implementation block is active on branch
+**IMPLEMENTING** — the first implementation block is active in pull request
+[#102](https://github.com/pestoura/hermes-security-labs/pull/102) from branch
 `feat/epic-02-runtime-source-of-truth`. It formalizes and validates repository-owned runtime
 intent without changing deployment or live runtime behaviour.
 
@@ -150,7 +151,7 @@ be closed, and this document must record the references in section 15.
 
 - Branch: `feat/epic-02-runtime-source-of-truth`
 - Umbrella issue: [#76](https://github.com/pestoura/hermes-security-labs/issues/76)
-- Pull request: pending creation from this branch
+- Pull request: [#102](https://github.com/pestoura/hermes-security-labs/pull/102)
 - Runtime declaration: `NO_RUNTIME_CHANGE`
 - Normalized the five existing runtime profiles instead of creating duplicate declarations.
 - Added a runtime-profile JSON Schema and a read-only source-of-truth validator.
@@ -183,3 +184,4 @@ _Not yet merged._
 | --- | --- | --- |
 | 2026-08-06 | 1.0.0 | Initial intent document created from the concept epic catalogue. |
 | 2026-08-06 | 1.1.0 | Set IMPLEMENTING; record canonical registry, tri-state drift, release identity decision, validator and CI plan. |
+| 2026-08-06 | 1.1.1 | Link implementation pull request #102. |
