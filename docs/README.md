@@ -36,6 +36,9 @@ mantidos em Git e são a fonte de verdade. Issues do GitHub são uma vista de tr
 ### Roadmap v2
 
 - [Roadmap SVP v2](roadmap/security-validation-platform-v2.md)
+- [Platform v2 intent (45 concept epics)](architecture/security-validation-platform-v2-intent.md)
+- [Epic catalogue — 45 concept epics](roadmap/epic-catalogue-45.md)
+- [Architecture documentation lifecycle](architecture/architecture-documentation-lifecycle.md)
 - [Reference architecture](architecture/security-validation-reference-architecture.md)
 - [Framework crosswalk](architecture/framework-crosswalk.md)
 - [Security knowledge fabric](architecture/security-knowledge-fabric.md)

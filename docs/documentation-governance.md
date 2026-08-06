@@ -72,6 +72,24 @@ Alteração de contrato exige atualização de documentação **na mesma PR**:
 | novo modo de falha observado | [`troubleshooting.md`](troubleshooting.md) |
 | novo framework ou sigla | [`glossary-and-references.md`](glossary-and-references.md) |
 | alteração de fases ou pilares | [`roadmap/security-validation-platform-v2.md`](roadmap/security-validation-platform-v2.md) e `roadmap/epics/` |
+| trabalho numa umbrella epic `SVP2-*` | documento(s) de concept epic em [`roadmap/epics/`](roadmap/epics/) — secções 14 e 15 |
+
+## Concept epics e ciclo de vida documental
+
+As 45 concept epics (`EPIC-01`…`EPIC-45`) documentam a intenção de desenho; as 21 umbrella
+epics `SVP2-*` (issues #76–#96) continuam a ser as unidades de entrega. Ver
+[epic catalogue](roadmap/epic-catalogue-45.md).
+
+O contrato Intent → As-Built → Final está em
+[`architecture/architecture-documentation-lifecycle.md`](architecture/architecture-documentation-lifecycle.md)
+e é obrigatório:
+
+- ao iniciar trabalho numa umbrella, o estado da concept epic passa a `IMPLEMENTING`;
+- cada PR que altere comportamento coberto atualiza a secção 14 na mesma PR;
+- decisões materiais exigem ADR;
+- **nenhuma umbrella pode ser fechada com a secção 15 (as-built) por preencher** em qualquer
+  concept epic que cubra;
+- divergências entre intenção e implementação são registadas, não apagadas.
 
 ## Checklist de documentação em PRs
 
@@ -82,6 +100,8 @@ Incluir na descrição da PR:
 - [ ] ligações relativas verificadas (`pytest -q docs/tests`);
 - [ ] diagramas Mermaid renderizam no GitHub;
 - [ ] funcionalidade futura marcada como **roadmap** com o ID `SVP2-*`;
+- [ ] se a PR toca trabalho de uma umbrella `SVP2-*`, o documento da concept epic
+      correspondente foi atualizado (secção 14, e secção 15 quando a umbrella fecha);
 - [ ] sem credenciais, tokens, payloads ofensivos ou instruções contra alvos
       externos;
 - [ ] exemplos de comandos apontam para caminhos existentes.

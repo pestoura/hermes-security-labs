@@ -78,6 +78,18 @@ jobs:
           exit 1
       - name: Test roadmap backlog integrity
         run: python -m pytest -q roadmap/tests -p no:cacheprovider
+      - name: Validate concept epic catalogue against its schema
+        run: |
+          python - <<'PY'
+          import json
+          import jsonschema
+          import yaml
+          data = yaml.safe_load(open('roadmap/epics/security-validation-platform-v2-concepts.yaml', encoding='utf-8'))
+          schema = json.load(open('schemas/concept-epic.schema.json', encoding='utf-8'))
+          jsonschema.validate(data, schema)
+          assert len(data['concept_epics']) == 45
+          print('CONCEPT_CATALOGUE_OK')
+          PY
       - name: Test deployment tracking tooling
         run: python -m pytest -q deployment/tests -p no:cacheprovider
       - name: Validate deployment tracking CLI help
