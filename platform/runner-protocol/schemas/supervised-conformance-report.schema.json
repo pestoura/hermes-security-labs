@@ -1,0 +1,268 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/pestoura/hermes-security-labs/platform/runner-protocol/schemas/supervised-conformance-report.schema.json",
+  "title": "Runner Protocol v2 cross-family supervised conformance report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "protocol_version",
+    "verdict",
+    "families",
+    "parity",
+    "safety"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "protocol_version": {
+      "const": "2.0.0"
+    },
+    "verdict": {
+      "type": "string",
+      "enum": [
+        "PASS",
+        "FAIL"
+      ]
+    },
+    "families": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "$ref": "#/$defs/family"
+      }
+    },
+    "parity": {
+      "type": "array",
+      "minItems": 9,
+      "maxItems": 9,
+      "items": {
+        "$ref": "#/$defs/parityCase"
+      }
+    },
+    "safety": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "raw_process_output_persisted",
+        "request_controls_process_spec",
+        "production_effect_claim",
+        "sandbox_status",
+        "runtime_declaration"
+      ],
+      "properties": {
+        "raw_process_output_persisted": {
+          "const": false
+        },
+        "request_controls_process_spec": {
+          "const": false
+        },
+        "production_effect_claim": {
+          "const": "none"
+        },
+        "sandbox_status": {
+          "const": "NOT_IMPLEMENTED"
+        },
+        "runtime_declaration": {
+          "const": "NO_RUNTIME_CHANGE"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "caseId": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "familyCase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "status",
+        "effect_delta",
+        "ledger_delta"
+      ],
+      "properties": {
+        "case_id": {
+          "$ref": "#/$defs/caseId"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "PASS",
+            "FAIL"
+          ]
+        },
+        "signature_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "detail": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "pattern": "^[^\\r\\n\\x00-\\x08\\x0b\\x0c\\x0e-\\x1f]*$"
+        },
+        "effect_delta": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 8
+        },
+        "ledger_delta": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 8
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "PASS"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "required": [
+              "signature_sha256"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "FAIL"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "required": [
+              "detail"
+            ]
+          }
+        }
+      ]
+    },
+    "family": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "family",
+        "adapter_sha256",
+        "command_profile_sha256",
+        "verdict",
+        "cases"
+      ],
+      "properties": {
+        "family": {
+          "type": "string",
+          "enum": [
+            "api",
+            "devsecops",
+            "ai-mcp"
+          ]
+        },
+        "adapter_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "command_profile_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "verdict": {
+          "type": "string",
+          "enum": [
+            "PASS",
+            "FAIL"
+          ]
+        },
+        "cases": {
+          "type": "array",
+          "minItems": 9,
+          "maxItems": 9,
+          "items": {
+            "$ref": "#/$defs/familyCase"
+          }
+        }
+      }
+    },
+    "parityCase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "status"
+      ],
+      "properties": {
+        "case_id": {
+          "$ref": "#/$defs/caseId"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "PASS",
+            "FAIL"
+          ]
+        },
+        "signature_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "detail": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "pattern": "^[^\\r\\n\\x00-\\x08\\x0b\\x0c\\x0e-\\x1f]*$"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "PASS"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "required": [
+              "signature_sha256"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "FAIL"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "required": [
+              "detail"
+            ]
+          }
+        }
+      ]
+    }
+  }
+}
