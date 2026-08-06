@@ -1,0 +1,80 @@
+#!/usr/bin/env python3
+"""Synthetic-process-only DevSecOps Runner Protocol v2 candidate.
+
+The wrapper supplies a fixed DevSecOps worker to the shared repository-owned
+supervised synthetic engine. It cannot invoke runbooks, scanners, pipeline tools,
+repositories, networks or commands supplied by a request.
+"""
+
+from __future__ import annotations
+
+import argparse
+from pathlib import Path
+
+from runner_protocol_v2 import PosixProcessSupervisor, SQLiteIdempotencyLedger
+from runner_protocol_v2.synthetic_supervised import (
+    SyntheticSupervisedRunnerCandidate,
+    ledger_path,
+    serve_json_lines,
+)
+
+WORKER = Path(__file__).with_name("synthetic_supervised_worker.py").resolve()
+
+
+class SupervisedSyntheticDevSecOpsRunnerCandidate(
+    SyntheticSupervisedRunnerCandidate
+):
+    """Fixed-worker DevSecOps wrapper for synthetic conformance only."""
+
+    def __init__(
+        self,
+        *,
+        durable_ledger: SQLiteIdempotencyLedger,
+        working_directory: Path | None = None,
+        supervisor: PosixProcessSupervisor | None = None,
+    ) -> None:
+        kwargs = {
+            "family": "devsecops",
+            "worker_path": WORKER,
+            "durable_ledger": durable_ledger,
+            "working_directory": working_directory,
+        }
+        if supervisor is not None:
+            kwargs["supervisor"] = supervisor
+        super().__init__(**kwargs)  # type: ignore[arg-type]
+
+
+def _ledger_argument(value: str) -> Path:
+    try:
+        return ledger_path(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError(str(exc)) from exc
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--conformance-only", action="store_true")
+    parser.add_argument("--synthetic-process-only", action="store_true")
+    parser.add_argument("--durable-ledger", type=_ledger_argument)
+    args = parser.parse_args()
+
+    if not args.conformance_only or not args.synthetic_process_only:
+        parser.error(
+            "--conformance-only and --synthetic-process-only are required; "
+            "real execution is unavailable"
+        )
+    if args.durable_ledger is None:
+        parser.error("--durable-ledger is required")
+
+    try:
+        ledger = SQLiteIdempotencyLedger(args.durable_ledger)
+        candidate = SupervisedSyntheticDevSecOpsRunnerCandidate(
+            durable_ledger=ledger,
+        )
+    except (OSError, RuntimeError, ValueError) as exc:
+        parser.error(f"synthetic supervised candidate unavailable: {exc}")
+    return serve_json_lines(candidate)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
