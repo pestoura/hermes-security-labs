@@ -20,6 +20,14 @@ from .idempotency import (
     LedgerUnavailableError,
     SQLiteIdempotencyLedger,
 )
+from .supervision import (
+    PosixProcessSupervisor,
+    SupervisedProcessResult,
+    SupervisedProcessSpec,
+    SupervisionError,
+    SupervisionSpecError,
+    SupervisionUnavailableError,
+)
 
 __version__ = "2.0.0"
 
@@ -30,8 +38,14 @@ __all__ = [
     "LedgerRecord",
     "LedgerStateError",
     "LedgerUnavailableError",
+    "PosixProcessSupervisor",
     "ProtocolValidationError",
     "SQLiteIdempotencyLedger",
+    "SupervisedProcessResult",
+    "SupervisedProcessSpec",
+    "SupervisionError",
+    "SupervisionSpecError",
+    "SupervisionUnavailableError",
     "__version__",
     "classify_idempotency",
     "contract_root",
