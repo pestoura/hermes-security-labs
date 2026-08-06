@@ -10,7 +10,7 @@
 | Phase | 1 |
 | Priority | P0 |
 | Delivery umbrella | `SVP2-B-02` (issue [#80](https://github.com/pestoura/hermes-security-labs/issues/80)) |
-| Document version | 1.3.1 |
+| Document version | 1.4.0 |
 | Document date | 2026-08-06 |
 | Catalogue | [Epic catalogue 45](../epic-catalogue-45.md) |
 | Lifecycle contract | [Architecture documentation lifecycle](../../architecture/architecture-documentation-lifecycle.md) |
@@ -21,10 +21,10 @@
 request [#105](https://github.com/pestoura/hermes-security-labs/pull/105) and validated
 again on `main`. The vendor-neutral conformance kit was subsequently integrated through
 pull request [#107](https://github.com/pestoura/hermes-security-labs/pull/107) and also
-validated on `main`. `FINAL` remains false because no real runner adapter has yet
-demonstrated end-to-end conformance, idempotent effects or bounded live cancellation.
-A repository-local importable SDK is being extracted as block 3 before any real adapter
-is implemented, preventing adapter-specific copies of canonical validation logic.
+validated on `main`. The repository-local SDK was then integrated through pull request
+[#109](https://github.com/pestoura/hermes-security-labs/pull/109) and validated again on
+`main`. `FINAL` remains false because no real runner adapter has yet demonstrated
+end-to-end conformance, idempotent effects or bounded live cancellation.
 
 | Lifecycle state | Reached |
 | --- | --- |
@@ -266,9 +266,12 @@ The merged self-test accepts the deterministic test-only reference adapter and r
 controlled duplicate-effect and secret-leaking adapters. This is evidence about the kit,
 not production conformance evidence for any real runner family.
 
-### Block 3 — repository-local importable SDK (`IMPLEMENTING`)
+### Block 3 — repository-local importable SDK (`AS_BUILT`)
 
 - Branch: `refactor/epic-05-runner-protocol-sdk`
+- Pull request: [#109](https://github.com/pestoura/hermes-security-labs/pull/109)
+- Validated head: `8216e733bf87ab89e41fd470e15653ae0c8e1b91`
+- Squash merge: `dd742e41787bfcaec1feac347abf94c73d5b59fd`
 - Package: `runner_protocol_v2`
 - Source: `platform/runner-protocol/src/runner_protocol_v2/`
 - Canonical schemas: retained once under `platform/runner-protocol/schemas/`
@@ -278,9 +281,9 @@ not production conformance evidence for any real runner family.
 - Existing API, DevSecOps and AI/MCP adapters: `NOT_RUN`
 - Runtime declaration: `NO_RUNTIME_CHANGE`
 
-This block is a prerequisite for adapters. It must demonstrate direct package import, canonical
-contract resolution, rejection of an incomplete explicit contract root and absence of duplicate
-validation implementations before merge.
+The merged implementation demonstrates editable installation, direct import in a clean process,
+canonical contract resolution, rejection of an incomplete explicit contract root and a guard
+against reintroducing validation logic into the CLI wrapper.
 
 ## 15. As-built / final architecture
 
@@ -288,20 +291,23 @@ validation implementations before merge.
 > umbrella may not be closed until the runner adapters and epic-level acceptance criteria are
 > implemented and this section is updated to `FINAL`.
 
-### Delivered contract and conformance architecture
+### Delivered contract, SDK and conformance architecture
 
 ```mermaid
 flowchart LR
+  SDK[runner_protocol_v2 SDK] --> VAL[Schema and semantic validator]
+  SDK --> IDEM[Fingerprint and idempotency classification]
+  CLI[Thin validate_protocol CLI] --> SDK
+  KIT[Vendor-neutral conformance kit] --> SDK
   GW[Execution gateway contract] --> REQ[runner.step.request]
-  REQ --> VAL[Schema and semantic validator]
-  VAL --> IDEM[Fingerprint and idempotency classification]
+  REQ --> VAL
   VAL --> RUN[Future runner adapter]
   RUN -. optional progress .-> PROG[runner.progress]
   GW -. cancellation .-> CANCEL[request and acknowledgement]
   RUN --> EV[Sanitized evidence reference]
   RUN --> OUT[runner.outcome]
   EV --> OUT
-  KIT[Vendor-neutral conformance kit] --> REF[Test-only reference adapter]
+  KIT --> REF[Test-only reference adapter]
   KIT --> BAD1[Duplicate-effect adapter]
   KIT --> BAD2[Secret-leaking adapter]
   KIT --> REPORT[Sanitized conformance report]
@@ -332,6 +338,15 @@ It does not dispatch work and it has no process, network, container or laborator
 | Reference adapter | accepted by self-test |
 | Duplicate-effect adapter | rejected by self-test |
 | Secret-leaking adapter | rejected by self-test |
+| PR #109 validated head | `8216e733bf87ab89e41fd470e15653ae0c8e1b91` |
+| SDK merge SHA | `dd742e41787bfcaec1feac347abf94c73d5b59fd` |
+| PR #109 validate workflow | success — run `31079273259` |
+| PR #109 security/gitleaks workflow | success — run `31079273280` |
+| Post-merge SDK validate workflow | success — run `31079378064` |
+| Post-merge SDK security/gitleaks workflow | success — run `31079378148` |
+| Editable install and direct import | passed |
+| Incomplete explicit contract root | rejected fail-closed |
+| Generated package metadata | removed and ignored |
 
 ### Block 1 acceptance assessment
 
@@ -360,6 +375,18 @@ It does not dispatch work and it has no process, network, container or laborator
 | Automatic promotion prevented | met | compatibility declaration `promotion_effect: none` |
 | Real runner conformance | `NOT_RUN` | API, DevSecOps and AI/MCP remain unchanged |
 
+### Block 3 acceptance assessment
+
+| Criterion | Result | Evidence |
+| --- | --- | --- |
+| One importable canonical SDK | met | `runner_protocol_v2` public package |
+| CLI contains no duplicate validation logic | met | source guard in SDK tests |
+| Editable installation and clean-process import | met | CI install/import gates |
+| Canonical artefacts remain single-source | met | schemas and compatibility remain outside package copies |
+| Missing explicit contract root fails closed | met | negative SDK test |
+| Standard-library `platform` collision avoided | met | explicit package namespace |
+| Real runner conformance | `NOT_RUN` | API, DevSecOps and AI/MCP unchanged |
+
 ### Epic-level criteria not yet met
 
 | Criterion | State | Required next evidence |
@@ -382,6 +409,10 @@ It does not dispatch work and it has no process, network, container or laborator
   be tested without importing repository-specific Python modules.
 - The kit validates synthetic effects and adapter behaviour; it does not invoke real
   security tools or authorize production execution.
+- The SDK uses an explicit package namespace rather than `platform.*` to avoid collision
+  with Python's standard-library `platform` module.
+- The SDK deliberately does not package duplicate schemas; non-editable consumers must
+  provide the canonical contract root explicitly.
 
 ### Limitations and residual risk
 
@@ -409,3 +440,4 @@ It does not dispatch work and it has no process, network, container or laborator
 | 2026-08-06 | 1.2.1 | Start block 2 vendor-neutral conformance kit while preserving all real adapters as NOT_RUN. |
 | 2026-08-06 | 1.3.0 | Record conformance kit AS_BUILT, merge/CI evidence, controlled rejection proofs and residual limitations. |
 | 2026-08-06 | 1.3.1 | Start block 3 repository-local SDK extraction before implementing real adapters. |
+| 2026-08-06 | 1.4.0 | Record repository-local SDK AS_BUILT, merge/CI evidence and fail-closed contract resolution. |
