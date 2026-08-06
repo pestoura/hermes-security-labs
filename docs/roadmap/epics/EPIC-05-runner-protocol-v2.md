@@ -10,7 +10,7 @@
 | Phase | 1 |
 | Priority | P0 |
 | Delivery umbrella | `SVP2-B-02` (issue [#80](https://github.com/pestoura/hermes-security-labs/issues/80)) |
-| Document version | 1.5.0 |
+| Document version | 1.6.0 |
 | Document date | 2026-08-06 |
 | Catalogue | [Epic catalogue 45](../epic-catalogue-45.md) |
 | Lifecycle contract | [Architecture documentation lifecycle](../../architecture/architecture-documentation-lifecycle.md) |
@@ -25,9 +25,11 @@ validated on `main`. The repository-local SDK was then integrated through pull r
 [#109](https://github.com/pestoura/hermes-security-labs/pull/109) and validated again on
 `main`. The API-family synthetic-only candidate was subsequently integrated through pull
 request [#111](https://github.com/pestoura/hermes-security-labs/pull/111) and validated
-again on `main`. `FINAL` remains false: production execution integration is `NOT_RUN`,
-promotion is blocked, and no runner family has demonstrated durable idempotent effects
-or bounded live cancellation against real execution.
+again on `main`. A reusable durable SQLite idempotency ledger was then integrated through
+pull request [#113](https://github.com/pestoura/hermes-security-labs/pull/113) and validated
+again on `main`. `FINAL` remains false: no runner consumes the durable ledger, production
+execution integration is `NOT_RUN`, promotion is blocked, and bounded live cancellation
+has not been demonstrated against real execution.
 
 | Lifecycle state | Reached |
 | --- | --- |
@@ -223,7 +225,7 @@ Evidence must be referenced from issue #80 and section 15 before the umbrella ca
 ### Open questions
 
 - Adapter-specific transport and streaming mechanisms remain for later implementation blocks.
-- Persistent replay-ledger storage and retention belong to runtime/Evidence Plane design.
+- Ledger retention, abandoned-claim reconciliation and adapter integration remain for later blocks.
 - Force-termination implementation belongs to the transactional runtime lifecycle.
 
 ## 14. Implementation notes
@@ -309,6 +311,26 @@ The merged candidate passes the vendor-neutral protocol kit, refuses real capabi
 authorization references without effect, and is structurally disconnected from persistence,
 network, subprocess and legacy execution paths. This remains synthetic conformance only.
 
+### Block 5 — durable transactional idempotency ledger (`AS_BUILT`)
+
+- Branch: `feat/epic-05-durable-idempotency-ledger`
+- Pull request: [#113](https://github.com/pestoura/hermes-security-labs/pull/113)
+- Validated head: `a9cafcba164dbf37dfd6a81e92b1be51d4e8ad51`
+- Squash merge: `cc879b9fc5e20afcb8052c0f7197457c0ebcc86d`
+- SDK class: `runner_protocol_v2.SQLiteIdempotencyLedger`
+- Storage: caller-supplied SQLite database outside the repository
+- Atomicity: `BEGIN IMMEDIATE`, unique idempotency key and immutable completion
+- Durability: WAL, `synchronous=FULL`, schema version and integrity check
+- Classifications: `NEW`, `IN_PROGRESS`, `REPLAY_SAME`, `IDEMPOTENCY_CONFLICT`
+- Abandoned `IN_PROGRESS` reclaim: disabled; reconciliation required
+- Runner adapter integration: `NOT_RUN`
+- Runtime declaration: `NO_RUNTIME_CHANGE`
+
+The merged ledger proves a single winning concurrent claim, persistence across reopen,
+terminal replay without a second effect decision, immutable fingerprint/outcome handling and
+fail-closed corrupt or unknown state. It is an enforcement component, not authorization and
+not evidence that any real runner is idempotent.
+
 ## 15. As-built / final architecture
 
 > Reserved lifecycle section. This is the AS_BUILT record for the contract-only block. The
@@ -321,6 +343,7 @@ network, subprocess and legacy execution paths. This remains synthetic conforman
 flowchart LR
   SDK[runner_protocol_v2 SDK] --> VAL[Schema and semantic validator]
   SDK --> IDEM[Fingerprint and idempotency classification]
+  SDK --> LEDGER[Durable SQLite idempotency ledger]
   CLI[Thin validate_protocol CLI] --> SDK
   KIT[Vendor-neutral conformance kit] --> SDK
   GW[Execution gateway contract] --> REQ[runner.step.request]
@@ -382,6 +405,15 @@ It does not dispatch work and it has no process, network, container or laborator
 | API candidate conformance | `PASS_SYNTHETIC` |
 | API execution integration | `NOT_RUN` |
 | API promotion status | blocked |
+| PR #113 validated head | `a9cafcba164dbf37dfd6a81e92b1be51d4e8ad51` |
+| Durable-ledger merge SHA | `cc879b9fc5e20afcb8052c0f7197457c0ebcc86d` |
+| PR #113 validate workflow | success — run `31088913223` |
+| PR #113 security/gitleaks workflow | success — run `31088912202` |
+| Post-merge ledger validate workflow | success — run `31089022988` |
+| Post-merge ledger security/gitleaks workflow | success — run `31089022565` |
+| Runner Protocol tests with ledger | 36 passed |
+| Concurrent claim winners | exactly one `NEW` |
+| Adapter integration with durable ledger | `NOT_RUN` |
 
 ### Block 1 acceptance assessment
 
@@ -435,12 +467,25 @@ It does not dispatch work and it has no process, network, container or laborator
 | Production execution integration | `NOT_RUN` | no real capability mapping or execution path |
 | Production promotion | blocked | compatibility catalogue and no automatic promotion |
 
+### Block 5 acceptance assessment
+
+| Criterion | Result | Evidence |
+| --- | --- | --- |
+| Atomic claim under concurrency | met | 16 concurrent claims yield one `NEW` |
+| Same fingerprint during active claim | met | classified `IN_PROGRESS`; no second dispatch decision |
+| Changed fingerprint under same key | met | `IDEMPOTENCY_CONFLICT` |
+| Terminal outcome survives reopen | met | SQLite close/reopen and `REPLAY_SAME` test |
+| Completed identity and outcome immutable | met | conflicting completion tests |
+| Invalid/corrupt/unknown state fails closed | met | negative database and schema-version tests |
+| Automatic reclaim of uncertain effects | deliberately absent | abandoned `IN_PROGRESS` requires reconciliation |
+| Real runner effect deduplication | `NOT_RUN` | no adapter consumes the ledger |
+
 ### Epic-level criteria not yet met
 
 | Criterion | State | Required next evidence |
 | --- | --- | --- |
 | Correlation propagated by every adapter | `NOT_RUN` | API, DevSecOps and AI/MCP adapter conformance |
-| Same idempotency key never duplicates effects | `NOT_RUN` | persistent ledger and effect-level replay tests |
+| Same idempotency key never duplicates effects | `PARTIAL` | durable ledger is AS_BUILT; adapter effect-level integration remains `NOT_RUN` |
 | Cancellation observable and bounded live | `NOT_RUN` | supervised process/cancellation integration tests |
 | Error taxonomy normalized end to end | `NOT_RUN` | adapter and gateway integration tests |
 
@@ -451,8 +496,8 @@ It does not dispatch work and it has no process, network, container or laborator
 - Progress is optional by default. Required progress can be selected per capability later.
 - Every terminal outcome requires evidence, including pre-execution refusal and timeout. These
   use decision/protocol evidence and do not falsely claim execution evidence.
-- The block introduced deterministic fingerprint classification but deliberately did not
-  implement a persistent replay ledger.
+- Deterministic fingerprint classification was delivered first; block 5 subsequently added
+  a durable transactional ledger without connecting it to any execution adapter.
 - The conformance kit uses a language-neutral JSON-lines control protocol so adapters can
   be tested without importing repository-specific Python modules.
 - The kit validates synthetic effects and adapter behaviour; it does not invoke real
@@ -471,8 +516,8 @@ It does not dispatch work and it has no process, network, container or laborator
 - Schema-valid requests may still be unauthorized; Hermes authorization remains mandatory.
 - Cancellation and hard timeout are contract semantics only until supervised runtime support
   is implemented.
-- Fingerprint classification does not itself prevent duplicate effects without a persistent,
-  atomic idempotency ledger.
+- A durable atomic ledger now exists, but it does not prevent duplicate real effects until each
+  adapter claims before execution and persists the terminal outcome after effect completion.
 - Evidence references are structurally validated but the Evidence Plane and chain-of-custody
   implementation remain later work.
 - A conformance-kit `PASS` is necessary but not sufficient for promotion and requires human
@@ -494,3 +539,4 @@ It does not dispatch work and it has no process, network, container or laborator
 | 2026-08-06 | 1.4.0 | Record repository-local SDK AS_BUILT, merge/CI evidence and fail-closed contract resolution. |
 | 2026-08-06 | 1.4.1 | Start block 4 API-family candidate in synthetic-only conformance mode with production promotion blocked. |
 | 2026-08-06 | 1.5.0 | Record API synthetic candidate AS_BUILT with PASS_SYNTHETIC evidence, execution NOT_RUN and promotion blocked. |
+| 2026-08-06 | 1.6.0 | Record durable transactional idempotency ledger AS_BUILT with adapter integration NOT_RUN. |

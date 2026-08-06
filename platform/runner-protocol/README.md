@@ -6,7 +6,7 @@ Runner Protocol v2 is the canonical contract between an execution gateway and a 
 
 - Owner: `EPIC-05` / delivery umbrella `SVP2-B-02`.
 - Protocol version: `2.0.0`.
-- Current implementation state: contract, repository-local SDK and vendor-neutral conformance kit are available; an API-family candidate passes synthetic conformance only, while real execution integration for API, DevSecOps and AI/MCP remains unimplemented.
+- Current implementation state: contract, repository-local SDK, vendor-neutral conformance kit and durable transactional idempotency ledger are available; an API-family candidate passes synthetic conformance only, while durable-ledger adapter integration and real execution for API, DevSecOps and AI/MCP remain unimplemented.
 - Hermes remains the authorization authority. A valid protocol message cannot create, extend or replace authorization.
 - Unknown versions, invalid messages, missing correlation or missing evidence fail closed.
 
@@ -149,9 +149,10 @@ resolves the canonical `schemas/` and `compatibility.yaml` artefacts beside the 
 non-editable installation must set `RUNNER_PROTOCOL_CONTRACT_ROOT` to that canonical contract
 directory. Missing or incomplete contract artefacts fail closed.
 
-The SDK is side-effect free: it does not dispatch, authorize, cancel or execute work. It is a
-shared dependency for future adapters so validation and fingerprint semantics are not copied or
-reinterpreted per runner family.
+The SDK does not dispatch, authorize, cancel or execute work. Its validation functions are
+side-effect free; the optional [`SQLiteIdempotencyLedger`](durable-idempotency-ledger.md) persists
+only caller-supplied idempotency state and validated terminal outcomes. No adapter uses the ledger
+yet. The SDK remains the shared dependency so protocol semantics are not copied per family.
 
 ## Conformance kit
 
@@ -201,6 +202,8 @@ Compatibility rules and current adapter status are in [`compatibility.yaml`](com
 - [`schemas/runner-protocol-v2.schema.json`](schemas/runner-protocol-v2.schema.json)
 - [`pyproject.toml`](pyproject.toml)
 - [`src/runner_protocol_v2/`](src/runner_protocol_v2/)
+- [`src/runner_protocol_v2/idempotency.py`](src/runner_protocol_v2/idempotency.py)
+- [`durable-idempotency-ledger.md`](durable-idempotency-ledger.md)
 - [`validate_protocol.py`](validate_protocol.py) — thin CLI wrapper
 - [`compatibility.yaml`](compatibility.yaml)
 - [`conformance.py`](conformance.py)
@@ -238,6 +241,7 @@ safety, operational readiness or real API-runner conformance.
 
 - no runner adapter or gateway enforcement;
 - no change to existing pack/runbook semantics;
-- no live cancellation, process termination or replay cache;
+- no live cancellation or process termination;
+- no adapter integration of the durable idempotency ledger;
 - no Evidence Plane implementation;
 - no deployment, laboratory, Hermes or Kali MCP change.

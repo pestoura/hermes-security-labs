@@ -2,7 +2,7 @@
 
 ## Status
 
-`IMPLEMENTING` — block 5 of `EPIC-05 — Runner Protocol v2`.
+`AS_BUILT` — block 5 of `EPIC-05 — Runner Protocol v2`, integrated through PR #113 at `cc879b9fc5e20afcb8052c0f7197457c0ebcc86d`.
 
 This document describes the repository-local durable ledger introduced in
 `src/runner_protocol_v2/idempotency.py`. It does not promote or connect any runner adapter.
@@ -105,6 +105,17 @@ The test suite proves:
 - fail-closed corrupt and future-version databases;
 - rejection of in-memory and symbolic-link paths;
 - owner-only database permissions.
+
+## As-built evidence
+
+- validated head: `a9cafcba164dbf37dfd6a81e92b1be51d4e8ad51`;
+- squash merge: `cc879b9fc5e20afcb8052c0f7197457c0ebcc86d`;
+- PR validate: `31088913223` — success;
+- PR security/gitleaks: `31088912202` — success;
+- post-merge validate: `31089022988` — success;
+- post-merge security/gitleaks: `31089022565` — success;
+- Runner Protocol tests: 36 passed;
+- runtime validation: `NOT_APPLICABLE` — `NO_RUNTIME_CHANGE`.
 
 ## Explicit non-goals
 
