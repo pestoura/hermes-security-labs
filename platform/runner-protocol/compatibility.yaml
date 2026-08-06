@@ -23,6 +23,32 @@ conformance_kit:
   promotion_effect: none
   required_verdict_for_promotion: PASS
 
+cross_family_supervised_conformance:
+  status: PASS_SYNTHETIC_PROCESS
+  scope: fixed_synthetic_workers_only
+  harness_path: platform/runner-protocol/supervised_conformance.py
+  report_schema: schemas/supervised-conformance-report.schema.json
+  families:
+    - api
+    - devsecops
+    - ai-mcp
+  cases:
+    - success
+    - durable-replay
+    - idempotency-conflict
+    - execution-failure
+    - hard-timeout
+    - cancellation
+    - descendant-residue
+    - unsupported-capability-refusal
+    - authorization-refusal
+  parity_verdict: PASS_SYNTHETIC_PROCESS
+  raw_output_persistence: none
+  sandbox_status: NOT_IMPLEMENTED
+  execution_integration: NOT_RUN
+  promotion_status: blocked
+  production_effect_claim: none
+
 runner_families:
   - id: api
     implementation_status: candidate
