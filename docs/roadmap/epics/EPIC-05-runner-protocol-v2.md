@@ -10,7 +10,7 @@
 | Phase | 1 |
 | Priority | P0 |
 | Delivery umbrella | `SVP2-B-02` (issue [#80](https://github.com/pestoura/hermes-security-labs/issues/80)) |
-| Document version | 1.7.1 |
+| Document version | 1.8.0 |
 | Document date | 2026-08-06 |
 | Catalogue | [Epic catalogue 45](../epic-catalogue-45.md) |
 | Lifecycle contract | [Architecture documentation lifecycle](../../architecture/architecture-documentation-lifecycle.md) |
@@ -30,11 +30,12 @@ pull request [#113](https://github.com/pestoura/hermes-security-labs/pull/113) a
 again on `main`. A separate API-family durable synthetic candidate was then integrated
 through pull request [#115](https://github.com/pestoura/hermes-security-labs/pull/115) and
 validated again on `main`. It uses the durable ledger for restart replay without connecting to
-real capabilities or the legacy executor. Block 7 is now `IMPLEMENTING`: a repository-local POSIX
-process supervisor owns bounded process-group timeout, cancellation and residue cleanup but is
-not connected to any adapter. `FINAL` remains false: production execution integration is
-`NOT_RUN`, promotion is blocked, DevSecOps and AI/MCP remain `NOT_RUN`, and bounded live
-cancellation has not been demonstrated through a Runner Protocol adapter.
+real capabilities or the legacy executor. The repository-local POSIX process supervisor was then
+integrated through pull request [#117](https://github.com/pestoura/hermes-security-labs/pull/117)
+and validated again on `main`. It owns bounded process-group timeout, cancellation and residue
+cleanup but remains disconnected from every adapter. `FINAL` remains false: production execution
+integration is `NOT_RUN`, promotion is blocked, DevSecOps and AI/MCP remain `NOT_RUN`, and
+bounded live cancellation has not been demonstrated through a Runner Protocol adapter.
 
 | Lifecycle state | Reached |
 | --- | --- |
@@ -359,9 +360,12 @@ proves that restart replay does not increase the synthetic effect counter. It al
 replays cancellation outcomes, refuses changed or uncertain effects, and fails closed when the
 terminal outcome cannot be committed. This remains synthetic effect-level evidence only.
 
-### Block 7 — supervised process boundary (`IMPLEMENTING`)
+### Block 7 — supervised process boundary (`AS_BUILT`)
 
 - Branch: `feat/epic-05-supervised-process-boundary`
+- Pull request: [#117](https://github.com/pestoura/hermes-security-labs/pull/117)
+- Validated head: `daeaeb02c194fec776c981e8f0f6298fe3a03c1d`
+- Squash merge: `bf71fd7c6da2dcd2e179462677341a90f4f22b7a`
 - SDK path: `platform/runner-protocol/src/runner_protocol_v2/supervision.py`
 - Documentation: `platform/runner-protocol/supervised-process-boundary.md`
 - Platform: POSIX process groups only
@@ -369,11 +373,12 @@ terminal outcome cannot be committed. This remains synthetic effect-level eviden
 - Lifecycle: new session/process group, bounded output, `SIGTERM` then `SIGKILL`
 - Residue rule: surviving descendants prevent success and are actively cleaned
 - Cleanup failure: explicit `CLEANUP_FAILED`, never eligible for `PASS`
+- Runner Protocol tests: 43 passed
 - Adapter integration: `NOT_RUN`
 - Real capability execution: `NOT_RUN`
 - Runtime declaration: `NO_RUNTIME_CHANGE`
 
-The block must prove clean exit, hard timeout, external cancellation, forced termination,
+The merged block proves clean exit, hard timeout, external cancellation, forced termination,
 descendant cleanup, output truncation and unsafe-specification refusal. It remains an execution
 primitive rather than authorization, sandboxing, capability mapping or evidence handling.
 
@@ -390,6 +395,7 @@ flowchart LR
   SDK[runner_protocol_v2 SDK] --> VAL[Schema and semantic validator]
   SDK --> IDEM[Fingerprint and idempotency classification]
   SDK --> LEDGER[Durable SQLite idempotency ledger]
+  SDK --> SUP[POSIX process supervisor]
   CLI[Thin validate_protocol CLI] --> SDK
   KIT[Vendor-neutral conformance kit] --> SDK
   GW[Execution gateway contract] --> REQ[runner.step.request]
@@ -398,6 +404,7 @@ flowchart LR
   VAL --> DAPI[API durable synthetic candidate]
   DAPI --> LEDGER
   VAL --> RUN[Future production runner adapter]
+  SUP -. no adapter consumer .-> RUN
   API -. synthetic progress .-> PROG[runner.progress]
   RUN -. optional progress .-> PROG
   GW -. cancellation .-> CANCEL[request and acknowledgement]
@@ -411,8 +418,10 @@ flowchart LR
   KIT --> REPORT[Sanitized conformance report]
 ```
 
-The delivered implementation is a repository-owned protocol contract and validation library.
-It does not dispatch work and it has no process, network, container or laboratory side effects.
+The delivered implementation is a repository-owned protocol contract, validation library and
+optional local enforcement primitives for durable idempotency and POSIX process supervision. No
+runner adapter dispatches work through the supervisor; its process side effects are limited to
+controlled repository tests and do not access networks, containers or laboratories.
 
 ### Evidence
 
@@ -472,6 +481,14 @@ It does not dispatch work and it has no process, network, container or laborator
 | Directed protocol/API/roadmap/docs tests | 929 passed |
 | Durable restart replay | `PASS_SYNTHETIC`; no second synthetic effect |
 | Production API execution integration | `NOT_RUN` |
+| PR #117 validated head | `daeaeb02c194fec776c981e8f0f6298fe3a03c1d` |
+| Supervised-process merge SHA | `bf71fd7c6da2dcd2e179462677341a90f4f22b7a` |
+| PR #117 validate workflow | success — run `31093149197` |
+| PR #117 security/gitleaks workflow | success — run `31093149060` |
+| Post-merge supervisor validate workflow | success — run `31093252331` |
+| Post-merge supervisor security/gitleaks workflow | success — run `31093252418` |
+| Runner Protocol tests with supervisor | 43 passed |
+| Adapter consumption of supervisor | `NOT_RUN` |
 
 ### Block 1 acceptance assessment
 
@@ -553,13 +570,30 @@ It does not dispatch work and it has no process, network, container or laborator
 | Production API effect deduplication | `NOT_RUN` | no real capability mapping or executor integration |
 | Live bounded process cancellation | `NOT_RUN` | synthetic protocol cancellation only |
 
+### Block 7 acceptance assessment
+
+| Criterion | Result | Evidence |
+| --- | --- | --- |
+| Absolute executable and working directory | met | negative specification tests |
+| Shell and pre-execution hooks absent | met | source/AST guard |
+| Process-group ownership | met | new-session implementation and descendant tests |
+| Hard timeout bounded and enforced | met | stubborn root/descendant timeout test |
+| External cancellation bounded and enforced | met | cancellation with `SIGTERM` to `SIGKILL` escalation |
+| Root exit with live descendant cannot pass | met | `RESIDUE_CLEANED` test |
+| Descendant residue removed before return | met | PID absence assertion |
+| Standard output and error bounded | met | independent truncation test |
+| Cleanup uncertainty fails closed | met by contract | `CLEANUP_FAILED` is never successful |
+| Runner Protocol adapter integration | `NOT_RUN` | no adapter imports or consumes the supervisor |
+| Sandbox and resource isolation | `NOT_RUN` | process groups do not provide containment |
+| Real capability execution | `NOT_RUN` | fixed synthetic test worker only |
+
 ### Epic-level criteria not yet met
 
 | Criterion | State | Required next evidence |
 | --- | --- | --- |
 | Correlation propagated by every adapter | `NOT_RUN` | API, DevSecOps and AI/MCP adapter conformance |
 | Same idempotency key never duplicates effects | `PARTIAL` | synthetic API restart replay is AS_BUILT; production adapter effect-level integration remains `NOT_RUN` |
-| Cancellation observable and bounded live | `NOT_RUN` | supervised process/cancellation integration tests |
+| Cancellation observable and bounded live | `PARTIAL` | local POSIX supervision is AS_BUILT; adapter-level protocol integration remains `NOT_RUN` |
 | Error taxonomy normalized end to end | `NOT_RUN` | adapter and gateway integration tests |
 
 ### Differences from intent
@@ -580,24 +614,29 @@ It does not dispatch work and it has no process, network, container or laborator
 - The SDK deliberately does not package duplicate schemas; non-editable consumers must
   provide the canonical contract root explicitly.
 - The first family-specific candidates are deliberately separate from the legacy API executor;
-  the durable variant proves restart replay only for synthetic effects. Production integration
-  requires a later capability-mapping and supervised execution block.
+  the durable variant proves restart replay only for synthetic effects.
+- The process supervisor was delivered as a reusable SDK primitive before adapter integration so
+  timeout and cancellation behaviour can be reviewed independently from capability mapping.
+  Production integration still requires a supervised synthetic adapter and later real capability
+  mapping under stronger sandbox and authorization controls.
 
 ### Limitations and residual risk
 
 - No production runner adapter consumes or emits Runner Protocol v2 messages; the API
   candidate is limited to synthetic conformance and cannot execute real capabilities.
 - Schema-valid requests may still be unauthorized; Hermes authorization remains mandatory.
-- Cancellation and hard timeout are contract semantics only until supervised runtime support
-  is implemented.
+- Local cancellation, hard timeout and process-group cleanup are implemented in the SDK, but
+  no Runner Protocol adapter currently invokes the supervisor or translates its states into
+  protocol outcomes.
 - The API durable synthetic candidate now consumes the atomic ledger, but duplicate real effects
   remain possible until production adapters claim before execution and persist the terminal outcome.
 - Evidence references are structurally validated but the Evidence Plane and chain-of-custody
   implementation remain later work.
 - A conformance-kit `PASS` is necessary but not sufficient for promotion and requires human
   review plus adapter-specific integration evidence.
-- External candidates require an additional sandbox boundary; the harness process boundary
-  alone is not a complete containment mechanism.
+- Process groups and the conformance harness require an additional sandbox boundary; neither
+  prevents session escape nor provides namespaces, cgroups, seccomp, network policy, privilege
+  separation or resource quotas.
 - The umbrella #80 remains `IMPLEMENTING`; these blocks must not be treated as `FINAL`.
 
 ## 16. Document change log
@@ -617,3 +656,4 @@ It does not dispatch work and it has no process, network, container or laborator
 | 2026-08-06 | 1.6.1 | Start API durable synthetic integration with restart replay and production execution blocked. |
 | 2026-08-06 | 1.7.0 | Record API durable synthetic restart replay AS_BUILT with production execution NOT_RUN and promotion blocked. |
 | 2026-08-06 | 1.7.1 | Start supervised POSIX process boundary with adapter integration and real execution NOT_RUN. |
+| 2026-08-06 | 1.8.0 | Record supervised process boundary AS_BUILT with adapter integration and real execution NOT_RUN. |
