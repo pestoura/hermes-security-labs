@@ -1,11 +1,20 @@
+schema_version: 1
 id: cloud
 name: Cloud
-local_emulation:
-  - LocalStack
-  - Azurite
-real_sandbox:
-  - AWS
-  - Azure
-  - GCP
-notes:
-  - No real cloud resources in this phase.
+status: CLOUD-SANDBOX
+drivers:
+  - local-emulation
+  - terraform-sandbox
+release_identity:
+  digest_scope: runtime-release
+  environment_override: forbidden
+  current_state: NOT_APPLICABLE
+lifecycle:
+  - status
+isolation:
+  network_per_lab: null
+  default_egress: false
+limitations:
+  - LocalStack and Azurite are catalogue candidates but are not activated by this profile.
+  - No AWS, Azure or GCP resources are created by the current platform phase.
+  - Cloud account, credential and quota management remain outside this contract.
