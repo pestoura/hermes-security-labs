@@ -7,8 +7,6 @@ import sys
 from pathlib import Path
 from typing import Any
 
-import pytest
-
 API_ROOT = Path(__file__).resolve().parents[1]
 REPO_ROOT = API_ROOT.parents[2]
 PROTOCOL_ROOT = REPO_ROOT / "platform" / "runner-protocol"
