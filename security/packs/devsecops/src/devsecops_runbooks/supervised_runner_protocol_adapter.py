@@ -33,15 +33,21 @@ class SupervisedSyntheticDevSecOpsRunnerCandidate(
         working_directory: Path | None = None,
         supervisor: PosixProcessSupervisor | None = None,
     ) -> None:
-        kwargs = {
-            "family": "devsecops",
-            "worker_path": WORKER,
-            "durable_ledger": durable_ledger,
-            "working_directory": working_directory,
-        }
-        if supervisor is not None:
-            kwargs["supervisor"] = supervisor
-        super().__init__(**kwargs)  # type: ignore[arg-type]
+        if supervisor is None:
+            super().__init__(
+                family="devsecops",
+                worker_path=WORKER,
+                durable_ledger=durable_ledger,
+                working_directory=working_directory,
+            )
+        else:
+            super().__init__(
+                family="devsecops",
+                worker_path=WORKER,
+                durable_ledger=durable_ledger,
+                working_directory=working_directory,
+                supervisor=supervisor,
+            )
 
 
 def _ledger_argument(value: str) -> Path:
