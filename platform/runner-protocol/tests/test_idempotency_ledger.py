@@ -11,6 +11,7 @@ from runner_protocol_v2 import (
     LedgerConflictError,
     LedgerStateError,
     LedgerUnavailableError,
+    ProtocolValidationError,
     SQLiteIdempotencyLedger,
 )
 
@@ -128,7 +129,7 @@ def test_invalid_key_fingerprint_and_outcome_fail_closed(tmp_path: Path) -> None
     store.claim(KEY, FINGERPRINT)
     invalid = terminal_outcome()
     invalid["evidence_refs"] = []
-    with pytest.raises(Exception):
+    with pytest.raises(ProtocolValidationError):
         store.complete(KEY, FINGERPRINT, invalid)
 
 
