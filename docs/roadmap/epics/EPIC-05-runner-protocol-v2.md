@@ -10,7 +10,7 @@
 | Phase | 1 |
 | Priority | P0 |
 | Delivery umbrella | `SVP2-B-02` (issue [#80](https://github.com/pestoura/hermes-security-labs/issues/80)) |
-| Document version | 1.7.0 |
+| Document version | 1.7.1 |
 | Document date | 2026-08-06 |
 | Catalogue | [Epic catalogue 45](../epic-catalogue-45.md) |
 | Lifecycle contract | [Architecture documentation lifecycle](../../architecture/architecture-documentation-lifecycle.md) |
@@ -30,9 +30,11 @@ pull request [#113](https://github.com/pestoura/hermes-security-labs/pull/113) a
 again on `main`. A separate API-family durable synthetic candidate was then integrated
 through pull request [#115](https://github.com/pestoura/hermes-security-labs/pull/115) and
 validated again on `main`. It uses the durable ledger for restart replay without connecting to
-real capabilities or the legacy executor. `FINAL` remains false: production execution integration
-is `NOT_RUN`, promotion is blocked, DevSecOps and AI/MCP remain `NOT_RUN`, and bounded live
-cancellation has not been demonstrated against real execution.
+real capabilities or the legacy executor. Block 7 is now `IMPLEMENTING`: a repository-local POSIX
+process supervisor owns bounded process-group timeout, cancellation and residue cleanup but is
+not connected to any adapter. `FINAL` remains false: production execution integration is
+`NOT_RUN`, promotion is blocked, DevSecOps and AI/MCP remain `NOT_RUN`, and bounded live
+cancellation has not been demonstrated through a Runner Protocol adapter.
 
 | Lifecycle state | Reached |
 | --- | --- |
@@ -357,6 +359,24 @@ proves that restart replay does not increase the synthetic effect counter. It al
 replays cancellation outcomes, refuses changed or uncertain effects, and fails closed when the
 terminal outcome cannot be committed. This remains synthetic effect-level evidence only.
 
+### Block 7 — supervised process boundary (`IMPLEMENTING`)
+
+- Branch: `feat/epic-05-supervised-process-boundary`
+- SDK path: `platform/runner-protocol/src/runner_protocol_v2/supervision.py`
+- Documentation: `platform/runner-protocol/supervised-process-boundary.md`
+- Platform: POSIX process groups only
+- Invocation: absolute executable vector, `shell=False`, isolated standard input
+- Lifecycle: new session/process group, bounded output, `SIGTERM` then `SIGKILL`
+- Residue rule: surviving descendants prevent success and are actively cleaned
+- Cleanup failure: explicit `CLEANUP_FAILED`, never eligible for `PASS`
+- Adapter integration: `NOT_RUN`
+- Real capability execution: `NOT_RUN`
+- Runtime declaration: `NO_RUNTIME_CHANGE`
+
+The block must prove clean exit, hard timeout, external cancellation, forced termination,
+descendant cleanup, output truncation and unsafe-specification refusal. It remains an execution
+primitive rather than authorization, sandboxing, capability mapping or evidence handling.
+
 ## 15. As-built / final architecture
 
 > Reserved lifecycle section. This is the AS_BUILT record for the contract-only block. The
@@ -596,3 +616,4 @@ It does not dispatch work and it has no process, network, container or laborator
 | 2026-08-06 | 1.6.0 | Record durable transactional idempotency ledger AS_BUILT with adapter integration NOT_RUN. |
 | 2026-08-06 | 1.6.1 | Start API durable synthetic integration with restart replay and production execution blocked. |
 | 2026-08-06 | 1.7.0 | Record API durable synthetic restart replay AS_BUILT with production execution NOT_RUN and promotion blocked. |
+| 2026-08-06 | 1.7.1 | Start supervised POSIX process boundary with adapter integration and real execution NOT_RUN. |

@@ -6,7 +6,7 @@ Runner Protocol v2 is the canonical contract between an execution gateway and a 
 
 - Owner: `EPIC-05` / delivery umbrella `SVP2-B-02`.
 - Protocol version: `2.0.0`.
-- Current implementation state: contract, repository-local SDK, vendor-neutral conformance kit and durable transactional idempotency ledger are available; API-family in-memory and durable candidates pass synthetic conformance only, while real execution for API, DevSecOps and AI/MCP remains unimplemented.
+- Current implementation state: contract, repository-local SDK, vendor-neutral conformance kit and durable transactional idempotency ledger are available; API-family in-memory and durable candidates pass synthetic conformance only; a POSIX supervised-process boundary is implementing with no adapter integration, while real execution for API, DevSecOps and AI/MCP remains unimplemented.
 - Hermes remains the authorization authority. A valid protocol message cannot create, extend or replace authorization.
 - Unknown versions, invalid messages, missing correlation or missing evidence fail closed.
 
@@ -149,11 +149,26 @@ resolves the canonical `schemas/` and `compatibility.yaml` artefacts beside the 
 non-editable installation must set `RUNNER_PROTOCOL_CONTRACT_ROOT` to that canonical contract
 directory. Missing or incomplete contract artefacts fail closed.
 
-The SDK does not dispatch, authorize, cancel or execute work. Its validation functions are
-side-effect free; the optional [`SQLiteIdempotencyLedger`](durable-idempotency-ledger.md) persists
-only caller-supplied idempotency state and validated terminal outcomes. The API durable synthetic
-candidate uses it solely for conformance and restart-replay tests. The SDK remains the shared
-dependency so protocol semantics are not copied per family.
+The SDK validation functions remain side-effect free. The optional
+[`SQLiteIdempotencyLedger`](durable-idempotency-ledger.md) persists only caller-supplied
+idempotency state and validated terminal outcomes. The optional
+[`PosixProcessSupervisor`](supervised-process-boundary.md) is an execution primitive that starts
+only an absolute executable without a shell and owns bounded process-group cleanup. It does not
+authorize, select capabilities, map targets or produce protocol evidence. No existing adapter
+consumes it. The SDK remains the shared dependency so protocol and lifecycle semantics are not
+copied per family.
+
+## Supervised process boundary
+
+The repository-local SDK includes the `PosixProcessSupervisor` described in
+[`supervised-process-boundary.md`](supervised-process-boundary.md). It validates an absolute
+executable and working directory, invokes without a shell, creates a new process group, captures
+bounded output, escalates `SIGTERM` to `SIGKILL`, and refuses to classify root exit as success
+while descendants remain. `CLEANUP_FAILED` is never eligible for protocol `PASS`.
+
+This is not a sandbox. It provides no cgroup, namespace, seccomp, network, privilege or resource
+quota enforcement and is not connected to any runner adapter. Real capability execution remains
+`NOT_RUN`.
 
 ## Conformance kit
 
@@ -204,7 +219,9 @@ Compatibility rules and current adapter status are in [`compatibility.yaml`](com
 - [`pyproject.toml`](pyproject.toml)
 - [`src/runner_protocol_v2/`](src/runner_protocol_v2/)
 - [`src/runner_protocol_v2/idempotency.py`](src/runner_protocol_v2/idempotency.py)
+- [`src/runner_protocol_v2/supervision.py`](src/runner_protocol_v2/supervision.py)
 - [`durable-idempotency-ledger.md`](durable-idempotency-ledger.md)
+- [`supervised-process-boundary.md`](supervised-process-boundary.md)
 - [`validate_protocol.py`](validate_protocol.py) — thin CLI wrapper
 - [`compatibility.yaml`](compatibility.yaml)
 - [`conformance.py`](conformance.py)
@@ -213,6 +230,7 @@ Compatibility rules and current adapter status are in [`compatibility.yaml`](com
 - [`tests/test_runner_protocol.py`](tests/test_runner_protocol.py)
 - [`tests/test_conformance.py`](tests/test_conformance.py)
 - [`tests/test_sdk.py`](tests/test_sdk.py)
+- [`tests/test_supervision.py`](tests/test_supervision.py)
 
 ## API-family conformance candidate
 
@@ -245,7 +263,7 @@ safety, operational readiness or real API-runner conformance.
 
 - no runner adapter or gateway enforcement;
 - no change to existing pack/runbook semantics;
-- no live cancellation or process termination;
+- no adapter-level live cancellation or production process termination;
 - no production adapter integration of the durable idempotency ledger;
 - no Evidence Plane implementation;
 - no deployment, laboratory, Hermes or Kali MCP change.
