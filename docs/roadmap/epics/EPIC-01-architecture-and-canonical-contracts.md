@@ -10,23 +10,23 @@
 | Phase | 1 |
 | Priority | P0 |
 | Delivery umbrella | `SVP2-A-01` (issue [#76](https://github.com/pestoura/hermes-security-labs/issues/76)) |
-| Document version | 1.1.1 |
+| Document version | 1.2.0 |
 | Document date | 2026-08-06 |
 | Catalogue | [Epic catalogue 45](../epic-catalogue-45.md) |
 | Lifecycle contract | [Architecture documentation lifecycle](../../architecture/architecture-documentation-lifecycle.md) |
 
 ## 2. Current status
 
-**IMPLEMENTING** — the first delivery block is active in pull request
-[#100](https://github.com/pestoura/hermes-security-labs/pull/100) from branch
-`docs/epic-01-canonical-contracts`. The architecture contracts, initial ADR set and
-mechanical documentation gates are being implemented. No runtime enforcement is claimed.
+**AS_BUILT** — the canonical architecture contract block was integrated through pull request
+[#100](https://github.com/pestoura/hermes-security-labs/pull/100) and validated again on
+`main`. The documentation now records what was delivered and the limits of the block.
+`FINAL` remains pending because delivery umbrella #76 also contains EPIC-02.
 
 | Lifecycle state | Reached |
 | --- | --- |
 | INTENT | yes |
 | IMPLEMENTING | yes |
-| AS_BUILT | no |
+| AS_BUILT | yes |
 | FINAL | no |
 
 ## 3. Problem and motivation
@@ -150,6 +150,8 @@ be closed, and this document must record the references in section 15.
 - Branch: `docs/epic-01-canonical-contracts`
 - Umbrella issue: [#76](https://github.com/pestoura/hermes-security-labs/issues/76)
 - Pull request: [#100](https://github.com/pestoura/hermes-security-labs/pull/100)
+- Validated PR head: `fa0a8f9da81bf73ace26ab8e90ecf88dde112cf0`
+- Squash merge: `3b1c68ce7e8585e74f2a4a1e7fb4e69f02d25666`
 - Runtime declaration: `NO_RUNTIME_CHANGE`
 - Added the ADR governance/index and eight initial structural ADRs.
 - Added the canonical cross-plane contract inventory.
@@ -165,11 +167,68 @@ be closed, and this document must record the references in section 15.
 
 ## 15. As-built / final architecture
 
-> Reserved. Populate after the implementation pull request is merged. Must record what
-> was actually built, evidence links, and every divergence from sections 6 to 11.
-> No umbrella may be closed while this section is empty.
+> Reserved lifecycle section. This section records the implementation integrated in `main`.
+> It is AS_BUILT evidence for EPIC-01; FINAL remains pending until umbrella #76 is closed.
 
-_Not yet merged._
+### Delivered architecture
+
+```mermaid
+flowchart LR
+  GH[GitHub source of truth] --> CP[Hermes control plane]
+  OP[Authorized operator] -->|TB0| CP
+  KN[Knowledge proposals] -. non-executable .-> CP
+  CP -->|TB1 typed authorized contract| XP[Execution plane]
+  XP -->|TB2 bounded access| LAB[Registered laboratory]
+  XP -->|TB3 classified write| EV[Evidence plane]
+  EV -->|TB4 sanitized derivative| PUB[Authorized consumers]
+```
+
+The implementation delivered documentation and enforceable repository gates, not runtime
+protocol enforcement. The authoritative artefacts are:
+
+- [`docs/architecture/security-validation-reference-architecture.md`](../../architecture/security-validation-reference-architecture.md);
+- [`docs/architecture/adr/README.md`](../../architecture/adr/README.md) and ADR-0001 to ADR-0008;
+- [`docs/architecture/contracts/README.md`](../../architecture/contracts/README.md);
+- [`docs/tests/test_architecture_contracts.py`](../../tests/test_architecture_contracts.py).
+
+### Evidence
+
+| Evidence | Result |
+| --- | --- |
+| PR #100 validated head | `fa0a8f9da81bf73ace26ab8e90ecf88dde112cf0` |
+| Merge SHA | `3b1c68ce7e8585e74f2a4a1e7fb4e69f02d25666` |
+| PR validate workflow | success — run `31063927279` |
+| PR security/gitleaks workflow | success — run `31063927258` |
+| Post-merge main repository/security jobs | success — run `31063993249` |
+| Post-merge main gitleaks workflow | success — run `31063993231` |
+| Runtime validation | `NOT_APPLICABLE` — no runtime change |
+
+### Acceptance assessment
+
+| Criterion | Result | Evidence |
+| --- | --- | --- |
+| Every trust boundary declares responsibilities and prohibitions | met | canonical TB0-TB4 table plus architecture-contract tests |
+| Every structural roadmap decision has an ADR | met for the initial structural decision set | ADR coverage matrix and contiguous ADR tests |
+| No executable offensive instruction in architecture documents | met | negative documentation test and security workflow |
+| Documentation and link integrity | met | repository CI on PR and post-merge main |
+
+### Differences from intent
+
+- The intent diagram was retained as the conceptual plane relationship.
+- The as-built diagram adds GitHub, the operator, publication consumers and the explicit
+  TB0-TB4 crossings.
+- The pre-existing plane-based TB numbering was not retained; it was explicitly superseded
+  by ADR-0002.
+
+### Limitations and residual risk
+
+- These contracts are not yet enforced by the gateway, runners or laboratory lifecycle.
+- ADR freshness depends on future epics updating decisions when implementation diverges.
+- EPIC-02 must still define the runtime source-of-truth and drift contract before umbrella
+  #76 can become FINAL.
+- The machine-readable concept catalogue remains at its pre-closure lifecycle value; it will
+  be updated with the catalogue and umbrella state during the FINAL transition required by
+  the documentation lifecycle contract.
 
 ## 16. Document change log
 
@@ -178,3 +237,4 @@ _Not yet merged._
 | 2026-08-06 | 1.0.0 | Initial intent document created from the concept epic catalogue. |
 | 2026-08-06 | 1.1.0 | Set IMPLEMENTING; record branch, initial ADR decisions, contract inventory and trust-boundary divergence. |
 | 2026-08-06 | 1.1.1 | Link implementation pull request #100. |
+| 2026-08-06 | 1.2.0 | Record AS_BUILT architecture, merge/CI evidence, acceptance results, divergences and limitations. |
