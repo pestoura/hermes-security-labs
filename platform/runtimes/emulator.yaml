@@ -1,11 +1,22 @@
+schema_version: 1
 id: emulator
 name: Emulator
-supported:
-  - QEMU
-  - Android Emulator
-  - EVE-NG
-  - GNS3
-  - firmware
-  - OT-ICS
-notes:
-  - No installation in this phase.
+status: EXTERNAL-HARDWARE
+drivers:
+  - qemu
+  - android-emulator
+  - eve-ng
+  - gns3
+release_identity:
+  digest_scope: runtime-release
+  environment_override: forbidden
+  current_state: NOT_APPLICABLE
+lifecycle:
+  - status
+isolation:
+  network_per_lab: null
+  default_egress: false
+limitations:
+  - QEMU, Android Emulator, EVE-NG, GNS3, firmware and OT/ICS capabilities are catalogue intent only.
+  - No emulator or external hardware integration is installed by the current platform phase.
+  - Activation requires a dedicated isolation and authorization review.

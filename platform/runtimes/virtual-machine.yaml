@@ -1,5 +1,21 @@
+schema_version: 1
 id: virtual-machine
 name: Virtual Machine
-notes:
-  - No Proxmox or libvirt installation in this phase.
-  - Read-only KVM audit only.
+status: CURRENT-LIMITED
+drivers:
+  - libvirt
+  - proxmox
+  - external-hypervisor
+release_identity:
+  digest_scope: runtime-release
+  environment_override: forbidden
+  current_state: NOT_APPLICABLE
+lifecycle:
+  - status
+isolation:
+  network_per_lab: null
+  default_egress: false
+limitations:
+  - No Proxmox or libvirt installation is performed by the current platform phase.
+  - Current host interaction is limited to read-only KVM audit.
+  - Provisioning, rollback and cleanup remain planned capabilities.

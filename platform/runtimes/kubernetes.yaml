@@ -1,11 +1,31 @@
+schema_version: 1
 id: kubernetes
 name: Kubernetes
+status: CURRENT-LIMITED
 drivers:
   - kind
   - k3d
   - k3s-vm
   - kubeadm-vm
-notes:
-  - No host cluster installation in this phase.
-  - Separate kubeconfig per lab.
-  - Kali attaches only during active lab runtime.
+release_identity:
+  digest_scope: runtime-release
+  environment_override: forbidden
+  current_state: NOT_APPLICABLE
+lifecycle:
+  - create
+  - start
+  - status
+  - smoke
+  - stop
+  - reset
+  - destroy
+isolation:
+  network_per_lab: true
+  default_egress: false
+  allowed_egress_profiles:
+    - maintenance
+limitations:
+  - No host cluster installation is performed by the current platform phase.
+  - Each laboratory requires a separate kubeconfig.
+  - Kali attaches only during an active laboratory lifecycle.
+  - Complete lifecycle parity is not yet established for every declared driver.

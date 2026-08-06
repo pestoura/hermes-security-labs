@@ -1,0 +1,111 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Hermes Security Labs runtime profile",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "id",
+    "name",
+    "status",
+    "drivers",
+    "release_identity",
+    "lifecycle",
+    "isolation",
+    "limitations"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "name": {"type": "string", "minLength": 1},
+    "status": {
+      "type": "string",
+      "enum": [
+        "CURRENT",
+        "CURRENT-LIMITED",
+        "FUTURE-VM",
+        "FUTURE-HARDWARE",
+        "CLOUD-SANDBOX",
+        "EXTERNAL-HARDWARE",
+        "PLANNED"
+      ]
+    },
+    "drivers": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "release_identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["digest_scope", "environment_override", "current_state"],
+      "properties": {
+        "digest_scope": {"const": "runtime-release"},
+        "environment_override": {"const": "forbidden"},
+        "current_state": {
+          "type": "string",
+          "enum": ["PINNED", "UNPINNED", "NOT_APPLICABLE", "PLANNED"]
+        },
+        "image": {"type": "string", "minLength": 1},
+        "digest": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        }
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"current_state": {"const": "PINNED"}}},
+          "then": {"required": ["image", "digest"]}
+        },
+        {
+          "if": {
+            "properties": {
+              "current_state": {
+                "enum": ["UNPINNED", "NOT_APPLICABLE", "PLANNED"]
+              }
+            }
+          },
+          "then": {
+            "not": {
+              "anyOf": [
+                {"required": ["image"]},
+                {"required": ["digest"]}
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "lifecycle": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": ["create", "start", "status", "smoke", "stop", "reset", "destroy"]
+      }
+    },
+    "isolation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["network_per_lab", "default_egress"],
+      "properties": {
+        "network_per_lab": {"type": ["boolean", "null"]},
+        "default_egress": {"type": "boolean"},
+        "allowed_egress_profiles": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "limitations": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1}
+    }
+  }
+}
