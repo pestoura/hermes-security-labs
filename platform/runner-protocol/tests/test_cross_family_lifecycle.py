@@ -40,6 +40,8 @@ def test_cross_family_supervised_lifecycle_is_fail_closed() -> None:
         "promotion_status": "blocked",
         "production_effect_claim": "none",
     }
+    assert len(lifecycle["cases"]) == 9
+    assert len(lifecycle["cases"]) == len(set(lifecycle["cases"]))
 
     harness = (REPOSITORY_ROOT / lifecycle["harness_path"]).resolve()
     report_schema = (ROOT / lifecycle["report_schema"]).resolve()
@@ -55,11 +57,9 @@ def test_cross_family_lifecycle_does_not_promote_runner_families() -> None:
     )
 
     families = compatibility["runner_families"]
-    assert [family["id"] for family in families] == [
-        "api",
-        "devsecops",
-        "ai-mcp",
-    ]
+    family_ids = [family["id"] for family in families]
+    assert family_ids == ["api", "devsecops", "ai-mcp"]
+    assert compatibility["cross_family_supervised_conformance"]["families"] == family_ids
     assert {family["execution_integration"] for family in families} == {
         "NOT_RUN"
     }
