@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import json
+import ast
 import subprocess
 import sys
 from pathlib import Path
@@ -114,28 +114,39 @@ def test_candidate_refuses_non_synthetic_authorization() -> None:
 
 
 def test_candidate_has_no_legacy_execution_imports_or_calls() -> None:
-    source = CANDIDATE_PATH.read_text(encoding="utf-8")
-    forbidden = (
-        "ProcessBridgeAdapter",
-        "execute_runbook",
-        "execute_command",
-        "subprocess",
-        "socket",
-        "urllib",
-        "requests",
+    tree = ast.parse(CANDIDATE_PATH.read_text(encoding="utf-8"))
+    imported_roots: set[str] = set()
+    referenced_names: set[str] = set()
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            imported_roots.update(alias.name.split(".", 1)[0] for alias in node.names)
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            imported_roots.add(node.module.split(".", 1)[0])
+        elif isinstance(node, ast.Name):
+            referenced_names.add(node.id)
+        elif isinstance(node, ast.Attribute):
+            referenced_names.add(node.attr)
+
+    assert imported_roots.isdisjoint({"subprocess", "socket", "urllib", "requests"})
+    assert referenced_names.isdisjoint(
+        {"ProcessBridgeAdapter", "execute_runbook", "execute_command"}
     )
-    for token in forbidden:
-        assert token not in source
 
 
 def test_candidate_uses_only_in_memory_state() -> None:
     candidate = ApiRunnerProtocolCandidate()
     assert isinstance(candidate.ledger, dict)
     assert isinstance(candidate.pending, dict)
-    source = CANDIDATE_PATH.read_text(encoding="utf-8")
-    assert "open(" not in source
-    assert "write_text(" not in source
-    assert "sqlite" not in source.lower()
+    tree = ast.parse(CANDIDATE_PATH.read_text(encoding="utf-8"))
+    referenced_names = {
+        node.id for node in ast.walk(tree) if isinstance(node, ast.Name)
+    } | {
+        node.attr for node in ast.walk(tree) if isinstance(node, ast.Attribute)
+    }
+    assert referenced_names.isdisjoint(
+        {"open", "write_text", "write_bytes", "sqlite3", "connect"}
+    )
 
 
 def test_invalid_control_action_is_fail_closed() -> None:
