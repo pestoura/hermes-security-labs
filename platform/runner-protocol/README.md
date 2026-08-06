@@ -6,7 +6,7 @@ Runner Protocol v2 is the canonical contract between an execution gateway and a 
 
 - Owner: `EPIC-05` / delivery umbrella `SVP2-B-02`.
 - Protocol version: `2.0.0`.
-- Current implementation state: contract, repository-local SDK and vendor-neutral conformance kit available; no existing API, DevSecOps or AI/MCP runner is claimed conformant.
+- Current implementation state: contract, repository-local SDK and vendor-neutral conformance kit are available; an API-family candidate passes synthetic conformance only, while real execution integration for API, DevSecOps and AI/MCP remains unimplemented.
 - Hermes remains the authorization authority. A valid protocol message cannot create, extend or replace authorization.
 - Unknown versions, invalid messages, missing correlation or missing evidence fail closed.
 
@@ -209,6 +209,30 @@ Compatibility rules and current adapter status are in [`compatibility.yaml`](com
 - [`tests/test_runner_protocol.py`](tests/test_runner_protocol.py)
 - [`tests/test_conformance.py`](tests/test_conformance.py)
 - [`tests/test_sdk.py`](tests/test_sdk.py)
+
+## API-family conformance candidate
+
+The first family-specific candidate is implemented at
+[`security/packs/api/src/api_pentest_runbooks/runner_protocol_adapter.py`](../../security/packs/api/src/api_pentest_runbooks/runner_protocol_adapter.py).
+It is an opt-in protocol candidate, not a production runner.
+
+The process starts only with `--conformance-only`, accepts only synthetic `conformance.*`
+capabilities and the synthetic authorization reference `authz/conformance/active`, and uses an
+in-memory ledger. It has no network, subprocess, file, bridge or legacy executor dependency.
+Any real API capability, real authorization reference or unsupported control action fails closed.
+
+The vendor-neutral conformance kit returns `PASS` for this candidate. The compatibility record
+therefore uses the deliberately narrower state `PASS_SYNTHETIC`, while preserving:
+
+- `execution_integration: NOT_RUN`;
+- `promotion_status: blocked`;
+- no connection to `execute_runbook()`;
+- no connection to `ProcessBridgeAdapter` or `execute_command`;
+- no persistent idempotency ledger;
+- no live process cancellation or customer-target execution.
+
+`PASS_SYNTHETIC` proves protocol behaviour only. It cannot be used as evidence of production
+safety, operational readiness or real API-runner conformance.
 
 ## Non-goals of this block
 
