@@ -109,12 +109,12 @@ concept_epics:
     pillar: B
     phase: 1
     priority: P0
-    status: implementing
+    status: as_built
     umbrella_id: SVP2-B-02
     umbrella_issue: 80
     dependencies: [EPIC-01]
     doc_path: docs/roadmap/epics/EPIC-05-runner-protocol-v2.md
-    current_state: "IMPLEMENTING. Runner Protocol v2 contract bundle, semantic validator, compatibility matrix and conformance tests are active; no existing runner is yet conformant."
+    current_state: "AS_BUILT for the contract block. Runner Protocol v2 schema, semantic validator, compatibility matrix and CI conformance tests are integrated; API, DevSecOps and AI/MCP adapters remain NOT_RUN."
     target_state: "A single Runner Protocol covering correlation identifiers, cancellation, timeouts, progress, normalized errors and evidence emission."
   - concept_id: EPIC-06
     slug: kali-image-factory

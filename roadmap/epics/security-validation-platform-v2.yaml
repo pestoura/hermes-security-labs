@@ -187,7 +187,7 @@ epics:
     pillar: B
     priority: P0
     phase: 1
-    status: proposed
+    status: implementing
     rationale: >-
       Runners heterogeneos impedem correlacao de evidencia, cancelamento fiavel e
       tratamento uniforme de erros e timeouts.
@@ -207,7 +207,7 @@ epics:
     effort: L
     risks:
       - Divergencia entre runners existentes e o novo protocolo
-    labels: [roadmap, architecture, "pillar:B", "priority:P0", "runtime:runner", "status:proposed", "type:epic"]
+    labels: [roadmap, architecture, "pillar:B", "priority:P0", "runtime:runner", "status:implementing", "type:epic"]
     references:
       - docs/architecture/security-validation-reference-architecture.md
 

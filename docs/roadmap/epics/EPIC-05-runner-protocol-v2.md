@@ -10,22 +10,23 @@
 | Phase | 1 |
 | Priority | P0 |
 | Delivery umbrella | `SVP2-B-02` (issue [#80](https://github.com/pestoura/hermes-security-labs/issues/80)) |
-| Document version | 1.1.0 |
+| Document version | 1.2.0 |
 | Document date | 2026-08-06 |
 | Catalogue | [Epic catalogue 45](../epic-catalogue-45.md) |
 | Lifecycle contract | [Architecture documentation lifecycle](../../architecture/architecture-documentation-lifecycle.md) |
 
 ## 2. Current status
 
-**IMPLEMENTING** — the first contract-only vertical slice is active on branch
-`feat/epic-05-runner-protocol-v2`. It defines and validates the protocol without changing
-existing runners, gateways, packs, laboratories or live runtime behaviour.
+**AS_BUILT** — the contract-only Runner Protocol v2 block was integrated through pull
+request [#105](https://github.com/pestoura/hermes-security-labs/pull/105) and validated
+again on `main`. `FINAL` remains false because no runner adapter has yet demonstrated
+end-to-end conformance, idempotent effects or bounded live cancellation.
 
 | Lifecycle state | Reached |
 | --- | --- |
 | INTENT | yes |
 | IMPLEMENTING | yes |
-| AS_BUILT | no |
+| AS_BUILT | yes |
 | FINAL | no |
 
 ## 3. Problem and motivation
@@ -220,25 +221,111 @@ Evidence must be referenced from issue #80 and section 15 before the umbrella ca
 
 ## 14. Implementation notes
 
-> Reserved lifecycle section. Populate during implementation with pull request references,
-> deviations from intent and decisions taken while building. Do not delete this heading.
+> Reserved lifecycle section. This section records the contract implementation integrated in
+> `main`. It does not claim live runner conformance or runtime enforcement.
 
 ### Block 1 — typed contract and semantic validation
 
 - Branch: `feat/epic-05-runner-protocol-v2`
 - Umbrella issue: [#80](https://github.com/pestoura/hermes-security-labs/issues/80)
-- Pull request: pending
+- Pull request: [#105](https://github.com/pestoura/hermes-security-labs/pull/105)
+- Validated head: `bd8d44bd3bd8b00e8da39665bcb80489486d1276`
+- Squash merge: `3f9753ea2e1db5750f971f01bb1dbfea558723fb`
 - Runtime declaration: `NO_RUNTIME_CHANGE`
 - Canonical location: `platform/runner-protocol/`
-- Existing runner and pack code remains unchanged.
+- Existing runner, gateway and pack execution code remained unchanged.
+
+### Corrections made before merge
+
+- The initial negative test correctly rejected a request missing `attempt_id`, but the JSON
+  Schema `oneOf` diagnostic hid the actionable leaf error. The validator was improved to
+  report nested leaf diagnostics without weakening schema enforcement.
+- A branch-local workflow could not publish the CI workflow update because its token lacked
+  workflow-write permission. Contract changes were published separately and the permanent CI
+  gate was applied through the GitHub connector. No permission was broadened.
+- Temporary branch-local workflows were removed before the PR diff and merge.
 
 ## 15. As-built / final architecture
 
-> Reserved. Populate after the implementation pull request is merged. Must record what
-> was actually built, evidence links, deviations and residual limitations. No umbrella may be
-> closed while this section is empty.
+> Reserved lifecycle section. This is the AS_BUILT record for the contract-only block. The
+> umbrella may not be closed until the runner adapters and epic-level acceptance criteria are
+> implemented and this section is updated to `FINAL`.
 
-_Not yet merged._
+### Delivered contract architecture
+
+```mermaid
+flowchart LR
+  GW[Execution gateway contract] --> REQ[runner.step.request]
+  REQ --> VAL[Schema and semantic validator]
+  VAL --> IDEM[Fingerprint and idempotency classification]
+  VAL --> RUN[Future runner adapter]
+  RUN -. optional progress .-> PROG[runner.progress]
+  GW -. cancellation .-> CANCEL[request and acknowledgement]
+  RUN --> EV[Sanitized evidence reference]
+  RUN --> OUT[runner.outcome]
+  EV --> OUT
+```
+
+The delivered implementation is a repository-owned protocol contract and validation library.
+It does not dispatch work and it has no process, network, container or laboratory side effects.
+
+### Evidence
+
+| Evidence | Result |
+| --- | --- |
+| PR #105 validated head | `bd8d44bd3bd8b00e8da39665bcb80489486d1276` |
+| Merge SHA | `3f9753ea2e1db5750f971f01bb1dbfea558723fb` |
+| PR validate workflow | success — run `31076832508` |
+| PR security/gitleaks workflow | success — run `31076832409` |
+| Post-merge main validate workflow | success — run `31076955536` |
+| Post-merge main security/gitleaks workflow | success — run `31076955527` |
+| Runner Protocol tests | 17 passed |
+| Roadmap/document lifecycle directed tests | 751 passed before PR |
+| Runtime validation | `NOT_APPLICABLE` — `NO_RUNTIME_CHANGE` |
+
+### Block 1 acceptance assessment
+
+| Criterion | Result | Evidence |
+| --- | --- | --- |
+| Four correlation IDs required | met | schema and negative test |
+| Terminal evidence reference required | met | schema and `PASS`/empty-evidence tests |
+| Same effect has stable fingerprint across attempts | met | semantic validator and replay test |
+| Changed effect under same key is conflict | met | `IDEMPOTENCY_CONFLICT` test |
+| Timeout/cancellation budgets ordered and bounded | met | semantic validation and negative tests |
+| Retries limited to transient taxonomy | met | stable retryability validation |
+| Raw secret fields rejected | met | recursive semantic check and test |
+| No false runner conformance claim | met | compatibility matrix remains `contract_only` / `NOT_RUN` |
+
+### Epic-level criteria not yet met
+
+| Criterion | State | Required next evidence |
+| --- | --- | --- |
+| Correlation propagated by every adapter | `NOT_RUN` | API, DevSecOps and AI/MCP adapter conformance |
+| Same idempotency key never duplicates effects | `NOT_RUN` | persistent ledger and effect-level replay tests |
+| Cancellation observable and bounded live | `NOT_RUN` | supervised process/cancellation integration tests |
+| Error taxonomy normalized end to end | `NOT_RUN` | adapter and gateway integration tests |
+
+### Differences from intent
+
+- The contract is a single versioned schema bundle with message variants rather than separate
+  top-level schemas. This keeps one protocol version and one compatibility boundary.
+- Progress is optional by default. Required progress can be selected per capability later.
+- Every terminal outcome requires evidence, including pre-execution refusal and timeout. These
+  use decision/protocol evidence and do not falsely claim execution evidence.
+- The block introduced deterministic fingerprint classification but deliberately did not
+  implement a persistent replay ledger.
+
+### Limitations and residual risk
+
+- No existing runner adapter consumes or emits Runner Protocol v2 messages.
+- Schema-valid requests may still be unauthorized; Hermes authorization remains mandatory.
+- Cancellation and hard timeout are contract semantics only until supervised runtime support
+  is implemented.
+- Fingerprint classification does not itself prevent duplicate effects without a persistent,
+  atomic idempotency ledger.
+- Evidence references are structurally validated but the Evidence Plane and chain-of-custody
+  implementation remain later work.
+- The umbrella #80 remains `IMPLEMENTING`; this block must not be treated as `FINAL`.
 
 ## 16. Document change log
 
@@ -246,3 +333,4 @@ _Not yet merged._
 | --- | --- | --- |
 | 2026-08-06 | 1.0.0 | Initial intent document created from the concept epic catalogue. |
 | 2026-08-06 | 1.1.0 | Set IMPLEMENTING; define block 1 contract scope, decisions, validation plan and limits. |
+| 2026-08-06 | 1.2.0 | Record contract block AS_BUILT, merge/CI evidence, acceptance assessment and residual limitations. |
