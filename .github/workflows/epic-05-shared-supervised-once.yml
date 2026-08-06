@@ -1,0 +1,48 @@
+name: Apply EPIC-05 shared supervised engine once
+
+on:
+  push:
+    branches:
+      - feat/epic-05-devsecops-supervised-synthetic
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/epic-05-devsecops-supervised-synthetic
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Apply exact shared-engine patch
+        run: python tools/tmp_epic05_shared_supervised_patch.py
+      - name: Install validation dependencies and SDK
+        run: python -m pip install --disable-pip-version-check -q pytest ruff -e platform/runner-protocol
+      - name: Validate shared API and DevSecOps supervision
+        env:
+          PYTHONPATH: security/packs/api/src:security/packs/devsecops/src
+        run: |
+          python platform/runner-protocol/validate_protocol.py --contract-only
+          python -m pytest -q \
+            platform/runner-protocol/tests \
+            security/packs/api/tests \
+            security/packs/devsecops/tests \
+            -p no:cacheprovider
+          ruff check --config security/pyproject.toml \
+            platform/runner-protocol \
+            security/packs/api/src security/packs/api/tests \
+            security/packs/devsecops/src security/packs/devsecops/tests
+          git diff --check
+      - name: Commit validated shared-engine state
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "refactor(epic-05): share supervised synthetic engine"
+          git push origin HEAD:feat/epic-05-devsecops-supervised-synthetic
