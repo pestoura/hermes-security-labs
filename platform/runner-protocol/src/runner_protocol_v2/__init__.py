@@ -11,11 +11,27 @@ from .contracts import (
     validate_schema,
     validate_semantics,
 )
+from .idempotency import (
+    LedgerConflictError,
+    LedgerDecision,
+    LedgerError,
+    LedgerRecord,
+    LedgerStateError,
+    LedgerUnavailableError,
+    SQLiteIdempotencyLedger,
+)
 
 __version__ = "2.0.0"
 
 __all__ = [
+    "LedgerConflictError",
+    "LedgerDecision",
+    "LedgerError",
+    "LedgerRecord",
+    "LedgerStateError",
+    "LedgerUnavailableError",
     "ProtocolValidationError",
+    "SQLiteIdempotencyLedger",
     "__version__",
     "classify_idempotency",
     "contract_root",
