@@ -6,7 +6,7 @@ Runner Protocol v2 is the canonical contract between an execution gateway and a 
 
 - Owner: `EPIC-05` / delivery umbrella `SVP2-B-02`.
 - Protocol version: `2.0.0`.
-- Current implementation state: contract, repository-local SDK, vendor-neutral conformance kit and durable transactional idempotency ledger are available; API-family in-memory and durable candidates pass synthetic conformance only; a POSIX supervised-process boundary is implementing with no adapter integration, while real execution for API, DevSecOps and AI/MCP remains unimplemented.
+- Current implementation state: contract, repository-local SDK, vendor-neutral conformance kit, durable transactional idempotency ledger and POSIX process supervisor are available; API-family in-memory and durable candidates pass synthetic conformance, and a fixed-worker supervised candidate is `IMPLEMENTING` with `PASS_SYNTHETIC_PROCESS`; real execution for API, DevSecOps and AI/MCP remains unimplemented.
 - Hermes remains the authorization authority. A valid protocol message cannot create, extend or replace authorization.
 - Unknown versions, invalid messages, missing correlation or missing evidence fail closed.
 
@@ -154,9 +154,9 @@ The SDK validation functions remain side-effect free. The optional
 idempotency state and validated terminal outcomes. The optional
 [`PosixProcessSupervisor`](supervised-process-boundary.md) is an execution primitive that starts
 only an absolute executable without a shell and owns bounded process-group cleanup. It does not
-authorize, select capabilities, map targets or produce protocol evidence. No existing adapter
-consumes it. The SDK remains the shared dependency so protocol and lifecycle semantics are not
-copied per family.
+authorize, select capabilities, map targets or produce protocol evidence. Only the fixed-worker
+synthetic-process candidate consumes it; no production adapter does. The SDK remains the shared
+dependency so protocol and lifecycle semantics are not copied per family.
 
 ## Supervised process boundary
 
@@ -167,8 +167,22 @@ bounded output, escalates `SIGTERM` to `SIGKILL`, and refuses to classify root e
 while descendants remain. `CLEANUP_FAILED` is never eligible for protocol `PASS`.
 
 This is not a sandbox. It provides no cgroup, namespace, seccomp, network, privilege or resource
-quota enforcement and is not connected to any runner adapter. Real capability execution remains
+quota enforcement. The API fixed-worker synthetic candidate exercises it without accepting a
+caller-controlled command; no production adapter consumes it and real capability execution remains
 `NOT_RUN`.
+
+### API supervised synthetic-process candidate
+
+The block-8 candidate is implemented at
+[`security/packs/api/src/api_pentest_runbooks/supervised_runner_protocol_adapter.py`](../../security/packs/api/src/api_pentest_runbooks/supervised_runner_protocol_adapter.py).
+It requires `--conformance-only`, `--synthetic-process-only` and an external durable ledger. The
+request cannot select `argv`, working directory, environment or worker mode. A durable claim is
+created before the fixed worker starts; timeout, cancellation and descendant residue are mapped to
+validated terminal outcomes, and raw worker streams are replaced by hashes and byte counts.
+
+Its compatibility state is `PASS_SYNTHETIC_PROCESS`, not production conformance. Sandboxing, real
+authorization lookup, target allowlisting, Evidence Plane integration and real API execution remain
+`NOT_RUN`; promotion remains blocked.
 
 ## Conformance kit
 
@@ -240,11 +254,11 @@ It is an opt-in protocol candidate, not a production runner.
 
 The in-memory process starts only with `--conformance-only`. The durable candidate at
 [`security/packs/api/src/api_pentest_runbooks/durable_runner_protocol_adapter.py`](../../security/packs/api/src/api_pentest_runbooks/durable_runner_protocol_adapter.py)
-requires both `--conformance-only` and `--durable-ledger` with an absolute path outside the
-working tree. Both accept only synthetic `conformance.*` capabilities and the synthetic
-authorization reference `authz/conformance/active`. Neither has a network, subprocess, bridge or
-legacy executor dependency. Any real API capability, real authorization reference or unsupported
-control action fails closed before a durable claim.
+requires both `--conformance-only` and `--durable-ledger`. The supervised candidate additionally
+requires `--synthetic-process-only` and invokes only the fixed repository worker. All candidates
+accept only synthetic capabilities and `authz/conformance/active`; real API capabilities and real
+authorization references fail closed before an executable effect. None references the bridge or
+legacy executor.
 
 The vendor-neutral conformance kit returns `PASS` for this candidate. The compatibility record
 therefore uses the deliberately narrower state `PASS_SYNTHETIC`, while preserving:
@@ -254,14 +268,15 @@ therefore uses the deliberately narrower state `PASS_SYNTHETIC`, while preservin
 - no connection to `execute_runbook()`;
 - no connection to `ProcessBridgeAdapter` or `execute_command`;
 - durable persistence limited to synthetic conformance and disposable external SQLite state;
-- no live process cancellation or customer-target execution.
+- supervised timeout/cancellation limited to the fixed synthetic worker;
+- no customer-target or real security-tool execution.
 
 `PASS_SYNTHETIC` proves protocol behaviour only. It cannot be used as evidence of production
 safety, operational readiness or real API-runner conformance.
 
 ## Non-goals of this block
 
-- no runner adapter or gateway enforcement;
+- no production runner adapter or gateway enforcement;
 - no change to existing pack/runbook semantics;
 - no adapter-level live cancellation or production process termination;
 - no production adapter integration of the durable idempotency ledger;

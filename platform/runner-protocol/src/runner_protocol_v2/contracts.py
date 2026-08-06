@@ -1,7 +1,7 @@
 """Canonical Runner Protocol v2 validation and deterministic contract helpers.
 
-The SDK is side-effect free. It validates messages, compatibility declarations,
-progress streams and idempotency fingerprints; it never dispatches or cancels work.
+Protocol validation helpers are side-effect free. Optional SDK enforcement primitives
+provide durable idempotency and bounded POSIX process supervision, but never authorize work.
 """
 
 from __future__ import annotations
@@ -264,8 +264,8 @@ def validate_compatibility_matrix() -> None:
     """Validate the compatibility and conformance declaration."""
     root = contract_root()
     data = yaml.safe_load((root / "compatibility.yaml").read_text(encoding="utf-8"))
-    if data.get("schema_version") != "1.2":
-        raise ProtocolValidationError("compatibility schema version must be 1.2")
+    if data.get("schema_version") != "1.3":
+        raise ProtocolValidationError("compatibility schema version must be 1.3")
     if data["protocol"] != {
         "name": "runner-protocol",
         "version": "2.0.0",
@@ -376,6 +376,35 @@ def validate_compatibility_matrix() -> None:
             "API durable-idempotency declaration is inconsistent"
         )
 
+    supervised_expected = {
+        "status": "PASS_SYNTHETIC_PROCESS",
+        "integration_scope": "fixed_synthetic_worker_only",
+        "adapter_path": (
+            "security/packs/api/src/api_pentest_runbooks/"
+            "supervised_runner_protocol_adapter.py"
+        ),
+        "worker_path": (
+            "security/packs/api/src/api_pentest_runbooks/"
+            "synthetic_supervised_worker.py"
+        ),
+        "activation_arguments": [
+            "--conformance-only",
+            "--synthetic-process-only",
+            "--durable-ledger",
+        ],
+        "durable_claim_before_spawn": "PASS_SYNTHETIC_PROCESS",
+        "async_cancellation": "PASS_SYNTHETIC_PROCESS",
+        "hard_timeout": "PASS_SYNTHETIC_PROCESS",
+        "descendant_residue": "fail_closed_inconclusive",
+        "raw_output_persistence": "none",
+        "sandbox_status": "NOT_IMPLEMENTED",
+        "production_effect_claim": "none",
+    }
+    if api.get("supervised_process") != supervised_expected:
+        raise ProtocolValidationError(
+            "API supervised-process declaration is inconsistent"
+        )
+
     repository_root = root.parents[1]
     candidate_declarations = (
         (
@@ -387,6 +416,11 @@ def validate_compatibility_matrix() -> None:
             str(durable_expected["adapter_path"]),
             ("--conformance-only", str(durable_expected["activation_argument"])),
             "API durable conformance candidate",
+        ),
+        (
+            str(supervised_expected["adapter_path"]),
+            tuple(str(value) for value in supervised_expected["activation_arguments"]),
+            "API supervised synthetic-process candidate",
         ),
     )
     for relative_path, required_arguments, candidate_name in candidate_declarations:
@@ -406,6 +440,18 @@ def validate_compatibility_matrix() -> None:
                 raise ProtocolValidationError(
                     f"{candidate_name} activation argument {argument!r} is not enforced"
                 )
+
+    worker_path = (repository_root / str(supervised_expected["worker_path"])).resolve()
+    if repository_root not in worker_path.parents or not worker_path.is_file():
+        raise ProtocolValidationError(
+            "API supervised synthetic worker path is missing or outside repository"
+        )
+    worker_source = worker_path.read_text(encoding="utf-8")
+    for forbidden in ("socket", "requests", "urllib", "execute_runbook", "execute_command"):
+        if forbidden in worker_source:
+            raise ProtocolValidationError(
+                f"API supervised synthetic worker must not reference {forbidden}"
+            )
 
     not_started_expected = {
         "implementation_status": "not_started",

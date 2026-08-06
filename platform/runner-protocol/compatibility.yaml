@@ -1,4 +1,4 @@
-schema_version: "1.2"
+schema_version: "1.3"
 protocol:
   name: runner-protocol
   version: "2.0.0"
@@ -43,7 +43,23 @@ runner_families:
       restart_replay: PASS_SYNTHETIC
       abandoned_claim_reclaim: blocked
       production_effect_claim: none
-    notes: The opt-in API candidates pass synthetic protocol conformance, including durable restart replay in the dedicated candidate, but remain disconnected from execute_runbook and the legacy ProcessBridgeAdapter; no real API capability is integrated.
+    supervised_process:
+      status: PASS_SYNTHETIC_PROCESS
+      integration_scope: fixed_synthetic_worker_only
+      adapter_path: security/packs/api/src/api_pentest_runbooks/supervised_runner_protocol_adapter.py
+      worker_path: security/packs/api/src/api_pentest_runbooks/synthetic_supervised_worker.py
+      activation_arguments:
+        - --conformance-only
+        - --synthetic-process-only
+        - --durable-ledger
+      durable_claim_before_spawn: PASS_SYNTHETIC_PROCESS
+      async_cancellation: PASS_SYNTHETIC_PROCESS
+      hard_timeout: PASS_SYNTHETIC_PROCESS
+      descendant_residue: fail_closed_inconclusive
+      raw_output_persistence: none
+      sandbox_status: NOT_IMPLEMENTED
+      production_effect_claim: none
+    notes: The opt-in API candidates prove synthetic protocol, durable restart replay and fixed-worker process supervision. They remain disconnected from execute_runbook and the legacy ProcessBridgeAdapter; no real API capability is integrated.
   - id: devsecops
     implementation_status: not_started
     protocol_status: contract_only
