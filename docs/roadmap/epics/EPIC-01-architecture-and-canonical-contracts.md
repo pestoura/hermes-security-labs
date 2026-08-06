@@ -10,21 +10,22 @@
 | Phase | 1 |
 | Priority | P0 |
 | Delivery umbrella | `SVP2-A-01` (issue [#76](https://github.com/pestoura/hermes-security-labs/issues/76)) |
-| Document version | 1.0.0 |
+| Document version | 1.1.1 |
 | Document date | 2026-08-06 |
 | Catalogue | [Epic catalogue 45](../epic-catalogue-45.md) |
 | Lifecycle contract | [Architecture documentation lifecycle](../../architecture/architecture-documentation-lifecycle.md) |
 
 ## 2. Current status
 
-**INTENT** — nothing described in this document is implemented. Sections 14 and 15
-are reserved and must be filled during and after implementation, as required by the
-[documentation lifecycle contract](../../architecture/architecture-documentation-lifecycle.md).
+**IMPLEMENTING** — the first delivery block is active in pull request
+[#100](https://github.com/pestoura/hermes-security-labs/pull/100) from branch
+`docs/epic-01-canonical-contracts`. The architecture contracts, initial ADR set and
+mechanical documentation gates are being implemented. No runtime enforcement is claimed.
 
 | Lifecycle state | Reached |
 | --- | --- |
 | INTENT | yes |
-| IMPLEMENTING | no |
+| IMPLEMENTING | yes |
 | AS_BUILT | no |
 | FINAL | no |
 
@@ -74,9 +75,10 @@ flowchart LR
 
 Contracts are canonical in Git. Where this epic reuses a platform-wide contract, the
 canonical definition lives in the
-[reference architecture](../../architecture/security-validation-reference-architecture.md)
-and in [EPIC-01](EPIC-01-architecture-and-canonical-contracts.md); this document
-references it instead of restating it.
+[reference architecture](../../architecture/security-validation-reference-architecture.md),
+the [contract inventory](../../architecture/contracts/README.md) and the
+[ADR register](../../architecture/adr/README.md); this document references them instead of
+restating them.
 
 ## 8. Dependencies and sequencing
 
@@ -123,29 +125,56 @@ be closed, and this document must record the references in section 15.
 
 ### Decisions taken at intent time
 
-- Hermes remains the only authorization authority
+- Hermes remains the only authorization authority.
+
+### Decisions taken during implementation
+
+- `ADR-0001`: separate proposal, authorization, execution, evidence and assurance authority.
+- `ADR-0002`: TB0-TB4 identify trust-domain crossings, resolving the pre-existing conflict
+  with the initial plane-based numbering.
+- `ADR-0003` to `ADR-0008`: type safety, fail-safe evaluation, isolation, provenance,
+  evidence publication and human-controlled promotion become canonical structural decisions.
 
 ### Open questions
 
-- Where do ADR supersession chains live once ADR count grows
+- None for this block. ADR supersession chains live in ADR metadata and the canonical ADR
+  index; the process is defined in [`docs/architecture/adr/README.md`](../../architecture/adr/README.md).
 
 ## 14. Implementation notes
 
-> Reserved. Populate during implementation with pull request references, deviations
-> from intent, and decisions taken while building. Do not delete this heading.
+> Reserved lifecycle section. Updated during implementation with pull request references,
+> deviations from intent and decisions taken while building. Do not delete this heading.
 
-_Not started._
+### Block 1 — canonical contracts and ADR foundation
+
+- Branch: `docs/epic-01-canonical-contracts`
+- Umbrella issue: [#76](https://github.com/pestoura/hermes-security-labs/issues/76)
+- Pull request: [#100](https://github.com/pestoura/hermes-security-labs/pull/100)
+- Runtime declaration: `NO_RUNTIME_CHANGE`
+- Added the ADR governance/index and eight initial structural ADRs.
+- Added the canonical cross-plane contract inventory.
+- Updated the reference architecture with the canonical TB0-TB4 crossing model.
+- Added documentation tests for ADR numbering, coverage, contract inventory and boundary
+  completeness.
+
+### Recorded divergence
+
+| Intent reference | Observed state | Resolution | Decision record |
+| --- | --- | --- | --- |
+| section 6 and platform intent trust boundaries | the initial reference architecture used TB0-TB4 as component/plane labels, while the platform intent used them as crossings | crossings are canonical; GitHub remains source-of-truth context without a numbered TB | `ADR-0002` |
 
 ## 15. As-built / final architecture
 
-> Reserved. Populate when the delivery umbrella reaches completion. Must record what
+> Reserved. Populate after the implementation pull request is merged. Must record what
 > was actually built, evidence links, and every divergence from sections 6 to 11.
 > No umbrella may be closed while this section is empty.
 
-_Not started._
+_Not yet merged._
 
 ## 16. Document change log
 
 | Date | Version | Change |
 | --- | --- | --- |
 | 2026-08-06 | 1.0.0 | Initial intent document created from the concept epic catalogue. |
+| 2026-08-06 | 1.1.0 | Set IMPLEMENTING; record branch, initial ADR decisions, contract inventory and trust-boundary divergence. |
+| 2026-08-06 | 1.1.1 | Link implementation pull request #100. |

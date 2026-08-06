@@ -17,6 +17,8 @@ mantidos em Git e são a fonte de verdade. Issues do GitHub são uma vista de tr
 | Perceber limites de segurança | [Security model](security-model.md) |
 | Traduzir siglas e frameworks | [Glossary and references](glossary-and-references.md) |
 | Saber quem mantém a documentação | [Documentation governance](documentation-governance.md) |
+| Consultar decisões estruturantes | [ADR index](architecture/adr/README.md) |
+| Identificar o owner de um contrato | [Canonical contract inventory](architecture/contracts/README.md) |
 
 ## Índice completo
 
@@ -40,6 +42,8 @@ mantidos em Git e são a fonte de verdade. Issues do GitHub são uma vista de tr
 - [Epic catalogue — 45 concept epics](roadmap/epic-catalogue-45.md)
 - [Architecture documentation lifecycle](architecture/architecture-documentation-lifecycle.md)
 - [Reference architecture](architecture/security-validation-reference-architecture.md)
+- [Architecture Decision Records](architecture/adr/README.md)
+- [Canonical architecture contract inventory](architecture/contracts/README.md)
 - [Framework crosswalk](architecture/framework-crosswalk.md)
 - [Security knowledge fabric](architecture/security-knowledge-fabric.md)
 - [Continuous content factories](architecture/continuous-content-factories.md)
