@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hexor.local/schemas/lab-lifecycle-contract-1.0.0.json",
+  "title": "Hexor Transactional Lab Lifecycle Contract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "contract_id", "lab_id", "campaign_id", "family", "intrusiveness_level", "network", "isolation", "limits", "recovery", "expires_at"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "contract_id": {"$ref": "#/$defs/identifier"},
+    "lab_id": {"$ref": "#/$defs/identifier"},
+    "campaign_id": {"$ref": "#/$defs/identifier"},
+    "family": {"type": "string", "minLength": 3, "maxLength": 128, "pattern": "^[a-z0-9][a-z0-9._-]*$"},
+    "intrusiveness_level": {"enum": ["L0", "L1", "L2", "L3", "L4"]},
+    "network": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["network_id", "profile", "egress_exceptions"],
+      "properties": {
+        "network_id": {"$ref": "#/$defs/identifier"},
+        "profile": {"enum": ["isolated", "restricted"]},
+        "egress_exceptions": {"type": "array", "items": {"$ref": "#/$defs/egress_exception"}}
+      }
+    },
+    "isolation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["privileged", "host_network", "docker_socket", "host_mounts", "shared_network"],
+      "properties": {
+        "privileged": {"const": false},
+        "host_network": {"const": false},
+        "docker_socket": {"const": false},
+        "host_mounts": {"type": "array", "maxItems": 0},
+        "shared_network": {"const": false}
+      }
+    },
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ttl_seconds", "cpu_limit", "memory_mb", "data_budget_bytes"],
+      "properties": {
+        "ttl_seconds": {"type": "integer", "minimum": 60, "maximum": 86400},
+        "cpu_limit": {"type": "number", "exclusiveMinimum": 0, "maximum": 64},
+        "memory_mb": {"type": "integer", "minimum": 128, "maximum": 262144},
+        "data_budget_bytes": {"type": "integer", "minimum": 0}
+      }
+    },
+    "recovery": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["snapshot_ref", "rollback_plan_ref"],
+      "properties": {
+        "snapshot_ref": {"type": ["string", "null"], "minLength": 3, "maxLength": 256, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*$"},
+        "rollback_plan_ref": {"type": ["string", "null"], "minLength": 3, "maxLength": 256, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*$"}
+      }
+    },
+    "expires_at": {"type": "string", "format": "date-time"}
+  },
+  "$defs": {
+    "identifier": {"type": "string", "minLength": 3, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"},
+    "egress_exception": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["exception_id", "destination", "protocol", "port", "owner_id", "approver_id", "valid_from", "valid_until", "reason"],
+      "properties": {
+        "exception_id": {"$ref": "#/$defs/identifier"},
+        "destination": {"type": "string", "minLength": 1, "maxLength": 256},
+        "protocol": {"enum": ["tcp", "udp", "https"]},
+        "port": {"type": "integer", "minimum": 1, "maximum": 65535},
+        "owner_id": {"$ref": "#/$defs/identifier"},
+        "approver_id": {"$ref": "#/$defs/identifier"},
+        "valid_from": {"type": "string", "format": "date-time"},
+        "valid_until": {"type": "string", "format": "date-time"},
+        "reason": {"type": "string", "minLength": 8, "maxLength": 512}
+      }
+    }
+  }
+}

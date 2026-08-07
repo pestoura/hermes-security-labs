@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hexor.local/schemas/zero-residue-proof-1.0.0.json",
+  "title": "Hexor Zero Residue Proof",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "proof_id", "lab_id", "campaign_id", "cleanup_attempt_id", "observed_at", "scanner_state", "resources", "temporary_paths", "network_absent", "verification_sha256"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "proof_id": {"$ref": "#/$defs/identifier"},
+    "lab_id": {"$ref": "#/$defs/identifier"},
+    "campaign_id": {"$ref": "#/$defs/identifier"},
+    "cleanup_attempt_id": {"$ref": "#/$defs/identifier"},
+    "observed_at": {"type": "string", "format": "date-time"},
+    "scanner_state": {"enum": ["COMPLETE", "PARTIAL", "UNAVAILABLE"]},
+    "resources": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["containers", "networks", "volumes", "processes", "mounts"],
+      "properties": {
+        "containers": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "networks": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "volumes": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "processes": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "mounts": {"type": "array", "items": {"type": "string", "minLength": 1}}
+      }
+    },
+    "temporary_paths": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "network_absent": {"type": "boolean"},
+    "verification_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  },
+  "$defs": {
+    "identifier": {"type": "string", "minLength": 3, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"}
+  }
+}
