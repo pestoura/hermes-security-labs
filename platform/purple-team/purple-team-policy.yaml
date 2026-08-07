@@ -1,0 +1,26 @@
+schema_version: "1.0"
+policy_id: purple-team-outcome-policy
+outcomes:
+  states:
+    - PREVENTED
+    - DETECTED
+    - OBSERVED_NOT_DETECTED
+    - DETECTED_NOT_ACTIONABLE
+    - NOT_OBSERVED
+  absence_of_observation_is_prevention: false
+  evidence_required_for_prevention_and_detection: true
+metrics:
+  time_to_detect_non_negative: true
+  time_to_contain_non_negative: true
+detection_expectations:
+  d3fend_references_supported: true
+resilience_exercises:
+  executable: false
+  authorization_source: CONTROL_PLANE_ONLY
+runtime_status:
+  defensive_telemetry_ingestion: NOT_IMPLEMENTED
+  siem_integration: NOT_IMPLEMENTED
+  edr_integration: NOT_IMPLEMENTED
+  containment_actions: NOT_RUN
+  adversary_emulation: NOT_RUN
+  resilience_exercise_execution: NOT_RUN
