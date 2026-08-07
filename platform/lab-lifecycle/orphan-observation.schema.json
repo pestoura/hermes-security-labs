@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hexor.local/schemas/orphan-observation-1.0.0.json",
+  "title": "Hexor Lab Orphan Resource Observation",
+  "description": "Read-only normalized snapshot used to assess orphan laboratory resources. Resource references are opaque identifiers, not raw paths, commands, sockets, targets or credentials.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "observation_id",
+    "observed_at",
+    "scanner_state",
+    "lifecycle_records",
+    "resources"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "observation_id": {"$ref": "#/$defs/identifier"},
+    "observed_at": {"type": "string", "format": "date-time"},
+    "scanner_state": {"enum": ["COMPLETE", "PARTIAL", "UNAVAILABLE"]},
+    "lifecycle_records": {
+      "type": "array",
+      "maxItems": 1000,
+      "items": {"$ref": "#/$defs/lifecycle_record"}
+    },
+    "resources": {
+      "type": "array",
+      "maxItems": 10000,
+      "items": {"$ref": "#/$defs/resource"}
+    }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+    },
+    "opaque_resource_ref": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+    },
+    "lifecycle_record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "lab_id",
+        "campaign_id",
+        "state",
+        "contract_expires_at",
+        "quarantine_retention_until"
+      ],
+      "properties": {
+        "lab_id": {"$ref": "#/$defs/identifier"},
+        "campaign_id": {"$ref": "#/$defs/identifier"},
+        "state": {
+          "enum": [
+            "DECLARED",
+            "PROVISIONING",
+            "READY",
+            "RUNNING",
+            "RESETTING",
+            "DESTROYING",
+            "ROLLING_BACK",
+            "VERIFYING_RESIDUE",
+            "VERIFIED",
+            "QUARANTINED"
+          ]
+        },
+        "contract_expires_at": {"type": "string", "format": "date-time"},
+        "quarantine_retention_until": {
+          "type": ["string", "null"],
+          "format": "date-time"
+        }
+      }
+    },
+    "resource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["resource_ref", "kind", "lab_id", "campaign_id"],
+      "properties": {
+        "resource_ref": {"$ref": "#/$defs/opaque_resource_ref"},
+        "kind": {
+          "enum": [
+            "container",
+            "network",
+            "volume",
+            "process",
+            "mount",
+            "temporary_path"
+          ]
+        },
+        "lab_id": {"$ref": "#/$defs/identifier"},
+        "campaign_id": {"$ref": "#/$defs/identifier"}
+      }
+    }
+  }
+}
