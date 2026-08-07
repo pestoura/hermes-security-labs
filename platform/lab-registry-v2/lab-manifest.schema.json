@@ -4,7 +4,7 @@
   "title": "Lab Manifest v2",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "lab_id", "family", "variant", "lab_type", "states", "isolation", "resources", "ttl_seconds", "egress", "reset_seed", "maturity", "cleanup_proof_required", "generated_or_untrusted", "isolated_build"],
+  "required": ["schema_version", "lab_id", "family", "variant", "lab_type", "states", "isolation", "resources", "ttl_seconds", "egress", "reset_seed", "reset_fingerprint", "maturity", "cleanup_proof_required", "generated_or_untrusted", "isolated_build", "required_capabilities"],
   "properties": {
     "schema_version": {"const": "2.0"},
     "lab_id": {"type": "string", "pattern": "^lab_[a-f0-9]{32}$"},
@@ -52,10 +52,12 @@
       }
     },
     "reset_seed": {"type": "string", "minLength": 1},
+    "reset_fingerprint": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
     "maturity": {"enum": ["L0", "L1", "L2", "L3", "L4", "L5"]},
     "cleanup_proof_required": {"const": true},
     "generated_or_untrusted": {"type": "boolean"},
-    "isolated_build": {"type": "boolean"}
+    "isolated_build": {"type": "boolean"},
+    "required_capabilities": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}}
   },
   "$defs": {
     "state": {
