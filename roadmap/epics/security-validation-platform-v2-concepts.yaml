@@ -187,12 +187,12 @@ concept_epics:
     pillar: D
     phase: 4
     priority: P1
-    status: intent
+    status: implementing
     umbrella_id: SVP2-D-02
     umbrella_issue: 85
     dependencies: [EPIC-10]
     doc_path: docs/roadmap/epics/EPIC-11-technical-observability.md
-    current_state: "Not implemented. Concept documented as intent only."
+    current_state: "IMPLEMENTING. PR #144 integrated W3C/OpenTelemetry correlation, RED/USE telemetry semantics and fail-closed freshness-bounded readiness requirements. OpenTelemetry export, live cross-plane signal emission, real readiness probes and production reconstruction remain NOT_RUN."
     target_state: "Structured logs, metrics and traces with consistent correlation identifiers and documented signal semantics."
   - concept_id: EPIC-12
     slug: redaction-and-data-classification
@@ -213,12 +213,12 @@ concept_epics:
     pillar: D
     phase: 4
     priority: P1
-    status: intent
+    status: implementing
     umbrella_id: SVP2-D-02
     umbrella_issue: 85
     dependencies: [EPIC-04, EPIC-05, EPIC-10]
     doc_path: docs/roadmap/epics/EPIC-13-reliability-and-chaos-testing.md
-    current_state: "Not implemented. Concept documented as intent only."
+    current_state: "IMPLEMENTING. PR #144 integrated the canonical failure suite and maturity gates that require complete passing failure evidence. Real fault injection and chaos execution remain NOT_RUN."
     target_state: "A failure-injection programme that demonstrates fail-safe behaviour for timeouts, crashes, partial evidence, network loss and cancellation."
   - concept_id: EPIC-14
     slug: real-operations-and-maintenance
@@ -231,7 +231,7 @@ concept_epics:
     umbrella_issue: 85
     dependencies: [EPIC-02, EPIC-11]
     doc_path: docs/roadmap/epics/EPIC-14-real-operations-and-maintenance.md
-    current_state: "Not implemented. Concept documented as intent only."
+    current_state: "PR #144 provides shared readiness and M0-M5 assurance primitives, but EPIC-14 remains INTENT: routine maintenance procedures, drift-response workflow, incident runbooks, ownership and rehearsal evidence remain NOT_IMPLEMENTED/NOT_RUN."
     target_state: "An operating model with runbooks for routine maintenance, drift response, incident handling and capability maturity assessment M0-M5."
   - concept_id: EPIC-15
     slug: backlog-and-documentation-quality
@@ -447,12 +447,12 @@ concept_epics:
     pillar: D
     phase: 4
     priority: P1
-    status: intent
+    status: implementing
     umbrella_id: SVP2-D-02
     umbrella_issue: 85
     dependencies: [EPIC-11]
     doc_path: docs/roadmap/epics/EPIC-31-opentelemetry-end-to-end.md
-    current_state: "Not implemented. Concept documented as intent only."
+    current_state: "IMPLEMENTING. PR #144 integrated W3C trace-context and OpenTelemetry semantic requirements with campaign/run/step/attempt correlation. Export and deployed end-to-end propagation through gateway/runners/evidence remain NOT_RUN."
     target_state: "A single vendor-neutral telemetry contract with consistent trace context propagation from campaign start to evidence persistence."
   - concept_id: EPIC-32
     slug: resilience-validation-and-tlpt
@@ -486,12 +486,12 @@ concept_epics:
     pillar: D
     phase: 4
     priority: P2
-    status: intent
+    status: implementing
     umbrella_id: SVP2-D-02
     umbrella_issue: 85
     dependencies: [EPIC-13, EPIC-10]
     doc_path: docs/roadmap/epics/EPIC-34-maturity-benchmarking-and-scientific-quality.md
-    current_state: "Not implemented. Concept documented as intent only."
+    current_state: "IMPLEMENTING. PR #144 integrated M0-M5 evidence gates covering readiness/failure-suite/reproducibility/FP-FN/cleanup and M5 production-observation/retirement requirements. Production maturity assessment and benchmark execution remain NOT_RUN."
     target_state: "A maturity model M0-M5 per capability plus reproducibility and benchmarking requirements that make quality claims measurable."
   - concept_id: EPIC-35
     slug: sdk-plugins-and-runtime-certification
