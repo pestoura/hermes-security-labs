@@ -34,7 +34,7 @@ Network posture applied per environment without a single policy contract is diff
 
 A declarative network policy model with isolated deny-all as the default, explicit restricted allowlists and auditable, owned, approved and time-bounded exceptions. A lifecycle transition refuses READY/RUNNING when the observed network posture is broader than the declared contract.
 
-A separate read-only orphan assessor can classify normalized network/resource residue against lifecycle ownership. It never applies firewall, Docker network or cleanup changes.
+A separate read-only orphan assessor can classify normalized network/resource residue against lifecycle ownership as `CLEAR`, `TRACKED_RESIDUE`, `ORPHANS_DETECTED` or `INCONCLUSIVE`. It never applies firewall, Docker network or cleanup changes, and retained quarantine residue is never represented as `CLEAR`.
 
 ## 5. Scope and non-goals
 
@@ -84,7 +84,7 @@ flowchart LR
   SNAP[Normalized resource snapshot]
   RECORDS[Lifecycle ownership records]
   ASSESS[Read-only orphan assessor]
-  RESULT[Clear / orphan / inconclusive]
+  RESULT[Clear / tracked residue / orphan / inconclusive]
   RUNTIME[Future remediation]
 
   SNAP --> ASSESS
@@ -126,6 +126,7 @@ Repository contract validation can proceed independently of real network enforce
 - Partial scanner coverage being mistaken for proof that no orphan network exists
 - Automatic cleanup triggered directly from an untrusted observation
 - Raw network/path data leaking through assessment logs
+- Retained quarantine network residue being mistaken for a clean network state
 
 Current repository invariants:
 
@@ -139,6 +140,7 @@ Current repository invariants:
 - partial/unavailable orphan observations cannot produce `CLEAR`;
 - resources associated with unknown labs, mismatched campaigns, `VERIFIED` labs or expired active contracts are orphan candidates;
 - cleanup-in-progress states are not prematurely classified as orphaned;
+- live quarantine-retention residue produces `TRACKED_RESIDUE`, not `CLEAR`;
 - orphan assessment performs no network or cleanup mutation;
 - real enforcement/scanning remains `NOT_RUN` and therefore is not inferred from contract validation.
 
@@ -174,6 +176,7 @@ Repository-level criteria implemented by #139 and the current assessor block:
 - READY/RUNNING is refused without the required effective network observation;
 - observed destinations wider than declared exceptions are refused;
 - incomplete orphan scans cannot falsely attest absence of network residue;
+- retained quarantine residue is represented explicitly as `TRACKED_RESIDUE`, not `CLEAR`;
 - orphan-network findings do not trigger automatic remediation.
 
 Umbrella completion still requires runtime evidence that:
@@ -193,7 +196,7 @@ Existing repository evidence:
 - post-merge `validate` run `31135492132`: success;
 - PR #166 reconciled EPIC-04/08 lifecycle/source-of-truth with post-merge `security #1092` and `validate #1094` success.
 
-Current block adds strict orphan observation/assessment schemas and adversarial classification tests, including network-kind resources. Real network-policy enforcement and runtime scanning remain `NOT_RUN`.
+Current block adds strict orphan observation/assessment schemas and adversarial classification tests, including network-kind resources and explicit tracked-residue semantics. Real network-policy enforcement and runtime scanning remain `NOT_RUN`.
 
 ## 13. Decisions and open questions
 
@@ -205,6 +208,7 @@ Current block adds strict orphan observation/assessment schemas and adversarial 
 - No shared lab network is permitted by the contract candidate.
 - Orphan observation is read-only and separated from remediation.
 - A partial/unavailable scan cannot prove the absence of orphan networks.
+- Retained quarantine residue is `TRACKED_RESIDUE`, never `CLEAR`.
 
 ### Open questions
 
@@ -249,4 +253,4 @@ Current factual boundary:
 | --- | --- | --- |
 | 2026-08-06 | 1.0.0 | Initial intent document created from the concept epic catalogue. |
 | 2026-08-07 | 1.1.0 | Reconciled lifecycle to `IMPLEMENTING` using PR #139 and post-merge evidence; preserved all runtime limitations. |
-| 2026-08-07 | 1.2.0 | Added read-only orphan observation/assessment contract candidate while preserving runtime scanning, enforcement and remediation as unimplemented. |
+| 2026-08-07 | 1.2.0 | Added read-only orphan observation/assessment contract candidate with explicit `TRACKED_RESIDUE` semantics while preserving runtime scanning, enforcement and remediation as unimplemented. |
