@@ -1,19 +1,25 @@
 """Canonical gateway -> Runner Protocol v2 handoff boundary.
 
 This module constructs a Runner Protocol v2 ``runner.step.request`` only after
-TWO independent authorization checks have succeeded:
+THREE contract gates have succeeded:
 
-1. a TB1 authorization receipt issued and signed by the Hermes control plane is
+1. the external admission request uses canonical schema ``2.0.0``, where
+   campaign/run/step/attempt correlation identifiers are UUIDs;
+2. a TB1 authorization receipt issued and signed by the Hermes control plane is
    verified against the dedicated, purpose-bound authorization trust store;
-2. ``authorize_admission()`` independently revalidates the signed Rules of
+3. ``authorize_admission()`` independently revalidates the signed Rules of
    Engagement contract, kill switch, typed operation and runtime bindings.
+
+Legacy admission schema ``1.0.0`` remains available to ``authorize_admission``
+for compatibility but is not accepted at this Runner boundary. A legacy caller
+must explicitly promote its request through
+``admission.promote_legacy_request_to_v2``; that helper succeeds only when the
+existing identifiers are already UUIDs and never generates or normalizes IDs.
 
 The execution plane never creates, expands or approves authorization. The
 ``authorization_ref`` placed in the Runner Protocol message is copied from the
-verified Hermes receipt. The gateway may recompute a receipt reference inside
-the verifier only to detect tampering; that integrity check does not create
-authority. A naked reference, caller-supplied ALLOW or embedded receipt is
-never accepted as proof of authorization.
+verified Hermes receipt. A naked reference, caller-supplied ALLOW or embedded
+receipt is never accepted as proof of authorization.
 
 Boundary: message construction only. Nothing here dispatches, connects,
 executes, schedules, spawns a process, touches a runner, a laboratory, a
@@ -247,6 +253,11 @@ def build_step_request(
             return RunnerHandoffResult.refuse(
                 ("HANDOFF_CALLER_SUPPLIED_AUTHORIZATION",), request
             )
+
+    if request.get("schema_version") != admission.CANONICAL_ADMISSION_SCHEMA_VERSION:
+        return RunnerHandoffResult.refuse(
+            ("HANDOFF_CANONICAL_SCHEMA_REQUIRED",), request
+        )
 
     try:
         config.dispatch_policy.validate()
@@ -489,6 +500,8 @@ def _idempotency_key(
 
 
 def _correlation_codes(request: Mapping[str, Any]) -> list[str]:
+    """Defense-in-depth: Runner correlation remains UUID even after v2 validation."""
+
     codes: list[str] = []
     for name in CORRELATION_FIELDS:
         value = request.get(name)
