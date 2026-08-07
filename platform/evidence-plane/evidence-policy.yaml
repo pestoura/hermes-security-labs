@@ -1,0 +1,58 @@
+schema_version: "2.0"
+policy_id: evidence-plane-default
+sharing_default: deny
+classifications:
+  raw:
+    shareable: false
+    derived_only: false
+  restricted:
+    shareable: false
+    derived_only: false
+  sanitized:
+    shareable: true
+    derived_only: true
+  summary:
+    shareable: true
+    derived_only: true
+required_correlation_ids:
+  - campaign_id
+  - run_id
+  - step_id
+  - attempt_id
+required_integrity:
+  digest: sha256
+  immutable_raw: true
+  parent_link_for_derived: true
+redaction:
+  required_for:
+    - sanitized
+    - summary
+  forbidden_classes:
+    - secret
+    - credential
+    - token
+    - cookie
+    - personal_data
+    - customer_data
+    - raw_command
+    - raw_output
+retention:
+  legal_hold_overrides_expiry: true
+  delete_requires_policy_decision: true
+replay:
+  raw_payload_export: false
+  descriptor_fields:
+    - evidence_id
+    - correlation
+    - producer
+    - operation
+    - protocol_version
+    - knowledge_snapshot
+    - payload_sha256
+runtime_status:
+  storage_backend: NOT_IMPLEMENTED
+  encryption_at_rest: NOT_RUN
+  immutable_store: NOT_RUN
+  retention_enforcement: NOT_RUN
+  production_replay: NOT_RUN
+  production_redaction: NOT_RUN

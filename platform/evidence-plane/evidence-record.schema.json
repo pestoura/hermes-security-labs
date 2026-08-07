@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hex0r.local/schemas/evidence-record-v2.json",
+  "title": "Evidence Plane v2 Record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "evidence_id",
+    "classification",
+    "correlation",
+    "origin",
+    "content",
+    "retention",
+    "created_at"
+  ],
+  "properties": {
+    "schema_version": {"const": "2.0"},
+    "evidence_id": {"type": "string", "pattern": "^ev_[a-f0-9]{32}$"},
+    "classification": {"enum": ["raw", "restricted", "sanitized", "summary"]},
+    "correlation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["campaign_id", "run_id", "step_id", "attempt_id"],
+      "properties": {
+        "campaign_id": {"type": "string", "minLength": 1, "maxLength": 128},
+        "run_id": {"type": "string", "minLength": 1, "maxLength": 128},
+        "step_id": {"type": "string", "minLength": 1, "maxLength": 128},
+        "attempt_id": {"type": "string", "minLength": 1, "maxLength": 128}
+      }
+    },
+    "origin": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["producer", "operation", "protocol_version"],
+      "properties": {
+        "producer": {"type": "string", "minLength": 1, "maxLength": 128},
+        "operation": {"type": "string", "minLength": 1, "maxLength": 256},
+        "protocol_version": {"type": "string", "minLength": 1, "maxLength": 32},
+        "knowledge_snapshot": {"type": ["string", "null"], "maxLength": 128}
+      }
+    },
+    "content": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sha256", "size_bytes", "media_type", "storage_ref"],
+      "properties": {
+        "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "size_bytes": {"type": "integer", "minimum": 0},
+        "media_type": {"type": "string", "minLength": 1, "maxLength": 128},
+        "storage_ref": {"type": "string", "pattern": "^evidence://[A-Za-z0-9._/-]+$"}
+      }
+    },
+    "retention": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["policy_id", "retain_until", "legal_hold"],
+      "properties": {
+        "policy_id": {"type": "string", "minLength": 1, "maxLength": 64},
+        "retain_until": {"type": "string", "format": "date-time"},
+        "legal_hold": {"type": "boolean"}
+      }
+    },
+    "parent_evidence_id": {
+      "type": ["string", "null"],
+      "pattern": "^ev_[a-f0-9]{32}$"
+    },
+    "redaction": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["policy_id", "source_sha256"],
+      "properties": {
+        "policy_id": {"type": "string", "minLength": 1, "maxLength": 64},
+        "source_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "removed_classes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"enum": ["secret", "credential", "token", "cookie", "personal_data", "customer_data", "raw_command", "raw_output"]}
+        }
+      }
+    },
+    "created_at": {"type": "string", "format": "date-time"}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"classification": {"enum": ["sanitized", "summary"]}}},
+      "then": {"required": ["parent_evidence_id", "redaction"]}
+    }
+  ]
+}
