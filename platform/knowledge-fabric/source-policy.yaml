@@ -1,0 +1,43 @@
+schema_version: "1.0"
+policy_id: security-knowledge-source-policy
+sources:
+  - CVE
+  - NVD
+  - CPE
+  - CWE
+  - CAPEC
+  - ATTACK
+  - ATLAS
+  - KEV
+  - EPSS
+  - CSAF
+  - VEX
+  - OSCAL
+  - OWASP
+raw_ingestion:
+  immutable: true
+  sha256_required: true
+  provenance_required: true
+conflicts:
+  persist_all: true
+  silent_resolution_allowed: false
+precedence:
+  mode: explicit_policy_only
+  default_winner: none
+derivations:
+  provenance_required: true
+  confidence_required: true
+  minimum_confidence: 0.0
+  maximum_confidence: 1.0
+applicability_keys:
+  - asset
+  - sbom
+  - cpe
+  - purl
+runtime_status:
+  external_sync: NOT_RUN
+  taxii_sync: NOT_RUN
+  nvd_sync: NOT_RUN
+  kev_sync: NOT_RUN
+  epss_sync: NOT_RUN
+  graph_store: NOT_IMPLEMENTED
