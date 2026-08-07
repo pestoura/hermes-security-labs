@@ -4,7 +4,7 @@ This directory contains the contract-only first block for `SVP2-B-01` / issue #7
 
 ## Boundary
 
-The implementation validates a typed operation request and returns a deterministic allow/refuse decision. It does not dispatch, execute, schedule, cancel or connect to Kali MCP, Hermes, a runner, a laboratory, a network or a target.
+The implementation validates typed operation requests, constructs Runner Protocol requests after authorization, and derives sanitized terminal outcomes. It does not dispatch, execute, schedule, cancel or connect to Kali MCP, Hermes, a runner, a laboratory, a network or a target.
 
 ## Fail-closed checks
 
@@ -18,7 +18,8 @@ The implementation validates a typed operation request and returns a determinist
 - the operation intrusiveness level cannot exceed the RoE ceiling;
 - runtime state must be `IN_SYNC`;
 - observed and canonical digests must match the repository-owned `platform/registry.yaml`;
-- any unknown, missing, expired, revoked or mismatched authorization evidence refuses.
+- any unknown, missing, expired, revoked or mismatched authorization evidence refuses;
+- a terminal runner outcome must validate against Runner Protocol v2 and match the exact sealed request correlation before a control-plane derivative is built.
 
 ## Versioned correlation contract
 
@@ -52,7 +53,7 @@ This versioning is a repository contract change only. It does not create runtime
 
 `ADR-0001` is authoritative: **Hermes/control plane is the only execution authorization authority**. The execution gateway may validate, restrict or refuse authorization but may not create, expand or approve it.
 
-The canonical TB1 contract lives in [`../authorization-contract/`](../authorization-contract/README.md):
+The canonical TB1 authorization contract lives in [`../authorization-contract/`](../authorization-contract/README.md):
 
 - Hermes issues a short-lived signed authorization receipt containing identifiers and digests only;
 - the receipt binds the exact typed effect through operation ID/version, capability, target digest, intrusiveness and the canonical SHA-256 of validated operation parameters;
@@ -92,7 +93,40 @@ Any refusal returns `runner_request=None`.
 - timeout, retry, cancellation and progress behavior comes from typed service configuration, never request data;
 - `emitted_at` is produced internally in UTC with no caller-overridable clock.
 
-This block proves contract/message boundaries only. It is not connected to synthetic candidates, a supervisor or any runtime process: `execution_integration: NOT_RUN`, `NO_RUNTIME_CHANGE`.
+## Typed execution outcome
+
+`outcome.py` implements the repository-level `runner.outcome` → gateway → Hermes contract already declared at TB1. It is descriptive only and never creates, extends or validates execution authority.
+
+The boundary has two steps:
+
+1. `seal_handoff_result()` is called immediately after a valid `runner.step.request` is built. It validates the handoff metadata, creates an immutable canonical JSON snapshot of the **complete** Runner request and stores `request_envelope_sha256`. The normal Runner `request_fingerprint` is retained separately because it intentionally excludes retry-specific fields such as `attempt_id`;
+2. `build_execution_outcome()` validates a terminal Runner Protocol v2 outcome against that sealed snapshot, requires exact four-ID correlation and derives `gateway.execution.outcome` using `gateway-execution-outcome.schema.json`.
+
+The control-plane derivative carries only:
+
+- exact campaign/run/step/attempt correlation;
+- the non-bearer `authorization_ref` and idempotency key from the sealed request;
+- logical request fingerprint plus full sealed-request SHA-256;
+- operation/capability identity;
+- terminal status and timestamps;
+- evidence ID, kind, classification and SHA-256;
+- `output_present` as a boolean;
+- normalized error `code`, `category` and `retryable` when applicable.
+
+It deliberately excludes:
+
+- raw Runner `output`;
+- target and operation parameters;
+- evidence `uri`;
+- error `message` and `safe_context`;
+- credentials, secrets or authorization receipts;
+- any field that could turn the result into an authorization grant.
+
+A SHA-256 of the raw Runner outcome is also deliberately **not** forwarded because arbitrary raw output may contain sensitive low-entropy data. Integrity of retained raw artefacts belongs to `evidence_refs.sha256` and the future Evidence Plane.
+
+The boundary validates Runner Protocol semantics but does **not** prove the identity of a real runner or transport authenticity. Runner authentication, deployed gateway outcome reception, persistence and Evidence Plane integration remain `NOT_IMPLEMENTED` / `NOT_RUN`.
+
+This outcome block is contract transformation only. An `outcome_built=True` result means only that a sanitized derivative was constructed from a structurally valid, correlation-matched outcome; it does not prove that a real runner actually executed the operation.
 
 ## Status
 
@@ -103,6 +137,10 @@ This block proves contract/message boundaries only. It is not connected to synth
 - TB1 signed authorization receipt/verifier: `CANDIDATE`;
 - Hermes authorization receipt issuance: `NOT_IMPLEMENTED` and `NOT_RUN`;
 - canonical gateway -> Runner Protocol v2 handoff: `CANDIDATE`;
+- typed execution outcome schema/derivation: `CANDIDATE`;
+- real runner identity/transport authentication: `NOT_IMPLEMENTED` / `NOT_RUN`;
+- deployed gateway outcome reception: `NOT_RUN`;
+- Evidence Plane outcome persistence: `NOT_RUN`;
 - runtime authorization-ref resolution: `NOT_IMPLEMENTED` / `NOT_RUN`;
 - runner execution integration: `execution_integration: NOT_RUN`;
 - runtime gateway integration: `NOT_RUN`;
