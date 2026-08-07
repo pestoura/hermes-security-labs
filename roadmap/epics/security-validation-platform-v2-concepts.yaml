@@ -569,7 +569,7 @@ concept_epics:
     umbrella_issue: 87
     dependencies: [EPIC-36, EPIC-21]
     doc_path: docs/roadmap/epics/EPIC-40-nist-control-knowledge-layer.md
-    current_state: "Not implemented. Concept documented as intent only."
+    current_state: "PR #148 provides snapshot-scoped generic knowledge queries, but EPIC-40 remains INTENT: versioned control ingestion, control-specific mappings and control-oriented result projection remain NOT_IMPLEMENTED/NOT_RUN."
     target_state: "A control knowledge layer linking controls to techniques, runbooks and evidence, enabling control-oriented reporting without compliance claims."
   - concept_id: EPIC-41
     slug: vulnerability-specific-test-synthesis
@@ -603,12 +603,12 @@ concept_epics:
     pillar: E
     phase: 6
     priority: P1
-    status: intent
+    status: implementing
     umbrella_id: SVP2-E-02
     umbrella_issue: 87
     dependencies: [EPIC-36, EPIC-28, EPIC-07]
     doc_path: docs/roadmap/epics/EPIC-43-knowledge-driven-campaign-planner.md
-    current_state: "Not implemented. Concept documented as intent only."
+    current_state: "IMPLEMENTING. PR #148 integrated immutable knowledge-snapshot binding and a rationale-bearing campaign proposal contract that is PROPOSAL_ONLY, non-executable and CONTROL_PLANE_ONLY for authorization. Full asset/threat/RoE/capability-registry derivation, plan diffing and the production planner remain incomplete/NOT_RUN."
     target_state: "A planner that derives a campaign plan from asset context, threat profile, knowledge snapshot and the active authorization contract, with a recorded rationale."
   - concept_id: EPIC-44
     slug: knowledge-quality-and-conflict-resolution
@@ -616,12 +616,12 @@ concept_epics:
     pillar: E
     phase: 5
     priority: P1
-    status: intent
+    status: implementing
     umbrella_id: SVP2-E-02
     umbrella_issue: 87
     dependencies: [EPIC-36, EPIC-37, EPIC-39]
     doc_path: docs/roadmap/epics/EPIC-44-knowledge-quality-and-conflict-resolution.md
-    current_state: "Not implemented. Concept documented as intent only."
+    current_state: "IMPLEMENTING. PR #146 integrated conflict persistence and explicit precedence-policy resolution; PR #148 added immutable snapshots and explicit confidence-threshold filtering. Quality metrics, persistent conflict inventory, curator workflow and production persistence remain incomplete/NOT_IMPLEMENTED/NOT_RUN."
     target_state: "Explicit conflict detection, precedence rules, quality metrics and a curation process that keeps the graph trustworthy."
   - concept_id: EPIC-45
     slug: operational-query-and-discovery
@@ -629,10 +629,10 @@ concept_epics:
     pillar: E
     phase: 7
     priority: P1
-    status: intent
+    status: implementing
     umbrella_id: SVP2-E-02
     umbrella_issue: 87
     dependencies: [EPIC-36, EPIC-43, EPIC-33]
     doc_path: docs/roadmap/epics/EPIC-45-operational-query-and-discovery.md
-    current_state: "Not implemented. Concept documented as intent only."
+    current_state: "IMPLEMENTING. PR #148 integrated snapshot-scoped query validation for entity, relations, applicability and EPSS/KEV/VEX temporal series with explicit confidence thresholds and provenance. HTTP API, database/graph query engine, evidence/finding integration, access-control enforcement and production temporal ingestion remain NOT_IMPLEMENTED/NOT_RUN."
     target_state: "A defined query surface answering operational questions across knowledge, campaigns, evidence and findings, with reproducible results."
