@@ -216,7 +216,7 @@ epics:
     pillar: B
     priority: P0
     phase: 2
-    status: proposed
+    status: implementing
     rationale: >-
       Attach e cleanup baseados em suposicao produzem residuo, contaminacao entre
       execucoes e custo operacional nao controlado.
@@ -238,7 +238,7 @@ epics:
     risks:
       - Compensacao incompleta deixar recursos parcialmente removidos
       - Politicas de rede quebrarem laboratorios existentes
-    labels: [roadmap, architecture, "pillar:B", "priority:P0", "impact:L3", "runtime:docker", "status:proposed", "type:epic"]
+    labels: [roadmap, architecture, "pillar:B", "priority:P0", "impact:L3", "runtime:docker", "status:implementing", "type:epic"]
     references:
       - docs/architecture/security-validation-reference-architecture.md
 
@@ -247,7 +247,7 @@ epics:
     pillar: C
     priority: P1
     phase: 3
-    status: proposed
+    status: implementing
     rationale: >-
       Imagens monoliticas aumentam a superficie de ataque e tornam a proveniencia e a
       manutencao dificeis de garantir.
@@ -266,7 +266,7 @@ epics:
     effort: L
     risks:
       - Regressao funcional em ferramentas que assumem root
-    labels: [roadmap, architecture, "pillar:C", "priority:P1", "runtime:image", "status:proposed", "type:epic"]
+    labels: [roadmap, architecture, "pillar:C", "priority:P1", "runtime:image", "status:implementing", "type:epic"]
     references:
       - docs/architecture/security-validation-reference-architecture.md
 
@@ -275,7 +275,7 @@ epics:
     pillar: C
     priority: P0
     phase: 3
-    status: proposed
+    status: implementing
     rationale: >-
       Sem registo de capacidades nao e possivel saber se uma operacao tipada pode ser
       executada nem garantir proveniencia das imagens usadas.
@@ -297,7 +297,7 @@ epics:
     risks:
       - Registo desatualizado bloquear execucoes legitimas
       - Custo de assinatura e scanning atrasar entregas
-    labels: [roadmap, architecture, "pillar:C", "priority:P0", "runtime:image", "status:proposed", "type:epic"]
+    labels: [roadmap, architecture, "pillar:C", "priority:P0", "runtime:image", "status:implementing", "type:epic"]
     references:
       - docs/ghcr-container-registry.md
 
@@ -306,7 +306,7 @@ epics:
     pillar: D
     priority: P0
     phase: 2
-    status: proposed
+    status: implementing
     rationale: >-
       Sem um plano de evidencia unico e normalizado nao existe cadeia de custodia nem
       possibilidade de reproduzir ou auditar um resultado.
@@ -328,7 +328,7 @@ epics:
     risks:
       - Volume de evidencia exceder o orcamento de armazenamento
       - Redaction insuficiente expor dados sensiveis
-    labels: [roadmap, architecture, "pillar:D", "priority:P0", "status:proposed", "type:epic"]
+    labels: [roadmap, architecture, "pillar:D", "priority:P0", "status:implementing", "type:epic"]
     references:
       - docs/architecture/security-validation-reference-architecture.md
 
@@ -337,7 +337,7 @@ epics:
     pillar: D
     priority: P1
     phase: 4
-    status: proposed
+    status: implementing
     rationale: >-
       A confianca numa capacidade tem de ser medida com evidencia de comportamento em
       falha e nao assumida a partir de execucoes felizes.
@@ -358,7 +358,7 @@ epics:
     effort: L
     risks:
       - Testes de falha instaveis gerarem ruido
-    labels: [roadmap, architecture, "pillar:D", "priority:P1", "status:proposed", "type:epic"]
+    labels: [roadmap, architecture, "pillar:D", "priority:P1", "status:implementing", "type:epic"]
     references:
       - docs/architecture/security-validation-reference-architecture.md
 
@@ -367,7 +367,7 @@ epics:
     pillar: E
     priority: P0
     phase: 5
-    status: proposed
+    status: implementing
     rationale: >-
       O planeamento informado por ameaca exige conhecimento versionado com proveniencia
       e nao mapeamentos manuais dispersos pela documentacao.
@@ -389,7 +389,7 @@ epics:
     risks:
       - Volume e ritmo das fontes tornarem o sync fragil
       - Derivacoes heuristicas contaminarem decisoes de risco
-    labels: [roadmap, architecture, "pillar:E", "priority:P0", "status:proposed", "type:epic"]
+    labels: [roadmap, architecture, "pillar:E", "priority:P0", "status:implementing", "type:epic"]
     references:
       - docs/architecture/security-knowledge-fabric.md
       - docs/architecture/framework-crosswalk.md
@@ -399,7 +399,7 @@ epics:
     pillar: E
     priority: P1
     phase: 5
-    status: proposed
+    status: implementing
     rationale: >-
       Resultados so sao interpretaveis contra o estado de conhecimento em que foram
       produzidos, o que exige snapshots e consultas estaveis.
@@ -419,7 +419,7 @@ epics:
     effort: L
     risks:
       - Crescimento de snapshots sem politica de retencao
-    labels: [roadmap, architecture, "pillar:E", "priority:P1", "status:proposed", "type:epic"]
+    labels: [roadmap, architecture, "pillar:E", "priority:P1", "status:implementing", "type:epic"]
     references:
       - docs/architecture/security-knowledge-fabric.md
 
@@ -428,7 +428,7 @@ epics:
     pillar: F
     priority: P1
     phase: 7
-    status: proposed
+    status: implementing
     rationale: >-
       Validar controlos sem contexto de ameaca produz cobertura estatistica sem
       relevancia para as funcoes criticas do negocio.
@@ -448,7 +448,7 @@ epics:
     risks:
       - Complexidade do grafo dificultar interpretacao
       - Emulacao avancada exigir niveis de intrusividade elevados
-    labels: [roadmap, architecture, "pillar:F", "priority:P1", "impact:L3", "status:proposed", "type:epic"]
+    labels: [roadmap, architecture, "pillar:F", "priority:P1", "impact:L3", "status:implementing", "type:epic"]
     references:
       - docs/architecture/security-knowledge-fabric.md
 
@@ -457,7 +457,7 @@ epics:
     pillar: F
     priority: P1
     phase: 7
-    status: proposed
+    status: implementing
     rationale: >-
       O resultado util nao e apenas se um ataque funciona, mas se e prevenido detetado
       e contido em tempo aceitavel.
@@ -476,7 +476,7 @@ epics:
     effort: L
     risks:
       - Dependencia de telemetria defensiva fora do ambito da plataforma
-    labels: [roadmap, architecture, "pillar:F", "priority:P1", "status:proposed", "type:epic"]
+    labels: [roadmap, architecture, "pillar:F", "priority:P1", "status:implementing", "type:epic"]
     references:
       - docs/architecture/framework-crosswalk.md
 
@@ -485,7 +485,7 @@ epics:
     pillar: G
     priority: P1
     phase: 7
-    status: proposed
+    status: implementing
     rationale: >-
       Validar uma vulnerabilidade concreta exige resolver produto versao fraqueza e
       comportamento, e confiar apenas em fornecedores de validacao verificados.
@@ -508,7 +508,7 @@ epics:
     risks:
       - Conteudo externo introduzir codigo nao confiavel
       - Falta de reprodutor para vulnerabilidades relevantes
-    labels: [roadmap, architecture, "pillar:G", "priority:P1", "impact:L3", "status:proposed", "type:epic"]
+    labels: [roadmap, architecture, "pillar:G", "priority:P1", "impact:L3", "status:implementing", "type:epic"]
     references:
       - docs/architecture/security-knowledge-fabric.md
 
@@ -517,7 +517,7 @@ epics:
     pillar: H
     priority: P1
     phase: 6
-    status: proposed
+    status: implementing
     rationale: >-
       A cobertura tem de crescer de forma continua sem degradar qualidade, duplicar
       conteudo ou introduzir falsos positivos.
@@ -541,7 +541,7 @@ epics:
     risks:
       - Geracao automatica produzir volume ingerivel de propostas
       - Gates mal calibrados bloquearem conteudo util
-    labels: [roadmap, architecture, "pillar:H", "priority:P1", "status:proposed", "type:epic"]
+    labels: [roadmap, architecture, "pillar:H", "priority:P1", "status:implementing", "type:epic"]
     references:
       - docs/architecture/continuous-content-factories.md
 
@@ -550,7 +550,7 @@ epics:
     pillar: I
     priority: P0
     phase: 6
-    status: proposed
+    status: implementing
     rationale: >-
       Um laboratorio por CVE e insustentavel e o isolamento fraco cria risco real no
       host que suporta a plataforma.
@@ -574,7 +574,7 @@ epics:
     risks:
       - Migracao dos laboratorios existentes para o novo schema
       - Custo de manter variantes multiplas por familia
-    labels: [roadmap, architecture, "pillar:I", "priority:P0", "runtime:docker", "status:proposed", "type:epic"]
+    labels: [roadmap, architecture, "pillar:I", "priority:P0", "runtime:docker", "status:implementing", "type:epic"]
     references:
       - docs/architecture/continuous-content-factories.md
 
@@ -583,7 +583,7 @@ epics:
     pillar: J
     priority: P1
     phase: 7
-    status: proposed
+    status: completed
     rationale: >-
       Um numero unico de risco esconde os seus componentes e impede contestacao
       informada por parte de quem remedia.
@@ -601,7 +601,7 @@ epics:
     effort: L
     risks:
       - Complexidade do modelo dificultar adocao
-    labels: [roadmap, architecture, "pillar:J", "priority:P1", "status:proposed", "type:epic"]
+    labels: [roadmap, architecture, "pillar:J", "priority:P1", "status:completed", "type:epic"]
     references:
       - docs/architecture/framework-crosswalk.md
 
@@ -610,7 +610,7 @@ epics:
     pillar: J
     priority: P2
     phase: 7
-    status: proposed
+    status: implementing
     rationale: >-
       Os resultados devem ser consumiveis por processos de conformidade e resposta sem
       transformacao manual.
@@ -627,7 +627,7 @@ epics:
     effort: M
     risks:
       - Evolucao dos formatos exigir manutencao continua
-    labels: [roadmap, architecture, "pillar:J", "priority:P2", "status:proposed", "type:epic"]
+    labels: [roadmap, architecture, "pillar:J", "priority:P2", "status:implementing", "type:epic"]
     references:
       - docs/architecture/framework-crosswalk.md
 
@@ -636,7 +636,7 @@ epics:
     pillar: K
     priority: P2
     phase: 6
-    status: proposed
+    status: implementing
     rationale: >-
       Sem contratos de extensao estaveis qualquer nova capacidade exige alteracoes no
       nucleo e aumenta o risco de regressao.
@@ -653,7 +653,7 @@ epics:
     effort: L
     risks:
       - APIs de extensao estabilizarem demasiado cedo
-    labels: [roadmap, architecture, "pillar:K", "priority:P2", "status:proposed", "type:epic"]
+    labels: [roadmap, architecture, "pillar:K", "priority:P2", "status:implementing", "type:epic"]
     references:
       - docs/architecture/security-validation-reference-architecture.md
 
@@ -662,7 +662,7 @@ epics:
     pillar: L
     priority: P2
     phase: 8
-    status: proposed
+    status: implementing
     rationale: >-
       A expansao de dominio so e segura depois de existirem lifecycle isolamento
       evidencia e capacidades maduras nos dominios ja suportados.
@@ -684,6 +684,6 @@ epics:
     risks:
       - Custo e disponibilidade de recursos externos
       - Hardware externo introduzir risco fisico e de dados
-    labels: [roadmap, architecture, "pillar:L", "priority:P2", "impact:L4", "status:proposed", "type:epic"]
+    labels: [roadmap, architecture, "pillar:L", "priority:P2", "impact:L4", "status:implementing", "type:epic"]
     references:
       - docs/roadmap/security-validation-platform-v2.md
