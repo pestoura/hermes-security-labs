@@ -3,20 +3,37 @@ from pathlib import Path
 import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
-INTENT = ROOT / "docs/roadmap/epics/EPIC-03-typed-kali-mcp.md"
+EPIC = ROOT / "docs/roadmap/epics/EPIC-03-typed-kali-mcp.md"
 AS_BUILT = ROOT / "docs/roadmap/EPIC-03-typed-gateway-contract-candidate-as-built.md"
 README = ROOT / "platform/gateway-protocol/README.md"
 RUNNER_README = ROOT / "platform/runner-protocol/README.md"
 REGISTRY = ROOT / "platform/gateway-protocol/operation-registry.yaml"
 
 
-def test_concept_epic_remains_intent_with_reserved_lifecycle_sections() -> None:
-    text = INTENT.read_text(encoding="utf-8")
+def test_concept_epic_is_implementing_but_not_final() -> None:
+    text = EPIC.read_text(encoding="utf-8")
 
-    assert "**INTENT**" in text
+    assert "**IMPLEMENTING**" in text
+    assert "| IMPLEMENTING | yes |" in text
+    assert "| AS_BUILT | no |" in text
+    assert "| FINAL | no |" in text
     tail = text.split("## 14. Implementation notes", 1)[1]
     assert "Reserved" in tail
-    assert "| FINAL | no |" in text
+    assert "PR #160" in text
+    assert "PR #161" in text
+    assert "PR #162" in text
+    assert "NO_RUNTIME_CHANGE" in text
+
+
+def test_concept_epic_preserves_control_plane_authority_and_non_runtime_boundary() -> None:
+    text = EPIC.read_text(encoding="utf-8")
+
+    assert "Hermes/control plane is the only execution authorization authority" in text
+    assert "request_built` means construction only" in text
+    assert "Kali MCP handler integration: `NOT_RUN`" in text
+    assert "gateway deployment: `NOT_RUN`" in text
+    assert "real Runner Protocol dispatch/capability execution: `NOT_RUN`" in text
+    assert "Hermes operational receipt issuance: `NOT_IMPLEMENTED` / `NOT_RUN`" in text
 
 
 def test_supplementary_record_never_claims_deployment_or_final() -> None:
