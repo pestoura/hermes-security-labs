@@ -22,7 +22,9 @@
     "observation_id": {"$ref": "#/$defs/identifier"},
     "observed_at": {"type": "string", "format": "date-time"},
     "scanner_state": {"enum": ["COMPLETE", "PARTIAL", "UNAVAILABLE"]},
-    "result": {"enum": ["CLEAR", "ORPHANS_DETECTED", "INCONCLUSIVE"]},
+    "result": {
+      "enum": ["CLEAR", "TRACKED_RESIDUE", "ORPHANS_DETECTED", "INCONCLUSIVE"]
+    },
     "codes": {
       "type": "array",
       "minItems": 1,
@@ -85,12 +87,29 @@
       "then": {
         "properties": {
           "scanner_state": {"const": "COMPLETE"},
-          "orphan_count": {"const": 0}
+          "orphan_count": {"const": 0},
+          "tracked_quarantine_count": {"const": 0}
         }
       }
     },
     {
-      "if": {"properties": {"result": {"const": "ORPHANS_DETECTED"}}, "required": ["result"]},
+      "if": {
+        "properties": {"result": {"const": "TRACKED_RESIDUE"}},
+        "required": ["result"]
+      },
+      "then": {
+        "properties": {
+          "scanner_state": {"const": "COMPLETE"},
+          "orphan_count": {"const": 0},
+          "tracked_quarantine_count": {"minimum": 1}
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"result": {"const": "ORPHANS_DETECTED"}},
+        "required": ["result"]
+      },
       "then": {"properties": {"orphan_count": {"minimum": 1}}}
     }
   ]
