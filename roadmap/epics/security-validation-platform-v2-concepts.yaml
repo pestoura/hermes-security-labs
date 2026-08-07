@@ -317,12 +317,12 @@ concept_epics:
     pillar: E
     phase: 5
     priority: P0
-    status: intent
+    status: as_built
     umbrella_id: SVP2-E-01
     umbrella_issue: 86
     dependencies: [EPIC-01]
     doc_path: docs/roadmap/epics/EPIC-21-framework-crosswalk-and-canonical-methodology.md
-    current_state: "PR #146 provides generic provenance/relation/confidence substrate, but EPIC-21 remains INTENT: canonical framework crosswalk records, governed mapping semantics and the end-to-end validation methodology remain NOT_IMPLEMENTED/NOT_RUN."
+    current_state: "AS_BUILT. Repository-level dedicated framework-crosswalk/canonical-methodology contract (PR #182, integrated in main 8800338f6ae69f61cc4cef3a5baf2bf79c0b0b97): seven fixed phases, strict schemas, manually reviewed pinned NIST SP 800-115 and OWASP WSTG v4.2 baselines, every mapping carrying relation/confidence/rationale/applicability and advisory-only semantics, explicit gaps, deterministic coverage and a snapshot digest, plus semantic fail-closed guards that reject authority-bearing fields and certification/compliance claims. Authoritative external framework synchronization remains NOT_RUN; automatic framework updates/version adoption, planner consumer integration and reporting consumer integration remain NOT_IMPLEMENTED; graph/database production consumer integration remains NOT_IMPLEMENTED/NOT_RUN; external certification/compliance is not claimed. Execution effect is NONE: Hermes/Control Plane remains the sole execution-authorization authority, FINAL remains no at document level, NO_RUNTIME_CHANGE."
     target_state: "A canonical crosswalk with declared confidence levels, plus a canonical methodology describing how a validation activity is structured end to end."
   - concept_id: EPIC-22
     slug: threat-informed-security-validation
