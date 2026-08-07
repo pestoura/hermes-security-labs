@@ -47,7 +47,7 @@ flowchart LR
   ENGINE[Fail-closed transition engine]
   SNAP[Future normalized resource snapshot]
   ORPHAN[Read-only orphan assessor]
-  RESULT[Clear / orphan / inconclusive]
+  RESULT[Clear / tracked residue / orphan / inconclusive]
   DOCKER[Future Docker lifecycle and remediation]
 
   CONTRACT --> ENGINE
@@ -117,11 +117,12 @@ A transition from `VERIFYING_RESIDUE` to `VERIFIED` still requires a complete ze
 
 The orphan assessor is a separate read-only contract. A valid normalized snapshot can produce:
 
-- `CLEAR` only when scanner state is `COMPLETE` and no orphan is identified;
+- `CLEAR` only when scanner state is `COMPLETE`, no orphan is identified and no live quarantine residue is being tracked;
+- `TRACKED_RESIDUE` when a complete scan finds no orphan but does find quarantine residue that is still inside its explicit retention window;
 - `ORPHANS_DETECTED` when at least one definite orphan is found, including on a partial scan;
 - `INCONCLUSIVE` when a partial/unavailable scan has no definite orphan and therefore cannot prove absence.
 
-Orphan candidates include resources with unknown lab ownership, campaign mismatch, resources before provisioning, resources after `VERIFIED`, resources under expired active contracts, and quarantined residue whose retention is absent or expired. Cleanup-in-progress states are not prematurely classified as orphaned. Live quarantine retention produces `TRACKED_QUARANTINE_RESIDUE`, not reuse authorization.
+Orphan candidates include resources with unknown lab ownership, campaign mismatch, resources before provisioning, resources after `VERIFIED`, resources under expired active contracts, and quarantined residue whose retention is absent or expired. Cleanup-in-progress states are not prematurely classified as orphaned. Live quarantine retention produces `TRACKED_QUARANTINE_RESIDUE` and the aggregate result `TRACKED_RESIDUE`, not reuse authorization and not a zero-residue claim.
 
 `cleanup_performed` is fixed to `false`; no remediation side effect exists in the assessor.
 
@@ -134,6 +135,7 @@ Orphan candidates include resources with unknown lab ownership, campaign mismatc
 | Restricted egress requires explicit approval and window | met in decision layer | exception tests |
 | L3/L4 require snapshot and rollback references | met in contract layer | recovery tests |
 | Read-only orphan classification fails closed on incomplete evidence | candidate implemented | orphan assessor tests |
+| Live quarantine residue cannot be confused with `CLEAR` | candidate implemented | tracked-residue tests/schema |
 | Orphan assessment performs no cleanup | candidate implemented | schema/code/lifecycle tests |
 | Real Docker cleanup produces zero residue | `NOT_RUN` | Docker integration absent |
 | Actual network policy enforces deny-all | `NOT_RUN` | network enforcement absent |
