@@ -10,23 +10,32 @@
 | Phase | 4 |
 | Priority | P1 |
 | Delivery umbrella | `SVP2-D-02` (issue [#85](https://github.com/pestoura/hermes-security-labs/issues/85)) |
-| Document version | 1.0.0 |
-| Document date | 2026-08-06 |
+| Document version | 1.1.0 |
+| Document date | 2026-08-07 |
 | Catalogue | [Epic catalogue 45](../epic-catalogue-45.md) |
 | Lifecycle contract | [Architecture documentation lifecycle](../../architecture/architecture-documentation-lifecycle.md) |
 
 ## 2. Current status
 
-**INTENT** — nothing described in this document is implemented. Sections 14 and 15
-are reserved and must be filled during and after implementation, as required by the
-[documentation lifecycle contract](../../architecture/architecture-documentation-lifecycle.md).
+**IMPLEMENTING** — PR #144 integrated the vendor-neutral OpenTelemetry/W3C context contract and canonical correlation attributes. End-to-end export/propagation through deployed runtimes remains `NOT_RUN`.
 
 | Lifecycle state | Reached |
 | --- | --- |
 | INTENT | yes |
-| IMPLEMENTING | no |
+| IMPLEMENTING | yes |
 | AS_BUILT | no |
 | FINAL | no |
+
+Implemented contract state:
+
+- trace context standard is W3C;
+- `traceparent` is required;
+- campaign, run, step and attempt identifiers are canonical correlation attributes;
+- telemetry conventions are OpenTelemetry;
+- RED and USE metric semantics are declared;
+- policy remains backend/exporter agnostic.
+
+OpenTelemetry export, deployed cross-plane propagation, evidence-write trace linkage and production trace reconstruction remain `NOT_RUN`.
 
 ## 3. Problem and motivation
 
@@ -58,31 +67,26 @@ Trace context is created at campaign start and propagated through every typed re
 - Semantic attribute conventions
 - Context propagation requirements
 
-Contracts are canonical in Git. Where this epic reuses a platform-wide contract, the
-canonical definition lives in the
-[reference architecture](../../architecture/security-validation-reference-architecture.md)
-and in [EPIC-01](EPIC-01-architecture-and-canonical-contracts.md); this document
-references it instead of restating it.
+Contracts are canonical in Git. Where this epic reuses a platform-wide contract, the canonical definition lives in the [reference architecture](../../architecture/security-validation-reference-architecture.md) and in [EPIC-01](EPIC-01-architecture-and-canonical-contracts.md); this document references it instead of restating it.
 
 ## 8. Dependencies and sequencing
 
 - [EPIC-11 — Technical observability](EPIC-11-technical-observability.md)
 
-Sequencing follows the phase model in the
-[intent document](../../architecture/security-validation-platform-v2-intent.md).
-This epic is planned for phase 4.
+Sequencing follows the phase model in the [intent document](../../architecture/security-validation-platform-v2-intent.md). This epic is planned for phase 4.
 
 ## 9. Security, risks and failure modes
 
 - Context loss at process boundaries
 - Attribute cardinality growth
+- Sensitive target data leaking into trace attributes
+- Mistaking contract conformance for deployed propagation evidence
 
 Platform-wide invariants that this epic must not weaken:
 
 - absence of evidence never produces a `PASS` verdict;
 - no execution outside an active authorization contract;
-- no secrets, tokens, cookies or raw credential material in documentation, telemetry
-  or persisted evidence;
+- no secrets, tokens, cookies or raw credential material in documentation, telemetry or persisted evidence;
 - no target outside registered laboratories.
 
 ## 10. Deliverables
@@ -94,40 +98,45 @@ Platform-wide invariants that this epic must not weaken:
 - A campaign is reconstructable as a single trace
 - Attributes follow the declared conventions
 
+Attribute conventions are now represented at contract level. A real campaign trace remains required before `AS_BUILT` or `FINAL`.
+
 ## 12. Evidence and validation plan
 
-- Trace attribute conformance checklist
-
-Evidence must be referenced from the delivery umbrella issue before the umbrella can
-be closed, and this document must record the references in section 15.
+- Contract tests from PR #144
+- Future trace-context propagation tests across control plane, gateway and runners
+- Future evidence-write trace-link verification
+- Future exporter-independent end-to-end trace reconstruction
 
 ## 13. Decisions and open questions
 
-### Decisions taken at intent time
+### Decisions taken
 
-- Telemetry remains exporter-agnostic
+- W3C trace context is canonical.
+- OpenTelemetry remains exporter-agnostic.
+- Campaign/run/step/attempt identifiers are mandatory correlation attributes.
 
 ### Open questions
 
 - Whether lab-internal telemetry is in scope or out of boundary
+- Sampling and cardinality limits per runtime family
 
 ## 14. Implementation notes
 
-> Reserved. Populate during implementation with pull request references, deviations
-> from intent, and decisions taken while building. Do not delete this heading.
+> Reserved. Populate during implementation with pull request references, deviations from intent, and decisions taken while building. Do not delete this heading.
 
-_Not started._
+- PR #144 integrated the telemetry contract candidate.
+- No OpenTelemetry exporter or runtime propagation was activated.
+- `NO_RUNTIME_CHANGE`.
 
 ## 15. As-built / final architecture
 
-> Reserved. Populate when the delivery umbrella reaches completion. Must record what
-> was actually built, evidence links, and every divergence from sections 6 to 11.
-> No umbrella may be closed while this section is empty.
+> Reserved. Populate when the delivery umbrella reaches completion. Must record what was actually built, evidence links, and every divergence from sections 6 to 11. No umbrella may be closed while this section is empty.
 
-_Not started._
+_Not final. OpenTelemetry export and deployed end-to-end trace propagation remain NOT_RUN._
 
 ## 16. Document change log
 
 | Date | Version | Change |
 | --- | --- | --- |
 | 2026-08-06 | 1.0.0 | Initial intent document created from the concept epic catalogue. |
+| 2026-08-07 | 1.1.0 | Reconciled lifecycle to IMPLEMENTING against PR #144 while preserving OTel export/runtime propagation as NOT_RUN. |
