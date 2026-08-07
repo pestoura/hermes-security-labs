@@ -174,12 +174,12 @@ concept_epics:
     pillar: D
     phase: 2
     priority: P0
-    status: intent
+    status: implementing
     umbrella_id: SVP2-D-01
     umbrella_issue: 84
     dependencies: [EPIC-05]
     doc_path: docs/roadmap/epics/EPIC-10-evidence-plane.md
-    current_state: "Not implemented. Concept documented as intent only."
+    current_state: "IMPLEMENTING. PR #141 integrated the strict Evidence Plane v2 record schema, correlation identifiers, payload hashes/classification, derived-evidence lineage and fail-closed replay descriptors. Production evidence storage, encryption at rest, WORM/immutability, retention enforcement, production redaction/replay and customer export remain NOT_IMPLEMENTED/NOT_RUN."
     target_state: "An Evidence Plane v2 with normalized records, chain of custody, retention policy, separation of raw and sanitized artefacts and deterministic replay."
   - concept_id: EPIC-11
     slug: technical-observability
@@ -200,12 +200,12 @@ concept_epics:
     pillar: D
     phase: 2
     priority: P0
-    status: intent
+    status: implementing
     umbrella_id: SVP2-D-01
     umbrella_issue: 84
     dependencies: [EPIC-10]
     doc_path: docs/roadmap/epics/EPIC-12-redaction-and-data-classification.md
-    current_state: "Not implemented. Concept documented as intent only."
+    current_state: "IMPLEMENTING. PR #141 integrated mandatory evidence classification, derived-evidence redaction lineage, default non-exportability for raw/restricted records and refusal of secret-bearing/raw-command/stdout/stderr metadata. Production redaction, persistence/publication enforcement, telemetry/report coverage and publication review remain NOT_IMPLEMENTED/NOT_RUN."
     target_state: "A data classification scheme with enforced redaction at emission and clear rules on what may ever be persisted or published."
   - concept_id: EPIC-13
     slug: reliability-and-chaos-testing
