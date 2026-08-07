@@ -525,12 +525,12 @@ concept_epics:
     pillar: E
     phase: 5
     priority: P1
-    status: intent
+    status: implementing
     umbrella_id: SVP2-E-01
     umbrella_issue: 86
     dependencies: [EPIC-36]
     doc_path: docs/roadmap/epics/EPIC-37-vulnerability-intelligence-synchronization.md
-    current_state: "PR #146 provides immutable provenance/conflict substrate, but EPIC-37 remains INTENT: incremental vulnerability/exploitability source synchronization, manifests, freshness policy and reproducible dataset snapshots remain NOT_IMPLEMENTED/NOT_RUN."
+    current_state: "IMPLEMENTING. PR #184 integrated the repository-level vulnerability-intelligence synchronization contract in main 0219b98dd5572657c3cc93ea33d21e84a44f54b8: strict source/manifest schemas, disabled-by-default NVD/CISA/FIRST definitions, deterministic source precedence, checkpoint/freshness/schema-drift state evaluation, deterministic offline snapshots, candidate and unknown-source fail-closed behavior, and Knowledge Fabric-compatible record construction only from CURRENT supplied manifests. External NVD/CISA/FIRST fetch remains NOT_RUN; automatic source updates, source schema baseline auto-adoption, production ingestion and production Knowledge Fabric persistence remain NOT_IMPLEMENTED. No network client or runtime was introduced; Hermes/Control Plane remains the sole execution-authorization authority. AS_BUILT and FINAL are not claimed. NO_RUNTIME_CHANGE."
     target_state: "Versioned, incremental synchronization of vulnerability and exploitability intelligence with declared source precedence."
   - concept_id: EPIC-38
     slug: cwe-capec-attack-semantic-chain
