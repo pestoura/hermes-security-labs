@@ -1,0 +1,25 @@
+schema_version: "1.0"
+policy_id: continuous-content-promotion-policy
+reuse_preference:
+  - binding
+  - fixture
+  - variant
+  - new_content
+promotion:
+  human_review_required: true
+  duplicate_blocks_promotion: true
+  controls_required_above_lab_validated: true
+  minimum_reproducibility_for_stable: 0.95
+  maximum_false_positive_rate_for_stable: 0.05
+  maximum_false_negative_rate_for_stable: 0.05
+  maximum_staleness_days_for_stable: 30
+  coverage_regression_allowed: false
+learning_proposals:
+  auto_merge: false
+runtime_status:
+  source_sync: NOT_RUN
+  candidate_generation_model: NOT_RUN
+  lab_execution: NOT_RUN
+  runtime_image_build: NOT_RUN
+  detection_deployment: NOT_RUN
+  autonomous_merge: NOT_RUN
