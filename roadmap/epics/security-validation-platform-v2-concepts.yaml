@@ -330,12 +330,12 @@ concept_epics:
     pillar: F
     phase: 7
     priority: P1
-    status: intent
+    status: implementing
     umbrella_id: SVP2-F-01
     umbrella_issue: 88
     dependencies: [EPIC-21, EPIC-43]
     doc_path: docs/roadmap/epics/EPIC-22-threat-informed-security-validation.md
-    current_state: "Not implemented. Concept documented as intent only."
+    current_state: "IMPLEMENTING. PR #150 integrated critical-function and frozen-knowledge-snapshot threat profiles plus non-executable adversary-emulation planning with objective, technique and L0-L4 intrusiveness per step. Dedicated profile source/date provenance, full asset/threat planning integration and real adversary emulation remain incomplete/NOT_RUN."
     target_state: "Threat profiles drive campaign content: relevant techniques are selected from threat intelligence and asset context, not from tool catalogues."
   - concept_id: EPIC-23
     slug: attack-graph-and-attack-flow
@@ -343,12 +343,12 @@ concept_epics:
     pillar: F
     phase: 7
     priority: P1
-    status: intent
+    status: implementing
     umbrella_id: SVP2-F-01
     umbrella_issue: 88
     dependencies: [EPIC-22]
     doc_path: docs/roadmap/epics/EPIC-23-attack-graph-and-attack-flow.md
-    current_state: "Not implemented. Concept documented as intent only."
+    current_state: "IMPLEMENTING. PR #150 integrated typed attack-graph nodes, explicit hypothetical/evidenced edge semantics with evidence binding, and deterministic repository-only path/centrality analysis. Attack Flow transport and graph store remain NOT_IMPLEMENTED; production path finding, credential use and lateral movement remain NOT_RUN."
     target_state: "Campaigns produce attack graphs and exportable attack flows showing preconditions, techniques, outcomes and reachable impact."
   - concept_id: EPIC-24
     slug: purple-team-and-detection-validation

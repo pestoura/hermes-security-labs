@@ -10,23 +10,33 @@
 | Phase | 7 |
 | Priority | P1 |
 | Delivery umbrella | `SVP2-F-01` (issue [#88](https://github.com/pestoura/hermes-security-labs/issues/88)) |
-| Document version | 1.0.0 |
-| Document date | 2026-08-06 |
+| Document version | 1.1.0 |
+| Document date | 2026-08-07 |
 | Catalogue | [Epic catalogue 45](../epic-catalogue-45.md) |
 | Lifecycle contract | [Architecture documentation lifecycle](../../architecture/architecture-documentation-lifecycle.md) |
 
 ## 2. Current status
 
-**INTENT** — nothing described in this document is implemented. Sections 14 and 15
-are reserved and must be filled during and after implementation, as required by the
-[documentation lifecycle contract](../../architecture/architecture-documentation-lifecycle.md).
+**IMPLEMENTING** — PR #150 integrated a repository-level threat-profile and adversary-emulation planning contract. Real adversary emulation and campaign execution remain `NOT_RUN`.
 
 | Lifecycle state | Reached |
 | --- | --- |
 | INTENT | yes |
-| IMPLEMENTING | no |
+| IMPLEMENTING | yes |
 | AS_BUILT | no |
 | FINAL | no |
+
+Implemented contract state:
+
+- every threat profile is bound to a named critical business function;
+- every profile references a frozen knowledge snapshot;
+- profiles contain actor references and objectives and are explicitly non-executable;
+- adversary-emulation plans are proposal artefacts, never execution authorization;
+- every plan step declares objective, technique and intrusiveness level L0-L4;
+- execution-shaped and secret-bearing planning fields are refused;
+- execution authorization remains `CONTROL_PLANE_ONLY`.
+
+The profile does not yet carry a dedicated intelligence-source/date field; source/time provenance is currently inherited from the frozen knowledge snapshot. Full asset-context integration, threat-intelligence refresh workflow and real adversary emulation remain incomplete or `NOT_RUN`.
 
 ## 3. Problem and motivation
 
@@ -57,32 +67,27 @@ A threat profile references techniques from the knowledge fabric; the planner se
 - Threat profile record
 - Emulation plan record with technique justification
 
-Contracts are canonical in Git. Where this epic reuses a platform-wide contract, the
-canonical definition lives in the
-[reference architecture](../../architecture/security-validation-reference-architecture.md)
-and in [EPIC-01](EPIC-01-architecture-and-canonical-contracts.md); this document
-references it instead of restating it.
+Contracts are canonical in Git. Where this epic reuses a platform-wide contract, the canonical definition lives in the [reference architecture](../../architecture/security-validation-reference-architecture.md) and in [EPIC-01](EPIC-01-architecture-and-canonical-contracts.md); this document references it instead of restating it.
 
 ## 8. Dependencies and sequencing
 
 - [EPIC-21 — Framework Crosswalk and canonical methodology](EPIC-21-framework-crosswalk-and-canonical-methodology.md)
 - [EPIC-43 — Knowledge-Driven Campaign Planner](EPIC-43-knowledge-driven-campaign-planner.md)
 
-Sequencing follows the phase model in the
-[intent document](../../architecture/security-validation-platform-v2-intent.md).
-This epic is planned for phase 7.
+Sequencing follows the phase model in the [intent document](../../architecture/security-validation-platform-v2-intent.md). This epic is planned for phase 7.
 
 ## 9. Security, risks and failure modes
 
 - Profiles based on stale intelligence
 - Over-fitting campaigns to a single actor narrative
+- Proposal artefacts being mistaken for execution authorization
+- Snapshot provenance being mistaken for a complete threat-profile refresh process
 
 Platform-wide invariants that this epic must not weaken:
 
 - absence of evidence never produces a `PASS` verdict;
 - no execution outside an active authorization contract;
-- no secrets, tokens, cookies or raw credential material in documentation, telemetry
-  or persisted evidence;
+- no secrets, tokens, cookies or raw credential material in documentation, telemetry or persisted evidence;
 - no target outside registered laboratories.
 
 ## 10. Deliverables
@@ -94,40 +99,45 @@ Platform-wide invariants that this epic must not weaken:
 - Every planned step traces to a technique in the active profile
 - Profiles record intelligence source and date
 
+The first criterion is represented at contract level. Source/date provenance currently exists through the immutable knowledge snapshot rather than dedicated profile fields, so the epic remains `IMPLEMENTING` and not `AS_BUILT`.
+
 ## 12. Evidence and validation plan
 
-- Selection justification recorded per campaign
-
-Evidence must be referenced from the delivery umbrella issue before the umbrella can
-be closed, and this document must record the references in section 15.
+- Contract tests from PR #150
+- Future profile-level source/date provenance or explicit snapshot-provenance acceptance decision
+- Future selection justification per campaign
+- Future controlled adversary-emulation evidence in registered laboratories
 
 ## 13. Decisions and open questions
 
-### Decisions taken at intent time
+### Decisions taken
 
-- Technique relevance beats tool availability in planning
+- Technique relevance beats tool availability in planning.
+- Threat profiles and emulation plans are non-executable planning artefacts.
+- Authorization remains exclusively in the control plane.
 
 ### Open questions
 
 - Refresh cadence for threat profiles
+- Whether snapshot provenance is sufficient for the profile source/date acceptance criterion or dedicated fields are required
 
 ## 14. Implementation notes
 
-> Reserved. Populate during implementation with pull request references, deviations
-> from intent, and decisions taken while building. Do not delete this heading.
+> Reserved. Populate during implementation with pull request references, deviations from intent, and decisions taken while building. Do not delete this heading.
 
-_Not started._
+- PR #150 integrated threat-profile and non-executable adversary-emulation plan contracts.
+- Adversary emulation, credential use and lateral movement remain `NOT_RUN`.
+- `NO_RUNTIME_CHANGE`.
 
 ## 15. As-built / final architecture
 
-> Reserved. Populate when the delivery umbrella reaches completion. Must record what
-> was actually built, evidence links, and every divergence from sections 6 to 11.
-> No umbrella may be closed while this section is empty.
+> Reserved. Populate when the delivery umbrella reaches completion. Must record what was actually built, evidence links, and every divergence from sections 6 to 11. No umbrella may be closed while this section is empty.
 
-_Not started._
+_Not final. Profile provenance decision, full planning integration and real emulation evidence remain incomplete/NOT_RUN._
 
 ## 16. Document change log
 
 | Date | Version | Change |
 | --- | --- | --- |
 | 2026-08-06 | 1.0.0 | Initial intent document created from the concept epic catalogue. |
+| 2026-08-07 | 1.1.0 | Reconciled lifecycle to IMPLEMENTING against PR #150 while preserving adversary emulation and remaining provenance/planning gaps. |
