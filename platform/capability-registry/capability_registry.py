@@ -96,7 +96,6 @@ def quarantine(capability: Mapping[str, Any], *, reason: str) -> dict[str, Any]:
         raise CapabilityRegistryError("quarantine reason is required")
     value = deepcopy(dict(capability))
     value["promotion"] = "quarantined"
-    value["quarantine_reason"] = reason
     return value
 
 
@@ -107,5 +106,4 @@ def revoke(capability: Mapping[str, Any], *, reason: str) -> dict[str, Any]:
     value = deepcopy(dict(capability))
     value["revoked"] = True
     value["promotion"] = "revoked"
-    value["revocation_reason"] = reason
     return value
