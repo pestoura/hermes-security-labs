@@ -10,10 +10,11 @@
 | Technical PR | [#139](https://github.com/pestoura/hermes-security-labs/pull/139) |
 | Technical merge | `591552d652fbff82d81f750535799380e9c643a9` |
 | Record state | `AS_BUILT — contract candidate` |
+| Canonical epic lifecycle | `IMPLEMENTING` |
 | FINAL | no |
 | Runtime declaration | `NO_RUNTIME_CHANGE` |
 
-This supplementary record does not modify the canonical concept epics, which remain INTENT documents under the 45-epic lifecycle contract.
+This is a supplementary implementation record. The canonical EPIC-04 and EPIC-08 documents are `IMPLEMENTING`, not lifecycle `AS_BUILT` or `FINAL`. Those states still require deployed runtime evidence and umbrella acceptance.
 
 ## 2. Delivered boundary
 
@@ -64,7 +65,7 @@ flowchart LR
 | Zero-residue proof schema | [`zero-residue-proof.schema.json`](../../platform/lab-lifecycle/zero-residue-proof.schema.json) | candidate |
 | Lifecycle and egress policy | [`lifecycle-policy.yaml`](../../platform/lab-lifecycle/lifecycle-policy.yaml) | candidate |
 | Decision implementation | [`lifecycle_protocol.py`](../../platform/lab-lifecycle/lifecycle_protocol.py) | candidate |
-| Technical boundary | [`README.md`](../../platform/lab-lifecycle/README.md) | as built |
+| Technical boundary | [`README.md`](../../platform/lab-lifecycle/README.md) | candidate documentation |
 | Regression tests | [`test_lab_lifecycle_protocol.py`](../../platform/tests/test_lab_lifecycle_protocol.py) | validated |
 
 ## 5. State model
@@ -130,13 +131,15 @@ Missing, partial, unavailable, mismatched or non-zero evidence results in `QUARA
 
 | Evidence | Result |
 | --- | --- |
-| Local isolated lifecycle tests | 35 passed |
+| Local isolated lifecycle tests in #139 | `35 passed` |
 | PR #139 validate / repository | success |
 | PR #139 validate / security | success |
 | PR #139 security / gitleaks | success |
 | Technical merge | `591552d652fbff82d81f750535799380e9c643a9` |
 | Post-merge security/gitleaks `31135492162` | success |
-| Post-merge validate `31135492132` | pending at record creation; must pass before this PR merges |
+| Post-merge validate `31135492132` | **success** |
+
+The post-merge validate result is no longer pending: run `31135492132` completed successfully on the technical merge.
 
 ## 10. Preserved limitations
 
