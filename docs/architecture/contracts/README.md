@@ -15,10 +15,10 @@ This inventory identifies the contracts that cross Security Validation Platform 
 
 | Contract | Boundary | Authority / owner | Producer → consumer | Canonical implementation owner | Current state | Fail-safe rule |
 | --- | --- | --- | --- | --- | --- | --- |
-| Operator decision and authorization request | `TB0` | control plane / `SVP2-A-02` | authenticated operator → Hermes | Rules of Engagement as Code (`EPIC-28`) | `INTENT` | missing identity, approval or active authorization prevents planning and execution |
-| Active authorization reference | `TB1` | Hermes control plane | Hermes → execution gateway | Typed Kali MCP and RoE epics (`EPIC-03`, `EPIC-28`) | `INTENT` | invalid, expired or scope-mismatched reference is refused before dispatch |
-| Typed execution request | `TB1` | gateway protocol owner / `SVP2-B-01` | Hermes → gateway | Typed Kali MCP (`EPIC-03`) | `INTENT` | unknown operation, version or schema is refused without partial execution |
-| Typed execution outcome | `TB1` | gateway protocol owner / `SVP2-B-01` | gateway → Hermes | Typed Kali MCP (`EPIC-03`) | `INTENT` | malformed or unverifiable outcome is inconclusive and cannot yield `PASS` |
+| Operator decision and authorization request | `TB0` | control plane / `SVP2-A-02` | authenticated operator → Hermes | Rules of Engagement as Code (`EPIC-28`) | `IMPLEMENTING`; RoE contract/trust-store/kill-switch repository logic exists; deployed operator/control-plane integration `NOT_RUN` | missing identity, approval or active authorization prevents planning and execution |
+| Active authorization reference | `TB1` | **Hermes control plane** | **Hermes → execution gateway** | `platform/authorization-contract/` + RoE/typed-gateway owners (`EPIC-28`, `EPIC-03`) | `IMPLEMENTING`; signed receipt schema, purpose-bound trust contract and execution-plane verifier are repository candidates; Hermes operational issuance and deployed verification `NOT_IMPLEMENTED` / `NOT_RUN` | missing receipt, invalid signature, expired receipt, wrong key purpose/domain, reference mismatch or scope/binding mismatch is refused before runner-message construction |
+| Typed execution request | `TB1` | gateway protocol owner / `SVP2-B-01` | Hermes → gateway | Typed Kali MCP (`EPIC-03`) | repository contract/admission candidate; deployed Kali MCP handler and gateway runtime `NOT_RUN` | unknown operation, version or schema is refused without partial execution |
+| Typed execution outcome | `TB1` | gateway protocol owner / `SVP2-B-01` | gateway → Hermes | Typed Kali MCP (`EPIC-03`) | `INTENT` for deployed outcome path | malformed or unverifiable outcome is inconclusive and cannot yield `PASS` |
 | Runner dispatch and result | internal execution boundary | Runner Protocol owner / `SVP2-B-02` | gateway → runner → gateway | Runner Protocol v2 (`EPIC-05`) | contract, conformance-kit, SDK, durable ledger, POSIX process supervisor and fixed-worker API/DevSecOps/AI-MCP supervised candidates `AS_BUILT`; all three status `PASS_SYNTHETIC_PROCESS`; calibrated AI/MCP runtime remains disconnected; sandbox and all production execution `NOT_RUN`; [`platform/runner-protocol/`](../../../platform/runner-protocol/README.md) | missing correlation, incompatibility, timeout, cancellation or verified cleanup is a normalized non-success outcome |
 | Laboratory target and network attachment | `TB2` | lifecycle owner / `SVP2-B-03` | runner/runtime → registered laboratory | Transactional lifecycle (`EPIC-04`) | `INTENT`; current lifecycle remains separate | target or network outside the active laboratory contract is refused |
 | Evidence write envelope | `TB3` | Evidence Plane owner / `SVP2-D-01` | runner and laboratory observers → evidence plane | Evidence Plane (`EPIC-10`) | `INTENT` | missing identifiers, classification or integrity metadata rejects the record or marks execution inconclusive |
@@ -40,13 +40,15 @@ The exact schemas belong to their implementation epics. Cross-plane contracts mu
 - normalized outcome or refusal code;
 - provenance: repository commit, artefact digest or knowledge snapshot as applicable.
 
+For the TB1 active authorization contract specifically, `attempt_id` is not part of the authorization grant: retries of the same logical step may reuse a still-valid control-plane receipt. The Runner Protocol still carries `attempt_id` in correlation and idempotency/fingerprint logic remains attempt-safe.
+
 ## Contract authority and precedence
 
 ```mermaid
 flowchart LR
   OP[Operator decision] -->|TB0| CP[Hermes authorization]
   KN[Knowledge proposal] -. non-executable .-> CP
-  CP -->|TB1 typed authorized request| GW[Execution gateway]
+  CP -->|TB1 signed authorization receipt + typed request| GW[Execution gateway]
   GW --> RP[Runner Protocol]
   RP -->|TB2 bounded target access| LAB[Registered laboratory]
   RP -->|TB3 classified evidence write| EV[Evidence plane]
@@ -56,14 +58,20 @@ flowchart LR
 Precedence rules:
 
 1. the active authorization contract limits every downstream executable contract;
-2. a runtime profile or capability may restrict authorization further but may not expand it;
-3. evidence records describe what happened and do not retroactively authorize it;
-4. knowledge proposals influence planning but never execution authority;
-5. an issue, comment or runtime-local configuration cannot override the versioned canonical contract.
+2. **only Hermes/control plane may issue execution authorization**;
+3. the execution gateway may recompute a TB1 reference solely to validate receipt integrity, and may restrict or refuse, but may not create, expand or approve authorization;
+4. a runtime profile or capability may restrict authorization further but may not expand it;
+5. evidence records describe what happened and do not retroactively authorize it;
+6. knowledge proposals influence planning but never execution authority;
+7. an issue, comment or runtime-local configuration cannot override the versioned canonical contract.
+
+A naked `authorization_ref` is never a bearer grant. The execution plane accepts authority only through a valid signed control-plane receipt whose reference, signature, validity window, purpose/domain and admitted context all verify.
 
 ## Compatibility and change control
 
 A contract change requires an ADR when it changes authority, a boundary, a refusal rule, mandatory metadata or consumer-visible semantics. Compatible additions still require schema versioning and tests. Breaking changes require an explicit compatibility or migration plan and must not be inferred from implementation code alone.
+
+The corrective TB1 receipt contract converges implementation on existing ADR-0001; it does **not** modify ADR-0001 to legitimize execution-plane authorization issuance.
 
 ## Implementation status discipline
 
@@ -82,3 +90,4 @@ The machine-readable concept catalogue and each epic document remain the authori
 - [ADR-0003 — typed contracts](../adr/ADR-0003-typed-contracts-over-generic-execution.md)
 - [Reference architecture](../security-validation-reference-architecture.md)
 - [Architecture documentation lifecycle](../architecture-documentation-lifecycle.md)
+- [TB1 authorization contract](../../../platform/authorization-contract/README.md)
