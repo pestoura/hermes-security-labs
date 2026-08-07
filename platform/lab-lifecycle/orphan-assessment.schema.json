@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hexor.local/schemas/orphan-assessment-1.0.0.json",
+  "title": "Hexor Lab Orphan Resource Assessment",
+  "description": "Sanitized, non-executing assessment of a normalized orphan-resource observation. This document never performs cleanup or lifecycle mutation.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "observation_id",
+    "observed_at",
+    "scanner_state",
+    "result",
+    "orphan_count",
+    "tracked_quarantine_count",
+    "cleanup_performed",
+    "findings"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "observation_id": {"$ref": "#/$defs/identifier"},
+    "observed_at": {"type": "string", "format": "date-time"},
+    "scanner_state": {"enum": ["COMPLETE", "PARTIAL", "UNAVAILABLE"]},
+    "result": {"enum": ["CLEAR", "ORPHANS_DETECTED", "INCONCLUSIVE"]},
+    "orphan_count": {"type": "integer", "minimum": 0},
+    "tracked_quarantine_count": {"type": "integer", "minimum": 0},
+    "cleanup_performed": {"const": false},
+    "findings": {
+      "type": "array",
+      "maxItems": 10000,
+      "items": {"$ref": "#/$defs/finding"}
+    }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+    },
+    "finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["resource_ref", "kind", "lab_id", "code", "classification"],
+      "properties": {
+        "resource_ref": {"$ref": "#/$defs/identifier"},
+        "kind": {
+          "enum": ["container", "network", "volume", "process", "mount", "temporary_path"]
+        },
+        "lab_id": {"$ref": "#/$defs/identifier"},
+        "code": {
+          "enum": [
+            "ORPHAN_UNKNOWN_LAB",
+            "ORPHAN_CAMPAIGN_MISMATCH",
+            "ORPHAN_BEFORE_PROVISIONING",
+            "ORPHAN_AFTER_VERIFIED",
+            "ORPHAN_EXPIRED_CONTRACT",
+            "ORPHAN_QUARANTINE_RETENTION_UNDECLARED",
+            "ORPHAN_QUARANTINE_RETENTION_EXPIRED",
+            "TRACKED_QUARANTINE_RESIDUE"
+          ]
+        },
+        "classification": {"enum": ["ORPHAN", "TRACKED_QUARANTINE"]}
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"result": {"const": "CLEAR"}}, "required": ["result"]},
+      "then": {
+        "properties": {
+          "scanner_state": {"const": "COMPLETE"},
+          "orphan_count": {"const": 0}
+        }
+      }
+    },
+    {
+      "if": {"properties": {"result": {"const": "ORPHANS_DETECTED"}}, "required": ["result"]},
+      "then": {"properties": {"orphan_count": {"minimum": 1}}}
+    }
+  ]
+}
