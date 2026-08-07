@@ -5,7 +5,6 @@ No runner, process, network, laboratory, scanner or target is executed here.
 
 from __future__ import annotations
 
-import copy
 import importlib.util
 import json
 import sys
@@ -83,9 +82,14 @@ def _runner_request() -> dict[str, Any]:
     }
 
 
-def _handoff_result() -> Any:
-    request = _runner_request()
-    fingerprint = request_fingerprint(request)
+def _handoff_result(
+    *,
+    request: dict[str, Any] | None = None,
+    authorization_ref: str | None = None,
+    idempotency_key: str | None = None,
+    fingerprint: str | None = None,
+) -> Any:
+    runner_request = request or _runner_request()
     return handoff_module.RunnerHandoffResult(
         request_built=True,
         codes=("HANDOFF_STEP_REQUEST_BUILT",),
@@ -94,10 +98,10 @@ def _handoff_result() -> Any:
         campaign_id=CAMPAIGN,
         operation_id="web.discovery.headers",
         operation_version="1.0.0",
-        authorization_ref=AUTH_REF,
-        idempotency_key=IDEMPOTENCY,
-        request_fingerprint=fingerprint,
-        runner_request=request,
+        authorization_ref=authorization_ref or AUTH_REF,
+        idempotency_key=idempotency_key or IDEMPOTENCY,
+        request_fingerprint=fingerprint or request_fingerprint(runner_request),
+        runner_request=runner_request,
     )
 
 
@@ -231,27 +235,35 @@ def test_malformed_runner_outcome_is_refused() -> None:
     assert result.typed_outcome is None
 
 
-def test_non_outcome_runner_message_is_refused() -> None:
-    runner = _pass_outcome()
-    runner["message_type"] = "runner.progress"
+def test_valid_non_outcome_runner_message_is_refused_by_type() -> None:
+    progress = {
+        "message_type": "runner.progress",
+        "protocol_version": "2.0.0",
+        "correlation": _correlation(),
+        "emitted_at": "2026-08-07T17:00:02Z",
+        "sequence": 1,
+        "state": "running",
+        "percent": 50,
+    }
+    validate_semantics(progress)
 
-    result = outcome.build_execution_outcome(_handoff_result(), runner)
+    result = outcome.build_execution_outcome(_handoff_result(), progress)
 
     assert result.outcome_built is False
+    assert result.codes == ("RUNNER_OUTCOME_TYPE_INVALID",)
     assert result.typed_outcome is None
-    assert "RUNNER_OUTCOME" in result.codes[0]
 
 
 def test_unbuilt_handoff_is_refused_before_outcome_processing() -> None:
-    handoff = _handoff_result()
+    built = _handoff_result()
     handoff = handoff_module.RunnerHandoffResult(
         request_built=False,
         codes=("ADMISSION_REFUSED",),
         admission_codes=("ROE_REFUSED",),
-        request_id=handoff.request_id,
-        campaign_id=handoff.campaign_id,
-        operation_id=handoff.operation_id,
-        operation_version=handoff.operation_version,
+        request_id=built.request_id,
+        campaign_id=built.campaign_id,
+        operation_id=built.operation_id,
+        operation_version=built.operation_version,
         authorization_ref=None,
         idempotency_key=None,
         request_fingerprint=None,
@@ -278,25 +290,12 @@ def test_tampered_built_request_fingerprint_is_refused() -> None:
 
 
 def test_handoff_authorization_ref_mismatch_is_refused() -> None:
-    handoff = _handoff_result()
-    assert handoff.runner_request is not None
-    handoff.runner_request["authorization_ref"] = "tb1-authz:v1:" + "d" * 64
-    handoff.request_fingerprint = handoff.request_fingerprint  # type: ignore[misc]
-
-    # The request fingerprint also changes, so construct a consistent forged result
-    # to prove the separate authorization binding is checked.
-    forged = handoff_module.RunnerHandoffResult(
-        request_built=True,
-        codes=handoff.codes,
-        admission_codes=handoff.admission_codes,
-        request_id=handoff.request_id,
-        campaign_id=handoff.campaign_id,
-        operation_id=handoff.operation_id,
-        operation_version=handoff.operation_version,
+    request = _runner_request()
+    request["authorization_ref"] = "tb1-authz:v1:" + "d" * 64
+    forged = _handoff_result(
+        request=request,
         authorization_ref=AUTH_REF,
-        idempotency_key=handoff.idempotency_key,
-        request_fingerprint=request_fingerprint(handoff.runner_request),
-        runner_request=handoff.runner_request,
+        fingerprint=request_fingerprint(request),
     )
 
     result = outcome.build_execution_outcome(forged, _pass_outcome())
@@ -306,20 +305,7 @@ def test_handoff_authorization_ref_mismatch_is_refused() -> None:
 
 
 def test_handoff_idempotency_mismatch_is_refused() -> None:
-    handoff = _handoff_result()
-    forged = handoff_module.RunnerHandoffResult(
-        request_built=True,
-        codes=handoff.codes,
-        admission_codes=handoff.admission_codes,
-        request_id=handoff.request_id,
-        campaign_id=handoff.campaign_id,
-        operation_id=handoff.operation_id,
-        operation_version=handoff.operation_version,
-        authorization_ref=handoff.authorization_ref,
-        idempotency_key="rp2-step-" + "e" * 64,
-        request_fingerprint=handoff.request_fingerprint,
-        runner_request=handoff.runner_request,
-    )
+    forged = _handoff_result(idempotency_key="rp2-step-" + "e" * 64)
 
     result = outcome.build_execution_outcome(forged, _pass_outcome())
 
