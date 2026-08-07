@@ -17,7 +17,7 @@
 
 ## 2. Current status
 
-**AS_BUILT — repository contract** — PR #155 integrated the repository-owned risk
+**AS_BUILT** — repository contract. PR #155 integrated the repository-owned risk
 assessment contract and tests. The contract is deterministic and auditable at repository
 level, but production integrations and live scoring have not been executed.
 
@@ -113,6 +113,9 @@ be closed, and this document must record the references in section 15.
 - Whether asset criticality is owner-declared or derived
 
 ## 14. Implementation notes
+
+> Reserved lifecycle section. This section records the repository-contract implementation
+> integrated by PR #155 and preserves runtime non-claims.
 
 PR #155 (`feat(svp2-j-01): add auditable risk and finding lifecycle`) introduced the
 repository-owned risk and finding contract under `platform/risk-findings/`.
