@@ -1,0 +1,39 @@
+schema_version: "1.0"
+policy_id: auditable-risk-finding-policy
+risk:
+  canonical_components:
+    - cvss4
+    - epss
+    - kev
+    - asset_criticality
+    - reachability
+    - attack_path_importance
+    - threat_relevance
+    - compensating_controls
+    - detectability
+    - remediation_cost
+  source_required_per_component: true
+  caller_supplied_weights_required: true
+  weights_sum: 1.0
+findings:
+  states:
+    - OBSERVED
+    - VALIDATED
+    - TRIAGED
+    - ASSIGNED
+    - FIXED
+    - RETEST
+    - VERIFIED
+    - CLOSED
+    - ACCEPTED_RISK
+    - REGRESSED
+  before_evidence_required: true
+  regression_reopens: true
+  regression_requires_comparable_evidence: true
+runtime_status:
+  cvss_feed: NOT_IMPLEMENTED
+  epss_feed: NOT_IMPLEMENTED
+  kev_feed: NOT_IMPLEMENTED
+  ticketing_integration: NOT_IMPLEMENTED
+  automatic_risk_acceptance: NOT_RUN
+  remediation_execution: NOT_RUN
