@@ -382,12 +382,12 @@ concept_epics:
     pillar: J
     phase: 7
     priority: P2
-    status: intent
+    status: implementing
     umbrella_id: SVP2-J-02
     umbrella_issue: 94
     dependencies: [EPIC-10, EPIC-23]
     doc_path: docs/roadmap/epics/EPIC-26-interoperable-playbooks-and-results.md
-    current_state: "Not implemented. Concept documented as intent only."
+    current_state: "IMPLEMENTING. PR #157 integrated the repository-owned OSCAL Assessment Results, OSCAL POA&M, CACAO 2.0 and Attack Flow export-envelope contract with explicit target schema id/version, validation against an explicitly supplied JSON Schema, required data markings, externally supplied verified-signature evidence and deterministic payload SHA-256. Authoritative schema acquisition/lifecycle and cryptographic signing remain NOT_IMPLEMENTED/NOT_RUN as applicable; external transport, consumers/delivery and real round-trip interoperability remain NOT_RUN. Imported/interchanged content never grants execution authorization; Hermes/Control Plane remains the sole authority."
     target_state: "Import and export mappings for recognised interchange formats covering playbooks, results and control assessments."
   - concept_id: EPIC-27
     slug: risk-intelligence-and-contextual-prioritization
