@@ -1,13 +1,14 @@
 """Sanitized Runner Protocol v2 outcome -> Hermes gateway outcome boundary.
 
 This module never executes a runner and never treats an outcome as authorization.
-It validates a terminal ``runner.outcome`` against the exact Runner request that
-was previously built by the gateway, then emits only a sanitized derivative for
-the control plane.
+It seals the exact ``runner.step.request`` built by the gateway into an immutable
+canonical JSON snapshot before any future transport, then validates a terminal
+``runner.outcome`` against that sealed request and emits only a sanitized
+control-plane derivative.
 
 Raw runner ``output``, evidence ``uri``, error ``message`` and ``safe_context``
-are deliberately excluded from the derivative. Evidence references remain
-attestations of what happened; they do not create or expand execution authority.
+are deliberately excluded. Evidence references attest to what happened; they do
+not create or expand execution authority.
 
 Boundary: repository-level contract transformation only. Runner identity,
 transport authenticity, deployed gateway reception and Evidence Plane
@@ -16,6 +17,7 @@ persistence remain NOT_IMPLEMENTED / NOT_RUN.
 
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import json
 import sys
@@ -52,7 +54,9 @@ def _load_module(module_name: str, path: Path) -> Any:
     return module
 
 
-runner_handoff = _load_module("gateway_runner_handoff_outcome_core", ROOT / "runner_handoff.py")
+runner_handoff = _load_module(
+    "gateway_runner_handoff_outcome_core", ROOT / "runner_handoff.py"
+)
 
 OUTCOME_SCHEMA_VERSION = "1.0.0"
 OUTCOME_MESSAGE_TYPE = "gateway.execution.outcome"
@@ -60,16 +64,42 @@ RUNNER_PROTOCOL_VERSION = "2.0.0"
 
 
 class GatewayOutcomeError(ValueError):
-    """Stable contract error for a gateway outcome that cannot be trusted."""
+    """Stable contract error for an outcome boundary that cannot be trusted."""
+
+
+@dataclass(frozen=True)
+class GatewayOutcomeContext:
+    """Immutable integrity context sealed immediately after request construction.
+
+    ``sealed_request_json`` contains the RESTRICTED Runner Protocol request and
+    is deliberately excluded from repr. Its SHA-256 covers the complete message,
+    including ``attempt_id`` and ``emitted_at``. The ordinary Runner Protocol
+    request fingerprint remains separately available for logical-step replay
+    semantics and intentionally excludes retry-specific fields.
+    """
+
+    request_envelope_sha256: str
+    request_fingerprint: str
+    authorization_ref: str
+    idempotency_key: str
+    sealed_request_json: str = field(repr=False)
+
+    def sanitized_summary(self) -> dict[str, str]:
+        return {
+            "request_envelope_sha256": self.request_envelope_sha256,
+            "request_fingerprint": self.request_fingerprint,
+            "authorization_ref": self.authorization_ref,
+            "idempotency_key": self.idempotency_key,
+        }
 
 
 @dataclass(frozen=True)
 class GatewayOutcomeResult:
-    """Result of building a sanitized control-plane outcome derivative.
+    """Result of deriving a sanitized control-plane execution outcome.
 
-    ``typed_outcome`` is safe for the gateway/control-plane contract but is
-    still operational metadata. It is excluded from ``repr`` so callers do not
-    accidentally log the complete cross-plane record.
+    ``typed_outcome`` is excluded from repr so log-safe summaries do not
+    accidentally expand evidence references. It never contains raw target,
+    parameters, runner output, evidence URI, or free-form runner error text.
     """
 
     outcome_built: bool
@@ -81,6 +111,7 @@ class GatewayOutcomeResult:
     attempt_id: str | None
     authorization_ref: str | None
     request_fingerprint: str | None
+    request_envelope_sha256: str | None
     evidence_count: int
     output_present: bool
     error_code: str | None
@@ -91,7 +122,7 @@ class GatewayOutcomeResult:
         cls,
         codes: Iterable[str],
         *,
-        handoff_result: Any | None = None,
+        context: GatewayOutcomeContext | None = None,
         runner_outcome: Mapping[str, Any] | None = None,
     ) -> "GatewayOutcomeResult":
         unique = tuple(dict.fromkeys(codes)) or ("OUTCOME_REFUSED",)
@@ -104,8 +135,11 @@ class GatewayOutcomeResult:
             run_id=_string(correlation, "run_id"),
             step_id=_string(correlation, "step_id"),
             attempt_id=_string(correlation, "attempt_id"),
-            authorization_ref=_safe_attr(handoff_result, "authorization_ref"),
-            request_fingerprint=_safe_attr(handoff_result, "request_fingerprint"),
+            authorization_ref=context.authorization_ref if context else None,
+            request_fingerprint=context.request_fingerprint if context else None,
+            request_envelope_sha256=(
+                context.request_envelope_sha256 if context else None
+            ),
             evidence_count=0,
             output_present=False,
             error_code=None,
@@ -125,6 +159,7 @@ class GatewayOutcomeResult:
             "attempt_id": self.attempt_id,
             "authorization_ref": self.authorization_ref,
             "request_fingerprint": self.request_fingerprint,
+            "request_envelope_sha256": self.request_envelope_sha256,
             "evidence_count": int(self.evidence_count),
             "output_present": bool(self.output_present),
             "error_code": self.error_code,
@@ -132,144 +167,149 @@ class GatewayOutcomeResult:
         }
 
 
+def seal_handoff_result(handoff_result: Any) -> GatewayOutcomeContext:
+    """Seal one already-built Runner request for later outcome verification.
+
+    The complete canonical request is copied into an immutable string, so a
+    later mutation of the mutable ``runner_request`` object cannot change the
+    expected correlation or effect. Failure raises ``GatewayOutcomeError`` with
+    a stable code; callers must not dispatch when sealing fails.
+    """
+
+    if not bool(getattr(handoff_result, "request_built", False)):
+        raise GatewayOutcomeError("OUTCOME_HANDOFF_NOT_BUILT")
+
+    runner_request = getattr(handoff_result, "runner_request", None)
+    if not isinstance(runner_request, Mapping):
+        raise GatewayOutcomeError("OUTCOME_HANDOFF_REQUEST_MISSING")
+
+    try:
+        validate_semantics(runner_request)
+    except ProtocolValidationError as exc:
+        raise GatewayOutcomeError("OUTCOME_HANDOFF_REQUEST_INVALID") from exc
+    except Exception as exc:  # noqa: BLE001 - integration defect fails closed
+        raise GatewayOutcomeError("OUTCOME_HANDOFF_INTEGRATION_ERROR") from exc
+
+    if runner_request.get("message_type") != "runner.step.request":
+        raise GatewayOutcomeError("OUTCOME_HANDOFF_REQUEST_TYPE_INVALID")
+
+    try:
+        logical_fingerprint = request_fingerprint(runner_request)
+    except ProtocolValidationError as exc:
+        raise GatewayOutcomeError("OUTCOME_HANDOFF_REQUEST_INVALID") from exc
+
+    if getattr(handoff_result, "request_fingerprint", None) != logical_fingerprint:
+        raise GatewayOutcomeError("OUTCOME_HANDOFF_FINGERPRINT_MISMATCH")
+
+    authorization_ref = runner_request.get("authorization_ref")
+    if (
+        not isinstance(authorization_ref, str)
+        or getattr(handoff_result, "authorization_ref", None) != authorization_ref
+    ):
+        raise GatewayOutcomeError("OUTCOME_HANDOFF_AUTHORIZATION_MISMATCH")
+
+    idempotency_key = runner_request.get("idempotency_key")
+    if (
+        not isinstance(idempotency_key, str)
+        or getattr(handoff_result, "idempotency_key", None) != idempotency_key
+    ):
+        raise GatewayOutcomeError("OUTCOME_HANDOFF_IDEMPOTENCY_MISMATCH")
+
+    correlation = runner_request["correlation"]
+    if getattr(handoff_result, "campaign_id", None) != correlation["campaign_id"]:
+        raise GatewayOutcomeError("OUTCOME_HANDOFF_CAMPAIGN_MISMATCH")
+
+    operation_input = runner_request["operation"]["input"]
+    if getattr(handoff_result, "operation_id", None) != operation_input.get(
+        "operation_id"
+    ):
+        raise GatewayOutcomeError("OUTCOME_HANDOFF_OPERATION_MISMATCH")
+    if getattr(handoff_result, "operation_version", None) != operation_input.get(
+        "operation_version"
+    ):
+        raise GatewayOutcomeError("OUTCOME_HANDOFF_OPERATION_VERSION_MISMATCH")
+
+    sealed = _canonical_json(runner_request)
+    return GatewayOutcomeContext(
+        request_envelope_sha256=_sha256_text(sealed),
+        request_fingerprint=logical_fingerprint,
+        authorization_ref=authorization_ref,
+        idempotency_key=idempotency_key,
+        sealed_request_json=sealed,
+    )
+
+
 def build_execution_outcome(
-    handoff_result: Any,
+    context: GatewayOutcomeContext,
     runner_outcome: Mapping[str, Any],
 ) -> GatewayOutcomeResult:
     """Validate and sanitize a terminal Runner Protocol v2 outcome.
 
-    The previously built Runner request is the local binding context. This
-    function verifies that context has not changed, validates the runner
-    outcome, requires exact four-ID correlation, and only then derives the
-    control-plane outcome.
-
-    This does not prove runner identity or transport authenticity. Those are
-    deployment concerns and remain outside this repository-only boundary.
+    This function proves structural consistency with the request snapshot that
+    the gateway sealed before transport. It does **not** prove the identity of a
+    real runner or the authenticity of transport; deployed authentication is a
+    separate runtime concern and remains NOT_IMPLEMENTED / NOT_RUN.
     """
 
-    if not _handoff_built(handoff_result):
-        return GatewayOutcomeResult.refuse(
-            ("OUTCOME_HANDOFF_NOT_BUILT",),
-            handoff_result=handoff_result,
-            runner_outcome=runner_outcome,
-        )
-
-    runner_request = getattr(handoff_result, "runner_request", None)
-    if not isinstance(runner_request, Mapping):
-        return GatewayOutcomeResult.refuse(
-            ("OUTCOME_HANDOFF_REQUEST_MISSING",),
-            handoff_result=handoff_result,
-            runner_outcome=runner_outcome,
-        )
-
     try:
-        validate_semantics(runner_request)
-    except ProtocolValidationError:
+        runner_request = _load_sealed_request(context)
+    except GatewayOutcomeError as exc:
+        return GatewayOutcomeResult.refuse((str(exc),), context=_context_or_none(context))
+    except Exception:  # noqa: BLE001 - context integration defect fails closed
         return GatewayOutcomeResult.refuse(
-            ("OUTCOME_HANDOFF_REQUEST_INVALID",),
-            handoff_result=handoff_result,
-            runner_outcome=runner_outcome,
-        )
-    except Exception:  # noqa: BLE001 - any contract integration defect fails closed
-        return GatewayOutcomeResult.refuse(
-            ("OUTCOME_HANDOFF_INTEGRATION_ERROR",),
-            handoff_result=handoff_result,
-            runner_outcome=runner_outcome,
-        )
-
-    if runner_request.get("message_type") != "runner.step.request":
-        return GatewayOutcomeResult.refuse(
-            ("OUTCOME_HANDOFF_REQUEST_TYPE_INVALID",),
-            handoff_result=handoff_result,
-            runner_outcome=runner_outcome,
-        )
-
-    try:
-        computed_fingerprint = request_fingerprint(runner_request)
-    except ProtocolValidationError:
-        return GatewayOutcomeResult.refuse(
-            ("OUTCOME_HANDOFF_REQUEST_INVALID",),
-            handoff_result=handoff_result,
-            runner_outcome=runner_outcome,
-        )
-
-    if getattr(handoff_result, "request_fingerprint", None) != computed_fingerprint:
-        return GatewayOutcomeResult.refuse(
-            ("OUTCOME_HANDOFF_FINGERPRINT_MISMATCH",),
-            handoff_result=handoff_result,
-            runner_outcome=runner_outcome,
-        )
-    if getattr(handoff_result, "authorization_ref", None) != runner_request.get(
-        "authorization_ref"
-    ):
-        return GatewayOutcomeResult.refuse(
-            ("OUTCOME_HANDOFF_AUTHORIZATION_MISMATCH",),
-            handoff_result=handoff_result,
-            runner_outcome=runner_outcome,
-        )
-    if getattr(handoff_result, "idempotency_key", None) != runner_request.get(
-        "idempotency_key"
-    ):
-        return GatewayOutcomeResult.refuse(
-            ("OUTCOME_HANDOFF_IDEMPOTENCY_MISMATCH",),
-            handoff_result=handoff_result,
-            runner_outcome=runner_outcome,
+            ("OUTCOME_CONTEXT_INTEGRATION_ERROR",),
+            context=_context_or_none(context),
         )
 
     if not isinstance(runner_outcome, Mapping):
         return GatewayOutcomeResult.refuse(
-            ("RUNNER_OUTCOME_INVALID",),
-            handoff_result=handoff_result,
-            runner_outcome=None,
+            ("RUNNER_OUTCOME_INVALID",), context=context
         )
+
     try:
         validate_semantics(runner_outcome)
     except ProtocolValidationError:
         return GatewayOutcomeResult.refuse(
             ("RUNNER_OUTCOME_INVALID",),
-            handoff_result=handoff_result,
+            context=context,
             runner_outcome=runner_outcome,
         )
-    except Exception:  # noqa: BLE001 - any contract integration defect fails closed
+    except Exception:  # noqa: BLE001 - contract integration defect fails closed
         return GatewayOutcomeResult.refuse(
             ("RUNNER_OUTCOME_INTEGRATION_ERROR",),
-            handoff_result=handoff_result,
+            context=context,
             runner_outcome=runner_outcome,
         )
 
     if runner_outcome.get("message_type") != "runner.outcome":
         return GatewayOutcomeResult.refuse(
             ("RUNNER_OUTCOME_TYPE_INVALID",),
-            handoff_result=handoff_result,
+            context=context,
             runner_outcome=runner_outcome,
         )
 
-    request_correlation = runner_request.get("correlation")
-    outcome_correlation = runner_outcome.get("correlation")
-    if outcome_correlation != request_correlation:
+    if runner_outcome.get("correlation") != runner_request.get("correlation"):
         return GatewayOutcomeResult.refuse(
             ("RUNNER_OUTCOME_CORRELATION_MISMATCH",),
-            handoff_result=handoff_result,
+            context=context,
             runner_outcome=runner_outcome,
         )
 
     try:
         typed_outcome = _sanitize_outcome(
+            context=context,
             runner_request=runner_request,
-            request_fingerprint_value=computed_fingerprint,
             runner_outcome=runner_outcome,
         )
         _validate_gateway_outcome(typed_outcome)
     except GatewayOutcomeError as exc:
         return GatewayOutcomeResult.refuse(
-            (str(exc),),
-            handoff_result=handoff_result,
-            runner_outcome=runner_outcome,
+            (str(exc),), context=context, runner_outcome=runner_outcome
         )
     except Exception:  # noqa: BLE001 - never emit a partial derivative
         return GatewayOutcomeResult.refuse(
             ("GATEWAY_OUTCOME_INTEGRATION_ERROR",),
-            handoff_result=handoff_result,
+            context=context,
             runner_outcome=runner_outcome,
         )
 
@@ -283,8 +323,9 @@ def build_execution_outcome(
         run_id=str(correlation["run_id"]),
         step_id=str(correlation["step_id"]),
         attempt_id=str(correlation["attempt_id"]),
-        authorization_ref=str(typed_outcome["authorization_ref"]),
-        request_fingerprint=str(typed_outcome["request_fingerprint"]),
+        authorization_ref=context.authorization_ref,
+        request_fingerprint=context.request_fingerprint,
+        request_envelope_sha256=context.request_envelope_sha256,
         evidence_count=len(typed_outcome["evidence_refs"]),
         output_present=bool(typed_outcome["output_present"]),
         error_code=str(error["code"]) if isinstance(error, Mapping) else None,
@@ -292,10 +333,43 @@ def build_execution_outcome(
     )
 
 
+def _load_sealed_request(context: GatewayOutcomeContext) -> dict[str, Any]:
+    if not isinstance(context, GatewayOutcomeContext):
+        raise GatewayOutcomeError("OUTCOME_CONTEXT_INVALID")
+    if _sha256_text(context.sealed_request_json) != context.request_envelope_sha256:
+        raise GatewayOutcomeError("OUTCOME_CONTEXT_ENVELOPE_MISMATCH")
+
+    try:
+        request = json.loads(context.sealed_request_json)
+    except (TypeError, json.JSONDecodeError) as exc:
+        raise GatewayOutcomeError("OUTCOME_CONTEXT_INVALID") from exc
+    if not isinstance(request, dict):
+        raise GatewayOutcomeError("OUTCOME_CONTEXT_INVALID")
+
+    try:
+        validate_semantics(request)
+    except ProtocolValidationError as exc:
+        raise GatewayOutcomeError("OUTCOME_CONTEXT_REQUEST_INVALID") from exc
+    if request.get("message_type") != "runner.step.request":
+        raise GatewayOutcomeError("OUTCOME_CONTEXT_REQUEST_TYPE_INVALID")
+
+    try:
+        logical_fingerprint = request_fingerprint(request)
+    except ProtocolValidationError as exc:
+        raise GatewayOutcomeError("OUTCOME_CONTEXT_REQUEST_INVALID") from exc
+    if logical_fingerprint != context.request_fingerprint:
+        raise GatewayOutcomeError("OUTCOME_CONTEXT_FINGERPRINT_MISMATCH")
+    if request.get("authorization_ref") != context.authorization_ref:
+        raise GatewayOutcomeError("OUTCOME_CONTEXT_AUTHORIZATION_MISMATCH")
+    if request.get("idempotency_key") != context.idempotency_key:
+        raise GatewayOutcomeError("OUTCOME_CONTEXT_IDEMPOTENCY_MISMATCH")
+    return request
+
+
 def _sanitize_outcome(
     *,
+    context: GatewayOutcomeContext,
     runner_request: Mapping[str, Any],
-    request_fingerprint_value: str,
     runner_outcome: Mapping[str, Any],
 ) -> dict[str, Any]:
     operation = runner_request["operation"]
@@ -315,9 +389,10 @@ def _sanitize_outcome(
         "message_type": OUTCOME_MESSAGE_TYPE,
         "runner_protocol_version": RUNNER_PROTOCOL_VERSION,
         "correlation": json.loads(json.dumps(runner_outcome["correlation"])),
-        "authorization_ref": str(runner_request["authorization_ref"]),
-        "idempotency_key": str(runner_request["idempotency_key"]),
-        "request_fingerprint": request_fingerprint_value,
+        "authorization_ref": context.authorization_ref,
+        "idempotency_key": context.idempotency_key,
+        "request_fingerprint": context.request_fingerprint,
+        "request_envelope_sha256": context.request_envelope_sha256,
         "operation_id": str(operation_input["operation_id"]),
         "operation_version": str(operation_input["operation_version"]),
         "capability_id": str(operation["capability_id"]),
@@ -351,8 +426,12 @@ def _validate_gateway_outcome(outcome: Mapping[str, Any]) -> None:
         raise GatewayOutcomeError("GATEWAY_OUTCOME_SCHEMA_INVALID")
 
 
-def _handoff_built(value: Any) -> bool:
-    return bool(getattr(value, "request_built", False))
+def _canonical_json(value: Mapping[str, Any]) -> str:
+    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+
+
+def _sha256_text(value: str) -> str:
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()
 
 
 def _mapping(value: Any, key: str) -> Mapping[str, Any] | None:
@@ -369,6 +448,5 @@ def _string(value: Any, key: str) -> str | None:
     return candidate if isinstance(candidate, str) else None
 
 
-def _safe_attr(value: Any, key: str) -> str | None:
-    candidate = getattr(value, key, None)
-    return candidate if isinstance(candidate, str) else None
+def _context_or_none(value: Any) -> GatewayOutcomeContext | None:
+    return value if isinstance(value, GatewayOutcomeContext) else None
