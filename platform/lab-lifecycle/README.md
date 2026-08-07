@@ -4,7 +4,7 @@ This directory contains the repository-level contract candidates for `SVP2-B-03`
 
 ## Boundary
 
-The lifecycle candidate validates contracts and transition requests and returns deterministic allow/refuse decisions. The orphan assessor evaluates normalized read-only resource observations and returns `CLEAR`, `ORPHANS_DETECTED` or `INCONCLUSIVE`. Neither path creates, attaches, starts, stops, resets, quarantines, deletes or destroys Docker resources, networks, volumes, processes, mounts or files.
+The lifecycle candidate validates contracts and transition requests and returns deterministic allow/refuse decisions. The orphan assessor evaluates normalized read-only resource observations and returns `CLEAR`, `TRACKED_RESIDUE`, `ORPHANS_DETECTED` or `INCONCLUSIVE`. Neither path creates, attaches, starts, stops, resets, quarantines, deletes or destroys Docker resources, networks, volumes, processes, mounts or files.
 
 ## Fail-closed properties
 
@@ -31,7 +31,9 @@ The assessor is deliberately non-destructive:
 - duplicate lab records and duplicate resource references fail closed;
 - an `UNAVAILABLE` scan carrying observed resources is inconsistent and refused;
 - a `PARTIAL` or `UNAVAILABLE` scan with no definite orphan can never produce `CLEAR`;
-- definite orphan evidence remains `ORPHANS_DETECTED` even if the scanner reports `PARTIAL`.
+- definite orphan evidence remains `ORPHANS_DETECTED` even if the scanner reports `PARTIAL`;
+- a complete scan containing only live quarantine-retention residue returns `TRACKED_RESIDUE`, never `CLEAR`, so retained residue cannot be confused with a zero-residue proof;
+- `CLEAR` therefore means a complete scan with zero orphan findings and zero tracked quarantine residue.
 
 A resource is classified as an orphan candidate when, for example:
 
@@ -42,7 +44,7 @@ A resource is classified as an orphan candidate when, for example:
 - it belongs to an active-resource state whose contract has expired;
 - a quarantined residue has no declared retention window or that window has expired.
 
-Resources in `DESTROYING`, `ROLLING_BACK` or `VERIFYING_RESIDUE` are treated as cleanup-in-progress rather than immediately orphaned. Residue in `QUARANTINED` may be tracked until its explicit retention deadline; this tracking never authorizes reuse.
+Resources in `DESTROYING`, `ROLLING_BACK` or `VERIFYING_RESIDUE` are treated as cleanup-in-progress rather than immediately orphaned. Residue in `QUARANTINED` may be tracked until its explicit retention deadline as `TRACKED_RESIDUE`; this tracking never authorizes reuse and never counts as zero residue.
 
 The assessment output exposes stable classification codes and opaque references only. `sanitized_summary()` exposes counts/codes without resource references.
 
