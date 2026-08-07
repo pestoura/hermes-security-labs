@@ -304,6 +304,9 @@ def _receipt(
         "roe_step_request_id": step_request["request_id"],
         "operation_id": request["operation"]["id"],
         "operation_version": request["operation"]["version"],
+        "operation_parameters_sha256": auth.canonical_parameters_sha256(
+            request["operation"]["parameters"]
+        ),
         "capability_id": step_request["capability"],
         "target_sha256": gateway_protocol.canonical_target_digest(request["target"]),
         "intrusiveness_level": step_request["intrusiveness_level"],
@@ -375,12 +378,15 @@ def test_handoff_preserves_all_runner_correlation_ids(scenario) -> None:
     }
 
 
-def test_receipt_contains_digest_not_raw_target(scenario) -> None:
+def test_receipt_contains_digests_not_raw_target_or_parameters(scenario) -> None:
     serialized = json.dumps(scenario["receipt"], sort_keys=True)
     assert "juice-shop-demo" not in serialized
     assert "follow_redirects" not in serialized
     assert scenario["receipt"]["target_sha256"] == gateway_protocol.canonical_target_digest(
         scenario["request"]["target"]
+    )
+    assert scenario["receipt"]["operation_parameters_sha256"] == auth.canonical_parameters_sha256(
+        scenario["request"]["operation"]["parameters"]
     )
 
 
@@ -498,6 +504,7 @@ def test_non_active_tb1_authorization_key_refuses(
         ("roe_step_request_id", "other-step-request", "AUTH_ROE_STEP_REQUEST_MISMATCH"),
         ("operation_id", "web.discovery.tls", "AUTH_OPERATION_MISMATCH"),
         ("operation_version", "9.9.9", "AUTH_OPERATION_VERSION_MISMATCH"),
+        ("operation_parameters_sha256", "e" * 64, "AUTH_OPERATION_PARAMETERS_MISMATCH"),
         ("capability_id", "web.discovery.tls", "AUTH_CAPABILITY_MISMATCH"),
         ("target_sha256", "d" * 64, "AUTH_TARGET_MISMATCH"),
         ("intrusiveness_level", "L2", "AUTH_INTRUSIVENESS_MISMATCH"),
@@ -628,15 +635,27 @@ def test_different_run_requires_different_control_plane_receipt(scenario) -> Non
     assert allowed.authorization_ref != scenario["receipt"]["authorization_ref"]
 
 
-def test_changed_valid_parameters_change_idempotency_and_fingerprint(scenario) -> None:
+def test_changed_parameters_require_new_control_plane_receipt(scenario) -> None:
     first = _call(scenario)
     changed_request = copy.deepcopy(scenario["request"])
     changed_request["operation"]["parameters"]["follow_redirects"] = True
-    changed = _call(scenario, request=changed_request)
-    assert changed.request_built is True
-    assert changed.authorization_ref == first.authorization_ref
-    assert changed.idempotency_key != first.idempotency_key
-    assert changed.request_fingerprint != first.request_fingerprint
+
+    refused = _call(scenario, request=changed_request)
+    assert refused.request_built is False
+    assert refused.runner_request is None
+    assert refused.codes == ("AUTH_OPERATION_PARAMETERS_MISMATCH",)
+
+    changed_receipt = _receipt(
+        changed_request,
+        scenario["contract"],
+        scenario["step_request"],
+        scenario["auth_key"],
+    )
+    allowed = _call(scenario, request=changed_request, receipt=changed_receipt)
+    assert allowed.request_built is True
+    assert allowed.authorization_ref != first.authorization_ref
+    assert allowed.idempotency_key != first.idempotency_key
+    assert allowed.request_fingerprint != first.request_fingerprint
 
 
 def test_invalid_attempt_uuid_refuses_without_synthetic_mapping(scenario) -> None:
