@@ -26,7 +26,7 @@ def test_epic35_is_implementing_not_as_built_or_final() -> None:
 
 def test_extension_contract_preserves_authority_and_runtime_nonclaims() -> None:
     text = EPIC_35.read_text(encoding="utf-8")
-    normalized = text.lower()
+    normalized = text.lower().replace("**", "")
     assert "sole execution-authorization authority" in text
     assert "never creates, grants or expands an `authorization_ref`" in text
     assert "not a production cryptographic signature-verification implementation" in normalized
