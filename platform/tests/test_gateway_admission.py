@@ -10,6 +10,7 @@ from __future__ import annotations
 import base64
 import copy
 import importlib.util
+import inspect
 import json
 import sys
 from pathlib import Path
@@ -26,6 +27,11 @@ REGISTRY_PATH = GATEWAY_DIR / "operation-registry.yaml"
 RUNTIME_PATH = ROOT / "platform/registry.yaml"
 
 KEY_ID = "-".join(("roe", "signing", "admission", "ed25519"))
+# Deterministic, deliberately wide key-validity window: the boundary always
+# verifies with the verifier's real clock, so the window must contain wall
+# clock time on any machine running these tests.
+KEY_NOT_BEFORE = "2000-01-01T00:00:00Z"
+KEY_NOT_AFTER = "2100-01-01T00:00:00Z"
 CAMPAIGN_ID = "campaign-admission-001"
 STEP_REQUEST_ID = "roe-step-request-admission-001"
 OPERATION_ID = "web.discovery.headers"
@@ -49,13 +55,27 @@ roe_contract = _load("roe_contract_admission_test", CONTRACT_DIR / "roe_contract
 # --------------------------------------------------------------------------
 
 
-def _trust_store(tmp_path: Path) -> tuple[Path, Any]:
-    private_key = ed25519.Ed25519PrivateKey.generate()
+def _trust_store(
+    tmp_path: Path,
+    *,
+    name: str = "trust-store.json",
+    not_before: str = KEY_NOT_BEFORE,
+    not_after: str = KEY_NOT_AFTER,
+    private_key: Any | None = None,
+) -> tuple[Path, Any]:
+    """Write a real trust store holding public verification material only.
+
+    The validity window is deterministic and wide enough that the verifier's
+    real clock always falls inside it; the boundary never accepts an injected
+    clock, so fixtures must be valid against wall-clock time.
+    """
+
+    private_key = private_key or ed25519.Ed25519PrivateKey.generate()
     der = private_key.public_key().public_bytes(
         encoding=serialization.Encoding.DER,
         format=serialization.PublicFormat.SubjectPublicKeyInfo,
     )
-    path = tmp_path / "trust-store.json"
+    path = tmp_path / name
     path.write_text(
         json.dumps(
             {
@@ -66,6 +86,8 @@ def _trust_store(tmp_path: Path) -> tuple[Path, Any]:
                         "algorithm": "Ed25519",
                         "state": "active",
                         "public_key": base64.b64encode(der).decode("ascii"),
+                        "not_before": not_before,
+                        "not_after": not_after,
                     }
                 ],
             }
@@ -509,3 +531,90 @@ def test_admission_schema_forbids_a_roe_decision_property() -> None:
 
     assert schema["additionalProperties"] is False
     assert "roe_decision" not in schema["properties"]
+
+
+# --------------------------------------------------------------------------
+# the signature verifier is not caller-overridable
+# --------------------------------------------------------------------------
+
+
+def test_public_api_exposes_no_verifier_or_clock_injection_point() -> None:
+    """The canonical API must not expose any verifier/clock parameter."""
+
+    parameters = inspect.signature(admission.authorize_admission).parameters
+
+    assert "verifier" not in parameters
+    assert "verifier_now" not in parameters
+    assert not [
+        name
+        for name in parameters
+        if "verifier" in name or name in {"now", "clock", "time_source"}
+    ]
+    assert not [
+        parameter
+        for parameter in parameters.values()
+        if parameter.kind
+        in (inspect.Parameter.VAR_KEYWORD, inspect.Parameter.VAR_POSITIONAL)
+    ]
+
+
+def test_invalid_signature_is_refused_even_when_a_caller_forces_a_verifier(
+    scenario: dict[str, Any],
+) -> None:
+    """An always-true verifier cannot be smuggled in by any equivalent name."""
+
+    _sign(scenario["contract"], ed25519.Ed25519PrivateKey.generate())
+    scenario["request"]["contract_payload_sha256"] = roe_contract.payload_sha256(
+        scenario["contract"]
+    )
+
+    def _always_true(payload: bytes, signature: Any) -> bool:
+        return True
+
+    for name in ("verifier", "verifier_now", "now", "signature_verifier", "clock"):
+        with pytest.raises(TypeError):
+            _decide(scenario, **{name: _always_true})
+
+    # And with no override available at all, the real trust-store verifier runs.
+    assert _decide(scenario).codes == ("ROE_REFUSED:SIGNATURE_INVALID",)
+
+
+def test_verifier_is_always_built_from_the_trust_store_with_the_real_clock(
+    scenario: dict[str, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The boundary builds the verifier itself, from the path, with no clock."""
+
+    calls: list[tuple[Any, dict[str, Any]]] = []
+    original = admission.roe_contract.build_trust_store_verifier
+
+    def _spy(path: Any, **kwargs: Any) -> Any:
+        calls.append((path, kwargs))
+        return original(path, **kwargs)
+
+    monkeypatch.setattr(
+        admission.roe_contract, "build_trust_store_verifier", _spy
+    )
+
+    assert _decide(scenario).admitted is True
+    assert len(calls) == 1
+    path, kwargs = calls[0]
+    assert path == scenario["store"]
+    assert kwargs == {}
+
+
+def test_key_outside_its_validity_window_is_refused_against_the_real_clock(
+    scenario: dict[str, Any],
+) -> None:
+    """An expired key fails: the caller cannot move the clock back."""
+
+    expired, _ = _trust_store(
+        scenario["tmp_path"],
+        name="expired-trust-store.json",
+        not_before="2000-01-01T00:00:00Z",
+        not_after="2000-01-02T00:00:00Z",
+        private_key=scenario["private_key"],
+    )
+
+    assert _decide(scenario, trust_store_path=expired).codes == (
+        "ROE_REFUSED:SIGNATURE_KEY_EXPIRED",
+    )

@@ -37,6 +37,12 @@ the typed operation checks.
 - a missing kill-switch source (`KILL_SWITCH_SOURCE_REQUIRED`) or a missing
   trust store (`SIGNATURE_VERIFIER_UNAVAILABLE`) refuses fail-closed, as does
   any integration defect (`ROE_INTEGRATION_ERROR`, `TYPED_GATEWAY_ERROR`);
+- the signature verifier is **not caller-overridable**: `trust_store_path` is
+  required and the verifier is always built internally with
+  `roe_contract.build_trust_store_verifier(trust_store_path)` against the
+  verifier's real clock. The API exposes no verifier callable and no `now`
+  parameter, so neither the cryptographic check nor key validity windows can
+  be substituted or time-shifted by a caller;
 - decisions expose stable codes and identifiers only — never targets,
   operation parameters, signatures or key material.
 

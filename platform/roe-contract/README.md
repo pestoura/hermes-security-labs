@@ -138,8 +138,10 @@ boundary by itself. The canonical admission/enforcement API is
 [`platform/gateway-protocol/admission.py`](../gateway-protocol/admission.py)
 (`authorize_admission()`), which derives the RoE decision internally from the
 signed contract, this step request, the trust store and the external kill
-switch, and refuses any caller-supplied RoE decision. Runtime gateway
-integration: `NOT_RUN`.
+switch, and refuses any caller-supplied RoE decision. On that path the
+verifier is not injectable: `authorize_admission()` requires a trust-store
+path and always builds the trust-store verifier itself with the real clock.
+Runtime gateway integration: `NOT_RUN`.
 
 ## Current status
 

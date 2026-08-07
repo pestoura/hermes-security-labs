@@ -144,8 +144,6 @@ def authorize_admission(
     *,
     trust_store_path: Path | None = None,
     kill_switch_path: Path | None = None,
-    verifier: Any | None = None,
-    verifier_now: Any | None = None,
     policy_path: Path | None = None,
     registry_path: Path | None = None,
     runtime_registry_path: Path | None = None,
@@ -153,6 +151,10 @@ def authorize_admission(
     """Canonical admission entry point.
 
     The RoE decision is derived here; it is never accepted from the caller.
+    The signature verifier is always constructed internally from
+    ``trust_store_path`` using the verifier's real clock: neither an arbitrary
+    verifier callable nor an injected ``now`` is part of this API, so the
+    cryptographic check cannot be substituted or time-shifted by a caller.
     Any inconsistency, unavailable trust store or kill switch, negative RoE
     decision or integration defect refuses fail-closed.
     """
@@ -167,14 +169,15 @@ def authorize_admission(
     if kill_switch_path is None:
         return AdmissionDecision.refuse(("KILL_SWITCH_SOURCE_REQUIRED",), request)
 
+    if trust_store_path is None:
+        return AdmissionDecision.refuse(("SIGNATURE_VERIFIER_UNAVAILABLE",), request)
+
+    try:
+        verifier = roe_contract.build_trust_store_verifier(trust_store_path)
+    except Exception:  # noqa: BLE001 - verifier construction defects are fail-closed
+        return AdmissionDecision.refuse(("SIGNATURE_VERIFIER_UNAVAILABLE",), request)
     if verifier is None:
-        if trust_store_path is None:
-            return AdmissionDecision.refuse(
-                ("SIGNATURE_VERIFIER_UNAVAILABLE",), request
-            )
-        verifier = roe_contract.build_trust_store_verifier(
-            trust_store_path, now=verifier_now
-        )
+        return AdmissionDecision.refuse(("SIGNATURE_VERIFIER_UNAVAILABLE",), request)
 
     try:
         roe_decision = roe_contract.authorize_step(
