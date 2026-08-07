@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import hashlib
+import importlib.util
 import ipaddress
 import json
+import re
+import sys
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -14,6 +17,40 @@ import yaml
 
 ROOT = Path(__file__).resolve().parent
 LEVELS = ("L0", "L1", "L2", "L3", "L4")
+_STABLE_CODE = re.compile(r"[A-Z][A-Z0-9_]{2,63}(:[A-Za-z0-9._-]{1,64})?")
+
+
+def _load_sibling(module_name: str) -> Any:
+    """Load a sibling module by path.
+
+    This directory is not an importable package (it contains a hyphen), so
+    sibling modules are loaded explicitly instead of via ``import``.
+    """
+
+    existing = sys.modules.get(f"roe_contract_{module_name}")
+    if existing is not None:
+        return existing
+    spec = importlib.util.spec_from_file_location(
+        f"roe_contract_{module_name}", ROOT / f"{module_name}.py"
+    )
+    if spec is None or spec.loader is None:  # pragma: no cover - packaging defect
+        raise RuntimeError(f"cannot load {module_name}")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[f"roe_contract_{module_name}"] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+_kill_switch = _load_sibling("kill_switch")
+evaluate_kill_switch = _kill_switch.evaluate_kill_switch
+KillSwitchError = _kill_switch.KillSwitchError
+
+_trust_store = _load_sibling("trust_store")
+TrustStoreError = _trust_store.TrustStoreError
+TrustStoreVerifier = _trust_store.TrustStoreVerifier
+build_trust_store_verifier = _trust_store.build_verifier
+
+
 FORBIDDEN_FIELD_NAMES = {
     "api_key",
     "authorization_header",
@@ -135,10 +172,28 @@ def validate_contract_for_execution(
         raise RoEValidationError("SIGNATURE_VERIFIER_UNAVAILABLE")
     try:
         verified = verifier(canonical_payload(contract), signature)
+    except RoEValidationError:
+        raise
     except Exception as exc:  # noqa: BLE001
-        raise RoEValidationError("SIGNATURE_VERIFICATION_FAILED") from exc
+        raise RoEValidationError(_verifier_failure_code(exc)) from exc
     if verified is not True:
         raise RoEValidationError("SIGNATURE_INVALID")
+
+
+def _verifier_failure_code(exc: Exception) -> str:
+    """Map a verifier exception to a stable, deterministic refusal code.
+
+    Trust-store failures carry their own precise code (unknown key, revoked,
+    expired, algorithm mismatch, unavailable store, ...). Anything else is
+    collapsed into the generic failure code, and no exception text from an
+    arbitrary verifier is ever propagated into a decision.
+    """
+
+    code = getattr(exc, "decision_code", None)
+    if isinstance(code, str) and _STABLE_CODE.fullmatch(code):
+        return code
+    return "SIGNATURE_VERIFICATION_FAILED"
+
 
 
 def authorize_step(
@@ -147,15 +202,33 @@ def authorize_step(
     verifier: SignatureVerifier | None,
     *,
     policy_path: Path | None = None,
+    kill_switch_path: Path | None = None,
 ) -> AuthorizationDecision:
+    """Produce a deterministic allow/refuse decision for a proposed step.
+
+    ``kill_switch_path`` is optional. When omitted the historical behaviour is
+    preserved and only the in-request ``kill_switch`` flag applies. When
+    supplied, the external file-backed switch is consulted as well and any
+    defect in that source refuses the step (fail-closed).
+    """
+
+    external_kill_switch_codes: list[str] = []
+    if kill_switch_path is not None:
+        external_kill_switch_codes = evaluate_kill_switch(
+            kill_switch_path, _safe_identifier(request, "campaign_id")
+        )
+
     try:
         validate_contract_for_execution(contract, verifier)
         validate_request_structure(request)
         policy = load_policy(policy_path)
     except RoEValidationError as exc:
-        return AuthorizationDecision.refuse((str(exc),), contract, request)
+        return AuthorizationDecision.refuse(
+            (*external_kill_switch_codes, str(exc)), contract, request
+        )
 
-    codes: list[str] = []
+    codes: list[str] = list(external_kill_switch_codes)
+
     requested_at = _parse_datetime(str(request["requested_at"]))
     valid_from = _parse_datetime(str(contract["valid_from"]))
     valid_until = _parse_datetime(str(contract["valid_until"]))

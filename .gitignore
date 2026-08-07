@@ -49,3 +49,11 @@ deployment.local.json
 .runtime/
 security/**/dist/
 security/catalog/generated*.json
+
+# Rules of Engagement operational material (never committed)
+*.trust-store.json
+roe-trust-store*.json
+roe-kill-switch*.json
+*.pem
+*.key
+

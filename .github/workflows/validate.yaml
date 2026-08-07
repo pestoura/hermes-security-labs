@@ -17,7 +17,9 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install validation dependencies and Runner Protocol SDK
-        run: python -m pip install --disable-pip-version-check pytest -e platform/runner-protocol
+        run: |
+          python -m pip install --disable-pip-version-check \
+            pytest 'cryptography>=44,<49' -e platform/runner-protocol
       - name: Parse YAML files
         run: |
           python - <<'PY'
@@ -128,7 +130,9 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install security validation dependencies and Runner Protocol SDK
-        run: python -m pip install --disable-pip-version-check pytest ruff -e platform/runner-protocol
+        run: |
+          python -m pip install --disable-pip-version-check \
+            pytest ruff 'cryptography>=44,<49' -e platform/runner-protocol
       - name: Validate combined security catalog and platform bindings
         run: python security/tools/securityctl.py validate
       - name: Build disposable combined catalog
