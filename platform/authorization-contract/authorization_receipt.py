@@ -1,13 +1,13 @@
 """TB1 signed authorization receipt contract.
 
-Hermes is the only component allowed to issue execution authorization.  The
+Hermes is the only component allowed to issue execution authorization. The
 execution plane may validate a receipt and refuse it, but it may never create,
-expand or approve authorization.  This module therefore contains canonical
+expand or approve authorization. This module therefore contains canonical
 serialization/reference helpers and a verifier only; it deliberately contains
 no private-key loader and no operational issuer.
 
-The receipt carries identifiers and digests only.  It never carries a raw
-target, operation parameters, credentials or secret material.  The dedicated
+The receipt carries identifiers and digests only. It never carries a raw
+target, operation parameters, credentials or secret material. The dedicated
 trust store is purpose-bound to ``tb1-authorization`` so a Rules of Engagement
 signing key cannot be reused accidentally across trust domains.
 """
@@ -31,8 +31,6 @@ ISSUER = "hermes-control-plane"
 KEY_PURPOSE = "tb1-authorization"
 AUTHORIZATION_REF_PREFIX = "tb1-authz:v1:"
 MAX_RECEIPT_LIFETIME_SECONDS = 900
-SUPPORTED_ALGORITHMS = ("Ed25519", "ECDSA-P256-SHA256")
-KEY_STATES = ("active", "revoked", "retired")
 
 ROOT = Path(__file__).resolve().parent
 RECEIPT_SCHEMA = ROOT / "authorization-receipt.schema.json"
@@ -88,6 +86,7 @@ class VerifiedAuthorization:
     roe_step_request_id: str
     operation_id: str
     operation_version: str
+    operation_parameters_sha256: str
     capability_id: str
     target_sha256: str
     intrusiveness_level: str
@@ -144,6 +143,20 @@ def _reject_secret_material(value: Any, *, allow_public_key: bool = False) -> No
             _reject_secret_material(nested, allow_public_key=allow_public_key)
 
 
+def _canonical_json(document: Mapping[str, Any]) -> bytes:
+    return json.dumps(
+        dict(document), sort_keys=True, separators=(",", ":"), ensure_ascii=False
+    ).encode("utf-8")
+
+
+def canonical_parameters_sha256(parameters: Mapping[str, Any]) -> str:
+    """Digest the exact validated typed-operation parameters without exposing them."""
+
+    if not isinstance(parameters, Mapping):
+        raise AuthorizationReceiptError("AUTH_OPERATION_PARAMETERS_INVALID")
+    return hashlib.sha256(_canonical_json(parameters)).hexdigest()
+
+
 def authorization_body(receipt: Mapping[str, Any]) -> dict[str, Any]:
     """Return the body over which Hermes deterministically derives the ref.
 
@@ -157,12 +170,6 @@ def authorization_body(receipt: Mapping[str, Any]) -> dict[str, Any]:
         for key, value in receipt.items()
         if key not in {"authorization_ref", "signature"}
     }
-
-
-def _canonical_json(document: Mapping[str, Any]) -> bytes:
-    return json.dumps(
-        dict(document), sort_keys=True, separators=(",", ":"), ensure_ascii=False
-    ).encode("utf-8")
 
 
 def build_authorization_ref(receipt: Mapping[str, Any]) -> str:
@@ -187,6 +194,28 @@ def canonical_signed_payload(receipt: Mapping[str, Any]) -> bytes:
     )
 
 
+def _check_trust_store_identity(document: Mapping[str, Any]) -> None:
+    """Return specific identity/version errors before the strict schema gate."""
+
+    if "schema_version" in document and document.get("schema_version") != SCHEMA_VERSION:
+        raise AuthorizationReceiptError("AUTH_TRUST_STORE_SCHEMA_UNSUPPORTED")
+    if "domain" in document and document.get("domain") != DOMAIN:
+        raise AuthorizationReceiptError("AUTH_TRUST_STORE_DOMAIN_MISMATCH")
+    if "purpose" in document and document.get("purpose") != KEY_PURPOSE:
+        raise AuthorizationReceiptError("AUTH_TRUST_STORE_PURPOSE_MISMATCH")
+
+
+def _check_receipt_identity(receipt: Mapping[str, Any]) -> None:
+    """Return specific identity/version errors before the strict schema gate."""
+
+    if "schema_version" in receipt and receipt.get("schema_version") != SCHEMA_VERSION:
+        raise AuthorizationReceiptError("AUTH_RECEIPT_SCHEMA_UNSUPPORTED")
+    if "domain" in receipt and receipt.get("domain") != DOMAIN:
+        raise AuthorizationReceiptError("AUTH_RECEIPT_DOMAIN_MISMATCH")
+    if "issuer" in receipt and receipt.get("issuer") != ISSUER:
+        raise AuthorizationReceiptError("AUTH_RECEIPT_ISSUER_MISMATCH")
+
+
 def _load_trust_store(path: Path) -> dict[str, AuthorizationKey]:
     try:
         raw = Path(path).read_text(encoding="utf-8")
@@ -200,14 +229,8 @@ def _load_trust_store(path: Path) -> dict[str, AuthorizationKey]:
         raise AuthorizationReceiptError("AUTH_TRUST_STORE_INVALID")
 
     _reject_secret_material(document, allow_public_key=True)
+    _check_trust_store_identity(document)
     _validate_schema(document, TRUST_STORE_SCHEMA, "AUTH_TRUST_STORE_INVALID")
-
-    if document.get("schema_version") != SCHEMA_VERSION:
-        raise AuthorizationReceiptError("AUTH_TRUST_STORE_SCHEMA_UNSUPPORTED")
-    if document.get("domain") != DOMAIN:
-        raise AuthorizationReceiptError("AUTH_TRUST_STORE_DOMAIN_MISMATCH")
-    if document.get("purpose") != KEY_PURPOSE:
-        raise AuthorizationReceiptError("AUTH_TRUST_STORE_PURPOSE_MISMATCH")
 
     loaded: dict[str, AuthorizationKey] = {}
     for entry in document["keys"]:
@@ -292,7 +315,7 @@ def verify_authorization_receipt(
     """Verify one Hermes-issued TB1 authorization receipt using the real clock.
 
     There is intentionally no caller-supplied clock or signature verifier on
-    this API.  Missing configuration, malformed data, key-purpose confusion,
+    this API. Missing configuration, malformed data, key-purpose confusion,
     invalid signatures, expired receipts and reference mismatches all fail
     closed with stable codes.
     """
@@ -303,14 +326,8 @@ def verify_authorization_receipt(
         raise AuthorizationReceiptError("AUTH_TRUST_STORE_REQUIRED")
 
     _reject_secret_material(receipt)
+    _check_receipt_identity(receipt)
     _validate_schema(receipt, RECEIPT_SCHEMA, "AUTH_RECEIPT_SCHEMA_INVALID")
-
-    if receipt.get("schema_version") != SCHEMA_VERSION:
-        raise AuthorizationReceiptError("AUTH_RECEIPT_SCHEMA_UNSUPPORTED")
-    if receipt.get("domain") != DOMAIN:
-        raise AuthorizationReceiptError("AUTH_RECEIPT_DOMAIN_MISMATCH")
-    if receipt.get("issuer") != ISSUER:
-        raise AuthorizationReceiptError("AUTH_RECEIPT_ISSUER_MISMATCH")
 
     expected_ref = build_authorization_ref(receipt)
     if receipt.get("authorization_ref") != expected_ref:
@@ -373,6 +390,7 @@ def verify_authorization_receipt(
         roe_step_request_id=str(receipt["roe_step_request_id"]),
         operation_id=str(receipt["operation_id"]),
         operation_version=str(receipt["operation_version"]),
+        operation_parameters_sha256=str(receipt["operation_parameters_sha256"]),
         capability_id=str(receipt["capability_id"]),
         target_sha256=str(receipt["target_sha256"]),
         intrusiveness_level=str(receipt["intrusiveness_level"]),
