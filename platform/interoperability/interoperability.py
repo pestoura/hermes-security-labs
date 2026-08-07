@@ -23,11 +23,12 @@ def validate_target_schema(*, payload: Mapping[str, Any], target_schema: Mapping
     if not isinstance(target_schema, Mapping) or not target_schema:
         raise InteroperabilityError("explicit target schema is required")
     try:
+        jsonschema.Draft202012Validator.check_schema(target_schema)
         jsonschema.Draft202012Validator(target_schema).validate(dict(payload))
-    except jsonschema.ValidationError as exc:
-        raise InteroperabilityError("payload does not validate against target schema") from exc
     except jsonschema.SchemaError as exc:
         raise InteroperabilityError("target schema is invalid") from exc
+    except jsonschema.ValidationError as exc:
+        raise InteroperabilityError("payload does not validate against target schema") from exc
 
 
 def build_export(
