@@ -356,12 +356,12 @@ concept_epics:
     pillar: F
     phase: 7
     priority: P1
-    status: intent
+    status: implementing
     umbrella_id: SVP2-F-02
     umbrella_issue: 89
     dependencies: [EPIC-23, EPIC-11]
     doc_path: docs/roadmap/epics/EPIC-24-purple-team-and-detection-validation.md
-    current_state: "Not implemented. Concept documented as intent only."
+    current_state: "IMPLEMENTING. PR #153 integrated five explicit Purple Team outcome states, evidence-required prevention/detection semantics, D3FEND references and non-negative time-to-detect/time-to-contain metrics. Defensive telemetry/SIEM/EDR integration remains NOT_IMPLEMENTED; containment actions and adversary emulation remain NOT_RUN."
     target_state: "Every technique execution carries a detection expectation, and the outcome records prevented, detected, alerted or missed."
   - concept_id: EPIC-25
     slug: continuous-security-validation
@@ -460,12 +460,12 @@ concept_epics:
     pillar: F
     phase: 7
     priority: P2
-    status: intent
+    status: implementing
     umbrella_id: SVP2-F-02
     umbrella_issue: 89
     dependencies: [EPIC-22, EPIC-24]
     doc_path: docs/roadmap/epics/EPIC-32-resilience-validation-and-tlpt.md
-    current_state: "Not implemented. Concept documented as intent only."
+    current_state: "IMPLEMENTING. PR #153 integrated a critical-function-bound, non-executable resilience exercise plan with injects, expected responses, recovery criteria and lessons learned under CONTROL_PLANE_ONLY authorization. Oversight roles, white-team visibility, escalation matrix, phase/reporting model and recognised-practice alignment remain incomplete; resilience/TLPT exercise execution remains NOT_RUN."
     target_state: "A structured resilience exercise model aligned with recognised threat-led testing practices, including roles, phases, control and reporting."
   - concept_id: EPIC-33
     slug: finding-and-remediation-lifecycle
