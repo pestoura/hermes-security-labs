@@ -17,7 +17,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install validation dependencies and Runner Protocol SDK
-        run: python -m pip install --disable-pip-version-check pytest -e platform/runner-protocol
+        run: python -m pip install --disable-pip-version-check pytest 'cryptography==48.0.1' -e platform/runner-protocol
       - name: Parse YAML files
         run: |
           python - <<'PY'

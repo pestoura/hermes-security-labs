@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import hashlib
+import importlib.util
 import ipaddress
 import json
+import sys
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -13,6 +15,7 @@ import jsonschema
 import yaml
 
 ROOT = Path(__file__).resolve().parent
+_TRUST_STORE_MODULE: Any = None
 LEVELS = ("L0", "L1", "L2", "L3", "L4")
 FORBIDDEN_FIELD_NAMES = {
     "api_key",
@@ -135,6 +138,8 @@ def validate_contract_for_execution(
         raise RoEValidationError("SIGNATURE_VERIFIER_UNAVAILABLE")
     try:
         verified = verifier(canonical_payload(contract), signature)
+    except RoEValidationError:
+        raise
     except Exception as exc:  # noqa: BLE001
         raise RoEValidationError("SIGNATURE_VERIFICATION_FAILED") from exc
     if verified is not True:
@@ -144,12 +149,26 @@ def validate_contract_for_execution(
 def authorize_step(
     contract: Mapping[str, Any],
     request: Mapping[str, Any],
-    verifier: SignatureVerifier | None,
+    verifier: SignatureVerifier | None = None,
     *,
     policy_path: Path | None = None,
+    trust_store_path: Path | str | None = None,
+    kill_switch_path: Path | str | None = None,
 ) -> AuthorizationDecision:
+    """Deterministic allow/refuse decision for a proposed step.
+
+    `verifier` keeps the original caller-supplied contract. When it is not
+    provided, `trust_store_path` may supply a file-backed trust store which is
+    turned into a real cryptographic verifier. When both are absent the
+    decision fails closed exactly as before.
+
+    `kill_switch_path`, when configured, is consulted on every decision. A
+    missing, unreadable or invalid state file refuses the step.
+    """
+
     try:
-        validate_contract_for_execution(contract, verifier)
+        effective_verifier = _resolve_verifier(verifier, trust_store_path, request)
+        validate_contract_for_execution(contract, effective_verifier)
         validate_request_structure(request)
         policy = load_policy(policy_path)
     except RoEValidationError as exc:
@@ -178,6 +197,10 @@ def authorize_step(
 
     if request["kill_switch"]:
         codes.append("KILL_SWITCH_ACTIVE")
+    if kill_switch_path is not None:
+        codes.extend(
+            _external_kill_switch_codes(kill_switch_path, str(request["campaign_id"]))
+        )
     if request["campaign_state"] != policy["active_campaign_state"]:
         codes.append("CAMPAIGN_NOT_RUNNING")
 
@@ -234,6 +257,71 @@ def authorize_step(
     if codes:
         return AuthorizationDecision.refuse(codes, contract, request)
     return AuthorizationDecision.allow(contract, request)
+
+
+def _trust_store_module():
+    """Load the sibling trust-store module without requiring package install."""
+
+    global _TRUST_STORE_MODULE
+    if _TRUST_STORE_MODULE is None:
+        spec = importlib.util.spec_from_file_location(
+            "roe_trust_store", ROOT / "roe_trust_store.py"
+        )
+        if spec is None or spec.loader is None:  # pragma: no cover
+            raise RoEValidationError("TRUST_STORE_UNAVAILABLE")
+        module = importlib.util.module_from_spec(spec)
+        sys.modules.setdefault(spec.name, module)
+        spec.loader.exec_module(module)
+        _TRUST_STORE_MODULE = module
+    return _TRUST_STORE_MODULE
+
+
+def _resolve_verifier(
+    verifier: SignatureVerifier | None,
+    trust_store_path: Path | str | None,
+    request: Mapping[str, Any],
+) -> SignatureVerifier | None:
+    """Return the verifier to use, preferring an explicit caller-supplied one."""
+
+    if verifier is not None:
+        return verifier
+    if trust_store_path is None:
+        return None
+    trust = _trust_store_module()
+    TrustStoreError = trust.TrustStoreError
+
+    requested_at_raw = request.get("requested_at") if isinstance(request, Mapping) else None
+    if not isinstance(requested_at_raw, str):
+        raise RoEValidationError("REQUEST_SCHEMA_INVALID")
+    moment = _parse_datetime(requested_at_raw)
+    try:
+        store = trust.TrustStore.load(trust_store_path)
+    except TrustStoreError as exc:
+        raise RoEValidationError(str(exc)) from exc
+    inner = trust.make_trust_store_verifier(store, moment)
+
+    def _verifier(payload: bytes, signature: Mapping[str, Any]) -> bool:
+        try:
+            return inner(payload, signature)
+        except TrustStoreError as exc:
+            raise RoEValidationError(str(exc)) from exc
+
+    return _verifier
+
+
+def _external_kill_switch_codes(
+    kill_switch_path: Path | str,
+    campaign_id: str,
+) -> list[str]:
+    trust = _trust_store_module()
+
+    try:
+        state = trust.load_kill_switch_state(kill_switch_path)
+    except trust.TrustStoreError as exc:
+        return [str(exc)]
+    if state.applies_to(campaign_id):
+        return ["KILL_SWITCH_ENGAGED"]
+    return []
 
 
 def _validate_contract_semantics(contract: Mapping[str, Any]) -> None:

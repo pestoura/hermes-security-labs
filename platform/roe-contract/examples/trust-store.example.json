@@ -1,0 +1,33 @@
+{
+  "schema_version": "1.0.0",
+  "store_id": "hexor-roe-example",
+  "keys": [
+    {
+      "key_id": "customer-signing-key-01",
+      "algorithm": "Ed25519",
+      "state": "active",
+      "not_before": "2026-01-01T00:00:00Z",
+      "not_after": "2027-01-01T00:00:00Z",
+      "public_key_spki_base64": "MCowBQYDK2VwAyEAt8uT1iUuiP+9MKEfivnbTsbJkLoRQcbD+ZcPwy7+q7E=",
+      "owner": "customer-example"
+    },
+    {
+      "key_id": "provider-signing-key-01",
+      "algorithm": "ECDSA-P256-SHA256",
+      "state": "active",
+      "not_before": "2026-01-01T00:00:00Z",
+      "not_after": "2027-01-01T00:00:00Z",
+      "public_key_spki_base64": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAELsEujbnTgqzMu4TXAuRnZS4ojOtKJPw1yAdaCM/LuQzuQ/NNksILmmKTb1rVINPn+AFD57S+e1+C5Nr0WAMnzQ==",
+      "owner": "hexor-security"
+    },
+    {
+      "key_id": "customer-signing-key-00",
+      "algorithm": "Ed25519",
+      "state": "revoked",
+      "not_before": "2025-01-01T00:00:00Z",
+      "not_after": "2026-01-01T00:00:00Z",
+      "public_key_spki_base64": "MCowBQYDK2VwAyEACy2eo0O4ngzG22LUQo4nHkVBL2hoznt4JZlRza3gcsw=",
+      "owner": "customer-example"
+    }
+  ]
+}
