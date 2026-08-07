@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hex0r.local/schemas/domain-profile-v1.json",
+  "title": "Domain Expansion Profile",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "profile_id", "domain", "cleanup_demonstrated", "constraints", "activation_eligible", "activated"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "profile_id": {"type": "string", "pattern": "^dp_[a-f0-9]{32}$"},
+    "domain": {"enum": ["kubernetes", "identity", "cloud", "mobile", "iot-ot"]},
+    "cleanup_demonstrated": {"type": "boolean"},
+    "constraints": {"type": "object"},
+    "activation_eligible": {"type": "boolean"},
+    "activated": {"const": false}
+  }
+}
