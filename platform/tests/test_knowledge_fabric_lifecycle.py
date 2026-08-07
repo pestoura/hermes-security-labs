@@ -12,7 +12,7 @@ DOCS = {
     "EPIC-38": ROOT / "docs/roadmap/epics/EPIC-38-cwe-capec-attack-semantic-chain.md",
     "EPIC-39": ROOT / "docs/roadmap/epics/EPIC-39-attack-synchronization-service.md",
 }
-INTENT_ONLY = {"EPIC-21", "EPIC-37", "EPIC-38", "EPIC-39"}
+INTENT_ONLY = {"EPIC-37", "EPIC-38", "EPIC-39"}
 
 
 def _catalogue() -> dict[str, dict]:
@@ -51,6 +51,10 @@ def test_machine_readable_catalogue_matches_e01_boundary() -> None:
     assert epic36["status"] == "implementing"
     assert "PR #146" in epic36["current_state"]
     assert "NOT_RUN" in epic36["current_state"]
+
+    epic21 = catalogue["EPIC-21"]
+    assert epic21["status"] == "as_built"
+    assert "PR #182" in epic21["current_state"]
 
     for concept_id in INTENT_ONLY:
         item = catalogue[concept_id]
