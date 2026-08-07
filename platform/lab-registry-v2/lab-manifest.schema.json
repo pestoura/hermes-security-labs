@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hex0r.local/schemas/lab-manifest-v2.json",
+  "title": "Lab Manifest v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "lab_id", "family", "variant", "lab_type", "states", "isolation", "resources", "ttl_seconds", "egress", "reset_seed", "maturity", "cleanup_proof_required", "generated_or_untrusted", "isolated_build"],
+  "properties": {
+    "schema_version": {"const": "2.0"},
+    "lab_id": {"type": "string", "pattern": "^lab_[a-f0-9]{32}$"},
+    "family": {"type": "string", "minLength": 1, "maxLength": 128},
+    "variant": {"type": "string", "minLength": 1, "maxLength": 128},
+    "lab_type": {"enum": ["fixture", "single-service", "multi-service", "attack-path", "kubernetes", "vm", "identity", "cloud-sandbox", "external-hardware"]},
+    "states": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["VULNERABLE", "MITIGATED", "FIXED"],
+      "properties": {
+        "VULNERABLE": {"$ref": "#/$defs/state"},
+        "MITIGATED": {"$ref": "#/$defs/state"},
+        "FIXED": {"$ref": "#/$defs/state"}
+      }
+    },
+    "isolation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["privileged", "host_network", "docker_socket", "host_mounts"],
+      "properties": {
+        "privileged": {"const": false},
+        "host_network": {"const": false},
+        "docker_socket": {"const": false},
+        "host_mounts": {"const": false}
+      }
+    },
+    "resources": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["cpu_limit", "memory_mb"],
+      "properties": {
+        "cpu_limit": {"type": "number", "exclusiveMinimum": 0},
+        "memory_mb": {"type": "integer", "minimum": 64}
+      }
+    },
+    "ttl_seconds": {"type": "integer", "minimum": 60},
+    "egress": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["default", "allowlist"],
+      "properties": {
+        "default": {"const": "deny"},
+        "allowlist": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}}
+      }
+    },
+    "reset_seed": {"type": "string", "minLength": 1},
+    "maturity": {"enum": ["L0", "L1", "L2", "L3", "L4", "L5"]},
+    "cleanup_proof_required": {"const": true},
+    "generated_or_untrusted": {"type": "boolean"},
+    "isolated_build": {"type": "boolean"}
+  },
+  "$defs": {
+    "state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["positive_control", "negative_control"],
+      "properties": {
+        "positive_control": {"type": "string", "minLength": 1},
+        "negative_control": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}
