@@ -1,3 +1,4 @@
+import ast
 from pathlib import Path
 
 import yaml
@@ -8,6 +9,9 @@ EPIC_08 = ROOT / "docs/roadmap/epics/EPIC-08-network-and-egress-policy.md"
 AS_BUILT = ROOT / "docs/roadmap/EPIC-04-08-transactional-lifecycle-contract-candidate-as-built.md"
 README = ROOT / "platform/lab-lifecycle/README.md"
 POLICY = ROOT / "platform/lab-lifecycle/lifecycle-policy.yaml"
+ORPHAN_CODE = ROOT / "platform/lab-lifecycle/orphan_detector.py"
+ORPHAN_OBSERVATION_SCHEMA = ROOT / "platform/lab-lifecycle/orphan-observation.schema.json"
+ORPHAN_ASSESSMENT_SCHEMA = ROOT / "platform/lab-lifecycle/orphan-assessment.schema.json"
 
 
 def test_concept_epics_are_implementing_but_not_final() -> None:
@@ -25,6 +29,20 @@ def test_concept_epics_are_implementing_but_not_final() -> None:
         assert "NO_RUNTIME_CHANGE" in text
 
 
+def test_concept_epics_record_orphan_candidate_without_runtime_promotion() -> None:
+    epic_04 = EPIC_04.read_text(encoding="utf-8")
+    epic_08 = EPIC_08.read_text(encoding="utf-8")
+
+    for text in (epic_04, epic_08):
+        assert "orphan observation/assessment contract and decision logic: `CANDIDATE`" in text
+        assert "runtime resource scanner: `NOT_IMPLEMENTED` / `NOT_RUN`" in text
+        assert "periodic orphan" in text
+        assert "`NOT_IMPLEMENTED`" in text
+        assert "orphan" in text and "remediation" in text
+        assert "`NOT_RUN`" in text
+        assert "runtime changes: `NO_RUNTIME_CHANGE`" in text
+
+
 def test_supplementary_record_never_claims_runtime_or_final() -> None:
     text = AS_BUILT.read_text(encoding="utf-8")
 
@@ -33,7 +51,9 @@ def test_supplementary_record_never_claims_runtime_or_final() -> None:
     assert "Docker lifecycle integration: `NOT_RUN`" in text
     assert "network-policy enforcement: `NOT_RUN`" in text
     assert "zero-residue observation against real resources: `NOT_RUN`" in text
-    assert "periodic orphan detector: `NOT_IMPLEMENTED`" in text
+    assert "runtime resource scanner: `NOT_IMPLEMENTED` / `NOT_RUN`" in text
+    assert "periodic orphan scan scheduler: `NOT_IMPLEMENTED`" in text
+    assert "orphan cleanup/remediation: `NOT_IMPLEMENTED` / `NOT_RUN`" in text
     assert "runtime changes: `NO_RUNTIME_CHANGE`" in text
     assert "Canonical epic lifecycle" in text
     assert "`IMPLEMENTING`" in text
@@ -50,7 +70,11 @@ def test_supplementary_record_references_every_lifecycle_component() -> None:
         "zero-residue-proof.schema.json",
         "lifecycle-policy.yaml",
         "lifecycle_protocol.py",
+        "orphan-observation.schema.json",
+        "orphan-assessment.schema.json",
+        "orphan_detector.py",
         "test_lab_lifecycle_protocol.py",
+        "test_lab_orphan_detector.py",
     ):
         assert path in text
 
@@ -58,11 +82,64 @@ def test_supplementary_record_references_every_lifecycle_component() -> None:
 def test_readme_preserves_unimplemented_runtime_boundaries() -> None:
     text = README.read_text(encoding="utf-8")
 
+    assert "orphan observation/assessment contract and decision logic: `CANDIDATE`" in text
+    assert "runtime resource scanner: `NOT_IMPLEMENTED` / `NOT_RUN`" in text
+    assert "periodic orphan scan scheduler: `NOT_IMPLEMENTED`" in text
+    assert "orphan cleanup/remediation: `NOT_IMPLEMENTED` / `NOT_RUN`" in text
     assert "Docker lifecycle integration: `NOT_RUN`" in text
     assert "network-policy enforcement: `NOT_RUN`" in text
     assert "zero-residue observation against real resources: `NOT_RUN`" in text
-    assert "periodic orphan detector: `NOT_IMPLEMENTED`" in text
     assert "runtime changes: `NO_RUNTIME_CHANGE`" in text
+
+
+def test_orphan_assessor_has_no_runtime_or_cleanup_dependencies() -> None:
+    tree = ast.parse(ORPHAN_CODE.read_text(encoding="utf-8"))
+    imported_roots: set[str] = set()
+    called_names: set[str] = set()
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            imported_roots.update(alias.name.split(".", 1)[0] for alias in node.names)
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            imported_roots.add(node.module.split(".", 1)[0])
+        elif isinstance(node, ast.Call):
+            if isinstance(node.func, ast.Name):
+                called_names.add(node.func.id)
+            elif isinstance(node.func, ast.Attribute):
+                called_names.add(node.func.attr)
+
+    assert imported_roots.isdisjoint(
+        {"docker", "kubernetes", "subprocess", "socket", "requests", "httpx"}
+    )
+    assert called_names.isdisjoint(
+        {
+            "remove",
+            "unlink",
+            "rmdir",
+            "rmtree",
+            "kill",
+            "terminate",
+            "stop",
+            "delete",
+            "exec",
+            "run",
+            "Popen",
+        }
+    )
+
+
+def test_orphan_contract_is_read_only_and_opaque() -> None:
+    observation = ORPHAN_OBSERVATION_SCHEMA.read_text(encoding="utf-8")
+    assessment = ORPHAN_ASSESSMENT_SCHEMA.read_text(encoding="utf-8")
+
+    assert '"cleanup_performed": {"const": false}' in assessment
+    assert '"PARTIAL"' in observation
+    assert '"UNAVAILABLE"' in observation
+    assert '"resource_ref"' in observation
+    assert '"command"' not in observation
+    assert '"target"' not in observation
+    assert '"credential"' not in observation
+    assert '"cleanup_performed": {"const": true}' not in assessment
 
 
 def test_policy_defaults_to_isolated_and_quarantine_blocks_reuse() -> None:
