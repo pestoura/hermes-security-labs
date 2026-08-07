@@ -12,6 +12,12 @@ import yaml
 ROOT = Path(__file__).resolve().parent
 REPOSITORY_ROOT = ROOT.parents[1]
 LEVELS = ("L0", "L1", "L2", "L3", "L4")
+LEGACY_SCHEMA_VERSION = "1.0.0"
+CANONICAL_SCHEMA_VERSION = "2.0.0"
+GATEWAY_REQUEST_SCHEMAS = {
+    LEGACY_SCHEMA_VERSION: "gateway-request.schema.json",
+    CANONICAL_SCHEMA_VERSION: "gateway-request-v2.schema.json",
+}
 FORBIDDEN_FIELD_NAMES = {
     "api_key",
     "argv",
@@ -78,10 +84,8 @@ class GatewayDecision:
         )
 
 
-
 def load_json(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
-
 
 
 def load_registry(path: Path | None = None) -> dict[str, Any]:
@@ -96,11 +100,9 @@ def load_registry(path: Path | None = None) -> dict[str, Any]:
     return data
 
 
-
 def canonical_runtime_digest(path: Path | None = None) -> str:
     selected = path or REPOSITORY_ROOT / "platform" / "registry.yaml"
     return hashlib.sha256(selected.read_bytes()).hexdigest()
-
 
 
 def canonical_target_digest(target: Mapping[str, Any]) -> str:
@@ -113,10 +115,26 @@ def canonical_target_digest(target: Mapping[str, Any]) -> str:
     return hashlib.sha256(payload).hexdigest()
 
 
+def gateway_request_schema_version(request: Mapping[str, Any]) -> str:
+    """Return the supported request schema version or fail closed.
+
+    Missing/malformed versions remain structural invalidity for legacy
+    compatibility. A syntactically valid but unknown version is distinguished
+    as unsupported so migrations cannot silently reinterpret a new contract.
+    """
+
+    version = request.get("schema_version") if isinstance(request, Mapping) else None
+    if not isinstance(version, str):
+        raise GatewayValidationError("REQUEST_SCHEMA_INVALID")
+    if version not in GATEWAY_REQUEST_SCHEMAS:
+        raise GatewayValidationError("REQUEST_SCHEMA_UNSUPPORTED")
+    return version
+
 
 def validate_request_structure(request: Mapping[str, Any]) -> None:
     _reject_forbidden_fields(request)
-    schema = load_json(ROOT / "gateway-request.schema.json")
+    version = gateway_request_schema_version(request)
+    schema = load_json(ROOT / GATEWAY_REQUEST_SCHEMAS[version])
     validator = jsonschema.Draft202012Validator(
         schema,
         format_checker=jsonschema.FormatChecker(),
@@ -124,7 +142,6 @@ def validate_request_structure(request: Mapping[str, Any]) -> None:
     errors = sorted(validator.iter_errors(request), key=lambda item: list(item.path))
     if errors:
         raise GatewayValidationError("REQUEST_SCHEMA_INVALID")
-
 
 
 def authorize_typed_operation(
@@ -196,7 +213,6 @@ def authorize_typed_operation(
     return GatewayDecision.allow(request, operation)
 
 
-
 def _validate_registry_semantics(registry: Mapping[str, Any]) -> None:
     operations = registry["operations"]
     identities = [(item["id"], item["version"]) for item in operations]
@@ -228,7 +244,6 @@ def _validate_registry_semantics(registry: Mapping[str, Any]) -> None:
                 raise GatewayValidationError("NORMAL_PROFILE_TOO_INTRUSIVE")
 
 
-
 def _find_operation(
     registry: Mapping[str, Any],
     operation_id: str,
@@ -237,7 +252,6 @@ def _find_operation(
         (item for item in registry["operations"] if item["id"] == operation_id),
         None,
     )
-
 
 
 def _reject_forbidden_fields(value: Any, path: tuple[str, ...] = ()) -> None:
@@ -254,10 +268,8 @@ def _reject_forbidden_fields(value: Any, path: tuple[str, ...] = ()) -> None:
             _reject_forbidden_fields(child, (*path, str(index)))
 
 
-
 def _level_index(level: str) -> int:
     return LEVELS.index(level)
-
 
 
 def _safe_identifier(value: Any, key: str) -> str | None:
