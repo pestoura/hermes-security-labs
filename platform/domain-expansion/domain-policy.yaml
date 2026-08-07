@@ -1,0 +1,31 @@
+schema_version: "1.0"
+policy_id: domain-expansion-policy
+activation:
+  cleanup_demonstrated_required: true
+  contract_eligibility_is_not_runtime_activation: true
+kubernetes:
+  unique_cluster_required: true
+  ephemeral_kubeconfig_required: true
+  ttl_required: true
+identity:
+  snapshot_required: true
+  rollback_required: true
+  resource_budget_required: true
+cloud:
+  ephemeral_credentials_required: true
+  budget_required: true
+  ttl_required: true
+mobile:
+  device_lifecycle_required: true
+  adb_scope_required: true
+  bounded_analysis_sidecar_required: true
+iot_ot:
+  simulator_supported: true
+  external_hardware_requires_human_approval: true
+runtime_status:
+  kubernetes: NOT_RUN
+  identity: NOT_RUN
+  cloud: NOT_RUN
+  mobile: NOT_RUN
+  iot_ot: NOT_RUN
+  external_hardware: NOT_RUN
