@@ -478,7 +478,7 @@ concept_epics:
     umbrella_issue: 93
     dependencies: [EPIC-10, EPIC-27]
     doc_path: docs/roadmap/epics/EPIC-33-finding-and-remediation-lifecycle.md
-    current_state: "AS_BUILT at repository-contract level. PR #155 reconciled the finding and remediation lifecycle contract: detection-to-closure states, evidence-backed retest requirements, explicit risk acceptance with named accountability and reopen semantics are specified and locked by repository tests. Scope is documentation and contract only: no production deployment, no runtime lifecycle service, no ticketing integration and no environment execution. Production operation and lifecycle execution remain NOT_IMPLEMENTED/NOT_RUN."
+    current_state: "AS_BUILT at repository-contract level. PR #155 reconciled the finding and remediation lifecycle contract: detection-to-closure states, evidence-backed retest requirements, an explicit ACCEPTED_RISK state with controlled transitions and reopen semantics are specified and locked by repository tests. Operational risk-acceptance owner and expiry enforcement and automatic risk acceptance are NOT_IMPLEMENTED. Scope is documentation and contract only: no production deployment, no runtime lifecycle service and no environment execution. Production ticketing synchronization, customer remediation workflow and real retest execution are NOT_RUN."
     target_state: "A finding lifecycle from detection through remediation and evidence-backed retest to closure, with explicit risk acceptance."
   - concept_id: EPIC-34
     slug: maturity-benchmarking-and-scientific-quality
