@@ -99,7 +99,7 @@ epics:
     pillar: A
     priority: P0
     phase: 1
-    status: proposed
+    status: implementing
     rationale: >-
       Sem um contrato de autorizacao legivel por maquina nao e possivel recusar
       deterministicamente passos fora de ambito nem sustentar acoes de alto impacto.
@@ -120,7 +120,7 @@ epics:
     risks:
       - Contrato demasiado rigido bloquear operacao legitima
       - Ambiguidade na definicao de nivel levar a subclassificacao de risco
-    labels: [roadmap, architecture, "pillar:A", "priority:P0", "impact:L4", "status:proposed", "type:epic"]
+    labels: [roadmap, architecture, "pillar:A", "priority:P0", "impact:L4", "status:implementing", "type:epic"]
     references:
       - docs/architecture/security-validation-reference-architecture.md
 
@@ -129,7 +129,7 @@ epics:
     pillar: A
     priority: P1
     phase: 1
-    status: proposed
+    status: completed
     rationale: >-
       O backlog precisa de disciplina de governacao estavel para evitar itens sem
       criterios verificaveis e para tornar o progresso comparavel entre releases.
@@ -148,7 +148,7 @@ epics:
     effort: S
     risks:
       - Proliferacao de labels sem valor operacional
-    labels: [roadmap, architecture, "pillar:A", "priority:P1", "status:proposed", "type:epic"]
+    labels: [roadmap, architecture, "pillar:A", "priority:P1", "status:completed", "type:epic"]
     references:
       - roadmap/README.md
 
@@ -157,7 +157,7 @@ epics:
     pillar: B
     priority: P0
     phase: 2
-    status: proposed
+    status: implementing
     rationale: >-
       A superficie generica de execucao de comandos impede validacao de contrato,
       autorizacao granular e correlacao fiavel de evidencia.
@@ -178,7 +178,7 @@ epics:
     risks:
       - Perda temporaria de flexibilidade operacional
       - Cobertura incompleta de operacoes obrigar a excecoes
-    labels: [roadmap, architecture, "pillar:B", "priority:P0", "runtime:gateway", "status:proposed", "type:epic"]
+    labels: [roadmap, architecture, "pillar:B", "priority:P0", "runtime:gateway", "status:implementing", "type:epic"]
     references:
       - docs/architecture/security-validation-reference-architecture.md
 
