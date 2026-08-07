@@ -14,7 +14,6 @@
     "idempotency_key",
     "request_fingerprint",
     "request_envelope_sha256",
-    "runner_outcome_sha256",
     "operation_id",
     "operation_version",
     "capability_id",
@@ -54,7 +53,6 @@
     },
     "request_fingerprint": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
     "request_envelope_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
-    "runner_outcome_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
     "operation_id": {
       "type": "string",
       "minLength": 3,
