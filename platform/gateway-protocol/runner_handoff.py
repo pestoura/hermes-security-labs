@@ -8,11 +8,11 @@ TWO independent authorization checks have succeeded:
 2. ``authorize_admission()`` independently revalidates the signed Rules of
    Engagement contract, kill switch, typed operation and runtime bindings.
 
-The execution plane never creates, expands or approves authorization.  The
+The execution plane never creates, expands or approves authorization. The
 ``authorization_ref`` placed in the Runner Protocol message is copied from the
-verified Hermes receipt.  The gateway may recompute a receipt reference inside
+verified Hermes receipt. The gateway may recompute a receipt reference inside
 the verifier only to detect tampering; that integrity check does not create
-authority.  A naked reference, caller-supplied ALLOW or embedded receipt is
+authority. A naked reference, caller-supplied ALLOW or embedded receipt is
 never accepted as proof of authorization.
 
 Boundary: message construction only. Nothing here dispatches, connects,
@@ -73,9 +73,6 @@ IDEMPOTENCY_KEY_PREFIX = "rp2-step-"
 PROTOCOL_VERSION = "2.0.0"
 CORRELATION_FIELDS = ("campaign_id", "run_id", "step_id", "attempt_id")
 
-#: Fields a typed request may never carry. Authorization crosses TB1 as a
-#: separate signed receipt supplied by the trusted control-plane boundary, not
-#: as free-form caller data inside the gateway request.
 CALLER_SUPPLIED_AUTHORIZATION_FIELDS = (
     "admission_decision",
     "authorization_receipt",
@@ -172,7 +169,7 @@ class RunnerHandoffConfig:
 class RunnerHandoffResult:
     """Outcome of building a ``runner.step.request``.
 
-    ``request_built`` means construction only.  Metadata is sanitized and
+    ``request_built`` means construction only. Metadata is sanitized and
     log-safe. ``runner_request`` is RESTRICTED operational payload containing
     the raw target and validated parameters required by a future runner; it is
     excluded from ``repr`` and must not be logged as a decision record.
@@ -238,13 +235,7 @@ def build_step_request(
     *,
     authorization_receipt: Mapping[str, Any] | None = None,
 ) -> RunnerHandoffResult:
-    """Canonical TB1 authorization -> gateway admission -> runner handoff.
-
-    ``authorization_receipt`` is a separate cross-boundary artefact from the
-    Hermes control plane.  It is never accepted inside ``request``.  The
-    gateway verifies it, freshly re-evaluates RoE admission, cross-checks every
-    authorization binding, and only then constructs a runner message.
-    """
+    """Canonical TB1 authorization -> gateway admission -> runner handoff."""
 
     config = config or RunnerHandoffConfig()
 
@@ -356,8 +347,11 @@ def _authorization_binding_codes(
     contract: Mapping[str, Any],
     roe_step_request: Mapping[str, Any],
 ) -> list[str]:
-    """Require the Hermes receipt to match the freshly admitted context."""
+    """Require the Hermes receipt to match the freshly admitted exact effect."""
 
+    parameters_digest = authorization_contract.canonical_parameters_sha256(
+        request["operation"]["parameters"]
+    )
     checks = (
         (verified.campaign_id, str(request["campaign_id"]), "AUTH_CAMPAIGN_MISMATCH"),
         (verified.run_id, str(request["run_id"]), "AUTH_RUN_MISMATCH"),
@@ -388,6 +382,11 @@ def _authorization_binding_codes(
             "AUTH_OPERATION_VERSION_MISMATCH",
         ),
         (
+            verified.operation_parameters_sha256,
+            parameters_digest,
+            "AUTH_OPERATION_PARAMETERS_MISMATCH",
+        ),
+        (
             verified.capability_id,
             str(roe_step_request["capability"]),
             "AUTH_CAPABILITY_MISMATCH",
@@ -413,7 +412,7 @@ def _assemble_message(
     verified: Any,
     config: RunnerHandoffConfig,
 ) -> dict[str, Any]:
-    del decision  # admission already cross-checked; never used as authority token
+    del decision
     operation = request["operation"]
     target = request["target"]
     capability_id = str(roe_step_request["capability"])
