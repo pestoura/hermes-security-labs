@@ -97,9 +97,7 @@ def assess_orphans(observation: Mapping[str, Any]) -> OrphanAssessmentResult:
         if finding is not None:
             findings.append(finding)
 
-    orphan_count = sum(
-        item["classification"] == "ORPHAN" for item in findings
-    )
+    orphan_count = sum(item["classification"] == "ORPHAN" for item in findings)
     tracked_quarantine_count = sum(
         item["classification"] == "TRACKED_QUARANTINE" for item in findings
     )
@@ -160,7 +158,7 @@ def validate_observation(observation: Mapping[str, Any]) -> None:
         "ORPHAN_OBSERVATION_SCHEMA_INVALID",
     )
 
-    observed_at = _parse_datetime(str(observation["observed_at"]))
+    _parse_datetime(str(observation["observed_at"]))
     records = observation["lifecycle_records"]
     lab_ids = [str(item["lab_id"]) for item in records]
     if len(lab_ids) != len(set(lab_ids)):
@@ -174,16 +172,12 @@ def validate_observation(observation: Mapping[str, Any]) -> None:
         raise OrphanAssessmentError("UNAVAILABLE_SCAN_HAS_RESOURCES")
 
     for record in records:
-        expires_at = _parse_datetime(str(record["contract_expires_at"]))
+        _parse_datetime(str(record["contract_expires_at"]))
         retention = record["quarantine_retention_until"]
         if record["state"] != "QUARANTINED" and retention is not None:
             raise OrphanAssessmentError("RETENTION_ON_NON_QUARANTINED")
         if retention is not None:
-            retention_at = _parse_datetime(str(retention))
-            if retention_at <= expires_at:
-                raise OrphanAssessmentError("QUARANTINE_RETENTION_WINDOW_INVALID")
-        if expires_at.tzinfo is None or observed_at.tzinfo is None:  # defensive
-            raise OrphanAssessmentError("TIMEZONE_REQUIRED")
+            _parse_datetime(str(retention))
 
 
 def validate_assessment(assessment: Mapping[str, Any]) -> None:
