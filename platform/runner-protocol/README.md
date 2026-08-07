@@ -306,18 +306,21 @@ safety, operational readiness or real API-runner conformance.
 
 The canonical producer of a `runner.step.request` inside this repository is
 [`platform/gateway-protocol/runner_handoff.py`](../gateway-protocol/runner_handoff.py).
-It imports this SDK (`request_fingerprint`, `validate_semantics`) instead of
-duplicating protocol schema or logic, derives authorization internally through
-the gateway admission API, and emits a message only when admission is positive
-and semantic validation passes.
+It imports this SDK (`request_fingerprint`, `validate_semantics`) rather than
+duplicating protocol schema or logic. Before it can construct a message, the
+handoff requires a **separate signed TB1 authorization receipt issued by the
+Hermes control plane**, verifies that receipt with the dedicated
+`tb1-authorization` trust purpose/domain, independently re-runs the signed RoE
+and typed gateway admission checks, and requires exact binding between both
+views of the authorization context, including the canonical digest of the
+validated typed-operation parameters.
 
-The `authorization_ref` it emits is a deterministic, content-addressed
-reference (`roe-authz:v1:<sha256>`) over the sanitized admitted authorization
-context. Consistent with this protocol's `authorization_source:
-hermes_control_plane` rule, it is **not** a bearer token, grant, capability or
-signature: it authorizes nothing and a future runtime must resolve it against a
-trusted authority/control plane before acting. That resolution is
-`NOT_IMPLEMENTED` and `NOT_RUN`.
+The `authorization_ref` in `runner.step.request` is copied exactly from the
+verified Hermes receipt. The gateway does **not** create, expand or approve the
+authorization. It may recompute the expected reference only inside receipt
+verification as an integrity check; this does not constitute issuance.
+
+The reference uses the TB1 domain (`tb1-authz:v1:<sha256>`) and is **not a bearer token, grant, capability or signature**. It authorizes nothing and grants nothing by possession. A naked reference or caller-supplied authorization is refused. Hermes operational receipt issuance remains `NOT_IMPLEMENTED` and `NOT_RUN`; deployed authorization validation remains `NOT_RUN`.
 
 A positive handoff outcome is reported as `request_built`, never as
 `dispatched`: it means a valid message was constructed, not that anything was

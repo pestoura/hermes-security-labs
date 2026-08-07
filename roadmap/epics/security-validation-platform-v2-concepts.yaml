@@ -408,12 +408,12 @@ concept_epics:
     pillar: A
     phase: 1
     priority: P0
-    status: intent
+    status: implementing
     umbrella_id: SVP2-A-02
     umbrella_issue: 77
     dependencies: [EPIC-01]
     doc_path: docs/roadmap/epics/EPIC-28-rules-of-engagement-as-code.md
-    current_state: "Not implemented. Concept documented as intent only."
+    current_state: "IMPLEMENTING. Signed RoE verification, public-key trust store, external kill switch and canonical gateway admission are integrated in main; a purpose-bound Hermes-issued TB1 authorization receipt/reference contract is under controlled implementation. Deployed Hermes issuance, gateway enforcement and production execution remain NOT_IMPLEMENTED/NOT_RUN."
     target_state: "A signed, machine-readable Rules of Engagement contract declaring scope, targets, windows, limits, approvers and stop conditions."
   - concept_id: EPIC-29
     slug: ai-and-agentic-security

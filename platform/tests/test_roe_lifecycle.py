@@ -3,19 +3,33 @@ from pathlib import Path
 import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
-INTENT = ROOT / "docs/roadmap/epics/EPIC-28-rules-of-engagement-as-code.md"
+EPIC = ROOT / "docs/roadmap/epics/EPIC-28-rules-of-engagement-as-code.md"
 AS_BUILT = ROOT / "docs/roadmap/EPIC-28-roe-contract-candidate-as-built.md"
 README = ROOT / "platform/roe-contract/README.md"
 POLICY = ROOT / "platform/roe-contract/intrusiveness-policy.yaml"
+AUTH_README = ROOT / "platform/authorization-contract/README.md"
 
 
-def test_concept_epic_remains_intent_with_reserved_lifecycle_sections() -> None:
-    text = INTENT.read_text(encoding="utf-8")
+def test_concept_epic_is_implementing_but_not_final() -> None:
+    text = EPIC.read_text(encoding="utf-8")
 
-    assert "**INTENT**" in text
-    tail = text.split("## 14. Implementation notes", 1)[1]
-    assert "Reserved" in tail
+    assert "**IMPLEMENTING**" in text
+    assert "| IMPLEMENTING | yes |" in text
+    assert "| AS_BUILT | no |" in text
     assert "| FINAL | no |" in text
+    assert "PR #159" in text
+    assert "PR #160" in text
+    assert "PR #161" in text
+    assert "NO_RUNTIME_CHANGE" in text
+
+
+def test_concept_epic_records_control_plane_as_only_authority() -> None:
+    text = EPIC.read_text(encoding="utf-8")
+
+    assert "Hermes/control plane is the sole execution authorization authority" in text
+    assert "execution plane may recompute a reference only as an integrity check" in text
+    assert "separate trust purposes/domains" in text
+    assert "Hermes operational TB1 receipt issuance: `NOT_IMPLEMENTED` / `NOT_RUN`" in text
 
 
 def test_supplementary_record_never_claims_final_or_runtime_enforcement() -> None:
@@ -48,6 +62,15 @@ def test_roe_readme_preserves_unimplemented_production_boundaries() -> None:
     assert "trust-store integration: `NOT_IMPLEMENTED`" in text
     assert "Production signature verification: `NOT_RUN`" in text
     assert "Runtime changes: `NO_RUNTIME_CHANGE`" in text
+
+
+def test_tb1_authorization_contract_never_claims_runtime_issuance() -> None:
+    text = AUTH_README.read_text(encoding="utf-8")
+
+    assert "Hermes is the only execution-authorization authority" in text
+    assert "Hermes operational receipt issuance: `NOT_IMPLEMENTED` / `NOT_RUN`" in text
+    assert "deployed gateway validation: `NOT_RUN`" in text
+    assert "runtime changes: `NO_RUNTIME_CHANGE`" in text
 
 
 def test_intrusiveness_policy_inventory_and_l4_separation_are_fixed() -> None:
