@@ -122,12 +122,12 @@ concept_epics:
     pillar: C
     phase: 3
     priority: P1
-    status: intent
+    status: implementing
     umbrella_id: SVP2-C-01
     umbrella_issue: 82
     dependencies: [EPIC-03]
     doc_path: docs/roadmap/epics/EPIC-06-kali-image-factory.md
-    current_state: "Not implemented. Concept documented as intent only."
+    current_state: "IMPLEMENTING. PR #142 integrated the repository-owned minimal non-root runtime policy, immutable /opt/hermes/runners layout, bounded writable paths, default capability drop and explicit NET_RAW profile. Image build/publication, runtime non-root/read-only/capability observations, provenance promotion and Hermes deployment remain NOT_RUN."
     target_state: "A factory that produces minimal, non-root, pinned and attested execution images with a defined promotion lifecycle."
   - concept_id: EPIC-07
     slug: capability-registry
