@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hex0r.local/schemas/export-envelope-v1.json",
+  "title": "Security Interoperability Export Envelope",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "format", "target_schema_id", "target_schema_version", "schema_validated", "data_markings", "signature", "payload_sha256", "payload"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "format": {"enum": ["oscal-assessment-results", "oscal-poam", "cacao-2.0", "attack-flow"]},
+    "target_schema_id": {"type": "string", "minLength": 1},
+    "target_schema_version": {"type": "string", "minLength": 1},
+    "schema_validated": {"const": true},
+    "data_markings": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "signature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["verified", "signer", "algorithm"],
+      "properties": {
+        "verified": {"const": true},
+        "signer": {"type": "string", "minLength": 1},
+        "algorithm": {"type": "string", "minLength": 1}
+      }
+    },
+    "payload_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "payload": {"type": "object"}
+  }
+}
