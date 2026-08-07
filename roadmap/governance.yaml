@@ -1,0 +1,244 @@
+schema_version: "1.0.0"
+governance_id: security-validation-platform-v2-governance
+source_of_truth: docs/roadmap/security-validation-platform-v2.md
+backlog: roadmap/epics/security-validation-platform-v2.yaml
+
+label_taxonomy:
+  required_plain:
+    - roadmap
+    - architecture
+  scoped:
+    pillar:
+      pattern: "^pillar:[A-L]$"
+      cardinality: exactly_one
+    priority:
+      values: ["priority:P0", "priority:P1", "priority:P2", "priority:P3"]
+      cardinality: exactly_one
+    impact:
+      values: ["impact:L0", "impact:L1", "impact:L2", "impact:L3", "impact:L4"]
+      cardinality: zero_or_one
+    runtime:
+      pattern: "^runtime:[a-z0-9][a-z0-9-]*$"
+      cardinality: zero_or_one
+    status:
+      values: ["status:proposed", "status:implementing", "status:completed"]
+      cardinality: exactly_one
+    type:
+      values: ["type:epic"]
+      cardinality: exactly_one
+  unknown_plain_labels: forbidden
+  duplicate_labels: forbidden
+
+status_transitions:
+  proposed: [implementing]
+  implementing: [completed, proposed]
+  completed: [implementing]
+  rules:
+    - transition_to_implementing_requires_ready_evidence
+    - transition_to_completed_requires_done_evidence
+    - regression_reopens_to_implementing
+
+Definition_of_Ready:
+  - id: DOR-01
+    requirement: Objective and rationale are explicit.
+    verification:
+      type: backlog_fields
+      fields: [title, rationale]
+      condition: non_empty
+  - id: DOR-02
+    requirement: Scope, deliverables and non-goals are bounded.
+    verification:
+      type: backlog_and_canonical_document
+      backlog_fields: [scope, deliverables]
+      document_sections: ["Scope and non-goals"]
+  - id: DOR-03
+    requirement: Dependencies exist, are acyclic and do not point to a later phase.
+    verification:
+      type: automated_test
+      test: roadmap/tests/test_backlog.py
+  - id: DOR-04
+    requirement: Acceptance criteria are observable and contain at least two independent checks.
+    verification:
+      type: backlog_fields
+      fields: [acceptance_criteria]
+      minimum_items: 2
+  - id: DOR-05
+    requirement: Priority, pillar, phase, status and governance labels are valid.
+    verification:
+      type: automated_test
+      test: roadmap/tests/test_governance.py
+  - id: DOR-06
+    requirement: Intrusiveness and runtime impact are declared when the epic can change execution behaviour.
+    verification:
+      type: review_evidence
+      required_evidence: impact_label_or_explicit_NO_RUNTIME_CHANGE
+  - id: DOR-07
+    requirement: Evidence, failure behaviour and rollback are defined before runtime-affecting implementation.
+    verification:
+      type: review_evidence
+      required_evidence: evidence_plan_failure_modes_rollback_plan
+  - id: DOR-08
+    requirement: Authorization, scope and safety boundaries are explicit for any executable validation.
+    verification:
+      type: review_evidence
+      required_evidence: authorization_reference_scope_window_stop_conditions
+
+Definition_of_Done:
+  - id: DOD-01
+    requirement: All declared deliverables are merged into main.
+    verification:
+      type: immutable_evidence
+      required_evidence: merge_commit_and_pull_request
+  - id: DOD-02
+    requirement: Required repository, security and secret-scanning gates pass on the final head.
+    verification:
+      type: immutable_evidence
+      required_evidence: final_head_workflow_runs
+  - id: DOD-03
+    requirement: Post-merge validation passes on main.
+    verification:
+      type: immutable_evidence
+      required_evidence: post_merge_workflow_runs
+  - id: DOD-04
+    requirement: New behaviour has positive, negative, adversarial and regression tests proportional to risk.
+    verification:
+      type: review_evidence
+      required_evidence: test_inventory_and_results
+  - id: DOD-05
+    requirement: Canonical documentation records implementation, evidence, deviations and remaining limitations.
+    verification:
+      type: automated_and_review
+      test: docs/tests
+      required_evidence: lifecycle_sections_populated
+  - id: DOD-06
+    requirement: No secret, token, cookie, private key or raw credential material is committed or persisted.
+    verification:
+      type: automated_gate
+      gate: security/gitleaks
+  - id: DOD-07
+    requirement: Failure, timeout and missing evidence remain fail-safe and cannot produce PASS.
+    verification:
+      type: review_evidence
+      required_evidence: negative_failure_tests
+  - id: DOD-08
+    requirement: Runtime changes have rollback evidence; documentation-only work declares NO_RUNTIME_CHANGE.
+    verification:
+      type: review_evidence
+      required_evidence: rollback_result_or_NO_RUNTIME_CHANGE
+  - id: DOD-09
+    requirement: Issue and canonical backlog status are reconciled with evidence comments.
+    verification:
+      type: review_evidence
+      required_evidence: issue_status_and_tracker_comment
+  - id: DOD-10
+    requirement: FINAL is not declared while production criteria remain NOT_RUN or NOT_IMPLEMENTED.
+    verification:
+      type: automated_and_review
+      required_evidence: finality_assessment
+
+critical_functions:
+  - id: CF-01
+    name: Authorization and deterministic refusal
+    owner_plane: control
+    failure_policy: fail_closed
+    degraded_mode: refuse_new_execution
+    recovery_evidence: signed_contract_and_decision_replay
+  - id: CF-02
+    name: Emergency stop and revocation
+    owner_plane: control
+    failure_policy: stop_or_quarantine
+    degraded_mode: no_new_dispatch_and_operator_escalation
+    recovery_evidence: kill_switch_and_cancellation_proof
+  - id: CF-03
+    name: Evidence integrity and chain of custody
+    owner_plane: evidence
+    failure_policy: verdict_inconclusive
+    degraded_mode: retain_restricted_evidence_and_block_sharing
+    recovery_evidence: hash_provenance_and_replay
+  - id: CF-04
+    name: Transactional laboratory cleanup
+    owner_plane: runtime
+    failure_policy: quarantine
+    degraded_mode: block_reuse
+    recovery_evidence: zero_residue_proof
+  - id: CF-05
+    name: Canonical runtime consistency
+    owner_plane: execution
+    failure_policy: block_execution
+    degraded_mode: read_only_diagnostics
+    recovery_evidence: source_of_truth_and_drift_check
+
+resilience_objectives:
+  - id: RO-01
+    function: CF-01
+    metric: invalid_or_unverifiable_authorization_refusal_rate
+    target: "100%"
+    evidence_state: demonstrated_contract_layer
+    evidence: platform/tests/test_roe_contract.py
+  - id: RO-02
+    function: CF-02
+    metric: active_kill_switch_allows_new_step
+    target: "0"
+    evidence_state: demonstrated_decision_layer_runtime_NOT_RUN
+    evidence: platform/tests/test_roe_contract.py
+  - id: RO-03
+    function: CF-03
+    metric: persisted_evidence_without_hash_provenance
+    target: "0"
+    evidence_state: planned
+    evidence: SVP2-D-01
+  - id: RO-04
+    function: CF-04
+    metric: laboratory_reused_without_zero_residue_proof
+    target: "0"
+    evidence_state: planned
+    evidence: SVP2-B-03
+  - id: RO-05
+    function: CF-05
+    metric: execution_allowed_with_canonical_runtime_drift
+    target: "0"
+    evidence_state: partial
+    evidence: platform/tests/test_runtime_source_of_truth.py
+
+releases:
+  - id: v2.0
+    milestone: SVP v2 Foundation
+    phases: [1]
+    epics: [SVP2-A-01, SVP2-A-02, SVP2-A-03, SVP2-B-02]
+    exit_criteria:
+      - Canonical architecture and lifecycle documentation are validated.
+      - Rules of Engagement and Runner Protocol candidates are fail-closed.
+      - Every included epic satisfies Definition of Done or records an explicit non-final limitation.
+  - id: v2.1
+    milestone: SVP v2 Runtime
+    phases: [2, 3]
+    epics: [SVP2-B-01, SVP2-B-03, SVP2-C-01, SVP2-C-02, SVP2-D-01]
+    exit_criteria:
+      - Typed execution, capability registry, Evidence Plane and image promotion are integrated.
+      - Runtime rollback and cleanup evidence is available.
+  - id: v2.2
+    milestone: SVP v2 Knowledge
+    phases: [4, 5]
+    epics: [SVP2-D-02, SVP2-E-01, SVP2-E-02]
+    exit_criteria:
+      - Failure testing and capability maturity are evidence-backed.
+      - Knowledge provenance, precedence and snapshots are operational.
+  - id: v2.3
+    milestone: SVP v2 Validation
+    phases: [6, 7]
+    epics: [SVP2-F-01, SVP2-F-02, SVP2-G-01, SVP2-H-01, SVP2-I-01, SVP2-J-01, SVP2-J-02, SVP2-K-01]
+    exit_criteria:
+      - Content promotion, labs, threat-informed validation, findings and interoperability meet their gates.
+  - id: v2.4
+    milestone: SVP v2 Expansion
+    phases: [8]
+    epics: [SVP2-L-01]
+    exit_criteria:
+      - Each new domain has demonstrated lifecycle, cleanup, evidence and authorization controls.
+
+release_rules:
+  - no_release_without_post_merge_green_main
+  - no_release_with_unresolved_required_gate
+  - no_runtime_release_without_rollback_evidence
+  - no_final_claim_with_NOT_RUN_or_NOT_IMPLEMENTED_acceptance_criteria
+  - release_notes_reference_merge_commits_and_evidence

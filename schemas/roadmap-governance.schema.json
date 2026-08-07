@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/pestoura/hermes-security-labs/schemas/roadmap-governance.schema.json",
+  "title": "Security Validation Platform roadmap governance",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "governance_id",
+    "source_of_truth",
+    "backlog",
+    "label_taxonomy",
+    "status_transitions",
+    "Definition_of_Ready",
+    "Definition_of_Done",
+    "critical_functions",
+    "resilience_objectives",
+    "releases",
+    "release_rules"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "governance_id": {"type": "string", "minLength": 8},
+    "source_of_truth": {"type": "string", "minLength": 5},
+    "backlog": {"type": "string", "minLength": 5},
+    "label_taxonomy": {"type": "object"},
+    "status_transitions": {"type": "object"},
+    "Definition_of_Ready": {
+      "type": "array",
+      "minItems": 8,
+      "items": {"$ref": "#/$defs/criterion"}
+    },
+    "Definition_of_Done": {
+      "type": "array",
+      "minItems": 10,
+      "items": {"$ref": "#/$defs/criterion"}
+    },
+    "critical_functions": {
+      "type": "array",
+      "minItems": 5,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "name", "owner_plane", "failure_policy", "degraded_mode", "recovery_evidence"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^CF-[0-9]{2}$"},
+          "name": {"type": "string", "minLength": 8},
+          "owner_plane": {"enum": ["control", "execution", "runtime", "evidence"]},
+          "failure_policy": {"type": "string", "minLength": 5},
+          "degraded_mode": {"type": "string", "minLength": 5},
+          "recovery_evidence": {"type": "string", "minLength": 5}
+        }
+      }
+    },
+    "resilience_objectives": {
+      "type": "array",
+      "minItems": 5,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "function", "metric", "target", "evidence_state", "evidence"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^RO-[0-9]{2}$"},
+          "function": {"type": "string", "pattern": "^CF-[0-9]{2}$"},
+          "metric": {"type": "string", "minLength": 5},
+          "target": {"type": "string", "minLength": 1},
+          "evidence_state": {"type": "string", "minLength": 3},
+          "evidence": {"type": "string", "minLength": 3}
+        }
+      }
+    },
+    "releases": {
+      "type": "array",
+      "minItems": 5,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "milestone", "phases", "epics", "exit_criteria"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^v2\\.[0-4]$"},
+          "milestone": {"type": "string", "minLength": 5},
+          "phases": {"type": "array", "minItems": 1, "items": {"type": "integer", "minimum": 1, "maximum": 8}},
+          "epics": {"type": "array", "minItems": 1, "items": {"type": "string", "pattern": "^SVP2-[A-L]-[0-9]{2}$"}},
+          "exit_criteria": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 10}}
+        }
+      }
+    },
+    "release_rules": {"type": "array", "minItems": 5, "items": {"type": "string", "minLength": 8}}
+  },
+  "$defs": {
+    "criterion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "requirement", "verification"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^DO[RD]-[0-9]{2}$"},
+        "requirement": {"type": "string", "minLength": 10},
+        "verification": {"type": "object", "minProperties": 2}
+      }
+    }
+  }
+}
