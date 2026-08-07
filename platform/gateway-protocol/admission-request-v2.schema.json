@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/pestoura/hermes-security-labs/platform/gateway-protocol/admission-request-v2.schema.json",
+  "title": "Typed Security Gateway canonical admission request v2",
+  "description": "Canonical external admission contract. Version 2 requires UUID correlation identifiers and never accepts a caller-supplied authorization decision.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "request_id",
+    "campaign_id",
+    "run_id",
+    "step_id",
+    "attempt_id",
+    "requested_at",
+    "profile",
+    "operation",
+    "target",
+    "roe_step_request_id",
+    "contract_payload_sha256",
+    "runtime_observation",
+    "capability_attestations"
+  ],
+  "properties": {
+    "schema_version": {"const": "2.0.0"},
+    "request_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "campaign_id": {"type": "string", "format": "uuid"},
+    "run_id": {"type": "string", "format": "uuid"},
+    "step_id": {"type": "string", "format": "uuid"},
+    "attempt_id": {"type": "string", "format": "uuid"},
+    "requested_at": {"type": "string", "format": "date-time"},
+    "profile": {"type": "string", "minLength": 1, "maxLength": 64},
+    "operation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "version", "parameters"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 128,
+          "pattern": "^[a-z0-9]+(?:[._-][a-z0-9]+)*$"
+        },
+        "version": {"type": "string", "minLength": 1, "maxLength": 32},
+        "parameters": {"type": "object", "additionalProperties": true}
+      }
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "value"],
+      "properties": {
+        "type": {"type": "string", "enum": ["lab-asset", "cidr", "hostname", "url", "ip"]},
+        "value": {"type": "string", "minLength": 1, "maxLength": 2048}
+      }
+    },
+    "roe_step_request_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "contract_payload_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "runtime_observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "canonical_root", "canonical_sha256", "observed_at"],
+      "properties": {
+        "state": {"type": "string", "enum": ["IN_SYNC", "DRIFT_DETECTED", "UNKNOWN"]},
+        "canonical_root": {"const": "platform/registry.yaml"},
+        "canonical_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "observed_sha256": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"},
+        "observed_at": {"type": "string", "format": "date-time"}
+      }
+    },
+    "capability_attestations": {
+      "type": "array",
+      "uniqueItems": true,
+      "maxItems": 64,
+      "items": {"type": "string", "minLength": 1, "maxLength": 128}
+    }
+  }
+}
