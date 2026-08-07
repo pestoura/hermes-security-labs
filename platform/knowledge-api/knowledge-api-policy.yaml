@@ -1,0 +1,35 @@
+schema_version: "1.0"
+policy_id: security-knowledge-api-policy
+queries:
+  snapshot_required: true
+  minimum_confidence_required: true
+  supported:
+    - entity
+    - relations
+    - applicability
+    - temporal_series
+temporal_series:
+  append_only: true
+  supported:
+    - epss
+    - kev
+    - vex
+campaigns:
+  knowledge_snapshot_required: true
+  proposals_executable: false
+  authorization_source: CONTROL_PLANE_ONLY
+  forbidden_proposal_fields:
+    - command
+    - argv
+    - shell
+    - cwd
+    - environment
+    - executable
+    - entrypoint
+runtime_status:
+  http_api: NOT_IMPLEMENTED
+  database: NOT_IMPLEMENTED
+  graph_query_engine: NOT_IMPLEMENTED
+  external_sync: NOT_RUN
+  production_planner: NOT_RUN
+  production_temporal_ingestion: NOT_RUN
