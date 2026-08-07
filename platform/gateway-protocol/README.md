@@ -52,9 +52,78 @@ caller-supplied `roe_decision` and is therefore **not** an enforcement
 boundary on its own; it must be reached through `authorize_admission()`. No
 new bypass is introduced by this block.
 
+## Canonical Runner Protocol v2 handoff
+
+`runner_handoff.py::build_step_request()` is the canonical path that turns an
+*admitted* typed operation into a Runner Protocol v2 `runner.step.request`. It
+imports the canonical `runner_protocol_v2` SDK and duplicates no protocol
+schema or logic.
+
+- authorization is derived internally by calling `authorize_admission()`; a
+  caller-supplied `admission_decision`, `roe_decision`, `roe_decision_ref`,
+  `authorized` or `authorization_ref` is refused with
+  `HANDOFF_CALLER_SUPPLIED_AUTHORIZATION` before anything else runs;
+- a message is built only after a positive admission **and** successful
+  `runner_protocol_v2.validate_semantics()`; any refusal or integration defect
+  returns `runner_request=None`. There is no partial construction and no
+  partial effect;
+- the positive outcome field is named `request_built`, not `dispatched`: it
+  states only that a valid `runner.step.request` was *constructed*. Nothing in
+  this block dispatches, sends, schedules, accepts or executes a request, and
+  no result field may be read as evidence that it did;
+- `RunnerHandoffResult` separates two confidentiality levels. Its metadata
+  (codes, identifiers, `authorization_ref`, `idempotency_key`,
+  `request_fingerprint`) is sanitized and safe to record as a decision.
+  `runner_request` is **not** sanitized: it deliberately carries the raw target
+  and the operation parameters for future runner consumption, so it is
+  RESTRICTED operational payload, is excluded from the dataclass `repr()` and
+  must never be logged or persisted as a decision. `sanitized_summary()`
+  returns the log-safe projection, with `runner_request_present` as a boolean
+  presence flag only;
+- the emitted `authorization_ref` is a deterministic, content-addressed
+  SHA-256 digest (`roe-authz:v1:<digest>`) over the sanitized admitted
+  authorization context — campaign, gateway request/step, RoE step request,
+  contract payload hash, operation id/version, capability, canonical target
+  digest and intrusiveness level, plus the `run_id`. `attempt_id` is
+  deliberately excluded so retries of the same logical step share the same
+  authorization reference, while a different `run_id` yields a different one.
+  It is a **reference**: not a bearer token,
+  not a grant, not a capability and not a signature, and it authorizes nothing
+  by itself. The raw target value is never part of it, only its digest.
+  Runtime resolution of the reference against a trusted authority / control
+  plane is `NOT_IMPLEMENTED` and `NOT_RUN`;
+- the four Runner Protocol correlation identifiers are preserved exactly.
+  Runner Protocol v2 requires UUIDs while the existing gateway schema still
+  allows non-UUID identifiers; that gap is exposed fail-closed here with
+  `CORRELATION_NOT_UUID:<field>`. No substitute UUID is generated and no
+  identifier is silently normalized. The gateway schema is deliberately left
+  unchanged in this block;
+- `idempotency_key` is derived from the logical effect and the authorization
+  context, excluding `attempt_id` and timestamps, so a retry under a new
+  attempt keeps the same key while a changed effect changes both the key and
+  the canonical `request_fingerprint`;
+- `operation.input` is derived only from the typed target, the already
+  validated operation parameters and minimal operation/capability metadata.
+  Command, shell, argv, cwd, environment and secret-like fields are refused;
+- timeout, retry, cancellation and progress behaviour comes from the typed
+  service configuration `RunnerHandoffConfig` / `RunnerDispatchPolicy`, never
+  from request-level data, and is validated against the canonical Runner
+  Protocol bounds and error taxonomy. Request data can never widen a budget or
+  amplify authorization;
+- `emitted_at` is produced internally in UTC; no caller-overridable clock is
+  exposed.
+
+This block proves the boundary only. It is not connected to the synthetic
+candidates, the supervisor or any process, and no runner, laboratory, network
+or target is contacted: `execution_integration: NOT_RUN`,
+`NO_RUNTIME_CHANGE`.
+
 ## Status
 
 - typed contract and decision logic: `CANDIDATE`;
+- canonical gateway -> Runner Protocol v2 handoff: `CANDIDATE`;
+- runtime authorization-ref resolution: `NOT_IMPLEMENTED` / `NOT_RUN`;
+- runner execution integration: `execution_integration: NOT_RUN`;
 - canonical admission boundary: `CANDIDATE`;
 - runtime gateway integration: `NOT_RUN`;
 - normal profile arbitrary command exposure: `FORBIDDEN`;

@@ -302,6 +302,31 @@ therefore uses the deliberately narrower state `PASS_SYNTHETIC`, while preservin
 `PASS_SYNTHETIC` proves protocol behaviour only. It cannot be used as evidence of production
 safety, operational readiness or real API-runner conformance.
 
+## Canonical gateway handoff
+
+The canonical producer of a `runner.step.request` inside this repository is
+[`platform/gateway-protocol/runner_handoff.py`](../gateway-protocol/runner_handoff.py).
+It imports this SDK (`request_fingerprint`, `validate_semantics`) instead of
+duplicating protocol schema or logic, derives authorization internally through
+the gateway admission API, and emits a message only when admission is positive
+and semantic validation passes.
+
+The `authorization_ref` it emits is a deterministic, content-addressed
+reference (`roe-authz:v1:<sha256>`) over the sanitized admitted authorization
+context. Consistent with this protocol's `authorization_source:
+hermes_control_plane` rule, it is **not** a bearer token, grant, capability or
+signature: it authorizes nothing and a future runtime must resolve it against a
+trusted authority/control plane before acting. That resolution is
+`NOT_IMPLEMENTED` and `NOT_RUN`.
+
+A positive handoff outcome is reported as `request_built`, never as
+`dispatched`: it means a valid message was constructed, not that anything was
+sent, accepted or executed.
+
+The handoff is boundary-only: it is not wired to the synthetic candidates, the
+supervisor or any process. `execution_integration: NOT_RUN`, sandbox
+`NOT_IMPLEMENTED`, promotion blocked, `NO_RUNTIME_CHANGE`.
+
 ## Non-goals of this block
 
 - no production runner adapter or gateway enforcement;

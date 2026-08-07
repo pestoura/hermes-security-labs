@@ -6,6 +6,7 @@ ROOT = Path(__file__).resolve().parents[2]
 INTENT = ROOT / "docs/roadmap/epics/EPIC-03-typed-kali-mcp.md"
 AS_BUILT = ROOT / "docs/roadmap/EPIC-03-typed-gateway-contract-candidate-as-built.md"
 README = ROOT / "platform/gateway-protocol/README.md"
+RUNNER_README = ROOT / "platform/runner-protocol/README.md"
 REGISTRY = ROOT / "platform/gateway-protocol/operation-registry.yaml"
 
 
@@ -50,6 +51,31 @@ def test_gateway_readme_preserves_unimplemented_runtime_boundaries() -> None:
     assert "gateway deployment: `NOT_RUN`" in text
     assert "production runtime observation: `NOT_RUN`" in text
     assert "runtime changes: `NO_RUNTIME_CHANGE`" in text
+
+
+def test_gateway_readme_declares_the_handoff_as_non_runtime() -> None:
+    text = README.read_text(encoding="utf-8")
+
+    assert "canonical gateway -> Runner Protocol v2 handoff: `CANDIDATE`" in text
+    assert "runtime authorization-ref resolution: `NOT_IMPLEMENTED` / `NOT_RUN`" in text
+    assert "runner execution integration: `execution_integration: NOT_RUN`" in text
+    assert "`NO_RUNTIME_CHANGE`" in text
+
+
+def test_gateway_readme_does_not_call_message_construction_a_dispatch() -> None:
+    text = README.read_text(encoding="utf-8")
+
+    assert "`request_built`, not `dispatched`" in text
+    assert "RESTRICTED operational payload" in text
+    assert "`attempt_id` is\n  deliberately excluded" in text
+
+
+def test_runner_protocol_readme_declares_the_handoff_as_reference_only() -> None:
+    text = RUNNER_README.read_text(encoding="utf-8")
+
+    assert "a bearer token, grant, capability or" in text
+    assert "`NOT_IMPLEMENTED` and `NOT_RUN`" in text
+    assert "`execution_integration: NOT_RUN`" in text
 
 
 def test_normal_profile_inventory_remains_explicit_and_non_intrusive() -> None:
