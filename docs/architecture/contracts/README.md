@@ -19,7 +19,7 @@ This inventory identifies the contracts that cross Security Validation Platform 
 | Operator decision and authorization request | `TB0` | control plane / `SVP2-A-02` | authenticated operator → Hermes | Rules of Engagement as Code (`EPIC-28`) | `IMPLEMENTING`; RoE contract/trust-store/kill-switch repository logic exists; deployed operator/control-plane integration `NOT_RUN` | missing identity, approval or active authorization prevents planning and execution |
 | Active authorization reference | `TB1` | **Hermes control plane** | **Hermes → execution gateway** | `platform/authorization-contract/` + RoE/typed-gateway owners (`EPIC-28`, `EPIC-03`) | `IMPLEMENTING`; signed receipt schema, purpose-bound trust contract and execution-plane verifier are repository candidates; Hermes operational issuance and deployed verification `NOT_IMPLEMENTED` / `NOT_RUN` | missing receipt, invalid signature, expired receipt, wrong key purpose/domain, reference mismatch or scope/binding mismatch is refused before runner-message construction |
 | Typed execution request | `TB1` | gateway protocol owner / `SVP2-B-01` | Hermes → gateway | Typed Kali MCP (`EPIC-03`) | `IMPLEMENTING`; legacy v1 request/admission schemas remain transitional compatibility; canonical v2 schemas require UUID campaign/run/step/attempt correlation; deployed Kali MCP handlers/runtime `NOT_RUN` | unknown schema version, invalid v2 UUID correlation, unknown operation/version/schema or unauthorized effect is refused without partial execution; v1→v2 migration never generates or rewrites IDs |
-| Typed execution outcome | `TB1` | gateway protocol owner / `SVP2-B-01` | gateway → Hermes | Typed Kali MCP (`EPIC-03`) | `INTENT` for deployed outcome path | malformed or unverifiable outcome is inconclusive and cannot yield `PASS` |
+| Typed execution outcome | `TB1` | gateway protocol owner / `SVP2-B-01` | gateway → Hermes | `platform/gateway-protocol/gateway-execution-outcome.schema.json` + `outcome.py` (`EPIC-03`) | `IMPLEMENTING`; sanitized outcome schema/derivation and sealed-request integrity context are repository candidates; real runner identity/transport authentication and deployed receive path `NOT_IMPLEMENTED` / `NOT_RUN` | malformed outcome, correlation mismatch, changed sealed request context or unverifiable Runner Protocol semantics is refused; raw runner output, evidence URI and free-form error text never cross this contract |
 | Runner dispatch and result | internal execution boundary | Runner Protocol owner / `SVP2-B-02` | gateway → runner → gateway | Runner Protocol v2 (`EPIC-05`) | contract, conformance-kit, SDK, durable ledger, POSIX process supervisor and fixed-worker API/DevSecOps/AI-MCP supervised candidates `AS_BUILT`; all three status `PASS_SYNTHETIC_PROCESS`; calibrated AI/MCP runtime remains disconnected; sandbox and all production execution `NOT_RUN`; [`platform/runner-protocol/`](../../../platform/runner-protocol/README.md) | missing correlation, incompatibility, timeout, cancellation or verified cleanup is a normalized non-success outcome |
 | Laboratory target and network attachment | `TB2` | lifecycle owner / `SVP2-B-03` | runner/runtime → registered laboratory | Transactional lifecycle (`EPIC-04`) | `INTENT`; current lifecycle remains separate | target or network outside the active laboratory contract is refused |
 | Evidence write envelope | `TB3` | Evidence Plane owner / `SVP2-D-01` | runner and laboratory observers → evidence plane | Evidence Plane (`EPIC-10`) | `INTENT` | missing identifiers, classification or integrity metadata rejects the record or marks execution inconclusive |
@@ -45,6 +45,8 @@ For the canonical typed execution request v2, all four execution correlation ide
 
 For the TB1 active authorization contract specifically, `attempt_id` is not part of the authorization grant: retries of the same logical step may reuse a still-valid control-plane receipt. The Runner Protocol still carries `attempt_id` in correlation and idempotency/fingerprint logic remains attempt-safe.
 
+The typed execution outcome is a **sanitized derivative**, not the raw Runner Protocol outcome. Before any future transport, the gateway seals the complete built Runner request as canonical JSON and stores its SHA-256 separately from the logical request fingerprint. The derivative carries exact correlation, the non-bearer authorization reference, idempotency key, logical fingerprint, sealed-request digest, operation identity, terminal status, timestamps and evidence identifiers/classification/digests. Raw runner `output`, evidence `uri`, error `message` and error `safe_context` are excluded. The raw outcome itself is not hashed into the control-plane derivative because arbitrary raw output may contain sensitive low-entropy material; integrity of retained raw artefacts belongs to evidence-reference digests and the future Evidence Plane.
+
 ## Contract authority and precedence
 
 ```mermaid
@@ -53,6 +55,8 @@ flowchart LR
   KN[Knowledge proposal] -. non-executable .-> CP
   CP -->|TB1 signed authorization receipt + typed request| GW[Execution gateway]
   GW --> RP[Runner Protocol]
+  RP -->|terminal outcome| GW
+  GW -->|TB1 sanitized typed outcome| CP
   RP -->|TB2 bounded target access| LAB[Registered laboratory]
   RP -->|TB3 classified evidence write| EV[Evidence plane]
   EV -->|TB4 sanitized derivative| PUB[Authorized consumer]
@@ -64,10 +68,11 @@ Precedence rules:
 2. **only Hermes/control plane may issue execution authorization**;
 3. the execution gateway may recompute a TB1 reference solely to validate receipt integrity, and may restrict or refuse, but may not create, expand or approve authorization;
 4. the canonical gateway/admission request contract v2 requires UUID execution correlation and unknown versions fail closed;
-5. a runtime profile or capability may restrict authorization further but may not expand it;
-6. evidence records describe what happened and do not retroactively authorize it;
-7. knowledge proposals influence planning but never execution authority;
-8. an issue, comment or runtime-local configuration cannot override the versioned canonical contract.
+5. the typed execution outcome describes a terminal Runner Protocol result and can never create, extend or retroactively validate authorization;
+6. a runtime profile or capability may restrict authorization further but may not expand it;
+7. evidence records describe what happened and do not retroactively authorize it;
+8. knowledge proposals influence planning but never execution authority;
+9. an issue, comment or runtime-local configuration cannot override the versioned canonical contract.
 
 A naked `authorization_ref` is never a bearer grant. The execution plane accepts authority only through a valid signed control-plane receipt whose reference, signature, validity window, purpose/domain and admitted context all verify.
 
@@ -77,7 +82,7 @@ A contract change requires an ADR when it changes authority, a boundary, a refus
 
 Gateway/admission correlation versioning is governed by [ADR-0010](../adr/ADR-0010-versioned-uuid-correlation-contract.md): v1 remains intact, v2 adds mandatory UUID correlation, and the migration helper is no-rewrite/fail-closed.
 
-The corrective TB1 receipt contract converges implementation on existing ADR-0001; it does **not** modify ADR-0001 to legitimize execution-plane authorization issuance.
+The corrective TB1 receipt contract converges implementation on existing ADR-0001; it does **not** modify ADR-0001 to legitimize execution-plane authorization issuance. The typed execution outcome implements the already-declared gateway → Hermes TB1 result contract and therefore does not change authority or trust-boundary ownership.
 
 ## Implementation status discipline
 
