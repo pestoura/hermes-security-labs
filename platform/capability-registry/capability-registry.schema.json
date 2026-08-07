@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hex0r.local/schemas/capability-registry-v1.json",
+  "title": "Security Validation Capability Registry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "registry_id", "capabilities"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "registry_id": {"type": "string", "minLength": 1, "maxLength": 64},
+    "capabilities": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/capability"}
+    }
+  },
+  "$defs": {
+    "capability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id", "profile", "version", "state", "promotion", "authorization",
+        "compatibility", "supply_chain", "revoked"
+      ],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{1,127}$"},
+        "profile": {
+          "enum": ["web-api", "devsecops", "ai-mcp", "exploitation", "kubernetes", "identity", "cloud", "mobile", "iot-ot"]
+        },
+        "version": {"type": "string", "minLength": 1, "maxLength": 64},
+        "state": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["installed", "executable", "functionally_tested"],
+          "properties": {
+            "installed": {"type": "boolean"},
+            "executable": {"type": "boolean"},
+            "functionally_tested": {"type": "boolean"}
+          }
+        },
+        "authorization": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["authorized", "policy_id"],
+          "properties": {
+            "authorized": {"type": "boolean"},
+            "policy_id": {"type": ["string", "null"], "maxLength": 128}
+          }
+        },
+        "compatibility": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["compatible", "protocol_version"],
+          "properties": {
+            "compatible": {"type": "boolean"},
+            "protocol_version": {"type": "string", "minLength": 1, "maxLength": 32}
+          }
+        },
+        "promotion": {"enum": ["development", "candidate", "stable", "quarantined", "revoked"]},
+        "supply_chain": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["sbom", "signature", "provenance", "scan_blockers"],
+          "properties": {
+            "sbom": {"type": ["string", "null"], "maxLength": 256},
+            "signature": {"type": ["string", "null"], "maxLength": 256},
+            "provenance": {"type": ["string", "null"], "maxLength": 256},
+            "scan_blockers": {"type": "integer", "minimum": 0}
+          }
+        },
+        "revoked": {"type": "boolean"}
+      }
+    }
+  }
+}
