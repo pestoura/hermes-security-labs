@@ -8,7 +8,7 @@ This directory implements the repository-level contract for the **Active authori
 
 The contract therefore uses a signed **authorization receipt**:
 
-1. Hermes evaluates the active authorization/RoE context.
+1. Hermes evaluates the active authorization/RoE context and the exact typed operation effect.
 2. Hermes derives `authorization_ref` from the sanitized authorization body using domain-separated canonical JSON.
 3. Hermes signs the complete receipt, including the derived reference.
 4. The gateway verifies the receipt using a dedicated, purpose-bound public-key trust store.
@@ -27,11 +27,14 @@ The receipt contains identifiers and digests only:
 - RoE contract ID and canonical payload SHA-256;
 - RoE step-request ID;
 - operation ID/version and capability;
+- canonical SHA-256 of the validated operation parameters, never the raw parameters;
 - target SHA-256 digest, never the raw target;
 - intrusiveness level;
 - detached signature envelope.
 
-It does **not** carry raw target values, operation parameters, credentials, tokens or secrets. `attempt_id` is deliberately excluded so a retry of the same logical step can reuse the same authorization receipt/reference.
+The parameter digest prevents a caller from changing the typed operation effect after Hermes has issued authorization. A parameter change requires a new control-plane receipt/reference even when the operation ID, target and intrusiveness level remain unchanged.
+
+The receipt does **not** carry raw target values, operation parameters, credentials, tokens or secrets. `attempt_id` is deliberately excluded so a retry of the same logical step can reuse the same still-valid authorization receipt/reference.
 
 Maximum receipt lifetime is **15 minutes**. Expired or not-yet-valid receipts fail closed.
 
@@ -49,11 +52,15 @@ A Rules of Engagement signing trust store does not contain this purpose/domain a
 
 Private keys, seeds, passphrases, tokens and credentials are rejected from trust-store inputs and are never committed to the repository.
 
+## Deterministic refusal semantics
+
+Version, domain and purpose mismatches have dedicated refusal codes and are checked before the generic strict-schema gate. Missing required fields remain schema-invalid. Unknown, revoked, retired, expired and not-yet-valid keys, malformed/invalid signatures, receipt validity failures and reference/body mismatches all fail closed.
+
 ## Files
 
 - `authorization-receipt.schema.json` — strict signed receipt schema.
 - `authorization-trust-store.schema.json` — strict purpose-bound public-key trust store schema.
-- `authorization_receipt.py` — canonicalization/reference helpers and fail-closed verifier.
+- `authorization_receipt.py` — canonicalization/reference/parameter-digest helpers and fail-closed verifier.
 
 ## Runtime status
 
