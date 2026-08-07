@@ -26,14 +26,15 @@ def test_epic35_is_implementing_not_as_built_or_final() -> None:
 
 def test_extension_contract_preserves_authority_and_runtime_nonclaims() -> None:
     text = EPIC_35.read_text(encoding="utf-8")
+    normalized = text.lower()
     assert "sole execution-authorization authority" in text
     assert "never creates, grants or expands an `authorization_ref`" in text
-    assert "not a production cryptographic signature-verification implementation" in text
-    assert "production cryptographic signature verification: `NOT_RUN`" in text
-    assert "extension loading/import: `NOT_RUN`" in text
-    assert "runtime isolation/sandbox enforcement: `NOT_RUN`" in text
-    assert "production effective permission-intersection enforcement: `NOT_IMPLEMENTED` / `NOT_RUN`" in text
-    assert "third-party extension execution: `NOT_RUN`" in text
+    assert "not a production cryptographic signature-verification implementation" in normalized
+    assert "production cryptographic signature verification: `not_run`" in normalized
+    assert "extension loading/import: `not_run`" in normalized
+    assert "runtime isolation/sandbox enforcement: `not_run`" in normalized
+    assert "production effective permission-intersection enforcement: `not_implemented` / `not_run`" in normalized
+    assert "third-party extension execution: `not_run`" in normalized
 
 
 def test_machine_readable_catalogue_matches_k01_lifecycle() -> None:
