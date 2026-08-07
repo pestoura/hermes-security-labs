@@ -34,6 +34,35 @@
     },
     "rationale": {"type": "string", "minLength": 1}
   },
+  "allOf": [
+    {
+      "if": {"properties": {"relation_kind": {"const": "VULNERABILITY_TO_CWE"}}},
+      "then": {
+        "properties": {
+          "from_entity": {"$ref": "#/$defs/vulnerability"},
+          "to_entity": {"$ref": "#/$defs/cwe"}
+        }
+      }
+    },
+    {
+      "if": {"properties": {"relation_kind": {"const": "CWE_TO_CAPEC"}}},
+      "then": {
+        "properties": {
+          "from_entity": {"$ref": "#/$defs/cwe"},
+          "to_entity": {"$ref": "#/$defs/capec"}
+        }
+      }
+    },
+    {
+      "if": {"properties": {"relation_kind": {"const": "CAPEC_TO_ATTACK"}}},
+      "then": {
+        "properties": {
+          "from_entity": {"$ref": "#/$defs/capec"},
+          "to_entity": {"$ref": "#/$defs/attack"}
+        }
+      }
+    }
+  ],
   "$defs": {
     "entity": {
       "type": "object",
@@ -42,6 +71,42 @@
       "properties": {
         "type": {"enum": ["vulnerability", "cwe", "capec", "attack"]},
         "id": {"type": "string", "minLength": 1, "maxLength": 128}
+      }
+    },
+    "vulnerability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "id"],
+      "properties": {
+        "type": {"const": "vulnerability"},
+        "id": {"type": "string", "pattern": "^CVE-[0-9]{4}-[0-9]{4,}$"}
+      }
+    },
+    "cwe": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "id"],
+      "properties": {
+        "type": {"const": "cwe"},
+        "id": {"type": "string", "pattern": "^CWE-[0-9]+$"}
+      }
+    },
+    "capec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "id"],
+      "properties": {
+        "type": {"const": "capec"},
+        "id": {"type": "string", "pattern": "^CAPEC-[0-9]+$"}
+      }
+    },
+    "attack": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "id"],
+      "properties": {
+        "type": {"const": "attack"},
+        "id": {"type": "string", "pattern": "^T[0-9]{4}(\\.[0-9]{3})?$"}
       }
     }
   }
