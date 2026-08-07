@@ -7,7 +7,9 @@ other runtime mutation.
 
 A structurally valid partial/unavailable scan can never produce ``CLEAR``.
 Definite orphan evidence still produces ``ORPHANS_DETECTED`` even when the
-snapshot is partial. Resource references are opaque identifiers only; raw paths,
+snapshot is partial. Legitimately retained quarantine residue is reported as
+``TRACKED_RESIDUE`` rather than ``CLEAR`` so it cannot be confused with a
+zero-residue proof. Resource references are opaque identifiers only; raw paths,
 targets, commands, sockets and credentials are outside this contract.
 """
 
@@ -107,11 +109,13 @@ def assess_orphans(observation: Mapping[str, Any]) -> OrphanAssessmentResult:
     if orphan_count:
         result = "ORPHANS_DETECTED"
         codes.append("ORPHANS_FOUND")
-    elif scanner_state == "COMPLETE":
+    elif scanner_state != "COMPLETE":
+        result = "INCONCLUSIVE"
+    elif tracked_quarantine_count:
+        result = "TRACKED_RESIDUE"
+    else:
         result = "CLEAR"
         codes.append("CLEAR_COMPLETE")
-    else:
-        result = "INCONCLUSIVE"
 
     if scanner_state == "PARTIAL":
         codes.append("SCAN_PARTIAL")
