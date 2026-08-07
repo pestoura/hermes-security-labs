@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hex0r.local/schemas/finding-v1.json",
+  "title": "Auditable Security Finding",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "finding_id", "title", "state", "risk", "root_cause", "systemic", "evidence_before", "evidence_after", "remediation_effectiveness", "history", "reopened"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "finding_id": {"type": "string", "pattern": "^fd_[a-f0-9]{32}$"},
+    "title": {"type": "string", "minLength": 1, "maxLength": 256},
+    "state": {"enum": ["OBSERVED", "VALIDATED", "TRIAGED", "ASSIGNED", "FIXED", "RETEST", "VERIFIED", "CLOSED", "ACCEPTED_RISK", "REGRESSED"]},
+    "risk": {"type": "object"},
+    "root_cause": {"type": "string", "minLength": 1},
+    "systemic": {"type": "boolean"},
+    "evidence_before": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "evidence_after": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "remediation_effectiveness": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+    "history": {"type": "array", "minItems": 1},
+    "reopened": {"type": "boolean"}
+  }
+}
