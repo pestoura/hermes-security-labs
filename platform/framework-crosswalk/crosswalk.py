@@ -23,20 +23,72 @@ CANONICAL_PHASES = (
 
 AUTHORIZATION_MODES = {"CONTROL_PLANE_ONLY", "AUTHORIZED_EXECUTION", "NON_EXECUTION"}
 RELATIONS = {"aligned_with", "supports", "informed_by", "overlaps"}
-CONFIDENCE_BANDS = {
-    "low": (0.30, 0.60),
-    "medium": (0.60, 0.85),
-    "high": (0.85, 1.0000001),
-}
 ALLOWED_DOMAINS = {"general", "web_application"}
+SEMVER_RE = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+$")
 FORBIDDEN_AUTHORITY_KEYS = {
+    "authorization",
+    "authorization_decision",
+    "authorization_receipt",
+    "authorization_receipt_ref",
     "authorization_ref",
     "execution_authorized",
     "execution_allowed",
     "grant_authorization",
     "approved_for_execution",
+    "roe_decision",
 }
 FORBIDDEN_CLAIM_WORDS = {"certified", "compliant", "compliance"}
+
+METHODOLOGY_KEYS = {
+    "schema_version",
+    "methodology_id",
+    "methodology_version",
+    "status",
+    "principles",
+    "phases",
+    "runtime_status",
+}
+PHASE_KEYS = {
+    "phase_id",
+    "order",
+    "title",
+    "purpose",
+    "authorization_mode",
+    "execution_possible",
+    "required_inputs",
+    "exit_evidence",
+    "allowed_next",
+}
+CROSSWALK_KEYS = {
+    "schema_version",
+    "dataset_id",
+    "dataset_version",
+    "methodology_ref",
+    "frameworks",
+    "mappings",
+    "runtime_status",
+}
+FRAMEWORK_KEYS = {
+    "framework_id",
+    "framework_version",
+    "title",
+    "source_locator",
+    "source_status",
+}
+MAPPING_KEYS = {
+    "mapping_id",
+    "phase_id",
+    "framework_id",
+    "target_ref",
+    "target_label",
+    "relation",
+    "confidence",
+    "confidence_score",
+    "rationale",
+    "advisory_only",
+    "applicability",
+}
+APPLICABILITY_KEYS = {"domains"}
 
 
 def _canonical_json(value: Any) -> bytes:
@@ -59,16 +111,29 @@ def _words(value: str) -> set[str]:
     return set(re.findall(r"[a-z]+", value.lower()))
 
 
+def _require_exact_keys(value: Mapping[str, Any], expected: set[str], label: str) -> None:
+    actual = {str(key) for key in value}
+    if actual != expected:
+        missing = sorted(expected - actual)
+        extra = sorted(actual - expected)
+        raise CrosswalkError(f"{label} fields mismatch: missing={missing}, extra={extra}")
+
+
 def validate_methodology(methodology: Mapping[str, Any]) -> dict[str, Any]:
+    _require_exact_keys(methodology, METHODOLOGY_KEYS, "methodology")
     if methodology.get("schema_version") != "1.0":
         raise CrosswalkError("unsupported methodology schema version")
     if methodology.get("methodology_id") != "svp2-security-validation-methodology":
         raise CrosswalkError("unexpected methodology id")
     version = methodology.get("methodology_version")
-    if not isinstance(version, str) or not version:
-        raise CrosswalkError("methodology version is required")
+    if not isinstance(version, str) or not SEMVER_RE.fullmatch(version):
+        raise CrosswalkError("methodology version must be semantic x.y.z")
     if methodology.get("status") != "candidate":
         raise CrosswalkError("only candidate methodology status is supported")
+
+    principles = methodology.get("principles")
+    if not isinstance(principles, list) or len(principles) < 5 or len(set(principles)) != len(principles):
+        raise CrosswalkError("methodology principles must contain at least five unique values")
 
     phases = methodology.get("phases")
     if not isinstance(phases, list) or len(phases) != len(CANONICAL_PHASES):
@@ -84,6 +149,7 @@ def validate_methodology(methodology: Mapping[str, Any]) -> dict[str, Any]:
     for phase in phases:
         if not isinstance(phase, Mapping):
             raise CrosswalkError("phase must be an object")
+        _require_exact_keys(phase, PHASE_KEYS, "phase")
         mode = phase.get("authorization_mode")
         execution_possible = phase.get("execution_possible")
         if mode not in AUTHORIZATION_MODES:
@@ -97,12 +163,12 @@ def validate_methodology(methodology: Mapping[str, Any]) -> dict[str, Any]:
         required_inputs = phase.get("required_inputs")
         exit_evidence = phase.get("exit_evidence")
         allowed_next = phase.get("allowed_next")
-        if not isinstance(required_inputs, list) or not required_inputs:
-            raise CrosswalkError("each phase requires explicit inputs")
-        if not isinstance(exit_evidence, list) or not exit_evidence:
-            raise CrosswalkError("each phase requires explicit exit evidence")
-        if not isinstance(allowed_next, list):
-            raise CrosswalkError("allowed_next must be a list")
+        if not isinstance(required_inputs, list) or not required_inputs or len(set(required_inputs)) != len(required_inputs):
+            raise CrosswalkError("each phase requires unique explicit inputs")
+        if not isinstance(exit_evidence, list) or not exit_evidence or len(set(exit_evidence)) != len(exit_evidence):
+            raise CrosswalkError("each phase requires unique explicit exit evidence")
+        if not isinstance(allowed_next, list) or len(set(allowed_next)) != len(allowed_next):
+            raise CrosswalkError("allowed_next must be a unique list")
         if set(allowed_next).difference(known):
             raise CrosswalkError("allowed_next references an unknown phase")
         if execution_possible and "active_authorization" not in required_inputs:
@@ -128,23 +194,37 @@ def validate_methodology(methodology: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def _confidence_matches(label: str, score: Any) -> bool:
-    if label not in CONFIDENCE_BANDS or isinstance(score, bool) or not isinstance(score, (int, float)):
+    if isinstance(score, bool) or not isinstance(score, (int, float)):
         return False
-    low, high = CONFIDENCE_BANDS[label]
-    return low <= float(score) < high
+    numeric = float(score)
+    if not 0.0 <= numeric <= 1.0:
+        return False
+    if label == "low":
+        return 0.30 <= numeric < 0.60
+    if label == "medium":
+        return 0.60 <= numeric < 0.85
+    if label == "high":
+        return 0.85 <= numeric <= 1.00
+    return False
 
 
 def validate_crosswalk(
     dataset: Mapping[str, Any],
     methodology: Mapping[str, Any],
 ) -> dict[str, Any]:
+    forbidden_keys = _walk_keys(dataset).intersection(FORBIDDEN_AUTHORITY_KEYS)
+    if forbidden_keys:
+        raise CrosswalkError("crosswalk data may not carry execution authority fields")
+    _require_exact_keys(dataset, CROSSWALK_KEYS, "crosswalk")
+
     validated_methodology = validate_methodology(methodology)
     if dataset.get("schema_version") != "1.0":
         raise CrosswalkError("unsupported crosswalk schema version")
     if dataset.get("dataset_id") != "svp2-framework-crosswalk":
         raise CrosswalkError("unexpected crosswalk dataset id")
-    if not dataset.get("dataset_version"):
-        raise CrosswalkError("dataset version is required")
+    dataset_version = dataset.get("dataset_version")
+    if not isinstance(dataset_version, str) or not SEMVER_RE.fullmatch(dataset_version):
+        raise CrosswalkError("dataset version must be semantic x.y.z")
 
     expected_ref = (
         f"{validated_methodology['methodology_id']}@"
@@ -160,6 +240,7 @@ def validate_crosswalk(
     for framework in frameworks:
         if not isinstance(framework, Mapping):
             raise CrosswalkError("framework registry entry must be an object")
+        _require_exact_keys(framework, FRAMEWORK_KEYS, "framework")
         framework_id = framework.get("framework_id")
         if not isinstance(framework_id, str) or not framework_id or framework_id in framework_by_id:
             raise CrosswalkError("framework ids must be unique and non-empty")
@@ -179,6 +260,7 @@ def validate_crosswalk(
     for mapping in mappings:
         if not isinstance(mapping, Mapping):
             raise CrosswalkError("mapping must be an object")
+        _require_exact_keys(mapping, MAPPING_KEYS, "mapping")
         mapping_id = mapping.get("mapping_id")
         if not isinstance(mapping_id, str) or not mapping_id or mapping_id in seen_mapping_ids:
             raise CrosswalkError("mapping ids must be unique and non-empty")
@@ -193,18 +275,18 @@ def validate_crosswalk(
             raise CrosswalkError("framework mappings are advisory only")
         if not _confidence_matches(str(mapping.get("confidence")), mapping.get("confidence_score")):
             raise CrosswalkError("confidence label and score are inconsistent")
-        domains = mapping.get("applicability", {}).get("domains") if isinstance(mapping.get("applicability"), Mapping) else None
-        if not isinstance(domains, list) or not domains or set(domains).difference(ALLOWED_DOMAINS):
+        applicability = mapping.get("applicability")
+        if not isinstance(applicability, Mapping):
+            raise CrosswalkError("mapping applicability is required")
+        _require_exact_keys(applicability, APPLICABILITY_KEYS, "applicability")
+        domains = applicability.get("domains")
+        if not isinstance(domains, list) or not domains or len(set(domains)) != len(domains) or set(domains).difference(ALLOWED_DOMAINS):
             raise CrosswalkError("mapping applicability domains are invalid")
         if not mapping.get("target_ref") or not mapping.get("target_label") or not mapping.get("rationale"):
             raise CrosswalkError("mapping target and rationale are required")
         words = _words(f"{mapping['target_label']} {mapping['rationale']}")
         if words.intersection(FORBIDDEN_CLAIM_WORDS):
             raise CrosswalkError("mapping may not make certification or compliance claims")
-
-    forbidden_keys = _walk_keys(dataset).intersection(FORBIDDEN_AUTHORITY_KEYS)
-    if forbidden_keys:
-        raise CrosswalkError("crosswalk data may not carry execution authority fields")
 
     expected_runtime = {
         "authoritative_external_sync": "NOT_RUN",
