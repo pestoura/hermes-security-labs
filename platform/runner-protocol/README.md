@@ -312,14 +312,15 @@ handoff requires a **separate signed TB1 authorization receipt issued by the
 Hermes control plane**, verifies that receipt with the dedicated
 `tb1-authorization` trust purpose/domain, independently re-runs the signed RoE
 and typed gateway admission checks, and requires exact binding between both
-views of the authorization context.
+views of the authorization context, including the canonical digest of the
+validated typed-operation parameters.
 
 The `authorization_ref` in `runner.step.request` is copied exactly from the
 verified Hermes receipt. The gateway does **not** create, expand or approve the
 authorization. It may recompute the expected reference only inside receipt
 verification as an integrity check; this does not constitute issuance.
 
-The reference uses the TB1 domain (`tb1-authz:v1:<sha256>`) and is **not a bearer token, grant, capability or signature**. It authorizes nothing and grants nothing by possession. A naked reference or caller-supplied authorization is refused. Hermes operational receipt issuance and deployed authorization validation remain `NOT_IMPLEMENTED` / `NOT_RUN`.
+The reference uses the TB1 domain (`tb1-authz:v1:<sha256>`) and is **not a bearer token, grant, capability or signature**. It authorizes nothing and grants nothing by possession. A naked reference or caller-supplied authorization is refused. Hermes operational receipt issuance remains `NOT_IMPLEMENTED` and `NOT_RUN`; deployed authorization validation remains `NOT_RUN`.
 
 A positive handoff outcome is reported as `request_built`, never as
 `dispatched`: it means a valid message was constructed, not that anything was
