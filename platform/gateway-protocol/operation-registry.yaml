@@ -1,0 +1,106 @@
+schema_version: 1.0.0
+registry_id: hexor.gateway.operations
+canonical_runtime_root: platform/registry.yaml
+generic_execution: forbidden
+profiles:
+  normal:
+    generic_execution: false
+    operations:
+    - system.health.read
+    - runtime.inventory.read
+    - web.discovery.headers
+    - web.discovery.tls
+  controlled:
+    generic_execution: false
+    operations:
+    - system.health.read
+    - runtime.inventory.read
+    - web.discovery.headers
+    - web.discovery.tls
+    - web.validation.sql-injection
+    - lab.lifecycle.stop
+operations:
+- id: system.health.read
+  version: 1.0.0
+  handler_ref: candidate.system.health.read
+  intrusiveness_level: L0
+  required_capabilities:
+  - system.health.read
+  parameters_schema:
+    type: object
+    additionalProperties: false
+  side_effect: none
+  production_status: NOT_RUN
+- id: runtime.inventory.read
+  version: 1.0.0
+  handler_ref: candidate.runtime.inventory.read
+  intrusiveness_level: L0
+  required_capabilities:
+  - runtime.inventory.read
+  parameters_schema:
+    type: object
+    additionalProperties: false
+  side_effect: read-only
+  production_status: NOT_RUN
+- id: web.discovery.headers
+  version: 1.0.0
+  handler_ref: candidate.web.discovery.headers
+  intrusiveness_level: L1
+  required_capabilities:
+  - web.discovery.headers
+  parameters_schema:
+    type: object
+    additionalProperties: false
+    properties:
+      follow_redirects:
+        type: boolean
+  side_effect: read-only
+  production_status: NOT_RUN
+- id: web.discovery.tls
+  version: 1.0.0
+  handler_ref: candidate.web.discovery.tls
+  intrusiveness_level: L1
+  required_capabilities:
+  - web.discovery.tls
+  parameters_schema:
+    type: object
+    additionalProperties: false
+  side_effect: read-only
+  production_status: NOT_RUN
+- id: web.validation.sql-injection
+  version: 1.0.0
+  handler_ref: candidate.web.validation.sql_injection
+  intrusiveness_level: L2
+  required_capabilities:
+  - web.validation.sql-injection
+  parameters_schema:
+    type: object
+    additionalProperties: false
+    required:
+    - validation_case_id
+    properties:
+      validation_case_id:
+        type: string
+        pattern: ^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$
+  side_effect: synthetic-only
+  production_status: NOT_RUN
+- id: lab.lifecycle.stop
+  version: 1.0.0
+  handler_ref: candidate.lab.lifecycle.stop
+  intrusiveness_level: L2
+  required_capabilities:
+  - lab.lifecycle.stop
+  parameters_schema:
+    type: object
+    additionalProperties: false
+    required:
+    - reason_code
+    properties:
+      reason_code:
+        type: string
+        enum:
+        - KILL_SWITCH
+        - STOP_CONDITION
+        - OPERATOR_REQUEST
+  side_effect: synthetic-only
+  production_status: NOT_RUN
