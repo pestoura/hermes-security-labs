@@ -12,7 +12,7 @@ DOCS = {
     "EPIC-38": ROOT / "docs/roadmap/epics/EPIC-38-cwe-capec-attack-semantic-chain.md",
     "EPIC-39": ROOT / "docs/roadmap/epics/EPIC-39-attack-synchronization-service.md",
 }
-INTENT_ONLY = {"EPIC-37", "EPIC-38", "EPIC-39"}
+INTENT_ONLY = {"EPIC-38", "EPIC-39"}
 
 
 def _catalogue() -> dict[str, dict]:
@@ -32,7 +32,21 @@ def test_epic36_is_implementing_but_not_final() -> None:
     assert "NO_RUNTIME_CHANGE" in text
 
 
-def test_generic_fabric_does_not_promote_specific_services() -> None:
+def test_epic37_is_implementing_without_runtime_claims() -> None:
+    text = DOCS["EPIC-37"].read_text(encoding="utf-8")
+    assert "**IMPLEMENTING**" in text
+    assert "| IMPLEMENTING | yes |" in text
+    assert "| AS_BUILT | no |" in text
+    assert "| FINAL | no |" in text
+    assert "PR #184" in text
+    assert "external NVD/CISA/FIRST network fetch: `NOT_RUN`" in text
+    assert "automatic source updates: `NOT_IMPLEMENTED`" in text
+    assert "production ingestion pipeline: `NOT_IMPLEMENTED`" in text
+    assert "Hermes / Control Plane remains the sole execution-authorization authority" in text
+    assert "NO_RUNTIME_CHANGE" in text
+
+
+def test_generic_fabric_does_not_promote_unimplemented_specific_services() -> None:
     for concept_id in INTENT_ONLY:
         text = DOCS[concept_id].read_text(encoding="utf-8")
         assert "**INTENT**" in text
@@ -55,6 +69,13 @@ def test_machine_readable_catalogue_matches_e01_boundary() -> None:
     epic21 = catalogue["EPIC-21"]
     assert epic21["status"] == "as_built"
     assert "PR #182" in epic21["current_state"]
+
+    epic37 = catalogue["EPIC-37"]
+    assert epic37["status"] == "implementing"
+    assert "PR #184" in epic37["current_state"]
+    assert "NOT_RUN" in epic37["current_state"]
+    assert "NOT_IMPLEMENTED" in epic37["current_state"]
+    assert "NO_RUNTIME_CHANGE" in epic37["current_state"]
 
     for concept_id in INTENT_ONLY:
         item = catalogue[concept_id]
