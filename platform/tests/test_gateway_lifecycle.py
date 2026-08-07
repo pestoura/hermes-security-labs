@@ -62,6 +62,14 @@ def test_gateway_readme_declares_the_handoff_as_non_runtime() -> None:
     assert "`NO_RUNTIME_CHANGE`" in text
 
 
+def test_gateway_readme_does_not_call_message_construction_a_dispatch() -> None:
+    text = README.read_text(encoding="utf-8")
+
+    assert "`request_built`, not `dispatched`" in text
+    assert "RESTRICTED operational payload" in text
+    assert "`attempt_id` is\n  deliberately excluded" in text
+
+
 def test_runner_protocol_readme_declares_the_handoff_as_reference_only() -> None:
     text = RUNNER_README.read_text(encoding="utf-8")
 

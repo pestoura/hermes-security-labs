@@ -12,9 +12,12 @@ inputs are refused before anything else happens.
 
 Boundary: message construction only. Nothing here dispatches, connects,
 executes, schedules, spawns a process, touches a runner, a laboratory, a
-network or a target. Refusal is fail-closed and total: either a fully
-validated ``runner.step.request`` is returned, or ``runner_request`` is
-``None``. There is no partial dispatch and no partial effect.
+network or a target. A positive result means exactly one thing: a valid
+``runner.step.request`` message was *built*. It never means the request was
+dispatched, sent, accepted or executed. Refusal is fail-closed and total:
+either a fully validated ``runner.step.request`` is returned, or
+``runner_request`` is ``None``. There is no partial construction and no
+partial effect.
 
 The emitted ``authorization_ref`` is a **reference**, not a bearer token, not a
 grant, not a capability and not a signature. It is a deterministic,
@@ -95,12 +98,15 @@ class RunnerHandoffConfigError(ValueError):
 
 @dataclass(frozen=True)
 class RunnerDispatchPolicy:
-    """Typed SERVICE-level dispatch policy.
+    """Typed SERVICE-level dispatch policy carried *inside* the built message.
 
-    Timeout, retry, cancellation and progress behaviour is configured by the
-    operating service, never by request-level data. Request data can therefore
-    not widen a budget, add retries or change cancellation semantics, and can
-    never amplify authorization.
+    These are the timeout, retry, cancellation and progress fields a future
+    runner would honour. Holding them here does not dispatch anything: this
+    module only writes them into the ``runner.step.request`` it builds.
+
+    They are configured by the operating service, never by request-level data.
+    Request data can therefore not widen a budget, add retries or change
+    cancellation semantics, and can never amplify authorization.
     """
 
     soft_timeout_ms: int = 30_000
@@ -169,14 +175,29 @@ class RunnerHandoffConfig:
 
 @dataclass(frozen=True)
 class RunnerHandoffResult:
-    """Sanitized handoff outcome.
+    """Outcome of building a ``runner.step.request``.
 
-    Only stable codes, stable identifiers and content-addressed references are
-    exposed. Targets, operation parameters, contract signatures and key
-    material never appear here.
+    ``request_built`` is the only positive state and it is deliberately
+    factual: it means a valid ``runner.step.request`` message was constructed.
+    It does **not** mean the request was dispatched, sent, accepted, scheduled
+    or executed; nothing in this module performs any of those.
+
+    Confidentiality boundary:
+
+    - the result *metadata* (``codes``, ``admission_codes``, the identifiers,
+      ``authorization_ref``, ``idempotency_key``, ``request_fingerprint``) is
+      sanitized: it carries no target value, no operation parameters, no
+      contract signature and no key material, and is safe to log or persist as
+      a decision record;
+    - ``runner_request``, when present, is **not** sanitized. It deliberately
+      carries the raw target and the operation parameters because a future
+      runner must consume them. It is RESTRICTED operational payload: it must
+      not be logged, printed or persisted as a decision. It is therefore
+      excluded from ``repr()``; use :meth:`sanitized_summary` for anything
+      log-shaped.
     """
 
-    dispatched: bool
+    request_built: bool
     codes: tuple[str, ...]
     admission_codes: tuple[str, ...]
     request_id: str | None
@@ -186,7 +207,31 @@ class RunnerHandoffResult:
     authorization_ref: str | None
     idempotency_key: str | None
     request_fingerprint: str | None
-    runner_request: dict[str, Any] | None
+    runner_request: dict[str, Any] | None = field(repr=False, default=None)
+
+    def sanitized_summary(self) -> dict[str, Any]:
+        """Return the log-safe projection of this outcome.
+
+        Contains stable codes, stable identifiers and content-addressed
+        references only. It never contains the target value, operation
+        parameters, contract or signature material, key material, trust-store
+        paths or the ``runner_request`` payload. ``runner_request_present`` is
+        a boolean presence flag, not the payload.
+        """
+
+        return {
+            "request_built": bool(self.request_built),
+            "codes": list(self.codes),
+            "admission_codes": list(self.admission_codes),
+            "request_id": self.request_id,
+            "campaign_id": self.campaign_id,
+            "operation_id": self.operation_id,
+            "operation_version": self.operation_version,
+            "authorization_ref": self.authorization_ref,
+            "idempotency_key": self.idempotency_key,
+            "request_fingerprint": self.request_fingerprint,
+            "runner_request_present": self.runner_request is not None,
+        }
 
     @classmethod
     def refuse(
@@ -199,7 +244,7 @@ class RunnerHandoffResult:
         unique = tuple(dict.fromkeys(codes)) or ("HANDOFF_REFUSED",)
         operation = request.get("operation") if isinstance(request, Mapping) else None
         return cls(
-            dispatched=False,
+            request_built=False,
             codes=unique,
             admission_codes=tuple(admission_codes),
             request_id=_identifier(request, "request_id"),
@@ -218,6 +263,12 @@ def build_authorization_ref(context: Mapping[str, Any]) -> str:
 
     The digest covers the sanitized admitted authorization context only. The
     raw target value is never part of it: only its canonical SHA-256 digest is.
+    The canonical context binds the campaign, the ``run_id``, the gateway
+    request/step, the RoE step request, the contract payload hash, the
+    operation id/version, the capability and the intrusiveness level.
+    ``attempt_id`` is deliberately excluded so retries of the same logical step
+    share the same authorization reference.
+
     The result is a REFERENCE — it is not a bearer token, not a grant, not a
     capability and not a signature, and it authorizes nothing by itself.
     """
@@ -297,13 +348,13 @@ def build_step_request(
         return RunnerHandoffResult.refuse(
             ("RUNNER_INPUT_FORBIDDEN_FIELD",), request, admission_codes=decision.codes
         )
-    except Exception:  # noqa: BLE001 - fail closed, never partially dispatch
+    except Exception:  # noqa: BLE001 - fail closed, never emit a partial message
         return RunnerHandoffResult.refuse(
             ("HANDOFF_INTEGRATION_ERROR",), request, admission_codes=decision.codes
         )
 
     return RunnerHandoffResult(
-        dispatched=True,
+        request_built=True,
         codes=("HANDOFF_STEP_REQUEST_BUILT",),
         admission_codes=decision.codes,
         request_id=decision.request_id,
@@ -333,6 +384,7 @@ def _assemble_message(
         {
             "authorization_ref_version": 1,
             "campaign_id": str(request["campaign_id"]),
+            "run_id": str(request["run_id"]),
             "gateway_request_id": str(request["request_id"]),
             "gateway_step_id": str(request["step_id"]),
             "roe_step_request_id": str(request["roe_step_request_id"]),

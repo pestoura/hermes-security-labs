@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import base64
 import copy
+import dataclasses
 import hashlib
 import importlib.util
 import json
@@ -36,6 +37,7 @@ RUN_UUID = "5c9d7e2a-8b41-4f6d-9a03-2d4e6f8a1b2c"
 STEP_UUID = "7b1e4d3c-2a95-4c8e-8f10-3e5d7c9b1a24"
 ATTEMPT_UUID = "9a3c5e71-4d62-4b18-8e27-5f7a9c1d3b46"
 ATTEMPT_UUID_RETRY = "1d4f6a82-5e73-4c29-9f38-6a8b0d2e4c57"
+RUN_UUID_OTHER = "2e5a7b93-6f84-4d3a-8b19-7c9d1e3f5a68"
 KEY_ID = "-".join(("roe", "signing", "handoff", "ed25519"))
 KEY_NOT_BEFORE = "2000-01-01T00:00:00Z"
 KEY_NOT_AFTER = "2100-01-01T00:00:00Z"
@@ -54,6 +56,7 @@ def _load(module_name: str, path: Path) -> Any:
 
 roe_contract = _load("roe_contract_handoff_test", CONTRACT_DIR / "roe_contract.py")
 handoff = _load("runner_handoff_under_test", GATEWAY_DIR / "runner_handoff.py")
+gateway_protocol = handoff.gateway_protocol
 
 
 # --------------------------------------------------------------------------
@@ -285,7 +288,7 @@ def _call(scenario: dict[str, Any], **overrides: Any) -> Any:
 def test_admitted_handoff_builds_a_valid_runner_step_request(scenario) -> None:
     result = _call(scenario)
 
-    assert result.dispatched is True
+    assert result.request_built is True
     assert result.codes == ("HANDOFF_STEP_REQUEST_BUILT",)
     assert result.admission_codes == ("ADMIT_TYPED_OPERATION",)
     message = result.runner_request
@@ -378,7 +381,7 @@ def test_out_of_bound_dispatch_policy_refuses_before_admission(
     )
     result = _call(scenario, config=config)
 
-    assert result.dispatched is False
+    assert result.request_built is False
     assert result.runner_request is None
     assert result.codes == (code,)
 
@@ -412,7 +415,7 @@ def test_caller_supplied_authorization_or_policy_field_is_refused(
 
     result = _call(scenario, request=request)
 
-    assert result.dispatched is False
+    assert result.request_built is False
     assert result.runner_request is None
     assert result.codes == ("HANDOFF_CALLER_SUPPLIED_AUTHORIZATION",)
 
@@ -427,7 +430,7 @@ def test_forged_caller_allow_on_revoked_contract_never_dispatches(scenario) -> N
 
     result = _call(scenario, request=request, contract=contract)
 
-    assert result.dispatched is False
+    assert result.request_built is False
     assert result.runner_request is None
     assert result.codes == ("HANDOFF_CALLER_SUPPLIED_AUTHORIZATION",)
 
@@ -441,7 +444,7 @@ def test_revoked_contract_refuses_without_runner_request(scenario) -> None:
 
     result = _call(scenario, request=request, contract=contract)
 
-    assert result.dispatched is False
+    assert result.request_built is False
     assert result.runner_request is None
     assert result.codes[0] == "ADMISSION_REFUSED"
     assert any(code.startswith("ROE_REFUSED:") for code in result.admission_codes)
@@ -455,7 +458,7 @@ def test_invalid_signature_refuses(scenario) -> None:
 
     result = _call(scenario, contract=contract)
 
-    assert result.dispatched is False
+    assert result.request_built is False
     assert result.runner_request is None
     assert result.codes[0] == "ADMISSION_REFUSED"
 
@@ -475,7 +478,7 @@ def test_expired_trust_store_key_refuses(tmp_path: Path) -> None:
 
     result = handoff.build_step_request(request, contract, _step_request(), config)
 
-    assert result.dispatched is False
+    assert result.request_built is False
     assert result.runner_request is None
 
 
@@ -487,7 +490,7 @@ def test_missing_trust_store_source_refuses(scenario) -> None:
 
     result = _call(scenario, config=config)
 
-    assert result.dispatched is False
+    assert result.request_built is False
     assert result.runner_request is None
     assert result.admission_codes == ("SIGNATURE_VERIFIER_UNAVAILABLE",)
 
@@ -500,7 +503,7 @@ def test_missing_kill_switch_source_refuses(scenario) -> None:
 
     result = _call(scenario, config=config)
 
-    assert result.dispatched is False
+    assert result.request_built is False
     assert result.runner_request is None
     assert result.admission_codes == ("KILL_SWITCH_SOURCE_REQUIRED",)
 
@@ -520,7 +523,7 @@ def test_engaged_kill_switch_refuses(scenario, tmp_path: Path) -> None:
 
     result = _call(scenario, config=config)
 
-    assert result.dispatched is False
+    assert result.request_built is False
     assert result.runner_request is None
     assert result.codes[0] == "ADMISSION_REFUSED"
 
@@ -533,7 +536,7 @@ def test_unreadable_kill_switch_refuses(scenario, tmp_path: Path) -> None:
 
     result = _call(scenario, config=config)
 
-    assert result.dispatched is False
+    assert result.request_built is False
     assert result.runner_request is None
 
 
@@ -551,7 +554,7 @@ def test_binding_mismatch_refuses_without_runner_request(scenario, mutation) -> 
 
     result = _call(scenario, request=request)
 
-    assert result.dispatched is False
+    assert result.request_built is False
     assert result.runner_request is None
 
 
@@ -561,7 +564,7 @@ def test_capability_mismatch_refuses(scenario) -> None:
 
     result = _call(scenario, step_request=step_request)
 
-    assert result.dispatched is False
+    assert result.request_built is False
     assert result.runner_request is None
 
 
@@ -571,7 +574,7 @@ def test_intrusiveness_mismatch_refuses(scenario) -> None:
 
     result = _call(scenario, step_request=step_request)
 
-    assert result.dispatched is False
+    assert result.request_built is False
     assert result.runner_request is None
 
 
@@ -598,7 +601,7 @@ def test_non_uuid_correlation_refuses_without_inventing_identifiers(
         scenario, request=request, contract=contract, step_request=step_request
     )
 
-    assert result.dispatched is False
+    assert result.request_built is False
     assert result.runner_request is None
     assert f"CORRELATION_NOT_UUID:{field}" in result.codes
 
@@ -648,8 +651,83 @@ def test_authorization_ref_changes_with_the_authorization_context(scenario) -> N
 
     other = _call(scenario, request=request, step_request=step_request)
 
-    assert other.dispatched is True
+    assert other.request_built is True
     assert other.authorization_ref != baseline
+
+
+def test_authorization_ref_binds_the_run_id(scenario) -> None:
+    baseline = _call(scenario)
+    other_run = copy.deepcopy(scenario["request"])
+    other_run["run_id"] = RUN_UUID_OTHER
+
+    other = _call(scenario, request=other_run)
+
+    assert other.request_built is True
+    assert other.authorization_ref != baseline.authorization_ref
+    assert other.idempotency_key != baseline.idempotency_key
+    assert other.request_fingerprint != baseline.request_fingerprint
+
+
+def test_authorization_ref_is_stable_across_a_new_attempt(scenario) -> None:
+    baseline = _call(scenario)
+    retry_request = copy.deepcopy(scenario["request"])
+    retry_request["attempt_id"] = ATTEMPT_UUID_RETRY
+
+    retry = _call(scenario, request=retry_request)
+
+    assert retry.request_built is True
+    assert retry.runner_request["correlation"]["attempt_id"] == ATTEMPT_UUID_RETRY
+    assert retry.authorization_ref == baseline.authorization_ref
+    assert retry.idempotency_key == baseline.idempotency_key
+    assert retry.request_fingerprint == baseline.request_fingerprint
+
+
+def test_authorization_ref_context_excludes_attempt_id_and_includes_run_id() -> None:
+    source = (GATEWAY_DIR / "runner_handoff.py").read_text(encoding="utf-8")
+    context_start = source.index("authorization_ref = build_authorization_ref(")
+    context_end = source.index("operation_input = {", context_start)
+    context = source[context_start:context_end]
+
+    assert '"run_id": str(request["run_id"])' in context
+    assert "attempt_id" not in context
+
+
+def test_target_and_operation_stay_bound_to_the_authorization_ref(scenario) -> None:
+    """The canonical context binds the target digest and the operation."""
+
+    result = _call(scenario)
+    message = result.runner_request
+    target = message["operation"]["input"]["target"]
+    context = {
+        "authorization_ref_version": 1,
+        "campaign_id": CAMPAIGN_UUID,
+        "run_id": RUN_UUID,
+        "gateway_request_id": scenario["request"]["request_id"],
+        "gateway_step_id": STEP_UUID,
+        "roe_step_request_id": STEP_REQUEST_ID,
+        "contract_payload_sha256": scenario["request"]["contract_payload_sha256"],
+        "operation_id": OPERATION_ID,
+        "operation_version": "1.0.0",
+        "capability_id": OPERATION_ID,
+        "target_sha256": gateway_protocol.canonical_target_digest(target),
+        "intrusiveness_level": scenario["step_request"]["intrusiveness_level"],
+    }
+
+    assert handoff.build_authorization_ref(context) == result.authorization_ref
+
+    other_digest = gateway_protocol.canonical_target_digest(
+        {"type": "lab-asset", "value": "dvwa-demo"}
+    )
+    for field_name, replacement in (
+        ("target_sha256", other_digest),
+        ("operation_id", "web.discovery.tls"),
+        ("operation_version", "2.0.0"),
+        ("capability_id", "web.discovery.tls"),
+        ("contract_payload_sha256", "0" * 64),
+        ("run_id", RUN_UUID_OTHER),
+    ):
+        mutated = dict(context, **{field_name: replacement})
+        assert handoff.build_authorization_ref(mutated) != result.authorization_ref
 
 
 def test_authorization_ref_is_documented_as_reference_not_bearer_token() -> None:
@@ -672,7 +750,7 @@ def test_idempotency_key_is_stable_across_a_new_attempt(scenario) -> None:
     retry_request["attempt_id"] = ATTEMPT_UUID_RETRY
     second = _call(scenario, request=retry_request)
 
-    assert second.dispatched is True
+    assert second.request_built is True
     assert second.runner_request["correlation"]["attempt_id"] == ATTEMPT_UUID_RETRY
     assert second.idempotency_key == first.idempotency_key
     assert second.request_fingerprint == first.request_fingerprint
@@ -688,7 +766,7 @@ def test_changed_effect_changes_idempotency_key_and_fingerprint(scenario) -> Non
 
     other = _call(scenario, request=changed)
 
-    assert other.dispatched is True
+    assert other.request_built is True
     assert other.idempotency_key != baseline.idempotency_key
     assert other.request_fingerprint != baseline.request_fingerprint
 
@@ -742,7 +820,7 @@ def test_command_and_secret_like_parameters_never_reach_the_runner(
 
     result = _call(scenario, request=request)
 
-    assert result.dispatched is False
+    assert result.request_built is False
     assert result.runner_request is None
 
 
@@ -768,23 +846,82 @@ def test_no_secret_like_key_appears_anywhere_in_the_runner_request(scenario) -> 
         assert forbidden not in serialized
 
 
-def test_result_repr_exposes_no_target_value_or_signature(scenario) -> None:
+def test_result_repr_never_exposes_the_runner_request_payload(scenario) -> None:
     result = _call(scenario)
-    rendered = repr(
-        handoff.RunnerHandoffResult(
-            dispatched=result.dispatched,
-            codes=result.codes,
-            admission_codes=result.admission_codes,
-            request_id=result.request_id,
-            campaign_id=result.campaign_id,
-            operation_id=result.operation_id,
-            operation_version=result.operation_version,
-            authorization_ref=result.authorization_ref,
-            idempotency_key=result.idempotency_key,
-            request_fingerprint=result.request_fingerprint,
-            runner_request=None,
-        )
-    )
 
+    assert result.request_built is True
+    assert result.runner_request is not None
+    rendered = repr(result)
+
+    assert "runner_request" not in rendered
     assert "juice-shop-demo" not in rendered
+    assert "follow_redirects" not in rendered
+    assert "parameters" not in rendered
     assert scenario["contract"]["signature"]["value"] not in rendered
+    assert str(scenario["config"].trust_store_path) not in rendered
+    assert str(scenario["config"].kill_switch_path) not in rendered
+    for forbidden in ("token", "password", "secret", "private_key", "public_key"):
+        assert forbidden not in rendered
+
+
+def test_sanitized_summary_is_log_safe_and_carries_no_payload(scenario) -> None:
+    result = _call(scenario)
+    summary = result.sanitized_summary()
+
+    assert summary["request_built"] is True
+    assert summary["runner_request_present"] is True
+    assert set(summary) == {
+        "request_built",
+        "codes",
+        "admission_codes",
+        "request_id",
+        "campaign_id",
+        "operation_id",
+        "operation_version",
+        "authorization_ref",
+        "idempotency_key",
+        "request_fingerprint",
+        "runner_request_present",
+    }
+
+    serialized = json.dumps(summary)
+    assert "juice-shop-demo" not in serialized
+    assert "follow_redirects" not in serialized
+    assert scenario["contract"]["signature"]["value"] not in serialized
+    assert str(scenario["config"].trust_store_path) not in serialized
+    assert str(scenario["config"].kill_switch_path) not in serialized
+    for forbidden in (
+        "token",
+        "password",
+        "secret",
+        "cookie",
+        "api_key",
+        "credential",
+        "private_key",
+        "public_key",
+        "signature",
+        "command",
+        "shell",
+        "argv",
+    ):
+        assert forbidden not in serialized
+
+
+def test_runner_request_is_still_usable_and_keeps_the_raw_target(scenario) -> None:
+    """Excluding the payload from repr must not make the request useless."""
+
+    message = _call(scenario).runner_request
+
+    assert message["operation"]["input"]["target"] == {
+        "type": "lab-asset",
+        "value": "juice-shop-demo",
+    }
+    assert message["operation"]["input"]["parameters"] == {"follow_redirects": False}
+
+
+def test_positive_state_is_named_for_construction_not_dispatch() -> None:
+    fields = {f.name for f in dataclasses.fields(handoff.RunnerHandoffResult)}
+
+    assert "request_built" in fields
+    for forbidden in ("dispatched", "executed", "sent", "delivered", "submitted"):
+        assert forbidden not in fields

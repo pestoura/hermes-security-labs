@@ -319,6 +319,10 @@ signature: it authorizes nothing and a future runtime must resolve it against a
 trusted authority/control plane before acting. That resolution is
 `NOT_IMPLEMENTED` and `NOT_RUN`.
 
+A positive handoff outcome is reported as `request_built`, never as
+`dispatched`: it means a valid message was constructed, not that anything was
+sent, accepted or executed.
+
 The handoff is boundary-only: it is not wired to the synthetic candidates, the
 supervisor or any process. `execution_integration: NOT_RUN`, sandbox
 `NOT_IMPLEMENTED`, promotion blocked, `NO_RUNTIME_CHANGE`.

@@ -65,13 +65,29 @@ schema or logic.
   `HANDOFF_CALLER_SUPPLIED_AUTHORIZATION` before anything else runs;
 - a message is built only after a positive admission **and** successful
   `runner_protocol_v2.validate_semantics()`; any refusal or integration defect
-  returns `runner_request=None`. There is no partial dispatch and no partial
-  effect;
+  returns `runner_request=None`. There is no partial construction and no
+  partial effect;
+- the positive outcome field is named `request_built`, not `dispatched`: it
+  states only that a valid `runner.step.request` was *constructed*. Nothing in
+  this block dispatches, sends, schedules, accepts or executes a request, and
+  no result field may be read as evidence that it did;
+- `RunnerHandoffResult` separates two confidentiality levels. Its metadata
+  (codes, identifiers, `authorization_ref`, `idempotency_key`,
+  `request_fingerprint`) is sanitized and safe to record as a decision.
+  `runner_request` is **not** sanitized: it deliberately carries the raw target
+  and the operation parameters for future runner consumption, so it is
+  RESTRICTED operational payload, is excluded from the dataclass `repr()` and
+  must never be logged or persisted as a decision. `sanitized_summary()`
+  returns the log-safe projection, with `runner_request_present` as a boolean
+  presence flag only;
 - the emitted `authorization_ref` is a deterministic, content-addressed
   SHA-256 digest (`roe-authz:v1:<digest>`) over the sanitized admitted
   authorization context — campaign, gateway request/step, RoE step request,
   contract payload hash, operation id/version, capability, canonical target
-  digest and intrusiveness level. It is a **reference**: not a bearer token,
+  digest and intrusiveness level, plus the `run_id`. `attempt_id` is
+  deliberately excluded so retries of the same logical step share the same
+  authorization reference, while a different `run_id` yields a different one.
+  It is a **reference**: not a bearer token,
   not a grant, not a capability and not a signature, and it authorizes nothing
   by itself. The raw target value is never part of it, only its digest.
   Runtime resolution of the reference against a trusted authority / control
