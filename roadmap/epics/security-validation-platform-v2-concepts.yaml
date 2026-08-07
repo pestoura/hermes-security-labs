@@ -96,12 +96,12 @@ concept_epics:
     pillar: B
     phase: 2
     priority: P0
-    status: intent
+    status: implementing
     umbrella_id: SVP2-B-03
     umbrella_issue: 81
     dependencies: [EPIC-03]
     doc_path: docs/roadmap/epics/EPIC-04-transactional-lifecycle-and-isolation.md
-    current_state: "Not implemented. Concept documented as intent only."
+    current_state: "IMPLEMENTING. Transactional lifecycle, isolation, zero-residue proof, quarantine and reuse-blocking contract logic from PR #139 are integrated in main. Docker lifecycle integration, real residue observation, snapshots/rollback execution and periodic orphan detection remain NOT_RUN/NOT_IMPLEMENTED."
     target_state: "Lab lifecycle is transactional: either the environment reaches the declared state, or it is rolled back with proof of zero residue."
   - concept_id: EPIC-05
     slug: runner-protocol-v2
@@ -148,12 +148,12 @@ concept_epics:
     pillar: B
     phase: 2
     priority: P0
-    status: intent
+    status: implementing
     umbrella_id: SVP2-B-03
     umbrella_issue: 81
     dependencies: [EPIC-04]
     doc_path: docs/roadmap/epics/EPIC-08-network-and-egress-policy.md
-    current_state: "Not implemented. Concept documented as intent only."
+    current_state: "IMPLEMENTING. Isolated deny-all and restricted governed-egress contract logic from PR #139 are integrated in main with effective-network validation. Real Docker/network enforcement, live deny-all observation and periodic orphan/network detection remain NOT_RUN/NOT_IMPLEMENTED."
     target_state: "A declarative network policy model with default-deny egress, explicit allowlists per lab family and auditable exceptions."
   - concept_id: EPIC-09
     slug: exploitation-safety

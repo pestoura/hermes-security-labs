@@ -10,13 +10,19 @@ README = ROOT / "platform/lab-lifecycle/README.md"
 POLICY = ROOT / "platform/lab-lifecycle/lifecycle-policy.yaml"
 
 
-def test_concept_epics_remain_intent_with_reserved_lifecycle_sections() -> None:
+def test_concept_epics_are_implementing_but_not_final() -> None:
     for path in (EPIC_04, EPIC_08):
         text = path.read_text(encoding="utf-8")
-        assert "**INTENT**" in text
+        assert "**IMPLEMENTING**" in text
+        assert "| IMPLEMENTING | yes |" in text
+        assert "| AS_BUILT | no |" in text
+        assert "| FINAL | no |" in text
         tail = text.split("## 14. Implementation notes", 1)[1]
         assert "Reserved" in tail
-        assert "| FINAL | no |" in text
+        assert "PR #139" in text
+        assert "591552d652fbff82d81f750535799380e9c643a9" in text
+        assert "31135492132" in text
+        assert "NO_RUNTIME_CHANGE" in text
 
 
 def test_supplementary_record_never_claims_runtime_or_final() -> None:
@@ -29,6 +35,10 @@ def test_supplementary_record_never_claims_runtime_or_final() -> None:
     assert "zero-residue observation against real resources: `NOT_RUN`" in text
     assert "periodic orphan detector: `NOT_IMPLEMENTED`" in text
     assert "runtime changes: `NO_RUNTIME_CHANGE`" in text
+    assert "Canonical epic lifecycle" in text
+    assert "`IMPLEMENTING`" in text
+    assert "31135492132" in text
+    assert "success" in text
 
 
 def test_supplementary_record_references_every_lifecycle_component() -> None:
