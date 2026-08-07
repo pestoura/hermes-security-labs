@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hex0r.local/schemas/purple-outcome-v1.json",
+  "title": "Purple Team Outcome",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "step_id", "state", "observed", "evidence_ids", "d3fend_refs"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "step_id": {"type": "string", "minLength": 1},
+    "state": {"enum": ["PREVENTED", "DETECTED", "OBSERVED_NOT_DETECTED", "DETECTED_NOT_ACTIONABLE", "NOT_OBSERVED"]},
+    "observed": {"type": "boolean"},
+    "evidence_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "d3fend_refs": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "time_to_detect_seconds": {"type": ["number", "null"], "minimum": 0},
+    "time_to_contain_seconds": {"type": ["number", "null"], "minimum": 0}
+  }
+}
