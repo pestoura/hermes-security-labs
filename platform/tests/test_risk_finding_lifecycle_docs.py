@@ -17,7 +17,8 @@ def _epic(concept_id: str) -> dict:
 def test_j01_concepts_are_as_built_not_final() -> None:
     for path in (EPIC_27, EPIC_33):
         text = path.read_text(encoding="utf-8")
-        assert "**AS_BUILT — repository contract**" in text
+        assert "**AS_BUILT**" in text
+        assert "repository contract" in text
         assert "| IMPLEMENTING | yes |" in text
         assert "| AS_BUILT | yes |" in text
         assert "| FINAL | no |" in text
@@ -38,6 +39,7 @@ def test_finding_lifecycle_preserves_operational_nonclaims() -> None:
     assert "customer remediation workflow: `NOT_RUN`" in text
     assert "real retest execution: `NOT_RUN`" in text
     assert "automatic risk acceptance: `NOT_IMPLEMENTED`" in text
+    assert "owner/expiry enforcement: `NOT_IMPLEMENTED`" in text
 
 
 def test_machine_readable_catalogue_matches_j01_as_built() -> None:
