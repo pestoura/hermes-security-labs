@@ -11,6 +11,7 @@
     "observed_at",
     "scanner_state",
     "result",
+    "codes",
     "orphan_count",
     "tracked_quarantine_count",
     "cleanup_performed",
@@ -22,6 +23,20 @@
     "observed_at": {"type": "string", "format": "date-time"},
     "scanner_state": {"enum": ["COMPLETE", "PARTIAL", "UNAVAILABLE"]},
     "result": {"enum": ["CLEAR", "ORPHANS_DETECTED", "INCONCLUSIVE"]},
+    "codes": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "CLEAR_COMPLETE",
+          "ORPHANS_FOUND",
+          "SCAN_PARTIAL",
+          "SCAN_UNAVAILABLE",
+          "TRACKED_QUARANTINE_PRESENT"
+        ]
+      }
+    },
     "orphan_count": {"type": "integer", "minimum": 0},
     "tracked_quarantine_count": {"type": "integer", "minimum": 0},
     "cleanup_performed": {"const": false},
