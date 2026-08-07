@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hex0r.local/schemas/knowledge-record-v1.json",
+  "title": "Security Knowledge Fabric Record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "record_id", "entity", "source", "ingested_at", "raw_sha256", "immutable_raw"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "record_id": {"type": "string", "pattern": "^kr_[a-f0-9]{32}$"},
+    "entity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "id"],
+      "properties": {
+        "type": {"enum": ["cve", "cpe", "purl", "cwe", "capec", "attack", "atlas", "kev", "epss", "csaf", "vex", "oscal", "owasp", "asset", "sbom"]},
+        "id": {"type": "string", "minLength": 1, "maxLength": 256}
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version", "retrieved_at", "locator"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1, "maxLength": 128},
+        "version": {"type": "string", "minLength": 1, "maxLength": 128},
+        "retrieved_at": {"type": "string", "format": "date-time"},
+        "locator": {"type": "string", "minLength": 1, "maxLength": 1024}
+      }
+    },
+    "ingested_at": {"type": "string", "format": "date-time"},
+    "raw_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "immutable_raw": {"const": true}
+  }
+}
