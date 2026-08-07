@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hex0r.local/schemas/extension-manifest-v1.json",
+  "title": "Security Validation Extension Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "extension_id", "kind", "version", "protocol_version", "permissions", "signature", "compatibility", "conformance", "lifecycle"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "extension_id": {"type": "string", "pattern": "^ext-[a-z0-9][a-z0-9-]{2,63}$"},
+    "kind": {"enum": ["capability-runner", "runtime-driver", "lab-driver", "evidence-adapter", "evaluator"]},
+    "version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
+    "protocol_version": {"type": "string", "minLength": 1, "maxLength": 32},
+    "permissions": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"enum": ["network:outbound", "evidence:read", "evidence:write", "lab:read", "lab:control", "runtime:read", "runtime:control", "filesystem:temp", "knowledge:read"]}
+    },
+    "signature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "signer", "artifact_sha256"],
+      "properties": {
+        "state": {"enum": ["verified", "unverified", "invalid", "revoked"]},
+        "signer": {"type": "string", "minLength": 1, "maxLength": 128},
+        "artifact_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+      }
+    },
+    "compatibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["compatible", "contract_version"],
+      "properties": {
+        "compatible": {"type": "boolean"},
+        "contract_version": {"type": "string", "minLength": 1, "maxLength": 32}
+      }
+    },
+    "conformance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["passed", "suite_version", "report_sha256"],
+      "properties": {
+        "passed": {"type": "boolean"},
+        "suite_version": {"type": "string", "minLength": 1, "maxLength": 32},
+        "report_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+      }
+    },
+    "lifecycle": {"enum": ["candidate", "certified", "quarantined", "deprecated", "revoked"]}
+  }
+}

@@ -1,0 +1,29 @@
+schema_version: "1.0"
+policy_id: security-extension-conformance
+sdk_families:
+  - capability-runner
+  - runtime-driver
+  - lab-driver
+  - evidence-adapter
+  - evaluator
+activation:
+  require_explicit_permissions: true
+  require_verified_signature_evidence: true
+  require_compatible_contract: true
+  require_conformance_pass: true
+  require_certified_lifecycle: true
+  generic_execution_fields_forbidden: true
+lifecycle:
+  activation_allowed:
+    - certified
+  activation_denied:
+    - candidate
+    - quarantined
+    - deprecated
+    - revoked
+runtime_status:
+  production_signature_verification: NOT_RUN
+  extension_loading: NOT_RUN
+  runtime_isolation: NOT_RUN
+  production_certification: NOT_RUN
+  third_party_extension_execution: NOT_RUN
