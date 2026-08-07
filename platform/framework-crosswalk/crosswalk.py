@@ -4,7 +4,7 @@ import hashlib
 import json
 import re
 from collections import Counter
-from typing import Any, Mapping, Sequence
+from typing import Any, Mapping
 
 
 class CrosswalkError(ValueError):
