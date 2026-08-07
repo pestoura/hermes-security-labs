@@ -34,7 +34,7 @@ Laboratory lifecycle operations can partially fail and leave residual containers
 
 Lab lifecycle is transactional: the repository contract defines declared transitions, compensating paths and fail-closed residue verification. A laboratory can become reusable only after the required state and evidence checks succeed; absence or inconsistency of cleanup evidence leads to quarantine rather than an optimistic success state.
 
-A separate orphan-assessment contract classifies normalized read-only observations as `CLEAR`, `ORPHANS_DETECTED` or `INCONCLUSIVE`. Detection is descriptive only; cleanup remains an explicitly separate future operation.
+A separate orphan-assessment contract classifies normalized read-only observations as `CLEAR`, `TRACKED_RESIDUE`, `ORPHANS_DETECTED` or `INCONCLUSIVE`. `CLEAR` is reserved for a complete scan with no orphan findings and no tracked quarantine residue. Detection is descriptive only; cleanup remains an explicitly separate future operation.
 
 ## 5. Scope and non-goals
 
@@ -92,6 +92,7 @@ flowchart LR
   RECORDS[Lifecycle records]
   ASSESS[Orphan assessor]
   CLEAR[CLEAR]
+  TRACKED[TRACKED_RESIDUE]
   FOUND[ORPHANS_DETECTED]
   INC[INCONCLUSIVE]
   CLEAN[Future cleanup/remediation]
@@ -99,9 +100,11 @@ flowchart LR
   OBS --> ASSESS
   RECORDS --> ASSESS
   ASSESS --> CLEAR
+  ASSESS --> TRACKED
   ASSESS --> FOUND
   ASSESS --> INC
   FOUND -. no automatic action .-> CLEAN
+  TRACKED -. no automatic action .-> CLEAN
 ```
 
 No runtime cleanup path exists in the current candidate.
@@ -141,6 +144,7 @@ Repository contract validation can proceed before real runtime integration. A fu
 - Detection logic automatically mutating runtime state
 - Raw paths or sensitive runtime identifiers leaking into observations/logs
 - Quarantined residue being retained indefinitely without an explicit retention deadline
+- Tracked quarantine residue being mistaken for a clean/zero-residue state
 
 Current repository invariants:
 
@@ -153,6 +157,7 @@ Current repository invariants:
 - definite orphan evidence remains `ORPHANS_DETECTED` even in a partial scan;
 - resources after `VERIFIED`, under unknown labs, mismatched campaigns or expired active contracts are orphan candidates;
 - quarantine residue is tracked only until its explicit retention deadline; absence/expiry of that deadline is an orphan condition;
+- live retained quarantine residue produces `TRACKED_RESIDUE`, never `CLEAR` and never a zero-residue claim;
 - cleanup-in-progress states are not prematurely classified as orphaned;
 - orphan assessment always records `cleanup_performed: false`;
 - runtime status remains `NOT_RUN`;
@@ -195,6 +200,7 @@ Repository-level criteria implemented by #139 and the current orphan-assessment 
 - L3/L4 contracts require recovery references;
 - `VERIFIED` requires a complete zero-residue proof;
 - incomplete orphan scans never produce a false `CLEAR`;
+- live quarantine-retention residue is reported as `TRACKED_RESIDUE`, not `CLEAR`;
 - structurally invalid/duplicated observations fail closed;
 - orphan assessment does not execute cleanup or runtime mutations;
 - opaque resource references prevent raw path input in this contract.
@@ -217,7 +223,7 @@ Existing repository evidence:
 - post-merge `validate` run `31135492132`: success;
 - PR #166 reconciled EPIC-04/08 lifecycle/source-of-truth and post-merge `security #1092` + `validate #1094` passed.
 
-Current block adds schema/adversarial tests for orphan classification, partial/unavailable scans, lifecycle/campaign mismatch, contract expiry, quarantine retention, duplicate observations and non-destructive summaries.
+Current block adds schema/adversarial tests for orphan classification, partial/unavailable scans, lifecycle/campaign mismatch, contract expiry, quarantine retention, duplicate observations, explicit tracked-residue semantics and non-destructive summaries.
 
 Deployment/runtime evidence remains `NOT_RUN` and must be referenced from issue #81 before the umbrella may close.
 
@@ -233,6 +239,7 @@ Deployment/runtime evidence remains `NOT_RUN` and must be referenced from issue 
 - A partial/unavailable scan cannot attest absence of orphans.
 - Definite orphan findings are preserved even when scan completeness is partial.
 - Quarantine retention is explicit and independent of the authorization contract expiry; the assessment only evaluates whether retention is declared and still active at observation time.
+- A complete scan with legitimate retained quarantine residue is `TRACKED_RESIDUE`, not `CLEAR`.
 
 ### Open questions
 
@@ -277,4 +284,4 @@ Current factual boundary:
 | --- | --- | --- |
 | 2026-08-06 | 1.0.0 | Initial intent document created from the concept epic catalogue. |
 | 2026-08-07 | 1.1.0 | Reconciled lifecycle to `IMPLEMENTING` using PR #139 and post-merge evidence; preserved all runtime limitations. |
-| 2026-08-07 | 1.2.0 | Added read-only orphan observation/assessment contract candidate while keeping scanner, scheduler and remediation runtime capabilities unimplemented. |
+| 2026-08-07 | 1.2.0 | Added read-only orphan observation/assessment contract candidate with explicit `TRACKED_RESIDUE` semantics while keeping scanner, scheduler and remediation runtime capabilities unimplemented. |
