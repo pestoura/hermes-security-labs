@@ -1,0 +1,26 @@
+schema_version: 1.0.0
+default_network_profile: isolated
+profiles:
+  isolated:
+    egress: deny-all
+    exceptions_allowed: false
+  restricted:
+    egress: explicit-allowlist
+    exceptions_allowed: true
+state_transitions:
+  DECLARED: [PROVISIONING]
+  PROVISIONING: [READY, ROLLING_BACK]
+  READY: [RUNNING, DESTROYING]
+  RUNNING: [RESETTING, DESTROYING, ROLLING_BACK]
+  RESETTING: [READY, ROLLING_BACK]
+  DESTROYING: [VERIFYING_RESIDUE]
+  ROLLING_BACK: [VERIFYING_RESIDUE]
+  VERIFYING_RESIDUE: [VERIFIED, QUARANTINED]
+  VERIFIED: []
+  QUARANTINED: []
+reusable_states: [READY, VERIFIED]
+blocked_reuse_states: [PROVISIONING, RUNNING, RESETTING, DESTROYING, ROLLING_BACK, VERIFYING_RESIDUE, QUARANTINED]
+proof_required_transitions:
+  - VERIFYING_RESIDUE->VERIFIED
+  - VERIFYING_RESIDUE->QUARANTINED
+runtime_status: NOT_RUN
