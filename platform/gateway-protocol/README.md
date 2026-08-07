@@ -20,11 +20,26 @@ The implementation validates a typed operation request and returns a determinist
 - observed and canonical digests must match the repository-owned `platform/registry.yaml`;
 - any unknown, missing, expired, revoked or mismatched authorization evidence refuses.
 
+## Versioned correlation contract
+
+`2.0.0` is the canonical request contract for new gateway/admission integrations. This decision is recorded in [`ADR-0010`](../../docs/architecture/adr/ADR-0010-versioned-uuid-correlation-contract.md).
+
+- `admission-request-v2.schema.json` is the canonical external admission request;
+- `gateway-request-v2.schema.json` is the canonical internal typed-evaluation request;
+- both v2 schemas require UUID `campaign_id`, `run_id`, `step_id` and `attempt_id`;
+- the original v1 schema files remain unchanged as transitional compatibility;
+- unknown schema versions fail closed;
+- `promote_legacy_request_to_v2()` changes only `schema_version` and succeeds only when the existing v1 identifiers already satisfy v2;
+- no gateway, migration helper or handoff may generate, map, replace or normalize correlation identifiers;
+- transitional v1 input may cross the Runner handoff only when all four existing correlation identifiers are already valid UUIDs.
+
+This versioning is a repository contract change only. It does not create runtime correlation state and does not authorize execution.
+
 ## Canonical admission API
 
 `admission.py::authorize_admission()` is the **canonical RoE/typed-operation admission API**. It does not accept a caller-supplied RoE decision: it derives the decision internally from the signed RoE contract, the RoE step request, the file-backed RoE trust store and the external kill switch, and only then binds it to typed operation checks.
 
-- input schema: `admission-request.schema.json` (`additionalProperties: false`, no `roe_decision` property);
+- v1 and v2 admission schemas are selected explicitly from `schema_version`;
 - a request carrying `roe_decision`, `roe_decision_ref` or `authorized` is refused with `ROE_DECISION_CALLER_SUPPLIED`;
 - campaign, RoE step request id, operation/capability, target digest, intrusiveness level and contract payload hash are bound deterministically;
 - missing kill-switch or RoE trust-store sources refuse fail-closed;
@@ -58,7 +73,7 @@ The order is fail-closed:
 3. verify the separate signed Hermes TB1 authorization receipt and dedicated trust store;
 4. freshly execute `authorize_admission()` against signed RoE + kill switch + typed gateway bindings;
 5. require exact receipt/admission binding for campaign, run, step, RoE contract id/hash, RoE step request, operation/version, **operation-parameters digest**, capability, target digest and intrusiveness;
-6. enforce Runner Protocol correlation requirements;
+6. enforce UUID Runner Protocol correlation requirements without rewriting identifiers;
 7. construct and semantically validate the Runner Protocol message.
 
 Any refusal returns `runner_request=None`.
@@ -83,6 +98,8 @@ This block proves contract/message boundaries only. It is not connected to synth
 
 - typed contract and decision logic: `CANDIDATE`;
 - canonical admission boundary: `CANDIDATE`;
+- canonical UUID correlation contract v2: `CANDIDATE`;
+- legacy v1 correlation contract: `TRANSITIONAL_COMPATIBILITY`;
 - TB1 signed authorization receipt/verifier: `CANDIDATE`;
 - Hermes authorization receipt issuance: `NOT_IMPLEMENTED` and `NOT_RUN`;
 - canonical gateway -> Runner Protocol v2 handoff: `CANDIDATE`;
