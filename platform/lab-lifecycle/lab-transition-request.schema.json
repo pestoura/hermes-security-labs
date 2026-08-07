@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hexor.local/schemas/lab-transition-request-1.0.0.json",
+  "title": "Hexor Lab Lifecycle Transition Request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "request_id", "contract_id", "lab_id", "campaign_id", "requested_at", "from_state", "to_state", "idempotency_key", "runtime_observation"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "request_id": {"$ref": "#/$defs/identifier"},
+    "contract_id": {"$ref": "#/$defs/identifier"},
+    "lab_id": {"$ref": "#/$defs/identifier"},
+    "campaign_id": {"$ref": "#/$defs/identifier"},
+    "requested_at": {"type": "string", "format": "date-time"},
+    "from_state": {"enum": ["DECLARED", "PROVISIONING", "READY", "RUNNING", "RESETTING", "DESTROYING", "ROLLING_BACK", "VERIFYING_RESIDUE", "VERIFIED", "QUARANTINED"]},
+    "to_state": {"enum": ["PROVISIONING", "READY", "RUNNING", "RESETTING", "DESTROYING", "ROLLING_BACK", "VERIFYING_RESIDUE", "VERIFIED", "QUARANTINED"]},
+    "idempotency_key": {"$ref": "#/$defs/identifier"},
+    "effective_network": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["network_id", "profile", "egress_destinations"],
+      "properties": {
+        "network_id": {"$ref": "#/$defs/identifier"},
+        "profile": {"enum": ["isolated", "restricted", "open"]},
+        "egress_destinations": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1, "maxLength": 256}}
+      }
+    },
+    "zero_residue_proof": {"type": ["object", "null"]},
+    "runtime_observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "observed_at"],
+      "properties": {
+        "state": {"enum": ["NOT_RUN", "SYNTHETIC", "OBSERVED"]},
+        "observed_at": {"type": "string", "format": "date-time"}
+      }
+    }
+  },
+  "$defs": {
+    "identifier": {"type": "string", "minLength": 3, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"}
+  }
+}
