@@ -61,6 +61,7 @@ Editorial clarification that does not alter behaviour or authority does not requ
 | [ADR-0007](ADR-0007-evidence-classification-and-publication.md) | Separate raw, restricted, sanitized and summary evidence; control publication at TB4 | Accepted | evidence |
 | [ADR-0008](ADR-0008-human-controlled-content-promotion.md) | Generated content remains a proposal until recorded human promotion | Accepted | content lifecycle |
 | [ADR-0009](ADR-0009-runtime-source-of-truth-and-drift-semantics.md) | Use the Git registry as the runtime catalogue root, keep observation non-authoritative and apply fail-safe tri-state drift | Accepted | runtime source of truth |
+| [ADR-0010](ADR-0010-versioned-uuid-correlation-contract.md) | Introduce a versioned UUID correlation contract for gateway/admission integrations without rewriting legacy identifiers | Accepted | execution correlation contracts |
 
 ## Structural-decision coverage
 
@@ -81,6 +82,7 @@ The initial ADR set covers the structural principles already accepted in the roa
 | Runtime desired state remains in Git | ADR-0009 |
 | Missing or unparsable drift evidence maps to UNKNOWN | ADR-0009 |
 | Image digest identity is owned by runtime release | ADR-0009 |
+| Gateway/admission correlation is UUID in canonical v2 without rewriting v1 identifiers | ADR-0010 |
 
 ## Supersession process
 
@@ -101,3 +103,4 @@ Historical decision text is not rewritten to make it appear consistent with a la
 - [Runtime source-of-truth policy](../runtime-source-of-truth.md) — desired-state, observation and drift contract.
 - [EPIC-01](../../roadmap/epics/EPIC-01-architecture-and-canonical-contracts.md) — delivery and evidence for the initial ADR set.
 - [EPIC-02](../../roadmap/epics/EPIC-02-single-source-of-truth-for-runtime.md) — runtime catalogue and drift delivery.
+- [EPIC-03](../../roadmap/epics/EPIC-03-typed-kali-mcp.md) — typed gateway/admission contract and UUID correlation migration.

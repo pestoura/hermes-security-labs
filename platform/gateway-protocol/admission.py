@@ -1,25 +1,24 @@
 """Canonical admission boundary for the typed security gateway.
 
 This module is the **canonical enforcement API**. It never trusts a
-caller-supplied Rules of Engagement decision. Instead it *derives* the RoE
-decision internally from:
+caller-supplied Rules of Engagement decision. Instead it derives the RoE
+decision internally from the signed RoE contract, RoE step request, external
+kill switch and server-side trust configuration, then binds that decision to
+the typed gateway operation.
 
-- the signed RoE contract (structure, semantics, Ed25519 / ECDSA-P256-SHA256
-  signature verified against a file-backed trust store);
-- the RoE step request;
-- the external, file-backed kill switch (fail-closed).
+Two admission schema generations are recognized during migration:
 
-The derived decision is then bound deterministically to the typed gateway
-request (campaign, step request, operation/capability, target digest,
-intrusiveness level and contract payload hash) before the existing typed
-operation checks run.
+- ``1.0.0``: legacy compatibility contract; correlation identifiers are bounded
+  strings and may therefore be unsuitable for Runner Protocol v2;
+- ``2.0.0``: canonical contract; campaign/run/step/attempt identifiers are UUIDs.
+
+The v1 schema is never silently tightened or rewritten. ``promote_legacy_request_to_v2``
+is an explicit compatibility helper and succeeds only when the existing IDs
+already satisfy the v2 contract. It never creates, maps or normalizes an ID.
 
 Boundary: contract-level only. Nothing here dispatches, executes, schedules,
 connects to a runner, a laboratory, a network or any target. No command,
 shell, argv, cwd or environment input is accepted anywhere on this path.
-
-Refusals are fail-closed and carry stable codes only. Targets, operation
-parameters and any signature or key material never appear in a decision.
 """
 
 from __future__ import annotations
@@ -36,6 +35,12 @@ ROOT = Path(__file__).resolve().parent
 REPOSITORY_ROOT = ROOT.parents[1]
 ROE_DIR = REPOSITORY_ROOT / "platform" / "roe-contract"
 
+LEGACY_ADMISSION_SCHEMA_VERSION = "1.0.0"
+CANONICAL_ADMISSION_SCHEMA_VERSION = "2.0.0"
+ADMISSION_SCHEMAS = {
+    LEGACY_ADMISSION_SCHEMA_VERSION: "admission-request.schema.json",
+    CANONICAL_ADMISSION_SCHEMA_VERSION: "admission-request-v2.schema.json",
+}
 CALLER_SUPPLIED_DECISION_FIELDS = ("roe_decision", "roe_decision_ref", "authorized")
 
 
@@ -66,11 +71,7 @@ class AdmissionError(ValueError):
 
 @dataclass(frozen=True)
 class AdmissionDecision:
-    """Deterministic admission outcome.
-
-    Only stable identifiers and stable codes are exposed. Target values,
-    operation parameters, signatures and key material are never carried here.
-    """
+    """Deterministic admission outcome with sanitized metadata only."""
 
     admitted: bool
     codes: tuple[str, ...]
@@ -119,8 +120,17 @@ class AdmissionDecision:
         )
 
 
+def admission_request_schema_version(request: Mapping[str, Any]) -> str:
+    version = request.get("schema_version") if isinstance(request, Mapping) else None
+    if not isinstance(version, str):
+        raise AdmissionError("ADMISSION_SCHEMA_INVALID")
+    if version not in ADMISSION_SCHEMAS:
+        raise AdmissionError("ADMISSION_SCHEMA_UNSUPPORTED")
+    return version
+
+
 def validate_admission_request(request: Mapping[str, Any]) -> None:
-    """Validate the admission request; reject caller-supplied RoE decisions."""
+    """Validate a supported admission request; reject caller-supplied decisions."""
 
     if not isinstance(request, Mapping):
         raise AdmissionError("ADMISSION_SCHEMA_INVALID")
@@ -128,13 +138,40 @@ def validate_admission_request(request: Mapping[str, Any]) -> None:
         if field in request:
             raise AdmissionError("ROE_DECISION_CALLER_SUPPLIED")
     gateway_protocol._reject_forbidden_fields(request)
-    schema = gateway_protocol.load_json(ROOT / "admission-request.schema.json")
+    version = admission_request_schema_version(request)
+    schema = gateway_protocol.load_json(ROOT / ADMISSION_SCHEMAS[version])
     validator = jsonschema.Draft202012Validator(
         schema,
         format_checker=jsonschema.FormatChecker(),
     )
     if list(validator.iter_errors(request)):
         raise AdmissionError("ADMISSION_SCHEMA_INVALID")
+
+
+def promote_legacy_request_to_v2(request: Mapping[str, Any]) -> dict[str, Any]:
+    """Explicitly promote an already-UUID-compatible v1 request to v2.
+
+    No correlation identifier is generated, mapped, normalized or otherwise
+    changed. A legacy request whose existing identifiers are not valid UUIDs is
+    refused with ``ADMISSION_V2_MIGRATION_REQUIRED``.
+    """
+
+    if not isinstance(request, Mapping):
+        raise AdmissionError("ADMISSION_SCHEMA_INVALID")
+    if request.get("schema_version") != LEGACY_ADMISSION_SCHEMA_VERSION:
+        raise AdmissionError("ADMISSION_V2_MIGRATION_SOURCE_INVALID")
+
+    candidate = dict(request)
+    candidate["schema_version"] = CANONICAL_ADMISSION_SCHEMA_VERSION
+    try:
+        validate_admission_request(candidate)
+    except AdmissionError as exc:
+        if str(exc) == "ROE_DECISION_CALLER_SUPPLIED":
+            raise
+        raise AdmissionError("ADMISSION_V2_MIGRATION_REQUIRED") from exc
+    except GatewayValidationError as exc:
+        raise AdmissionError("ADMISSION_V2_MIGRATION_REQUIRED") from exc
+    return candidate
 
 
 def authorize_admission(
@@ -151,12 +188,10 @@ def authorize_admission(
     """Canonical admission entry point.
 
     The RoE decision is derived here; it is never accepted from the caller.
-    The signature verifier is always constructed internally from
-    ``trust_store_path`` using the verifier's real clock: neither an arbitrary
-    verifier callable nor an injected ``now`` is part of this API, so the
-    cryptographic check cannot be substituted or time-shifted by a caller.
-    Any inconsistency, unavailable trust store or kill switch, negative RoE
-    decision or integration defect refuses fail-closed.
+    Both v1 and v2 admission requests are supported during migration, but only
+    v2 is canonical for Runner Protocol handoff. The signature verifier is
+    always constructed internally from ``trust_store_path`` using the real
+    clock. Any inconsistency or unavailable trust state refuses fail closed.
     """
 
     try:
@@ -168,7 +203,6 @@ def authorize_admission(
 
     if kill_switch_path is None:
         return AdmissionDecision.refuse(("KILL_SWITCH_SOURCE_REQUIRED",), request)
-
     if trust_store_path is None:
         return AdmissionDecision.refuse(("SIGNATURE_VERIFIER_UNAVAILABLE",), request)
 
