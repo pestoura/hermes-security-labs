@@ -1,0 +1,35 @@
+schema_version: "1.0"
+policy_id: threat-informed-validation-policy
+profiles:
+  critical_function_required: true
+  knowledge_snapshot_required: true
+emulation_plans:
+  executable: false
+  authorization_source: CONTROL_PLANE_ONLY
+  intrusiveness_levels:
+    - 0
+    - 1
+    - 2
+    - 3
+    - 4
+attack_graph:
+  node_types:
+    - asset
+    - identity
+    - trust
+    - credential
+    - vulnerability
+    - control
+    - evidence
+  edge_states:
+    - hypothetical
+    - evidenced
+  evidence_required_for_evidenced_edges: true
+  evidence_forbidden_for_hypothetical_edges: true
+runtime_status:
+  adversary_emulation: NOT_RUN
+  attack_flow_transport: NOT_IMPLEMENTED
+  graph_store: NOT_IMPLEMENTED
+  credential_use: NOT_RUN
+  lateral_movement: NOT_RUN
+  production_path_finding: NOT_RUN
