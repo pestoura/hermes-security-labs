@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hex0r.local/schemas/threat-profile-v1.json",
+  "title": "Threat Profile",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "profile_id", "critical_function", "knowledge_snapshot_id", "actor_refs", "objectives", "executable"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "profile_id": {"type": "string", "pattern": "^tp_[a-f0-9]{32}$"},
+    "critical_function": {"type": "string", "minLength": 1, "maxLength": 256},
+    "knowledge_snapshot_id": {"type": "string", "pattern": "^ks_[a-f0-9]{32}$"},
+    "actor_refs": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1, "maxLength": 128}},
+    "objectives": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1, "maxLength": 256}},
+    "executable": {"const": false}
+  }
+}
