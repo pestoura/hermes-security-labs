@@ -1,31 +1,25 @@
 """Canonical gateway -> Runner Protocol v2 handoff boundary.
 
-This module is the single canonical path that turns an *admitted* typed gateway
-operation into a Runner Protocol v2 ``runner.step.request`` message.
+This module constructs a Runner Protocol v2 ``runner.step.request`` only after
+TWO independent authorization checks have succeeded:
 
-Authorization is never accepted from the caller. The handoff calls
-``admission.authorize_admission()`` internally; that API derives the Rules of
-Engagement decision from the signed contract, the file-backed trust store and
-the external kill switch. A caller cannot supply an ``AdmissionDecision``, a
-``roe_decision`` or an ``authorization_ref`` as proof of authorization: those
-inputs are refused before anything else happens.
+1. a TB1 authorization receipt issued and signed by the Hermes control plane is
+   verified against the dedicated, purpose-bound authorization trust store;
+2. ``authorize_admission()`` independently revalidates the signed Rules of
+   Engagement contract, kill switch, typed operation and runtime bindings.
+
+The execution plane never creates, expands or approves authorization.  The
+``authorization_ref`` placed in the Runner Protocol message is copied from the
+verified Hermes receipt.  The gateway may recompute a receipt reference inside
+the verifier only to detect tampering; that integrity check does not create
+authority.  A naked reference, caller-supplied ALLOW or embedded receipt is
+never accepted as proof of authorization.
 
 Boundary: message construction only. Nothing here dispatches, connects,
 executes, schedules, spawns a process, touches a runner, a laboratory, a
 network or a target. A positive result means exactly one thing: a valid
-``runner.step.request`` message was *built*. It never means the request was
-dispatched, sent, accepted or executed. Refusal is fail-closed and total:
-either a fully validated ``runner.step.request`` is returned, or
-``runner_request`` is ``None``. There is no partial construction and no
-partial effect.
-
-The emitted ``authorization_ref`` is a **reference**, not a bearer token, not a
-grant, not a capability and not a signature. It is a deterministic,
-content-addressed digest over the sanitized admitted authorization context. It
-carries no target value, no parameters and no secret material, and possessing
-it grants nothing. A future runtime must resolve it against a trusted
-authority / control plane before acting on it; that resolution is
-``NOT_IMPLEMENTED`` and ``NOT_RUN`` in this repository.
+``runner.step.request`` message was built. It never means the request was
+dispatched, sent, accepted or executed.
 """
 
 from __future__ import annotations
@@ -43,6 +37,7 @@ from typing import Any, Iterable, Mapping
 ROOT = Path(__file__).resolve().parent
 REPOSITORY_ROOT = ROOT.parents[1]
 RUNNER_SDK_SRC = REPOSITORY_ROOT / "platform" / "runner-protocol" / "src"
+AUTHORIZATION_DIR = REPOSITORY_ROOT / "platform" / "authorization-contract"
 
 if str(RUNNER_SDK_SRC) not in sys.path:  # pragma: no cover - import wiring
     sys.path.insert(0, str(RUNNER_SDK_SRC))
@@ -69,16 +64,21 @@ def _load_module(module_name: str, path: Path) -> Any:
 
 admission = _load_module("gateway_admission_handoff_core", ROOT / "admission.py")
 gateway_protocol = admission.gateway_protocol
+authorization_contract = _load_module(
+    "tb1_authorization_receipt_handoff",
+    AUTHORIZATION_DIR / "authorization_receipt.py",
+)
 
-AUTHORIZATION_REF_PREFIX = "roe-authz:v1:"
 IDEMPOTENCY_KEY_PREFIX = "rp2-step-"
 PROTOCOL_VERSION = "2.0.0"
 CORRELATION_FIELDS = ("campaign_id", "run_id", "step_id", "attempt_id")
 
-#: Fields a caller may never provide: they would attempt to carry, replace or
-#: amplify authorization instead of letting it be derived here.
+#: Fields a typed request may never carry. Authorization crosses TB1 as a
+#: separate signed receipt supplied by the trusted control-plane boundary, not
+#: as free-form caller data inside the gateway request.
 CALLER_SUPPLIED_AUTHORIZATION_FIELDS = (
     "admission_decision",
+    "authorization_receipt",
     "authorization_ref",
     "authorized",
     "cancellation_policy",
@@ -93,33 +93,25 @@ CALLER_SUPPLIED_AUTHORIZATION_FIELDS = (
 
 
 class RunnerHandoffConfigError(ValueError):
-    """Raised with a stable code when the service configuration is unusable."""
+    """Raised with a stable code when service configuration is unusable."""
 
 
 @dataclass(frozen=True)
 class RunnerDispatchPolicy:
-    """Typed SERVICE-level dispatch policy carried *inside* the built message.
-
-    These are the timeout, retry, cancellation and progress fields a future
-    runner would honour. Holding them here does not dispatch anything: this
-    module only writes them into the ``runner.step.request`` it builds.
-
-    They are configured by the operating service, never by request-level data.
-    Request data can therefore not widen a budget, add retries or change
-    cancellation semantics, and can never amplify authorization.
-    """
+    """Typed SERVICE-level policy carried inside the built runner message."""
 
     soft_timeout_ms: int = 30_000
     hard_timeout_ms: int = 120_000
     max_attempts: int = 2
-    retryable_error_codes: tuple[str, ...] = ("TRANSIENT_DEPENDENCY", "RUNNER_UNAVAILABLE")
+    retryable_error_codes: tuple[str, ...] = (
+        "TRANSIENT_DEPENDENCY",
+        "RUNNER_UNAVAILABLE",
+    )
     cancellation_mode: str = "cooperative"
     grace_period_ms: int = 5_000
     progress_mode: str = "optional"
 
     def validate(self) -> None:
-        """Validate against the canonical Runner Protocol bounds and taxonomy."""
-
         if not 100 <= int(self.soft_timeout_ms) <= 86_400_000:
             raise RunnerHandoffConfigError("DISPATCH_POLICY_TIMEOUT_OUT_OF_BOUNDS")
         if not 100 <= int(self.hard_timeout_ms) <= 86_400_000:
@@ -139,7 +131,9 @@ class RunnerDispatchPolicy:
         if not set(codes) <= allowed:
             raise RunnerHandoffConfigError("DISPATCH_POLICY_RETRY_CODES_INVALID")
         if self.cancellation_mode not in {"cooperative", "cooperative_then_force"}:
-            raise RunnerHandoffConfigError("DISPATCH_POLICY_CANCELLATION_MODE_INVALID")
+            raise RunnerHandoffConfigError(
+                "DISPATCH_POLICY_CANCELLATION_MODE_INVALID"
+            )
         if self.progress_mode not in {"optional", "required"}:
             raise RunnerHandoffConfigError("DISPATCH_POLICY_PROGRESS_MODE_INVALID")
 
@@ -163,9 +157,10 @@ class RunnerDispatchPolicy:
 
 @dataclass(frozen=True)
 class RunnerHandoffConfig:
-    """Typed SERVICE configuration for the handoff boundary."""
+    """Typed SERVICE configuration for the TB1-to-runner handoff boundary."""
 
     trust_store_path: Path | None = None
+    authorization_trust_store_path: Path | None = None
     kill_switch_path: Path | None = None
     policy_path: Path | None = None
     registry_path: Path | None = None
@@ -177,24 +172,10 @@ class RunnerHandoffConfig:
 class RunnerHandoffResult:
     """Outcome of building a ``runner.step.request``.
 
-    ``request_built`` is the only positive state and it is deliberately
-    factual: it means a valid ``runner.step.request`` message was constructed.
-    It does **not** mean the request was dispatched, sent, accepted, scheduled
-    or executed; nothing in this module performs any of those.
-
-    Confidentiality boundary:
-
-    - the result *metadata* (``codes``, ``admission_codes``, the identifiers,
-      ``authorization_ref``, ``idempotency_key``, ``request_fingerprint``) is
-      sanitized: it carries no target value, no operation parameters, no
-      contract signature and no key material, and is safe to log or persist as
-      a decision record;
-    - ``runner_request``, when present, is **not** sanitized. It deliberately
-      carries the raw target and the operation parameters because a future
-      runner must consume them. It is RESTRICTED operational payload: it must
-      not be logged, printed or persisted as a decision. It is therefore
-      excluded from ``repr()``; use :meth:`sanitized_summary` for anything
-      log-shaped.
+    ``request_built`` means construction only.  Metadata is sanitized and
+    log-safe. ``runner_request`` is RESTRICTED operational payload containing
+    the raw target and validated parameters required by a future runner; it is
+    excluded from ``repr`` and must not be logged as a decision record.
     """
 
     request_built: bool
@@ -210,15 +191,6 @@ class RunnerHandoffResult:
     runner_request: dict[str, Any] | None = field(repr=False, default=None)
 
     def sanitized_summary(self) -> dict[str, Any]:
-        """Return the log-safe projection of this outcome.
-
-        Contains stable codes, stable identifiers and content-addressed
-        references only. It never contains the target value, operation
-        parameters, contract or signature material, key material, trust-store
-        paths or the ``runner_request`` payload. ``runner_request_present`` is
-        a boolean presence flag, not the payload.
-        """
-
         return {
             "request_built": bool(self.request_built),
             "codes": list(self.codes),
@@ -258,39 +230,20 @@ class RunnerHandoffResult:
         )
 
 
-def build_authorization_ref(context: Mapping[str, Any]) -> str:
-    """Return the deterministic, content-addressed authorization reference.
-
-    The digest covers the sanitized admitted authorization context only. The
-    raw target value is never part of it: only its canonical SHA-256 digest is.
-    The canonical context binds the campaign, the ``run_id``, the gateway
-    request/step, the RoE step request, the contract payload hash, the
-    operation id/version, the capability and the intrusiveness level.
-    ``attempt_id`` is deliberately excluded so retries of the same logical step
-    share the same authorization reference.
-
-    The result is a REFERENCE — it is not a bearer token, not a grant, not a
-    capability and not a signature, and it authorizes nothing by itself.
-    """
-
-    encoded = json.dumps(
-        dict(context), sort_keys=True, separators=(",", ":"), ensure_ascii=False
-    ).encode("utf-8")
-    return AUTHORIZATION_REF_PREFIX + hashlib.sha256(encoded).hexdigest()
-
-
 def build_step_request(
     request: Mapping[str, Any],
     contract: Mapping[str, Any],
     roe_step_request: Mapping[str, Any],
     config: RunnerHandoffConfig | None = None,
+    *,
+    authorization_receipt: Mapping[str, Any] | None = None,
 ) -> RunnerHandoffResult:
-    """Canonical gateway -> Runner Protocol v2 handoff entry point.
+    """Canonical TB1 authorization -> gateway admission -> runner handoff.
 
-    Admission is derived internally through ``authorize_admission()``. A
-    ``runner.step.request`` is produced only when admission is positive and the
-    resulting message passes canonical Runner Protocol semantic validation.
-    Any refusal or integration defect yields ``runner_request=None``.
+    ``authorization_receipt`` is a separate cross-boundary artefact from the
+    Hermes control plane.  It is never accepted inside ``request``.  The
+    gateway verifies it, freshly re-evaluates RoE admission, cross-checks every
+    authorization binding, and only then constructs a runner message.
     """
 
     config = config or RunnerHandoffConfig()
@@ -310,6 +263,18 @@ def build_step_request(
         return RunnerHandoffResult.refuse((str(exc),), request)
     except Exception:  # noqa: BLE001 - malformed configuration is fail-closed
         return RunnerHandoffResult.refuse(("DISPATCH_POLICY_INVALID",), request)
+
+    if authorization_receipt is None:
+        return RunnerHandoffResult.refuse(("AUTH_RECEIPT_REQUIRED",), request)
+
+    try:
+        verified = authorization_contract.verify_authorization_receipt(
+            authorization_receipt, config.authorization_trust_store_path
+        )
+    except authorization_contract.AuthorizationReceiptError as exc:
+        return RunnerHandoffResult.refuse((str(exc),), request)
+    except Exception:  # noqa: BLE001 - receipt integration defects fail closed
+        return RunnerHandoffResult.refuse(("AUTH_RECEIPT_INTEGRATION_ERROR",), request)
 
     try:
         decision = admission.authorize_admission(
@@ -332,6 +297,19 @@ def build_step_request(
             admission_codes=decision.codes,
         )
 
+    try:
+        binding_codes = _authorization_binding_codes(
+            verified, request, contract, roe_step_request
+        )
+    except Exception:  # noqa: BLE001 - malformed context is fail-closed
+        return RunnerHandoffResult.refuse(
+            ("AUTH_BINDING_INVALID",), request, admission_codes=decision.codes
+        )
+    if binding_codes:
+        return RunnerHandoffResult.refuse(
+            binding_codes, request, admission_codes=decision.codes
+        )
+
     correlation_codes = _correlation_codes(request)
     if correlation_codes:
         return RunnerHandoffResult.refuse(
@@ -339,16 +317,20 @@ def build_step_request(
         )
 
     try:
-        message = _assemble_message(request, roe_step_request, decision, config)
+        message = _assemble_message(
+            request, roe_step_request, decision, verified, config
+        )
     except ProtocolValidationError:
         return RunnerHandoffResult.refuse(
             ("RUNNER_REQUEST_INVALID",), request, admission_codes=decision.codes
         )
     except gateway_protocol.GatewayValidationError:
         return RunnerHandoffResult.refuse(
-            ("RUNNER_INPUT_FORBIDDEN_FIELD",), request, admission_codes=decision.codes
+            ("RUNNER_INPUT_FORBIDDEN_FIELD",),
+            request,
+            admission_codes=decision.codes,
         )
-    except Exception:  # noqa: BLE001 - fail closed, never emit a partial message
+    except Exception:  # noqa: BLE001 - never emit a partial message
         return RunnerHandoffResult.refuse(
             ("HANDOFF_INTEGRATION_ERROR",), request, admission_codes=decision.codes
         )
@@ -361,41 +343,81 @@ def build_step_request(
         campaign_id=decision.campaign_id,
         operation_id=decision.operation_id,
         operation_version=decision.operation_version,
-        authorization_ref=message["authorization_ref"],
+        authorization_ref=verified.authorization_ref,
         idempotency_key=message["idempotency_key"],
         request_fingerprint=request_fingerprint(message),
         runner_request=message,
     )
 
 
+def _authorization_binding_codes(
+    verified: Any,
+    request: Mapping[str, Any],
+    contract: Mapping[str, Any],
+    roe_step_request: Mapping[str, Any],
+) -> list[str]:
+    """Require the Hermes receipt to match the freshly admitted context."""
+
+    checks = (
+        (verified.campaign_id, str(request["campaign_id"]), "AUTH_CAMPAIGN_MISMATCH"),
+        (verified.run_id, str(request["run_id"]), "AUTH_RUN_MISMATCH"),
+        (verified.step_id, str(request["step_id"]), "AUTH_STEP_MISMATCH"),
+        (
+            verified.roe_contract_id,
+            str(contract["contract_id"]),
+            "AUTH_ROE_CONTRACT_MISMATCH",
+        ),
+        (
+            verified.roe_contract_payload_sha256,
+            str(request["contract_payload_sha256"]),
+            "AUTH_ROE_PAYLOAD_MISMATCH",
+        ),
+        (
+            verified.roe_step_request_id,
+            str(roe_step_request["request_id"]),
+            "AUTH_ROE_STEP_REQUEST_MISMATCH",
+        ),
+        (
+            verified.operation_id,
+            str(request["operation"]["id"]),
+            "AUTH_OPERATION_MISMATCH",
+        ),
+        (
+            verified.operation_version,
+            str(request["operation"]["version"]),
+            "AUTH_OPERATION_VERSION_MISMATCH",
+        ),
+        (
+            verified.capability_id,
+            str(roe_step_request["capability"]),
+            "AUTH_CAPABILITY_MISMATCH",
+        ),
+        (
+            verified.intrusiveness_level,
+            str(roe_step_request["intrusiveness_level"]),
+            "AUTH_INTRUSIVENESS_MISMATCH",
+        ),
+    )
+    codes = [code for actual, expected, code in checks if actual != expected]
+
+    target_digest = gateway_protocol.canonical_target_digest(request["target"])
+    if verified.target_sha256 != target_digest:
+        codes.append("AUTH_TARGET_MISMATCH")
+    return codes
+
+
 def _assemble_message(
     request: Mapping[str, Any],
     roe_step_request: Mapping[str, Any],
     decision: Any,
+    verified: Any,
     config: RunnerHandoffConfig,
 ) -> dict[str, Any]:
+    del decision  # admission already cross-checked; never used as authority token
     operation = request["operation"]
     target = request["target"]
-    target_digest = gateway_protocol.canonical_target_digest(target)
     capability_id = str(roe_step_request["capability"])
     intrusiveness = str(roe_step_request["intrusiveness_level"])
-
-    authorization_ref = build_authorization_ref(
-        {
-            "authorization_ref_version": 1,
-            "campaign_id": str(request["campaign_id"]),
-            "run_id": str(request["run_id"]),
-            "gateway_request_id": str(request["request_id"]),
-            "gateway_step_id": str(request["step_id"]),
-            "roe_step_request_id": str(request["roe_step_request_id"]),
-            "contract_payload_sha256": str(request["contract_payload_sha256"]),
-            "operation_id": str(operation["id"]),
-            "operation_version": str(operation["version"]),
-            "capability_id": capability_id,
-            "target_sha256": target_digest,
-            "intrusiveness_level": intrusiveness,
-        }
-    )
 
     operation_input = {
         "operation_id": str(operation["id"]),
@@ -404,12 +426,11 @@ def _assemble_message(
         "target": {"type": str(target["type"]), "value": str(target["value"])},
         "parameters": json.loads(json.dumps(operation["parameters"])),
     }
-    # Command, shell, argv, cwd and environment inputs can never reach a runner.
     gateway_protocol._reject_forbidden_fields(operation_input)
 
     fragments = config.dispatch_policy.as_message_fragments()
     idempotency_key = _idempotency_key(
-        authorization_ref=authorization_ref,
+        authorization_ref=verified.authorization_ref,
         correlation={
             "campaign_id": str(request["campaign_id"]),
             "run_id": str(request["run_id"]),
@@ -432,12 +453,11 @@ def _assemble_message(
         "emitted_at": datetime.now(timezone.utc)
         .isoformat(timespec="seconds")
         .replace("+00:00", "Z"),
-        "authorization_ref": authorization_ref,
+        "authorization_ref": verified.authorization_ref,
         "idempotency_key": idempotency_key,
         "operation": {"capability_id": capability_id, "input": operation_input},
         **fragments,
     }
-
     validate_semantics(message)
     return message
 
@@ -450,13 +470,6 @@ def _idempotency_key(
     operation_input: Mapping[str, Any],
     fragments: Mapping[str, Any],
 ) -> str:
-    """Derive the idempotency key from the logical effect and authorization.
-
-    ``attempt_id`` and timestamps are deliberately excluded so a retry of the
-    same logical effect under a new attempt keeps the same key. A different
-    effect under the same authorization context yields a different key.
-    """
-
     canonical = {
         "protocol_major": PROTOCOL_VERSION.split(".", 1)[0],
         "authorization_ref": authorization_ref,
@@ -477,14 +490,6 @@ def _idempotency_key(
 
 
 def _correlation_codes(request: Mapping[str, Any]) -> list[str]:
-    """Refuse non-UUID correlation identifiers instead of inventing UUIDs.
-
-    Runner Protocol v2 requires four UUID correlation identifiers. The existing
-    gateway schema still allows non-UUID identifiers; that gap is exposed here
-    fail-closed. No substitute UUID is generated and no identifier is silently
-    normalized.
-    """
-
     codes: list[str] = []
     for name in CORRELATION_FIELDS:
         value = request.get(name)
