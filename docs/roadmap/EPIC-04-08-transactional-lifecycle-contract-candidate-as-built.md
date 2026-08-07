@@ -7,8 +7,9 @@
 | Canonical concept epics | [`EPIC-04 — Transactional lifecycle and isolation`](epics/EPIC-04-transactional-lifecycle-and-isolation.md); [`EPIC-08 — Network and egress policy`](epics/EPIC-08-network-and-egress-policy.md) |
 | Delivery umbrella | `SVP2-B-03` — issue [#81](https://github.com/pestoura/hermes-security-labs/issues/81) |
 | Master tracker | issue [#97](https://github.com/pestoura/hermes-security-labs/issues/97) |
-| Technical PR | [#139](https://github.com/pestoura/hermes-security-labs/pull/139) |
-| Technical merge | `591552d652fbff82d81f750535799380e9c643a9` |
+| Initial technical PR | [#139](https://github.com/pestoura/hermes-security-labs/pull/139) |
+| Initial technical merge | `591552d652fbff82d81f750535799380e9c643a9` |
+| Lifecycle reconciliation | PR #166 / `da3c10311bbb094ae3d22d95f497723f2e085f52` |
 | Record state | `AS_BUILT — contract candidate` |
 | Canonical epic lifecycle | `IMPLEMENTING` |
 | FINAL | no |
@@ -18,7 +19,7 @@ This is a supplementary implementation record. The canonical EPIC-04 and EPIC-08
 
 ## 2. Delivered boundary
 
-The repository contains a contract-only transactional lifecycle and network-policy decision layer. It validates:
+The repository contains a contract-only transactional lifecycle and network-policy decision layer plus a read-only orphan-resource assessment candidate. It validates:
 
 - lab, campaign and contract identity binding;
 - a declared lifecycle state machine with compensation paths;
@@ -28,9 +29,11 @@ The repository contains a contract-only transactional lifecycle and network-poli
 - L3/L4 snapshot and rollback references;
 - effective network observations before READY or RUNNING;
 - a canonical zero-residue proof with digest, resource inventory and scanner completeness;
-- quarantine and reuse blocking when cleanup evidence is missing, incomplete, unavailable, mismatched or non-zero.
+- quarantine and reuse blocking when cleanup evidence is missing, incomplete, unavailable, mismatched or non-zero;
+- normalized read-only orphan observations using opaque resource references;
+- fail-closed orphan classification against lifecycle state, campaign ownership, contract expiry and explicit quarantine-retention windows.
 
-The candidate produces deterministic transition decisions only. It does not create, attach, start, stop, reset or destroy resources.
+The candidates produce deterministic decisions/assessments only. They do not create, attach, start, stop, reset, quarantine, clean or destroy resources.
 
 ## 3. As-built architecture
 
@@ -42,18 +45,21 @@ flowchart LR
   OBS[Effective runtime observation]
   PROOF[Zero-residue proof]
   ENGINE[Fail-closed transition engine]
-  ALLOW[ALLOW_TRANSITION]
-  REFUSE[REFUSE / QUARANTINED]
-  DOCKER[Future Docker lifecycle]
+  SNAP[Future normalized resource snapshot]
+  ORPHAN[Read-only orphan assessor]
+  RESULT[Clear / tracked residue / orphan / inconclusive]
+  DOCKER[Future Docker lifecycle and remediation]
 
   CONTRACT --> ENGINE
   REQUEST --> ENGINE
   POLICY --> ENGINE
   OBS --> ENGINE
   PROOF --> ENGINE
-  ENGINE --> ALLOW
-  ENGINE --> REFUSE
-  ALLOW -. execution NOT_RUN .-> DOCKER
+  SNAP --> ORPHAN
+  CONTRACT --> ORPHAN
+  ORPHAN --> RESULT
+  ENGINE -. execution NOT_RUN .-> DOCKER
+  RESULT -. no automatic mutation .-> DOCKER
 ```
 
 ## 4. Canonical components
@@ -65,8 +71,12 @@ flowchart LR
 | Zero-residue proof schema | [`zero-residue-proof.schema.json`](../../platform/lab-lifecycle/zero-residue-proof.schema.json) | candidate |
 | Lifecycle and egress policy | [`lifecycle-policy.yaml`](../../platform/lab-lifecycle/lifecycle-policy.yaml) | candidate |
 | Decision implementation | [`lifecycle_protocol.py`](../../platform/lab-lifecycle/lifecycle_protocol.py) | candidate |
+| Orphan observation schema | [`orphan-observation.schema.json`](../../platform/lab-lifecycle/orphan-observation.schema.json) | candidate |
+| Orphan assessment schema | [`orphan-assessment.schema.json`](../../platform/lab-lifecycle/orphan-assessment.schema.json) | candidate |
+| Orphan assessor | [`orphan_detector.py`](../../platform/lab-lifecycle/orphan_detector.py) | candidate |
 | Technical boundary | [`README.md`](../../platform/lab-lifecycle/README.md) | candidate documentation |
-| Regression tests | [`test_lab_lifecycle_protocol.py`](../../platform/tests/test_lab_lifecycle_protocol.py) | validated |
+| Lifecycle regression tests | [`test_lab_lifecycle_protocol.py`](../../platform/tests/test_lab_lifecycle_protocol.py) | validated |
+| Orphan assessor tests | [`test_lab_orphan_detector.py`](../../platform/tests/test_lab_orphan_detector.py) | candidate validation |
 
 ## 5. State model
 
@@ -101,19 +111,20 @@ Undefined transitions are refused. Quarantined laboratories have no reuse transi
 - effective destinations must be a subset of active declared exceptions;
 - open egress is not represented as an allowed contract profile.
 
-## 7. Zero-residue proof
+## 7. Zero-residue and orphan assessment
 
-A transition from `VERIFYING_RESIDUE` to `VERIFIED` requires:
+A transition from `VERIFYING_RESIDUE` to `VERIFIED` still requires a complete zero-residue proof. Missing, partial, unavailable, mismatched or non-zero evidence results in `QUARANTINED`, never `VERIFIED`.
 
-- schema-valid evidence;
-- matching lab and campaign identifiers;
-- a canonical digest matching the proof payload;
-- `scanner_state = COMPLETE`;
-- empty container, network, volume, process and mount inventories;
-- empty temporary-path inventory;
-- explicit confirmation that the lab network is absent.
+The orphan assessor is a separate read-only contract. A valid normalized snapshot can produce:
 
-Missing, partial, unavailable, mismatched or non-zero evidence results in `QUARANTINED`, never `VERIFIED`.
+- `CLEAR` only when scanner state is `COMPLETE`, no orphan is identified and no live quarantine residue is being tracked;
+- `TRACKED_RESIDUE` when a complete scan finds no orphan but does find quarantine residue that is still inside its explicit retention window;
+- `ORPHANS_DETECTED` when at least one definite orphan is found, including on a partial scan;
+- `INCONCLUSIVE` when a partial/unavailable scan has no definite orphan and therefore cannot prove absence.
+
+Orphan candidates include resources with unknown lab ownership, campaign mismatch, resources before provisioning, resources after `VERIFIED`, resources under expired active contracts, and quarantined residue whose retention is absent or expired. Cleanup-in-progress states are not prematurely classified as orphaned. Live quarantine retention produces `TRACKED_QUARANTINE_RESIDUE` and the aggregate result `TRACKED_RESIDUE`, not reuse authorization and not a zero-residue claim.
+
+`cleanup_performed` is fixed to `false`; no remediation side effect exists in the assessor.
 
 ## 8. Acceptance assessment
 
@@ -123,9 +134,14 @@ Missing, partial, unavailable, mismatched or non-zero evidence results in `QUARA
 | No egress exists by default | met in contract/policy layer | isolated profile tests |
 | Restricted egress requires explicit approval and window | met in decision layer | exception tests |
 | L3/L4 require snapshot and rollback references | met in contract layer | recovery tests |
+| Read-only orphan classification fails closed on incomplete evidence | candidate implemented | orphan assessor tests |
+| Live quarantine residue cannot be confused with `CLEAR` | candidate implemented | tracked-residue tests/schema |
+| Orphan assessment performs no cleanup | candidate implemented | schema/code/lifecycle tests |
 | Real Docker cleanup produces zero residue | `NOT_RUN` | Docker integration absent |
 | Actual network policy enforces deny-all | `NOT_RUN` | network enforcement absent |
-| Periodic orphan detection exists | `NOT_IMPLEMENTED` | no scheduler or scanner implemented |
+| Runtime resource scanner exists | `NOT_IMPLEMENTED` / `NOT_RUN` | no runtime scanner implemented |
+| Periodic orphan scan scheduler exists | `NOT_IMPLEMENTED` | no scheduler implemented |
+| Orphan remediation exists | `NOT_IMPLEMENTED` / `NOT_RUN` | no cleanup action implemented |
 
 ## 9. Evidence
 
@@ -135,18 +151,23 @@ Missing, partial, unavailable, mismatched or non-zero evidence results in `QUARA
 | PR #139 validate / repository | success |
 | PR #139 validate / security | success |
 | PR #139 security / gitleaks | success |
-| Technical merge | `591552d652fbff82d81f750535799380e9c643a9` |
+| Initial technical merge | `591552d652fbff82d81f750535799380e9c643a9` |
 | Post-merge security/gitleaks `31135492162` | success |
 | Post-merge validate `31135492132` | **success** |
+| Lifecycle reconciliation PR #166 | integrated |
+| Post-merge security #1092 | success |
+| Post-merge validate #1094 | success |
 
-The post-merge validate result is no longer pending: run `31135492132` completed successfully on the technical merge.
+Current orphan-assessor evidence remains subject to the PR and post-merge gates for this block before it is recorded as integrated.
 
 ## 10. Preserved limitations
 
 - Docker lifecycle integration: `NOT_RUN`;
 - network-policy enforcement: `NOT_RUN`;
 - zero-residue observation against real resources: `NOT_RUN`;
-- periodic orphan detector: `NOT_IMPLEMENTED`;
+- runtime resource scanner: `NOT_IMPLEMENTED` / `NOT_RUN`;
+- periodic orphan scan scheduler: `NOT_IMPLEMENTED`;
+- orphan cleanup/remediation: `NOT_IMPLEMENTED` / `NOT_RUN`;
 - real snapshot and rollback execution: `NOT_RUN`;
 - customer-target or laboratory execution: `NOT_RUN`;
 - runtime changes: `NO_RUNTIME_CHANGE`;
@@ -158,8 +179,10 @@ The post-merge validate result is no longer pending: run `31135492132` completed
 - implement reviewed Docker adapters without exposing the daemon socket to workloads;
 - enforce unique networks and state-based attach/detach against observed runtime state;
 - implement default-deny egress and controlled exceptions;
-- implement idempotent cleanup and residue scanners;
-- implement periodic orphan detection and quarantine;
+- implement an authenticated/controlled read-only runtime resource scanner;
+- schedule periodic orphan observations with durable provenance;
+- implement separately authorized/audited orphan remediation and quarantine actions;
+- implement idempotent cleanup and real residue scanning;
 - demonstrate snapshots, rollback, TTL and data budgets for L3/L4;
 - run authorized isolated positive, negative, race, failure and rollback tests;
 - complete controlled deployment and rollback validation.
