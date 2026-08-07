@@ -180,7 +180,7 @@ def test_cleanup_state_resource_is_not_orphan_even_after_contract_expiry() -> No
         assert result.orphan_count == 0
 
 
-def test_quarantine_residue_with_live_retention_is_tracked_not_orphan() -> None:
+def test_quarantine_residue_with_live_retention_is_explicitly_tracked() -> None:
     result = orphan.assess_orphans(
         _observation(
             records=[
@@ -193,10 +193,10 @@ def test_quarantine_residue_with_live_retention_is_tracked_not_orphan() -> None:
         )
     )
 
-    assert result.result == "CLEAR"
+    assert result.result == "TRACKED_RESIDUE"
     assert result.orphan_count == 0
     assert result.tracked_quarantine_count == 1
-    assert result.codes == ("CLEAR_COMPLETE", "TRACKED_QUARANTINE_PRESENT")
+    assert result.codes == ("TRACKED_QUARANTINE_PRESENT",)
     assert _finding_code(result) == "TRACKED_QUARANTINE_RESIDUE"
     assert result.assessment is not None
     assert result.assessment["findings"][0]["classification"] == "TRACKED_QUARANTINE"
@@ -240,7 +240,7 @@ def test_retention_is_not_artificially_bound_to_authorization_expiry() -> None:
         )
     )
 
-    assert result.result == "CLEAR"
+    assert result.result == "TRACKED_RESIDUE"
     assert result.tracked_quarantine_count == 1
 
 
