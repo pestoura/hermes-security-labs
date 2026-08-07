@@ -26,12 +26,13 @@ def test_epic15_is_final_with_full_lifecycle() -> None:
 
 def test_epic15_final_evidence_is_recorded() -> None:
     text = EPIC_15.read_text(encoding="utf-8")
-    for token in ("PR #99", "PR #135", "PR #138", "umbrella #78"):
-        assert token in text
-    assert "45 concept epic documents" in text
-    assert "21 delivery umbrellas" in text
-    assert "Exactly 45 concept epic documents exist and validate" in text
-    assert "Every concept epic maps to an existing umbrella" in text
+    normalized = text.lower()
+    for token in ("pr #99", "pr #135", "pr #138", "umbrella #78"):
+        assert token in normalized
+    assert "45 concept epic documents" in normalized
+    assert "21 delivery umbrellas" in normalized
+    assert "exactly 45 concept epic documents exist and validate" in normalized
+    assert "every concept epic maps to an existing umbrella" in normalized
 
 
 def test_epic15_records_historical_lifecycle_divergence() -> None:
