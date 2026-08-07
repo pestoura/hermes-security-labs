@@ -156,6 +156,8 @@ Evidence must be referenced from the delivery umbrella issue before the umbrella
 
 ## 14. Implementation notes
 
+> Reserved lifecycle section. It is populated progressively while the epic is `IMPLEMENTING`; retaining the `Reserved` marker is required by the architecture documentation lifecycle contract and does not mean implementation has not started.
+
 Repository-level work completed or integrated:
 
 - PR #159 — real Ed25519/ECDSA RoE verification, file-backed public trust store and external fail-closed kill switch; merged and CI green.
@@ -166,6 +168,8 @@ Repository-level work completed or integrated:
 No customer/external target, Kali/scanner, runner capability, network, cloud or production runtime has been executed by these repository-level blocks.
 
 ## 15. As-built / final architecture
+
+> Reserved lifecycle section. This section remains non-final until the umbrella acceptance criteria and deployed runtime evidence exist; the current content records explicit implementation limits only.
 
 Not final. Repository contracts and verification logic are being implemented, but the following remain explicitly outside current evidence:
 
