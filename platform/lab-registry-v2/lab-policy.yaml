@@ -1,0 +1,35 @@
+schema_version: "2.0"
+policy_id: lab-registry-v2-policy
+isolation:
+  privileged: false
+  host_network: false
+  docker_socket: false
+  host_mounts: false
+  egress_default: deny
+resources:
+  cpu_limit_required: true
+  memory_limit_required: true
+  ttl_required: true
+states:
+  required:
+    - VULNERABLE
+    - MITIGATED
+    - FIXED
+  positive_control_required: true
+  negative_control_required: true
+build:
+  generated_or_untrusted_requires_isolation: true
+reset:
+  deterministic_fingerprint_required: true
+cleanup:
+  proof_required: true
+maturity:
+  levels: [L0, L1, L2, L3, L4, L5]
+runtime_status:
+  container_labs: NOT_RUN
+  vm_labs: NOT_RUN
+  kubernetes_labs: NOT_RUN
+  cloud_sandboxes: NOT_RUN
+  external_hardware: NOT_RUN
+  deterministic_reset_observed: NOT_RUN
+  cleanup_proof_observed: NOT_RUN
