@@ -161,12 +161,12 @@ concept_epics:
     pillar: A
     phase: 4
     priority: P0
-    status: intent
+    status: as_built
     umbrella_id: SVP2-A-02
     umbrella_issue: 77
     dependencies: [EPIC-03, EPIC-07]
     doc_path: docs/roadmap/epics/EPIC-09-exploitation-safety.md
-    current_state: "Not implemented. Concept documented as intent only."
+    current_state: "AS_BUILT repository-level safety/admission contract. Sourced from PR #133 (intrusiveness levels L0-L4 ceiling, L2+ approvals, L3/L4 rollback requirement, L4 distinct customer/provider dual approval, stop-condition refusal) plus external trust-store/kill-switch hardening from PR #159 and canonical signed-RoE admission from PR #160. Stop-condition refusal and external kill-switch admission refusal are implemented and tested. Hermes/Control Plane remains the sole execution-authorization authority; safety policy, approvals and kill-switch never create or expand authorization. NOT_RUN / NOT_IMPLEMENTED: deployed gateway enforcement of the contract, runtime trust-store/kill-switch deployment, in-flight cancellation/interruption, real L3/L4 exploitation/destructive execution and runtime kill-switch drills."
     target_state: "Intrusiveness levels L0-L4 with per-level requirements, stop conditions, kill switch and dual approval for the highest level."
   - concept_id: EPIC-10
     slug: evidence-plane
