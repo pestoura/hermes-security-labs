@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hex0r.local/schemas/svp2-security-validation-methodology-1.0.json",
+  "title": "SVP2 Security Validation Methodology",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "methodology_id",
+    "methodology_version",
+    "status",
+    "principles",
+    "phases",
+    "runtime_status"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "methodology_id": {"const": "svp2-security-validation-methodology"},
+    "methodology_version": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
+    "status": {"const": "candidate"},
+    "principles": {
+      "type": "array",
+      "minItems": 5,
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "phases": {
+      "type": "array",
+      "minItems": 7,
+      "maxItems": 7,
+      "items": {"$ref": "#/$defs/phase"}
+    },
+    "runtime_status": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "external_framework_sync",
+        "planner_integration",
+        "reporting_integration",
+        "execution_authority"
+      ],
+      "properties": {
+        "external_framework_sync": {"const": "NOT_RUN"},
+        "planner_integration": {"const": "NOT_IMPLEMENTED"},
+        "reporting_integration": {"const": "NOT_IMPLEMENTED"},
+        "execution_authority": {"const": "CONTROL_PLANE_ONLY"}
+      }
+    }
+  },
+  "$defs": {
+    "phase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "phase_id",
+        "order",
+        "title",
+        "purpose",
+        "authorization_mode",
+        "execution_possible",
+        "required_inputs",
+        "exit_evidence",
+        "allowed_next"
+      ],
+      "properties": {
+        "phase_id": {"type": "string", "pattern": "^[a-z][a-z0-9_]+$"},
+        "order": {"type": "integer", "minimum": 1, "maximum": 7},
+        "title": {"type": "string", "minLength": 1},
+        "purpose": {"type": "string", "minLength": 1},
+        "authorization_mode": {
+          "enum": ["CONTROL_PLANE_ONLY", "AUTHORIZED_EXECUTION", "NON_EXECUTION"]
+        },
+        "execution_possible": {"type": "boolean"},
+        "required_inputs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "pattern": "^[a-z][a-z0-9_]+$"}
+        },
+        "exit_evidence": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "pattern": "^[a-z][a-z0-9_]+$"}
+        },
+        "allowed_next": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "pattern": "^[a-z][a-z0-9_]+$"}
+        }
+      }
+    }
+  }
+}

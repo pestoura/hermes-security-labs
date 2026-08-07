@@ -1,0 +1,166 @@
+schema_version: "1.0"
+dataset_id: svp2-framework-crosswalk
+dataset_version: "1.0.0"
+methodology_ref: svp2-security-validation-methodology@1.0.0
+frameworks:
+  - framework_id: nist-sp-800-115
+    framework_version: "2008-09"
+    title: NIST SP 800-115 - Technical Guide to Information Security Testing and Assessment
+    source_locator: https://csrc.nist.gov/pubs/sp/800/115/final
+    source_status: manually_reviewed
+  - framework_id: owasp-wstg
+    framework_version: "4.2"
+    title: OWASP Web Security Testing Guide
+    source_locator: https://owasp.org/www-project-web-security-testing-guide/v42/
+    source_status: manually_reviewed
+mappings:
+  - mapping_id: nist-scope-authorize
+    phase_id: scope_authorize
+    framework_id: nist-sp-800-115
+    target_ref: section:5.2.1-planning
+    target_label: Planning
+    relation: aligned_with
+    confidence: high
+    confidence_score: 0.95
+    rationale: The project scope and authorization phase aligns strongly with NIST planning, while project Rules of Engagement and authorization controls remain authoritative.
+    advisory_only: true
+    applicability:
+      domains: [general]
+  - mapping_id: nist-discover
+    phase_id: discover
+    framework_id: nist-sp-800-115
+    target_ref: section:5.2.1-discovery
+    target_label: Discovery
+    relation: aligned_with
+    confidence: high
+    confidence_score: 0.95
+    rationale: Both phases cover bounded information gathering and discovery activities before validation of candidate weaknesses.
+    advisory_only: true
+    applicability:
+      domains: [general]
+  - mapping_id: nist-analyze
+    phase_id: analyze
+    framework_id: nist-sp-800-115
+    target_ref: section:5.2.1-discovery-vulnerability-analysis
+    target_label: Discovery - vulnerability analysis
+    relation: aligned_with
+    confidence: high
+    confidence_score: 0.90
+    rationale: The project analysis phase separates non-executing correlation and candidate generation from active validation, matching the vulnerability-analysis portion of NIST discovery.
+    advisory_only: true
+    applicability:
+      domains: [general]
+  - mapping_id: nist-validate
+    phase_id: validate
+    framework_id: nist-sp-800-115
+    target_ref: section:5.2.1-attack
+    target_label: Attack
+    relation: aligned_with
+    confidence: high
+    confidence_score: 0.95
+    rationale: Both phases validate potential weaknesses through controlled active testing, with project authorization and intrusiveness policy imposing the execution boundary.
+    advisory_only: true
+    applicability:
+      domains: [general]
+  - mapping_id: nist-assess-impact
+    phase_id: assess_impact
+    framework_id: nist-sp-800-115
+    target_ref: sections:5.2.1-attack-and-reporting
+    target_label: Attack and Reporting evidence interpretation
+    relation: overlaps
+    confidence: medium
+    confidence_score: 0.78
+    rationale: NIST distributes impact interpretation across attack results and reporting, while the project models impact assessment as a distinct non-executing phase.
+    advisory_only: true
+    applicability:
+      domains: [general]
+  - mapping_id: nist-report
+    phase_id: report
+    framework_id: nist-sp-800-115
+    target_ref: section:5.2.1-reporting
+    target_label: Reporting
+    relation: aligned_with
+    confidence: high
+    confidence_score: 0.95
+    rationale: Both models require findings and mitigation guidance to be reported from recorded assessment evidence.
+    advisory_only: true
+    applicability:
+      domains: [general]
+  - mapping_id: nist-remediate-retest
+    phase_id: remediate_retest
+    framework_id: nist-sp-800-115
+    target_ref: section:8.3-remediation-mitigation
+    target_label: Remediation and mitigation
+    relation: supports
+    confidence: low
+    confidence_score: 0.55
+    rationale: NIST post-testing remediation supports the project remediation phase, but the project evidence-bound retest loop is more explicit and remains project-specific.
+    advisory_only: true
+    applicability:
+      domains: [general]
+  - mapping_id: wstg-scope-authorize
+    phase_id: scope_authorize
+    framework_id: owasp-wstg
+    target_ref: section:3.1-web-security-testing-framework
+    target_label: Web Security Testing Framework
+    relation: informed_by
+    confidence: medium
+    confidence_score: 0.72
+    rationale: The OWASP testing framework informs planning structure for web assessments, while project authorization and Rules of Engagement remain separate control-plane contracts.
+    advisory_only: true
+    applicability:
+      domains: [web_application]
+  - mapping_id: wstg-discover
+    phase_id: discover
+    framework_id: owasp-wstg
+    target_ref: section:4.1-information-gathering
+    target_label: Information Gathering
+    relation: aligned_with
+    confidence: high
+    confidence_score: 0.95
+    rationale: The WSTG information-gathering category directly aligns with bounded web-application discovery activities.
+    advisory_only: true
+    applicability:
+      domains: [web_application]
+  - mapping_id: wstg-analyze
+    phase_id: analyze
+    framework_id: owasp-wstg
+    target_ref: section:4-web-application-security-testing
+    target_label: Web Application Security Testing analysis surface
+    relation: overlaps
+    confidence: medium
+    confidence_score: 0.78
+    rationale: WSTG testing categories provide candidate test knowledge, while the project keeps evidence correlation and candidate generation non-executable.
+    advisory_only: true
+    applicability:
+      domains: [web_application]
+  - mapping_id: wstg-validate
+    phase_id: validate
+    framework_id: owasp-wstg
+    target_ref: section:4-web-application-security-testing
+    target_label: Web Application Security Testing
+    relation: aligned_with
+    confidence: high
+    confidence_score: 0.90
+    rationale: WSTG test categories align with authorized web validation steps, subject to the project capability, scope and intrusiveness controls.
+    advisory_only: true
+    applicability:
+      domains: [web_application]
+  - mapping_id: wstg-report
+    phase_id: report
+    framework_id: owasp-wstg
+    target_ref: section:2.11-security-test-data-analysis-and-reporting
+    target_label: Security Test Data Analysis and Reporting
+    relation: supports
+    confidence: medium
+    confidence_score: 0.80
+    rationale: WSTG reporting guidance supports evidence-based project reporting without replacing the project finding, evidence or risk contracts.
+    advisory_only: true
+    applicability:
+      domains: [web_application]
+runtime_status:
+  authoritative_external_sync: NOT_RUN
+  automatic_framework_updates: NOT_IMPLEMENTED
+  planner_consumer_integration: NOT_IMPLEMENTED
+  reporting_consumer_integration: NOT_IMPLEMENTED
+  execution_effect: NONE

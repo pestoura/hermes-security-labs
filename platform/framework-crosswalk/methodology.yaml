@@ -1,0 +1,128 @@
+schema_version: "1.0"
+methodology_id: svp2-security-validation-methodology
+methodology_version: "1.0.0"
+status: candidate
+principles:
+  - authorization_precedes_execution
+  - evidence_precedes_assertion
+  - fail_closed_on_missing_context
+  - human_review_for_material_risk
+  - no_framework_mapping_grants_authority
+phases:
+  - phase_id: scope_authorize
+    order: 1
+    title: Scope and authorize
+    purpose: Establish the permitted targets, execution window, Rules of Engagement, stop conditions, emergency contacts and authorization boundary before any active validation.
+    authorization_mode: CONTROL_PLANE_ONLY
+    execution_possible: false
+    required_inputs:
+      - scope_definition
+      - target_allowlist
+      - execution_window
+      - rules_of_engagement
+      - stop_conditions
+      - emergency_contacts
+    exit_evidence:
+      - signed_roe_reference
+      - scope_snapshot
+      - authorization_policy_snapshot
+    allowed_next:
+      - discover
+  - phase_id: discover
+    order: 2
+    title: Discover
+    purpose: Collect bounded target and surface information only within the active authorization and declared capability limits.
+    authorization_mode: AUTHORIZED_EXECUTION
+    execution_possible: true
+    required_inputs:
+      - active_authorization
+      - scope_snapshot
+      - capability_registry_snapshot
+    exit_evidence:
+      - discovery_evidence
+      - observed_surface_inventory
+    allowed_next:
+      - analyze
+  - phase_id: analyze
+    order: 3
+    title: Analyze
+    purpose: Correlate discovery evidence with the frozen knowledge snapshot to identify hypotheses and candidate validations without granting execution authority.
+    authorization_mode: NON_EXECUTION
+    execution_possible: false
+    required_inputs:
+      - discovery_evidence
+      - knowledge_snapshot
+    exit_evidence:
+      - analysis_record
+      - validation_candidates
+    allowed_next:
+      - validate
+      - report
+  - phase_id: validate
+    order: 4
+    title: Validate
+    purpose: Execute only explicitly authorized validation steps and preserve evidence, correlation and stop-condition semantics.
+    authorization_mode: AUTHORIZED_EXECUTION
+    execution_possible: true
+    required_inputs:
+      - active_authorization
+      - validation_candidates
+      - intrusiveness_policy
+      - stop_conditions
+    exit_evidence:
+      - validation_evidence
+      - normalized_outcomes
+    allowed_next:
+      - assess_impact
+      - analyze
+      - report
+  - phase_id: assess_impact
+    order: 5
+    title: Assess impact
+    purpose: Convert validated evidence into findings, contextual risk and attack-path impact without additional execution.
+    authorization_mode: NON_EXECUTION
+    execution_possible: false
+    required_inputs:
+      - validation_evidence
+      - asset_context
+      - knowledge_snapshot
+    exit_evidence:
+      - finding_records
+      - risk_assessment_records
+    allowed_next:
+      - report
+  - phase_id: report
+    order: 6
+    title: Report
+    purpose: Produce evidence-referenced technical and executive outputs with explicit limitations and no claim unsupported by evidence.
+    authorization_mode: NON_EXECUTION
+    execution_possible: false
+    required_inputs:
+      - finding_records
+      - risk_assessment_records
+      - evidence_references
+    exit_evidence:
+      - report_artifact
+      - limitation_statement
+    allowed_next:
+      - remediate_retest
+  - phase_id: remediate_retest
+    order: 7
+    title: Remediate and retest
+    purpose: Track remediation and perform a new authorized retest when required; closure remains evidence-bound and never administrative-only.
+    authorization_mode: AUTHORIZED_EXECUTION
+    execution_possible: true
+    required_inputs:
+      - active_authorization
+      - finding_records
+      - remediation_evidence
+    exit_evidence:
+      - retest_evidence
+      - finding_transition_record
+    allowed_next:
+      - report
+runtime_status:
+  external_framework_sync: NOT_RUN
+  planner_integration: NOT_IMPLEMENTED
+  reporting_integration: NOT_IMPLEMENTED
+  execution_authority: CONTROL_PLANE_ONLY
