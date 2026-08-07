@@ -1,0 +1,40 @@
+schema_version: "1.0"
+policy_id: capability-promotion-default
+profiles:
+  - web-api
+  - devsecops
+  - ai-mcp
+  - exploitation
+  - kubernetes
+  - identity
+  - cloud
+  - mobile
+  - iot-ot
+stable_requires:
+  state:
+    installed: true
+    executable: true
+    functionally_tested: true
+  authorization:
+    authorized: true
+    policy_id_required: true
+  compatibility:
+    compatible: true
+    protocol_version_required: true
+  supply_chain:
+    sbom_required: true
+    signature_required: true
+    provenance_required: true
+    scan_blockers_maximum: 0
+lifecycle:
+  revoked_is_immediately_unusable: true
+  quarantined_is_unusable: true
+  quarantined_to_stable_direct: false
+  unknown_profile_default: deny
+runtime_status:
+  sbom_generation: NOT_RUN
+  signing: NOT_RUN
+  provenance_generation: NOT_RUN
+  image_scanning: NOT_RUN
+  production_revocation: NOT_RUN
+  image_promotion: NOT_RUN
