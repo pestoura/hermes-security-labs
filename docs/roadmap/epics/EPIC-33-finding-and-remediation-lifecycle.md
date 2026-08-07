@@ -17,7 +17,7 @@
 
 ## 2. Current status
 
-**AS_BUILT — repository contract** — PR #155 integrated the repository-owned finding
+**AS_BUILT** — repository contract. PR #155 integrated the repository-owned finding
 lifecycle contract and regression tests. The state machine, evidence requirements and
 regression semantics are implemented at repository level; production remediation and
 retest workflows have not been executed.
@@ -130,6 +130,9 @@ be closed, and this document must record the references in section 15.
 - Deduplication key for recurring findings
 
 ## 14. Implementation notes
+
+> Reserved lifecycle section. This section records the repository-contract implementation
+> integrated by PR #155 and preserves runtime non-claims.
 
 PR #155 (`feat(svp2-j-01): add auditable risk and finding lifecycle`) introduced the
 repository-owned finding lifecycle under `platform/risk-findings/`.
