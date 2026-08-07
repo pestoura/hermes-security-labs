@@ -577,12 +577,12 @@ concept_epics:
     pillar: G
     phase: 7
     priority: P1
-    status: intent
+    status: implementing
     umbrella_id: SVP2-G-01
     umbrella_issue: 90
     dependencies: [EPIC-38, EPIC-42]
     doc_path: docs/roadmap/epics/EPIC-41-vulnerability-specific-test-synthesis.md
-    current_state: "Not implemented. Concept documented as intent only."
+    current_state: "IMPLEMENTING. PR #151 integrated a vulnerability-resolution chain with explicit specificity/confidence/limitations and safe non-executable validation proposals. Persistent proposal/gap inventory, accepted-catalogue promotion workflow and real provider execution remain incomplete/NOT_RUN."
     target_state: "A synthesis process that resolves a vulnerability into candidate validation content, marking gaps where no trusted content exists."
   - concept_id: EPIC-42
     slug: exploit-and-validation-provider-registry
@@ -590,12 +590,12 @@ concept_epics:
     pillar: G
     phase: 7
     priority: P1
-    status: intent
+    status: implementing
     umbrella_id: SVP2-G-01
     umbrella_issue: 90
     dependencies: [EPIC-07, EPIC-30]
     doc_path: docs/roadmap/epics/EPIC-42-exploit-and-validation-provider-registry.md
-    current_state: "Not implemented. Concept documented as intent only."
+    current_state: "IMPLEMENTING. PR #151 integrated provider trust levels, quarantine, human-review and verified-signature eligibility with fail-closed QUARANTINED/UNTRUSTED states. Production provider registry and operational revocation propagation/window remain NOT_IMPLEMENTED; external PoC/Nuclei/Metasploit/vendor/containerized provider execution remains NOT_RUN."
     target_state: "A registry of trusted validation providers with vetting criteria, provenance, trust levels and revocation."
   - concept_id: EPIC-43
     slug: knowledge-driven-campaign-planner
