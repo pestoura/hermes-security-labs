@@ -69,7 +69,8 @@ Any refusal returns `runner_request=None`.
 - the emitted `authorization_ref` is copied **exactly from the verified Hermes receipt**. The gateway never creates a reference;
 - the receipt reference is not a bearer token, grant, capability or signature and grants nothing by possession;
 - changing validated operation parameters requires a new Hermes receipt/reference even if operation ID, target and intrusiveness are unchanged;
-- `attempt_id` is deliberately excluded from the TB1 authorization receipt/reference so retries of the same logical step can reuse still-valid authority. It remains mandatory Runner Protocol correlation data;
+- `attempt_id` is
+  deliberately excluded from the TB1 authorization receipt/reference so retries of the same logical step can reuse still-valid authority. It remains mandatory Runner Protocol correlation data;
 - Runner Protocol v2 requires UUID correlation IDs. No substitute UUID is generated and no identifier is silently normalized;
 - `idempotency_key` is derived from the logical effect plus the verified authorization reference, excluding `attempt_id` and timestamps;
 - `operation.input` is derived only from the typed target, validated operation parameters and minimal metadata. Command, shell, argv, cwd, environment and secret-like fields remain forbidden;
@@ -85,7 +86,7 @@ This block proves contract/message boundaries only. It is not connected to synth
 - TB1 signed authorization receipt/verifier: `CANDIDATE`;
 - Hermes authorization receipt issuance: `NOT_IMPLEMENTED` and `NOT_RUN`;
 - canonical gateway -> Runner Protocol v2 handoff: `CANDIDATE`;
-- runtime authorization-ref resolution: `NOT_IMPLEMENTED` and `NOT_RUN`;
+- runtime authorization-ref resolution: `NOT_IMPLEMENTED` / `NOT_RUN`;
 - runner execution integration: `execution_integration: NOT_RUN`;
 - runtime gateway integration: `NOT_RUN`;
 - normal profile arbitrary command exposure: `FORBIDDEN`;
