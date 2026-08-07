@@ -395,12 +395,12 @@ concept_epics:
     pillar: J
     phase: 7
     priority: P1
-    status: intent
+    status: as_built
     umbrella_id: SVP2-J-01
     umbrella_issue: 93
     dependencies: [EPIC-23, EPIC-37]
     doc_path: docs/roadmap/epics/EPIC-27-risk-intelligence-and-contextual-prioritization.md
-    current_state: "Not implemented. Concept documented as intent only."
+    current_state: "AS_BUILT at repository-contract level. PR #155 reconciled the risk intelligence contract: auditable scoring inputs (severity, exploitability intelligence, asset criticality, validated attack-path reachability), deterministic recomputation and evidence-referenced justification are specified and locked by repository tests. Scope is documentation and contract only: no production deployment, no runtime scoring service, no live intelligence feed ingestion and no environment execution. Production operation and end-to-end scoring execution remain NOT_IMPLEMENTED/NOT_RUN."
     target_state: "An auditable scoring model combining severity, exploitability intelligence, asset criticality and validated attack-path reachability."
   - concept_id: EPIC-28
     slug: rules-of-engagement-as-code
@@ -473,12 +473,12 @@ concept_epics:
     pillar: J
     phase: 7
     priority: P1
-    status: intent
+    status: as_built
     umbrella_id: SVP2-J-01
     umbrella_issue: 93
     dependencies: [EPIC-10, EPIC-27]
     doc_path: docs/roadmap/epics/EPIC-33-finding-and-remediation-lifecycle.md
-    current_state: "Not implemented. Concept documented as intent only."
+    current_state: "AS_BUILT at repository-contract level. PR #155 reconciled the finding and remediation lifecycle contract: detection-to-closure states, evidence-backed retest requirements, explicit risk acceptance with named accountability and reopen semantics are specified and locked by repository tests. Scope is documentation and contract only: no production deployment, no runtime lifecycle service, no ticketing integration and no environment execution. Production operation and lifecycle execution remain NOT_IMPLEMENTED/NOT_RUN."
     target_state: "A finding lifecycle from detection through remediation and evidence-backed retest to closure, with explicit risk acceptance."
   - concept_id: EPIC-34
     slug: maturity-benchmarking-and-scientific-quality
