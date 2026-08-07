@@ -10,22 +10,22 @@
 | Phase | 7 |
 | Priority | P1 |
 | Delivery umbrella | `SVP2-J-01` (issue [#93](https://github.com/pestoura/hermes-security-labs/issues/93)) |
-| Document version | 1.0.0 |
-| Document date | 2026-08-06 |
+| Document version | 1.1.0 |
+| Document date | 2026-08-07 |
 | Catalogue | [Epic catalogue 45](../epic-catalogue-45.md) |
 | Lifecycle contract | [Architecture documentation lifecycle](../../architecture/architecture-documentation-lifecycle.md) |
 
 ## 2. Current status
 
-**INTENT** — nothing described in this document is implemented. Sections 14 and 15
-are reserved and must be filled during and after implementation, as required by the
-[documentation lifecycle contract](../../architecture/architecture-documentation-lifecycle.md).
+**AS_BUILT — repository contract** — PR #155 integrated the repository-owned risk
+assessment contract and tests. The contract is deterministic and auditable at repository
+level, but production integrations and live scoring have not been executed.
 
 | Lifecycle state | Reached |
 | --- | --- |
 | INTENT | yes |
-| IMPLEMENTING | no |
-| AS_BUILT | no |
+| IMPLEMENTING | yes |
+| AS_BUILT | yes |
 | FINAL | no |
 
 ## 3. Problem and motivation
@@ -114,21 +114,50 @@ be closed, and this document must record the references in section 15.
 
 ## 14. Implementation notes
 
-> Reserved. Populate during implementation with pull request references, deviations
-> from intent, and decisions taken while building. Do not delete this heading.
+PR #155 (`feat(svp2-j-01): add auditable risk and finding lifecycle`) introduced the
+repository-owned risk and finding contract under `platform/risk-findings/`.
 
-_Not started._
+For risk assessment, the implementation:
+
+- keeps the canonical components separate: CVSS 4.0, EPSS, KEV, asset criticality,
+  reachability, attack-path importance, threat relevance, compensating controls,
+  detectability and remediation cost;
+- requires every component to carry an explicit source reference;
+- validates normalized values and requires the complete canonical component set;
+- requires non-negative caller-supplied weights whose total is exactly `1.0`;
+- records normalized component values and the effective weights alongside the
+  composite score;
+- computes the composite deterministically and marks the resulting record auditable;
+- fails closed when required components, provenance or weight invariants are missing.
+
+The repository tests delivered with PR #155 exercise deterministic scoring, input
+validation and failure behaviour. No external vulnerability feed, asset inventory,
+business criticality service or production scoring engine is invoked by this contract.
 
 ## 15. As-built / final architecture
 
-> Reserved. Populate when the delivery umbrella reaches completion. Must record what
-> was actually built, evidence links, and every divergence from sections 6 to 11.
-> No umbrella may be closed while this section is empty.
+The repository now contains an **as-built contract** for deterministic and auditable
+contextual risk scoring. This satisfies the repository-level acceptance intent for an
+explainable score whose inputs and weights are preserved with the result.
 
-_Not started._
+The following operational capabilities are explicitly outside the evidence currently
+available:
+
+- production risk ingestion/scoring: `NOT_RUN`;
+- live asset/business criticality integration: `NOT_RUN`;
+- production CVSS/EPSS/KEV feeds: `NOT_RUN`;
+- attack-graph/runtime reachability integration: `NOT_RUN`;
+- customer or production risk prioritization workflow: `NOT_RUN`;
+- automated risk acceptance: `NOT_IMPLEMENTED`.
+
+`AS_BUILT` therefore applies to the repository contract and tests only. `FINAL` remains
+`no` until the lifecycle contract's final evidence requirements are satisfied.
+
+`NO_RUNTIME_CHANGE`.
 
 ## 16. Document change log
 
 | Date | Version | Change |
 | --- | --- | --- |
+| 2026-08-07 | 1.1.0 | Reconciled PR #155 repository contract as `AS_BUILT`; recorded production non-claims and retained `FINAL=no`. |
 | 2026-08-06 | 1.0.0 | Initial intent document created from the concept epic catalogue. |
