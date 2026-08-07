@@ -65,6 +65,23 @@ def test_methodology_fails_closed_if_execution_phase_loses_authorization_input()
         validate_methodology(methodology)
 
 
+def test_semantic_validator_rejects_unknown_fields_and_unpinned_versions() -> None:
+    methodology = _methodology()
+    methodology["unexpected"] = "ignored-by-a-weak-validator"
+    with pytest.raises(CrosswalkError, match="methodology fields mismatch"):
+        validate_methodology(methodology)
+
+    methodology = _methodology()
+    methodology["methodology_version"] = "latest"
+    with pytest.raises(CrosswalkError, match="semantic"):
+        validate_methodology(methodology)
+
+    dataset = _crosswalk()
+    dataset["dataset_version"] = "latest"
+    with pytest.raises(CrosswalkError, match="semantic"):
+        validate_crosswalk(dataset, _methodology())
+
+
 def test_crosswalk_requires_versioned_sources_relations_confidence_and_rationale() -> None:
     dataset = validate_crosswalk(_crosswalk(), _methodology())
     assert {framework["framework_id"] for framework in dataset["frameworks"]} == {
@@ -78,10 +95,16 @@ def test_crosswalk_requires_versioned_sources_relations_confidence_and_rationale
     assert all(mapping["rationale"] for mapping in dataset["mappings"])
 
 
-def test_crosswalk_confidence_band_mismatch_fails_closed() -> None:
+def test_crosswalk_confidence_mismatch_or_out_of_range_fails_closed() -> None:
     dataset = _crosswalk()
     dataset["mappings"][0]["confidence"] = "high"
     dataset["mappings"][0]["confidence_score"] = 0.50
+    with pytest.raises(CrosswalkError, match="confidence"):
+        validate_crosswalk(dataset, _methodology())
+
+    dataset = _crosswalk()
+    dataset["mappings"][0]["confidence"] = "high"
+    dataset["mappings"][0]["confidence_score"] = 1.01
     with pytest.raises(CrosswalkError, match="confidence"):
         validate_crosswalk(dataset, _methodology())
 
@@ -94,6 +117,11 @@ def test_unknown_framework_and_hidden_execution_authority_fail_closed() -> None:
 
     dataset = _crosswalk()
     dataset["authorization_ref"] = "forbidden"
+    with pytest.raises(CrosswalkError, match="execution authority"):
+        validate_crosswalk(dataset, _methodology())
+
+    dataset = _crosswalk()
+    dataset["mappings"][0]["roe_decision"] = "caller-controlled"
     with pytest.raises(CrosswalkError, match="execution authority"):
         validate_crosswalk(dataset, _methodology())
 
