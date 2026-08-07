@@ -1,0 +1,48 @@
+schema_version: "1.0"
+policy_id: minimal-nonroot-runtime
+runtime_user:
+  required_non_root: true
+  uid_minimum: 10000
+  allow_uid_zero: false
+filesystem:
+  root_filesystem: read_only
+  runner_root: /opt/hermes/runners
+  writable_paths:
+    - /tmp
+    - /run
+    - /var/tmp/hermes
+  host_mounts_allowed: false
+  docker_socket_allowed: false
+capabilities:
+  default_drop_all: true
+  default_network_mode: tcp_connect
+  profiles:
+    core:
+      add: []
+      nmap_default_mode: -sT
+    raw-network:
+      add:
+        - NET_RAW
+      requires_explicit_profile: true
+      requires_justification: true
+    privileged:
+      allowed: false
+layers:
+  core:
+    browser: false
+    heavy_tools: false
+  browser:
+    isolated_layer: true
+  heavy_tools:
+    isolated_layer: true
+runner_layout:
+  root: /opt/hermes/runners
+  immutable_code: true
+  writable_state_outside_runner_root: true
+  executable_from_request_fields: false
+runtime_status:
+  image_build: NOT_RUN
+  container_start: NOT_RUN
+  non_root_observation: NOT_RUN
+  read_only_root_observation: NOT_RUN
+  capability_drop_observation: NOT_RUN
