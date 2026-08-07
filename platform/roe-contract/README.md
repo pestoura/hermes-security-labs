@@ -131,6 +131,16 @@ Runtime status of this deployment procedure: `NOT_RUN`.
 - `../tests/test_roe_contract.py` — positive, negative and adversarial tests.
 - `../tests/test_roe_trust_store.py` — trust store and kill-switch tests.
 
+## Canonical admission path
+
+`authorize_step()` is the RoE decision function; it is **not** the enforcement
+boundary by itself. The canonical admission/enforcement API is
+[`platform/gateway-protocol/admission.py`](../gateway-protocol/admission.py)
+(`authorize_admission()`), which derives the RoE decision internally from the
+signed contract, this step request, the trust store and the external kill
+switch, and refuses any caller-supplied RoE decision. Runtime gateway
+integration: `NOT_RUN`.
+
 ## Current status
 
 - Contract and decision logic: `CANDIDATE`.
