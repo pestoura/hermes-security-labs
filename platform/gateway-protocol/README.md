@@ -59,10 +59,30 @@ new bypass is introduced by this block.
 imports the canonical `runner_protocol_v2` SDK and duplicates no protocol
 schema or logic.
 
-- authorization is derived internally by calling `authorize_admission()`; a
+- authorization is **issued by the Hermes control plane**, never by this
+  gateway. `build_step_request()` requires two separate TB1 artefacts: the
+  typed gateway request (which carries no authorization at all) and
+  `authorization_receipt_document`, a signed control-plane authorization
+  receipt supplied through the Hermes -> gateway boundary parameter. A
   caller-supplied `admission_decision`, `roe_decision`, `roe_decision_ref`,
-  `authorized` or `authorization_ref` is refused with
-  `HANDOFF_CALLER_SUPPLIED_AUTHORIZATION` before anything else runs;
+  `authorized`, `authorization`, `authorization_receipt` or
+  `authorization_ref` embedded in the typed request is refused with
+  `HANDOFF_CALLER_SUPPLIED_AUTHORIZATION` before anything else runs. A naked
+  `authorization_ref` without a signed receipt is never accepted;
+- the fail-closed sequence is: service configuration -> receipt verification
+  (schema, domain, control-plane issuer, validity window, key purpose,
+  reference integrity, signature) -> `authorize_admission()` -> exact
+  cross-check of the verified receipt against the freshly admitted context
+  (campaign/run/step, RoE contract id and payload hash, RoE step request id,
+  operation id/version, capability, canonical target digest, intrusiveness
+  level) -> UUID correlation gate -> message construction. Any divergence
+  yields `runner_request=None` and a stable sanitized code;
+- the authorization signing keys live in a **dedicated, purpose-bound**
+  authorization trust store (`purpose: tb1-authorization`), configured
+  server-side via `RunnerHandoffConfig.authorization_trust_store_path`. It is
+  deliberately not the RoE signing trust store: a valid RoE-purpose key is
+  refused with `AUTHORIZATION_KEY_PURPOSE_MISMATCH`, which closes the
+  cross-protocol key-confusion path;
 - a message is built only after a positive admission **and** successful
   `runner_protocol_v2.validate_semantics()`; any refusal or integration defect
   returns `runner_request=None`. There is no partial construction and no
@@ -80,18 +100,23 @@ schema or logic.
   must never be logged or persisted as a decision. `sanitized_summary()`
   returns the log-safe projection, with `runner_request_present` as a boolean
   presence flag only;
-- the emitted `authorization_ref` is a deterministic, content-addressed
-  SHA-256 digest (`roe-authz:v1:<digest>`) over the sanitized admitted
-  authorization context — campaign, gateway request/step, RoE step request,
-  contract payload hash, operation id/version, capability, canonical target
-  digest and intrusiveness level, plus the `run_id`. `attempt_id` is
-  deliberately excluded so retries of the same logical step share the same
-  authorization reference, while a different `run_id` yields a different one.
-  It is a **reference**: not a bearer token,
-  not a grant, not a capability and not a signature, and it authorizes nothing
-  by itself. The raw target value is never part of it, only its digest.
-  Runtime resolution of the reference against a trusted authority / control
-  plane is `NOT_IMPLEMENTED` and `NOT_RUN`;
+- the emitted `authorization_ref` is exactly the reference carried by the
+  verified receipt, i.e. the one issued by the control plane. The gateway
+  never mints one. It may recompute the expected reference with
+  `expected_authorization_ref()` **solely to verify** that the supplied
+  reference matches the signed body; recomputation is an integrity check and
+  creates no authority. The canonical derivation
+  (`hex0r-authz:v1:<digest>`, domain-separated by
+  `hex0r.tb1.authorization.v1` over the sanitized authorization body
+  excluding the reference and the signature) is owned by
+  [`platform/roe-contract/authorization_receipt.py`](../roe-contract/README.md).
+  `attempt_id` is not part of the authorization at all, so retries of the same
+  logical step reuse the same receipt and the same reference, while a
+  different `run_id` requires a different receipt and yields a different
+  reference. It remains a **reference**: not a bearer token, not a grant, not
+  a capability and not a signature. The raw target value is never part of it,
+  only its digest. Runtime resolution of the reference against a trusted
+  authority / control plane is `NOT_IMPLEMENTED` and `NOT_RUN`;
 - the four Runner Protocol correlation identifiers are preserved exactly.
   Runner Protocol v2 requires UUIDs while the existing gateway schema still
   allows non-UUID identifiers; that gap is exposed fail-closed here with

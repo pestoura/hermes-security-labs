@@ -19,13 +19,20 @@ either a fully validated ``runner.step.request`` is returned, or
 ``runner_request`` is ``None``. There is no partial construction and no
 partial effect.
 
-The emitted ``authorization_ref`` is a **reference**, not a bearer token, not a
-grant, not a capability and not a signature. It is a deterministic,
-content-addressed digest over the sanitized admitted authorization context. It
-carries no target value, no parameters and no secret material, and possessing
-it grants nothing. A future runtime must resolve it against a trusted
-authority / control plane before acting on it; that resolution is
+The ``authorization_ref`` emitted in the built message is **issued by the
+Hermes control plane** and carried by a signed authorization receipt. This
+module never creates, expands or approves an authorization: it verifies the
+receipt (domain, issuer, key purpose, validity window, reference integrity,
+signature), cross-checks it against the freshly derived admission context and
+then propagates the reference the receipt already carried. Recomputing the
+expected reference locally is a verification step only and creates no
+authority. A naked ``authorization_ref`` without a signed receipt is always
+refused. Resolving the reference at runtime against a trusted authority is
 ``NOT_IMPLEMENTED`` and ``NOT_RUN`` in this repository.
+
+The reference itself remains a **reference**: not a bearer token, not a grant,
+not a capability and not a signature. It carries no raw target, no parameters
+and no secret material, and possessing it grants nothing.
 """
 
 from __future__ import annotations
@@ -43,6 +50,7 @@ from typing import Any, Iterable, Mapping
 ROOT = Path(__file__).resolve().parent
 REPOSITORY_ROOT = ROOT.parents[1]
 RUNNER_SDK_SRC = REPOSITORY_ROOT / "platform" / "runner-protocol" / "src"
+ROE_DIR = REPOSITORY_ROOT / "platform" / "roe-contract"
 
 if str(RUNNER_SDK_SRC) not in sys.path:  # pragma: no cover - import wiring
     sys.path.insert(0, str(RUNNER_SDK_SRC))
@@ -69,16 +77,24 @@ def _load_module(module_name: str, path: Path) -> Any:
 
 admission = _load_module("gateway_admission_handoff_core", ROOT / "admission.py")
 gateway_protocol = admission.gateway_protocol
+authorization_receipt = _load_module(
+    "roe_authorization_receipt_handoff", ROE_DIR / "authorization_receipt.py"
+)
 
-AUTHORIZATION_REF_PREFIX = "roe-authz:v1:"
 IDEMPOTENCY_KEY_PREFIX = "rp2-step-"
 PROTOCOL_VERSION = "2.0.0"
 CORRELATION_FIELDS = ("campaign_id", "run_id", "step_id", "attempt_id")
 
 #: Fields a caller may never provide: they would attempt to carry, replace or
-#: amplify authorization instead of letting it be derived here.
+#: amplify authorization instead of letting it be derived here. In particular a
+#: request-supplied ``authorization_ref`` or ``authorization_receipt`` is a
+#: naked assertion of authority and is refused before anything else: the signed
+#: receipt only ever enters through the dedicated Hermes -> gateway boundary
+#: parameter, never as a free field of the typed request.
 CALLER_SUPPLIED_AUTHORIZATION_FIELDS = (
     "admission_decision",
+    "authorization",
+    "authorization_receipt",
     "authorization_ref",
     "authorized",
     "cancellation_policy",
@@ -170,6 +186,11 @@ class RunnerHandoffConfig:
     policy_path: Path | None = None
     registry_path: Path | None = None
     runtime_registry_path: Path | None = None
+    #: Dedicated authorization trust store holding the control-plane TB1
+    #: signing public keys. It is purpose-bound (``tb1-authorization``) and is
+    #: deliberately NOT the RoE signing trust store: reusing an RoE key for
+    #: authorization is refused.
+    authorization_trust_store_path: Path | None = None
     dispatch_policy: RunnerDispatchPolicy = field(default_factory=RunnerDispatchPolicy)
 
 
@@ -258,25 +279,19 @@ class RunnerHandoffResult:
         )
 
 
-def build_authorization_ref(context: Mapping[str, Any]) -> str:
-    """Return the deterministic, content-addressed authorization reference.
+def expected_authorization_ref(receipt: Mapping[str, Any]) -> str:
+    """Recompute the reference a receipt body must carry — VERIFICATION ONLY.
 
-    The digest covers the sanitized admitted authorization context only. The
-    raw target value is never part of it: only its canonical SHA-256 digest is.
-    The canonical context binds the campaign, the ``run_id``, the gateway
-    request/step, the RoE step request, the contract payload hash, the
-    operation id/version, the capability and the intrusiveness level.
-    ``attempt_id`` is deliberately excluded so retries of the same logical step
-    share the same authorization reference.
-
-    The result is a REFERENCE — it is not a bearer token, not a grant, not a
-    capability and not a signature, and it authorizes nothing by itself.
+    The canonical algorithm lives in the control-plane owned contract module
+    ``platform/roe-contract/authorization_receipt.py``. The gateway calls it
+    solely to check that the ``authorization_ref`` inside a signed receipt
+    matches the signed body. Recomputation is an integrity check: it does not
+    create, expand or approve authorization, and the value propagated
+    downstream is always the one issued by the control plane and carried by
+    the verified receipt.
     """
 
-    encoded = json.dumps(
-        dict(context), sort_keys=True, separators=(",", ":"), ensure_ascii=False
-    ).encode("utf-8")
-    return AUTHORIZATION_REF_PREFIX + hashlib.sha256(encoded).hexdigest()
+    return authorization_receipt.compute_authorization_ref(receipt)
 
 
 def build_step_request(
@@ -284,13 +299,25 @@ def build_step_request(
     contract: Mapping[str, Any],
     roe_step_request: Mapping[str, Any],
     config: RunnerHandoffConfig | None = None,
+    *,
+    authorization_receipt_document: Mapping[str, Any] | None = None,
 ) -> RunnerHandoffResult:
     """Canonical gateway -> Runner Protocol v2 handoff entry point.
 
-    Admission is derived internally through ``authorize_admission()``. A
-    ``runner.step.request`` is produced only when admission is positive and the
-    resulting message passes canonical Runner Protocol semantic validation.
-    Any refusal or integration defect yields ``runner_request=None``.
+    Two distinct TB1 artefacts are required and they arrive separately:
+
+    1. the typed gateway request (plus RoE contract and step request), which
+       carries no authorization of any kind;
+    2. ``authorization_receipt_document``: the signed, control-plane issued
+       authorization receipt, supplied as a boundary artefact and never as a
+       field of the typed request.
+
+    Fail-closed sequence: service configuration -> receipt verification
+    (schema, domain, issuer, validity window, key purpose, reference
+    integrity, signature) -> ``authorize_admission()`` -> exact cross-check of
+    the verified receipt against the freshly admitted context -> UUID
+    correlation gate -> message construction. Any failure yields
+    ``runner_request=None``.
     """
 
     config = config or RunnerHandoffConfig()
@@ -310,6 +337,23 @@ def build_step_request(
         return RunnerHandoffResult.refuse((str(exc),), request)
     except Exception:  # noqa: BLE001 - malformed configuration is fail-closed
         return RunnerHandoffResult.refuse(("DISPATCH_POLICY_INVALID",), request)
+
+    if authorization_receipt_document is None:
+        return RunnerHandoffResult.refuse(("AUTHORIZATION_RECEIPT_REQUIRED",), request)
+    if config.authorization_trust_store_path is None:
+        return RunnerHandoffResult.refuse(("AUTHORIZATION_TRUST_STORE_REQUIRED",), request)
+
+    try:
+        authorization = authorization_receipt.verify_receipt(
+            authorization_receipt_document,
+            config.authorization_trust_store_path,
+        )
+    except authorization_receipt.AuthorizationReceiptError as exc:
+        return RunnerHandoffResult.refuse((str(exc),), request)
+    except Exception:  # noqa: BLE001 - any verification defect is fail-closed
+        return RunnerHandoffResult.refuse(
+            ("AUTHORIZATION_RECEIPT_VERIFICATION_ERROR",), request
+        )
 
     try:
         decision = admission.authorize_admission(
@@ -332,6 +376,19 @@ def build_step_request(
             admission_codes=decision.codes,
         )
 
+    try:
+        binding_codes = _authorization_binding_codes(
+            authorization, request, contract, roe_step_request
+        )
+    except Exception:  # noqa: BLE001 - malformed derived inputs are fail-closed
+        return RunnerHandoffResult.refuse(
+            ("AUTHORIZATION_BINDING_INVALID",), request, admission_codes=decision.codes
+        )
+    if binding_codes:
+        return RunnerHandoffResult.refuse(
+            binding_codes, request, admission_codes=decision.codes
+        )
+
     correlation_codes = _correlation_codes(request)
     if correlation_codes:
         return RunnerHandoffResult.refuse(
@@ -339,7 +396,9 @@ def build_step_request(
         )
 
     try:
-        message = _assemble_message(request, roe_step_request, decision, config)
+        message = _assemble_message(
+            request, roe_step_request, authorization, config
+        )
     except ProtocolValidationError:
         return RunnerHandoffResult.refuse(
             ("RUNNER_REQUEST_INVALID",), request, admission_codes=decision.codes
@@ -368,34 +427,83 @@ def build_step_request(
     )
 
 
+def _authorization_binding_codes(
+    authorization: Any,
+    request: Mapping[str, Any],
+    contract: Mapping[str, Any],
+    roe_step_request: Mapping[str, Any],
+) -> list[str]:
+    """Cross-check the verified receipt against the freshly admitted context.
+
+    Every binding must match EXACTLY. The receipt cannot widen anything: it is
+    only ever compared against what admission independently derived from the
+    signed RoE contract and the typed request.
+    """
+
+    codes: list[str] = []
+    target_digest = gateway_protocol.canonical_target_digest(request["target"])
+
+    comparisons = (
+        ("AUTHORIZATION_CAMPAIGN_MISMATCH", authorization.campaign_id, str(request["campaign_id"])),
+        ("AUTHORIZATION_RUN_MISMATCH", authorization.run_id, str(request["run_id"])),
+        ("AUTHORIZATION_STEP_MISMATCH", authorization.step_id, str(request["step_id"])),
+        (
+            "AUTHORIZATION_ROE_CONTRACT_MISMATCH",
+            authorization.roe_contract_id,
+            str(contract["contract_id"]),
+        ),
+        (
+            "AUTHORIZATION_ROE_CONTRACT_PAYLOAD_MISMATCH",
+            authorization.roe_contract_payload_sha256,
+            str(request["contract_payload_sha256"]),
+        ),
+        (
+            "AUTHORIZATION_ROE_STEP_REQUEST_MISMATCH",
+            authorization.roe_step_request_id,
+            str(roe_step_request["request_id"]),
+        ),
+        (
+            "AUTHORIZATION_OPERATION_MISMATCH",
+            authorization.operation_id,
+            str(request["operation"]["id"]),
+        ),
+        (
+            "AUTHORIZATION_OPERATION_VERSION_MISMATCH",
+            authorization.operation_version,
+            str(request["operation"]["version"]),
+        ),
+        (
+            "AUTHORIZATION_CAPABILITY_MISMATCH",
+            authorization.capability_id,
+            str(roe_step_request["capability"]),
+        ),
+        ("AUTHORIZATION_TARGET_MISMATCH", authorization.target_sha256, target_digest),
+        (
+            "AUTHORIZATION_INTRUSIVENESS_MISMATCH",
+            authorization.intrusiveness_level,
+            str(roe_step_request["intrusiveness_level"]),
+        ),
+    )
+    for code, issued, admitted in comparisons:
+        if issued != admitted:
+            codes.append(code)
+    return codes
+
+
 def _assemble_message(
     request: Mapping[str, Any],
     roe_step_request: Mapping[str, Any],
-    decision: Any,
+    authorization: Any,
     config: RunnerHandoffConfig,
 ) -> dict[str, Any]:
     operation = request["operation"]
     target = request["target"]
-    target_digest = gateway_protocol.canonical_target_digest(target)
     capability_id = str(roe_step_request["capability"])
     intrusiveness = str(roe_step_request["intrusiveness_level"])
 
-    authorization_ref = build_authorization_ref(
-        {
-            "authorization_ref_version": 1,
-            "campaign_id": str(request["campaign_id"]),
-            "run_id": str(request["run_id"]),
-            "gateway_request_id": str(request["request_id"]),
-            "gateway_step_id": str(request["step_id"]),
-            "roe_step_request_id": str(request["roe_step_request_id"]),
-            "contract_payload_sha256": str(request["contract_payload_sha256"]),
-            "operation_id": str(operation["id"]),
-            "operation_version": str(operation["version"]),
-            "capability_id": capability_id,
-            "target_sha256": target_digest,
-            "intrusiveness_level": intrusiveness,
-        }
-    )
+    # The reference propagated downstream is the one ISSUED by the control
+    # plane and carried by the verified receipt. The gateway never mints one.
+    authorization_ref = authorization.authorization_ref
 
     operation_input = {
         "operation_id": str(operation["id"]),

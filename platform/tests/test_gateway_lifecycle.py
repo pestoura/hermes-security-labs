@@ -67,7 +67,24 @@ def test_gateway_readme_does_not_call_message_construction_a_dispatch() -> None:
 
     assert "`request_built`, not `dispatched`" in text
     assert "RESTRICTED operational payload" in text
-    assert "`attempt_id` is\n  deliberately excluded" in text
+    assert "`attempt_id` is not part of the authorization at all" in text
+
+
+def test_gateway_readme_never_claims_the_gateway_creates_authorization() -> None:
+    """Regression guard for the ADR-0001 correction of #161."""
+
+    text = README.read_text(encoding="utf-8")
+
+    assert "issued by the Hermes control plane**, never by this\n  gateway" in text
+    assert "The gateway\n  never mints one" in text
+    assert "naked\n  `authorization_ref` without a signed receipt is never accepted" in text
+    assert "AUTHORIZATION_KEY_PURPOSE_MISMATCH" in text
+    for forbidden in (
+        "the gateway creates the authorization",
+        "the gateway issues the authorization",
+        "gateway-issued authorization",
+    ):
+        assert forbidden not in text.lower()
 
 
 def test_runner_protocol_readme_declares_the_handoff_as_reference_only() -> None:

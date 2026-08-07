@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/pestoura/hermes-security-labs/platform/roe-contract/authorization-receipt.schema.json",
+  "title": "TB1 control-plane authorization receipt",
+  "description": "Signed authorization receipt issued by the Hermes control plane and verified by the execution plane. The execution plane may verify and consume this artefact; it may never create, expand or approve one. The receipt carries references and digests only: no raw target, no operation parameters, no secrets and no credentials.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "domain",
+    "receipt_id",
+    "issuer",
+    "issued_at",
+    "expires_at",
+    "authorization",
+    "authorization_ref",
+    "signature"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "domain": { "const": "hex0r.tb1.authorization.v1" },
+    "receipt_id": { "type": "string", "minLength": 8, "maxLength": 128, "pattern": "^[A-Za-z0-9._:-]+$" },
+    "issuer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["plane", "domain", "issuer_id"],
+      "properties": {
+        "plane": { "const": "control-plane" },
+        "domain": { "const": "hermes.control-plane" },
+        "issuer_id": { "type": "string", "minLength": 3, "maxLength": 128, "pattern": "^[A-Za-z0-9._:-]+$" }
+      }
+    },
+    "issued_at": { "type": "string", "format": "date-time" },
+    "expires_at": { "type": "string", "format": "date-time" },
+    "authorization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "authorization_id",
+        "campaign_id",
+        "run_id",
+        "step_id",
+        "roe_contract_id",
+        "roe_contract_payload_sha256",
+        "roe_step_request_id",
+        "operation_id",
+        "operation_version",
+        "capability_id",
+        "target_sha256",
+        "intrusiveness_level"
+      ],
+      "properties": {
+        "authorization_id": { "type": "string", "minLength": 8, "maxLength": 128, "pattern": "^[A-Za-z0-9._:-]+$" },
+        "campaign_id": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "run_id": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "step_id": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "roe_contract_id": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "roe_contract_payload_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "roe_step_request_id": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "operation_id": { "type": "string", "minLength": 3, "maxLength": 128, "pattern": "^[a-z0-9]+(?:[._-][a-z0-9]+)*$" },
+        "operation_version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+        "capability_id": { "type": "string", "minLength": 3, "maxLength": 128, "pattern": "^[a-z0-9]+(?:[._-][a-z0-9]+)*$" },
+        "target_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "intrusiveness_level": { "type": "string", "enum": ["L0", "L1", "L2", "L3", "L4"] }
+      }
+    },
+    "authorization_ref": { "type": "string", "pattern": "^hex0r-authz:v1:[a-f0-9]{64}$" },
+    "signature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["algorithm", "key_id", "payload_sha256", "value"],
+      "properties": {
+        "algorithm": { "type": "string", "enum": ["Ed25519", "ECDSA-P256-SHA256"] },
+        "key_id": { "type": "string", "minLength": 3, "maxLength": 128, "pattern": "^[A-Za-z0-9._:-]+$" },
+        "payload_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "value": { "type": "string", "minLength": 16, "maxLength": 1024, "pattern": "^[A-Za-z0-9+/=]+$" }
+      }
+    }
+  }
+}

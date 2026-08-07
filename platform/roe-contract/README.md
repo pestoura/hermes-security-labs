@@ -128,8 +128,13 @@ Runtime status of this deployment procedure: `NOT_RUN`.
 - `roe_contract.py` — structural, semantic, signature-boundary and authorization decision logic.
 - `trust_store.py` — file-backed public-key trust store and cryptographic verifier.
 - `kill_switch.py` — external file-backed kill switch.
+- `authorization-receipt.schema.json` — TB1 control-plane authorization receipt schema.
+- `authorization_receipt.py` — TB1 authorization receipt canonicalization, reference
+  derivation and verification (no issuer, no private key).
 - `../tests/test_roe_contract.py` — positive, negative and adversarial tests.
 - `../tests/test_roe_trust_store.py` — trust store and kill-switch tests.
+- `../tests/test_authorization_receipt.py` — adversarial authorization receipt tests.
+- `../tests/authorization_receipt_fixtures.py` — in-memory test signing helpers.
 
 ## Canonical admission path
 
@@ -143,8 +148,47 @@ verifier is not injectable: `authorize_admission()` requires a trust-store
 path and always builds the trust-store verifier itself with the real clock.
 Runtime gateway integration: `NOT_RUN`.
 
+## TB1 control-plane authorization receipt
+
+`ADR-0001` makes Hermes / the control plane the only authorization authority. The
+execution plane may validate an authorization reference but may never create, expand
+or approve one. `authorization_receipt.py` implements that contract at repository
+level:
+
+- the receipt is a versioned, strict (`additionalProperties: false`), signed artefact
+  issued by the control plane. It carries identifiers and digests only: no raw target,
+  no operation parameters, no secrets and no credentials;
+- it binds schema/version/domain, a fixed control-plane issuer identity, the
+  `authorization_ref`, the receipt and authorization ids, `issued_at`/`expires_at`,
+  campaign/run/step, the RoE contract id and canonical payload SHA-256, the RoE step
+  request id, the operation id/version, the capability, the canonical target SHA-256
+  digest and the intrusiveness level. `attempt_id` is deliberately **outside** the
+  authorization so a retry of the same logical step reuses the same receipt;
+- the validity window is short and explicit: `expires_at` must be greater than
+  `issued_at` and at most `MAX_VALIDITY_SECONDS`; expired and not-yet-valid receipts
+  fail closed;
+- `compute_authorization_ref()` is the canonical, deterministic derivation Hermes uses
+  to **issue** a reference: SHA-256 over the domain separation string
+  `hex0r.tb1.authorization.v1` followed by the canonical JSON authorization body,
+  excluding the reference itself and the signature. The execution plane may call it
+  only to check that a supplied reference matches the signed body; doing so creates no
+  authority;
+- verification is real Ed25519 and ECDSA-P256-SHA256 against a **dedicated,
+  purpose-bound** authorization trust store (`purpose: tb1-authorization`, public keys
+  only). An RoE-purpose key — including the RoE signing trust store itself — is refused
+  with `AUTHORIZATION_KEY_PURPOSE_MISMATCH`, closing the cross-protocol key-confusion
+  path. Unknown, revoked, retired, expired, not-yet-valid, malformed and mismatched
+  keys are refused deterministically, and any private-key-like field in a trust store
+  is rejected;
+- this module implements **no operational issuer**. It exposes canonicalization,
+  reference derivation and verification primitives for a future Hermes control plane;
+  it never loads, stores or emits private key material.
+
 ## Current status
 
+- TB1 authorization receipt contract and verifier: `CANDIDATE`.
+- Hermes authorization issuance runtime: `NOT_IMPLEMENTED`.
+- Deployed validation of the authorization receipt: `NOT_RUN`.
 - Contract and decision logic: `CANDIDATE`.
 - Trust store and cryptographic verification: `CANDIDATE`.
 - External kill switch: `CANDIDATE`.

@@ -408,7 +408,7 @@ concept_epics:
     pillar: A
     phase: 1
     priority: P0
-    status: intent
+    status: implementing
     umbrella_id: SVP2-A-02
     umbrella_issue: 77
     dependencies: [EPIC-01]
