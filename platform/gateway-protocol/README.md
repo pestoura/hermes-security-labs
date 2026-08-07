@@ -13,118 +13,79 @@ The implementation validates a typed operation request and returns a determinist
 - generic execution, command, shell, argv, cwd and environment fields are forbidden;
 - the `normal` profile exposes only explicit L0/L1 operations;
 - capabilities must be attested;
-- an exact RoE ALLOW decision must bind the campaign, operation and target digest;
+- RoE is freshly revalidated against the signed contract, target and operation;
+- a separate Hermes-issued TB1 authorization receipt must validate and bind exactly to the admitted context before runner-message construction;
 - the operation intrusiveness level cannot exceed the RoE ceiling;
 - runtime state must be `IN_SYNC`;
 - observed and canonical digests must match the repository-owned `platform/registry.yaml`;
-- `DRIFT_DETECTED`, `UNKNOWN`, malformed or missing evidence always refuses.
+- any unknown, missing, expired, revoked or mismatched authorization evidence refuses.
 
 ## Canonical admission API
 
-`admission.py::authorize_admission()` is the **canonical enforcement/admission
-API**. It does not accept a caller-supplied RoE decision: it derives the
-decision internally from the signed RoE contract, the RoE step request, the
-file-backed trust store and the external kill switch, and only then binds it to
-the typed operation checks.
+`admission.py::authorize_admission()` is the **canonical RoE/typed-operation admission API**. It does not accept a caller-supplied RoE decision: it derives the decision internally from the signed RoE contract, the RoE step request, the file-backed RoE trust store and the external kill switch, and only then binds it to typed operation checks.
 
-- input schema: `admission-request.schema.json` (`additionalProperties: false`,
-  no `roe_decision` property);
-- a request carrying `roe_decision`, `roe_decision_ref` or `authorized` is
-  refused with `ROE_DECISION_CALLER_SUPPLIED`; a forged `ALLOW` can never
-  produce an admission;
-- campaign, RoE step request id, operation/capability, target digest,
-  intrusiveness level and contract payload hash are bound deterministically;
-- a missing kill-switch source (`KILL_SWITCH_SOURCE_REQUIRED`) or a missing
-  trust store (`SIGNATURE_VERIFIER_UNAVAILABLE`) refuses fail-closed, as does
-  any integration defect (`ROE_INTEGRATION_ERROR`, `TYPED_GATEWAY_ERROR`);
-- the signature verifier is **not caller-overridable**: `trust_store_path` is
-  required and the verifier is always built internally with
-  `roe_contract.build_trust_store_verifier(trust_store_path)` against the
-  verifier's real clock. The API exposes no verifier callable and no `now`
-  parameter, so neither the cryptographic check nor key validity windows can
-  be substituted or time-shifted by a caller;
-- decisions expose stable codes and identifiers only — never targets,
-  operation parameters, signatures or key material.
+- input schema: `admission-request.schema.json` (`additionalProperties: false`, no `roe_decision` property);
+- a request carrying `roe_decision`, `roe_decision_ref` or `authorized` is refused with `ROE_DECISION_CALLER_SUPPLIED`;
+- campaign, RoE step request id, operation/capability, target digest, intrusiveness level and contract payload hash are bound deterministically;
+- missing kill-switch or RoE trust-store sources refuse fail-closed;
+- the signature verifier is not caller-overridable and uses the real clock;
+- decisions expose stable codes and identifiers only — never targets, parameters, signatures or key material.
 
-`authorize_typed_operation()` remains available for backwards compatibility
-with the existing typed-contract callers and tests. It consumes a
-caller-supplied `roe_decision` and is therefore **not** an enforcement
-boundary on its own; it must be reached through `authorize_admission()`. No
-new bypass is introduced by this block.
+`authorize_typed_operation()` remains available for compatibility with existing typed-contract tests. Because it consumes a caller-supplied `roe_decision`, it is **not** an enforcement boundary on its own and must not be used as proof of authorization.
+
+## TB1 authorization authority
+
+`ADR-0001` is authoritative: **Hermes/control plane is the only execution authorization authority**. The execution gateway may validate, restrict or refuse authorization but may not create, expand or approve it.
+
+The canonical TB1 contract lives in [`../authorization-contract/`](../authorization-contract/README.md):
+
+- Hermes issues a short-lived signed authorization receipt containing identifiers and digests only;
+- the receipt carries a deterministic `authorization_ref` derived by the control plane using domain-separated canonical JSON;
+- the gateway uses a dedicated `tb1-authorization` trust purpose/domain, separate from RoE signing, preventing cross-protocol key confusion;
+- the execution plane may recompute the expected reference only to check receipt integrity. That recomputation does **not** create authority;
+- a naked `authorization_ref`, embedded receipt or caller-supplied `ALLOW` is never sufficient;
+- Hermes operational receipt issuance remains `NOT_IMPLEMENTED` / `NOT_RUN` and deployed verification remains `NOT_RUN`.
 
 ## Canonical Runner Protocol v2 handoff
 
-`runner_handoff.py::build_step_request()` is the canonical path that turns an
-*admitted* typed operation into a Runner Protocol v2 `runner.step.request`. It
-imports the canonical `runner_protocol_v2` SDK and duplicates no protocol
-schema or logic.
+`runner_handoff.py::build_step_request()` is the canonical repository-level path from TB1 authorization and fresh gateway admission to a Runner Protocol v2 `runner.step.request`.
 
-- authorization is derived internally by calling `authorize_admission()`; a
-  caller-supplied `admission_decision`, `roe_decision`, `roe_decision_ref`,
-  `authorized` or `authorization_ref` is refused with
-  `HANDOFF_CALLER_SUPPLIED_AUTHORIZATION` before anything else runs;
-- a message is built only after a positive admission **and** successful
-  `runner_protocol_v2.validate_semantics()`; any refusal or integration defect
-  returns `runner_request=None`. There is no partial construction and no
-  partial effect;
-- the positive outcome field is named `request_built`, not `dispatched`: it
-  states only that a valid `runner.step.request` was *constructed*. Nothing in
-  this block dispatches, sends, schedules, accepts or executes a request, and
-  no result field may be read as evidence that it did;
-- `RunnerHandoffResult` separates two confidentiality levels. Its metadata
-  (codes, identifiers, `authorization_ref`, `idempotency_key`,
-  `request_fingerprint`) is sanitized and safe to record as a decision.
-  `runner_request` is **not** sanitized: it deliberately carries the raw target
-  and the operation parameters for future runner consumption, so it is
-  RESTRICTED operational payload, is excluded from the dataclass `repr()` and
-  must never be logged or persisted as a decision. `sanitized_summary()`
-  returns the log-safe projection, with `runner_request_present` as a boolean
-  presence flag only;
-- the emitted `authorization_ref` is a deterministic, content-addressed
-  SHA-256 digest (`roe-authz:v1:<digest>`) over the sanitized admitted
-  authorization context — campaign, gateway request/step, RoE step request,
-  contract payload hash, operation id/version, capability, canonical target
-  digest and intrusiveness level, plus the `run_id`. `attempt_id` is
-  deliberately excluded so retries of the same logical step share the same
-  authorization reference, while a different `run_id` yields a different one.
-  It is a **reference**: not a bearer token,
-  not a grant, not a capability and not a signature, and it authorizes nothing
-  by itself. The raw target value is never part of it, only its digest.
-  Runtime resolution of the reference against a trusted authority / control
-  plane is `NOT_IMPLEMENTED` and `NOT_RUN`;
-- the four Runner Protocol correlation identifiers are preserved exactly.
-  Runner Protocol v2 requires UUIDs while the existing gateway schema still
-  allows non-UUID identifiers; that gap is exposed fail-closed here with
-  `CORRELATION_NOT_UUID:<field>`. No substitute UUID is generated and no
-  identifier is silently normalized. The gateway schema is deliberately left
-  unchanged in this block;
-- `idempotency_key` is derived from the logical effect and the authorization
-  context, excluding `attempt_id` and timestamps, so a retry under a new
-  attempt keeps the same key while a changed effect changes both the key and
-  the canonical `request_fingerprint`;
-- `operation.input` is derived only from the typed target, the already
-  validated operation parameters and minimal operation/capability metadata.
-  Command, shell, argv, cwd, environment and secret-like fields are refused;
-- timeout, retry, cancellation and progress behaviour comes from the typed
-  service configuration `RunnerHandoffConfig` / `RunnerDispatchPolicy`, never
-  from request-level data, and is validated against the canonical Runner
-  Protocol bounds and error taxonomy. Request data can never widen a budget or
-  amplify authorization;
-- `emitted_at` is produced internally in UTC; no caller-overridable clock is
-  exposed.
+The order is fail-closed:
 
-This block proves the boundary only. It is not connected to the synthetic
-candidates, the supervisor or any process, and no runner, laboratory, network
-or target is contacted: `execution_integration: NOT_RUN`,
-`NO_RUNTIME_CHANGE`.
+1. reject authorization/policy fields embedded in the typed request;
+2. validate service dispatch policy;
+3. verify the separate signed Hermes TB1 authorization receipt and dedicated trust store;
+4. freshly execute `authorize_admission()` against signed RoE + kill switch + typed gateway bindings;
+5. require exact receipt/admission binding for campaign, run, step, RoE contract id/hash, RoE step request, operation/version, capability, target digest and intrusiveness;
+6. enforce Runner Protocol correlation requirements;
+7. construct and semantically validate the Runner Protocol message.
+
+Any refusal returns `runner_request=None`.
+
+- a caller-supplied `admission_decision`, `authorization_receipt`, `roe_decision`, `roe_decision_ref`, `authorized` or `authorization_ref` inside the typed request is refused with `HANDOFF_CALLER_SUPPLIED_AUTHORIZATION`;
+- the positive outcome field is named `request_built`, not `dispatched`: it means only that a valid message was constructed; nothing here sends, schedules, accepts or executes it;
+- `RunnerHandoffResult` metadata is sanitized. `runner_request` is RESTRICTED operational payload containing the raw target and validated parameters needed by a future runner, is excluded from `repr()`, and must not be logged as a decision;
+- the emitted `authorization_ref` is copied **exactly from the verified Hermes receipt**. The gateway no longer creates a reference;
+- the receipt reference is non-bearer and grants nothing by possession. Runtime authorization-ref resolution against an operational Hermes authority/control plane is `NOT_IMPLEMENTED` / `NOT_RUN`;
+- `attempt_id` is
+  deliberately excluded from the TB1 authorization receipt/reference so retries of the same logical step can reuse still-valid authority. It remains mandatory Runner Protocol correlation data;
+- Runner Protocol v2 still requires UUID correlation IDs. No substitute UUID is generated and no identifier is silently normalized;
+- `idempotency_key` is derived from the logical effect plus the verified authorization reference, excluding `attempt_id` and timestamps, so retries remain stable while changed effects change idempotency/fingerprint;
+- `operation.input` is derived only from the typed target, validated operation parameters and minimal metadata. Command, shell, argv, cwd, environment and secret-like fields remain forbidden;
+- timeout, retry, cancellation and progress behavior comes from typed service configuration, never request data;
+- `emitted_at` is produced internally in UTC with no caller-overridable clock.
+
+This block proves contract/message boundaries only. It is not connected to synthetic candidates, a supervisor or any runtime process: `execution_integration: NOT_RUN`, `NO_RUNTIME_CHANGE`.
 
 ## Status
 
 - typed contract and decision logic: `CANDIDATE`;
+- canonical admission boundary: `CANDIDATE`;
+- TB1 signed authorization receipt/verifier: `CANDIDATE`;
+- Hermes authorization receipt issuance: `NOT_IMPLEMENTED` / `NOT_RUN`;
 - canonical gateway -> Runner Protocol v2 handoff: `CANDIDATE`;
 - runtime authorization-ref resolution: `NOT_IMPLEMENTED` / `NOT_RUN`;
 - runner execution integration: `execution_integration: NOT_RUN`;
-- canonical admission boundary: `CANDIDATE`;
 - runtime gateway integration: `NOT_RUN`;
 - normal profile arbitrary command exposure: `FORBIDDEN`;
 - Kali MCP handler integration: `NOT_RUN`;
