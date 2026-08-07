@@ -135,12 +135,12 @@ concept_epics:
     pillar: C
     phase: 3
     priority: P0
-    status: intent
+    status: implementing
     umbrella_id: SVP2-C-02
     umbrella_issue: 83
     dependencies: [EPIC-03, EPIC-06]
     doc_path: docs/roadmap/epics/EPIC-07-capability-registry.md
-    current_state: "Not implemented. Concept documented as intent only."
+    current_state: "IMPLEMENTING. PR #143 integrated the strict capability-registry schema, nine canonical profiles, distinct operational readiness states and fail-closed candidate/stable/quarantine/revocation promotion semantics. Live gateway registry consumption, campaign snapshot pinning, production routing/use and operational revocation remain NOT_RUN."
     target_state: "A versioned capability registry that the gateway consults to authorize, route and bound every typed operation."
   - concept_id: EPIC-08
     slug: network-and-egress-policy
@@ -434,12 +434,12 @@ concept_epics:
     pillar: C
     phase: 3
     priority: P0
-    status: intent
+    status: implementing
     umbrella_id: SVP2-C-02
     umbrella_issue: 83
     dependencies: [EPIC-06]
     doc_path: docs/roadmap/epics/EPIC-30-supply-chain-attestations.md
-    current_state: "Not implemented. Concept documented as intent only."
+    current_state: "IMPLEMENTING. PR #143 integrated fail-closed stable-promotion requirements for SBOM, signature and provenance references plus zero blocking scan findings, quarantine and revocation semantics. SBOM generation, artefact signing/verification, provenance generation/verification, image scanning, publication and production revocation remain NOT_RUN."
     target_state: "Every project-built artefact carries provenance and is verified before use; unverifiable artefacts are refused."
   - concept_id: EPIC-31
     slug: opentelemetry-end-to-end
