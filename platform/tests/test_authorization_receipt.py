@@ -18,7 +18,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec, ed25519
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -44,6 +44,7 @@ STEP_ID = "7b1e4d3c-2a95-4c8e-8f10-3e5d7c9b1a24"
 KEY_ID = "tb1-authorization-ed25519-test"
 TARGET_DIGEST = "a" * 64
 ROE_DIGEST = "b" * 64
+PARAMETERS_DIGEST = auth.canonical_parameters_sha256({"follow_redirects": False})
 
 
 def _iso(value: datetime) -> str:
@@ -67,6 +68,7 @@ def _trust_store(
     state: str = "active",
     purpose: str = "tb1-authorization",
     domain: str = "hex0r.tb1.authorization.v1",
+    schema_version: str = "1.0.0",
     not_before: datetime | None = None,
     not_after: datetime | None = None,
     algorithm: str = "Ed25519",
@@ -86,7 +88,7 @@ def _trust_store(
     path.write_text(
         json.dumps(
             {
-                "schema_version": "1.0.0",
+                "schema_version": schema_version,
                 "domain": domain,
                 "purpose": purpose,
                 "keys": [entry],
@@ -114,6 +116,7 @@ def _receipt(private_key: Any, **overrides: Any) -> dict[str, Any]:
         "roe_step_request_id": "roe-step-test-001",
         "operation_id": "web.discovery.headers",
         "operation_version": "1.0.0",
+        "operation_parameters_sha256": PARAMETERS_DIGEST,
         "capability_id": "web.discovery.headers",
         "target_sha256": TARGET_DIGEST,
         "intrusiveness_level": "L1",
@@ -155,9 +158,18 @@ def test_valid_receipt_verifies_and_returns_sanitized_metadata(tmp_path: Path) -
     assert verified.authorization_ref == receipt["authorization_ref"]
     assert verified.campaign_id == CAMPAIGN_ID
     assert verified.target_sha256 == TARGET_DIGEST
+    assert verified.operation_parameters_sha256 == PARAMETERS_DIGEST
     assert not hasattr(verified, "target")
     assert not hasattr(verified, "parameters")
     assert "signature" not in repr(verified).lower()
+
+
+def test_parameter_digest_is_deterministic_and_effect_sensitive() -> None:
+    first = auth.canonical_parameters_sha256({"follow_redirects": False, "limit": 2})
+    reordered = auth.canonical_parameters_sha256({"limit": 2, "follow_redirects": False})
+    changed = auth.canonical_parameters_sha256({"follow_redirects": True, "limit": 2})
+    assert first == reordered
+    assert changed != first
 
 
 def test_reference_is_domain_separated_and_deterministic() -> None:
@@ -177,9 +189,21 @@ def test_attempt_id_is_not_part_of_receipt_schema_or_reference() -> None:
 @pytest.mark.parametrize(
     "mutation, expected",
     [
-        (lambda r: r.__setitem__("authorization_ref", "tb1-authz:v1:" + "0" * 64), "AUTHORIZATION_REF_MISMATCH"),
+        (
+            lambda r: r.__setitem__(
+                "authorization_ref", "tb1-authz:v1:" + "0" * 64
+            ),
+            "AUTHORIZATION_REF_MISMATCH",
+        ),
         (lambda r: r.__setitem__("target_sha256", "c" * 64), "AUTHORIZATION_REF_MISMATCH"),
-        (lambda r: r.__setitem__("operation_id", "web.discovery.tls"), "AUTHORIZATION_REF_MISMATCH"),
+        (
+            lambda r: r.__setitem__("operation_id", "web.discovery.tls"),
+            "AUTHORIZATION_REF_MISMATCH",
+        ),
+        (
+            lambda r: r.__setitem__("operation_parameters_sha256", "d" * 64),
+            "AUTHORIZATION_REF_MISMATCH",
+        ),
     ],
 )
 def test_unsigned_body_or_reference_tampering_fails_closed(
@@ -255,12 +279,14 @@ def test_expired_authorization_key_is_refused(tmp_path: Path) -> None:
         auth.verify_authorization_receipt(_receipt(key), store)
 
 
-def test_unknown_authorization_key_is_refused(tmp_path: Path) -> None:
+def test_unknown_authorization_key_id_is_refused(tmp_path: Path) -> None:
     key = ed25519.Ed25519PrivateKey.generate()
-    other = ed25519.Ed25519PrivateKey.generate()
-    store = _trust_store(tmp_path, other)
+    store = _trust_store(tmp_path, key)
     receipt = _receipt(key)
-    with pytest.raises(auth.AuthorizationReceiptError, match="AUTH_SIGNATURE_INVALID"):
+    receipt["signature"]["key_id"] = "unknown-authorization-key"
+    with pytest.raises(
+        auth.AuthorizationReceiptError, match="AUTH_SIGNATURE_KEY_UNKNOWN"
+    ):
         auth.verify_authorization_receipt(receipt, store)
 
 
@@ -287,11 +313,40 @@ def test_roe_style_trust_store_cannot_be_reused_for_tb1(tmp_path: Path) -> None:
         auth.verify_authorization_receipt(_receipt(key), path)
 
 
-def test_wrong_purpose_authorization_store_is_refused(tmp_path: Path) -> None:
+@pytest.mark.parametrize(
+    "field, value, expected",
+    [
+        ("schema_version", "2.0.0", "AUTH_TRUST_STORE_SCHEMA_UNSUPPORTED"),
+        ("domain", "hex0r.roe.v1", "AUTH_TRUST_STORE_DOMAIN_MISMATCH"),
+        ("purpose", "roe-signing", "AUTH_TRUST_STORE_PURPOSE_MISMATCH"),
+    ],
+)
+def test_trust_store_identity_refusals_are_specific(
+    tmp_path: Path, field: str, value: str, expected: str
+) -> None:
     key = ed25519.Ed25519PrivateKey.generate()
-    store = _trust_store(tmp_path, key, purpose="roe-signing")
-    with pytest.raises(auth.AuthorizationReceiptError):
+    store = _trust_store(tmp_path, key, **{field: value})
+    with pytest.raises(auth.AuthorizationReceiptError, match=expected):
         auth.verify_authorization_receipt(_receipt(key), store)
+
+
+@pytest.mark.parametrize(
+    "field, value, expected",
+    [
+        ("schema_version", "2.0.0", "AUTH_RECEIPT_SCHEMA_UNSUPPORTED"),
+        ("domain", "hex0r.roe.v1", "AUTH_RECEIPT_DOMAIN_MISMATCH"),
+        ("issuer", "execution-gateway", "AUTH_RECEIPT_ISSUER_MISMATCH"),
+    ],
+)
+def test_receipt_identity_refusals_are_specific(
+    tmp_path: Path, field: str, value: str, expected: str
+) -> None:
+    key = ed25519.Ed25519PrivateKey.generate()
+    store = _trust_store(tmp_path, key)
+    receipt = _receipt(key)
+    receipt[field] = value
+    with pytest.raises(auth.AuthorizationReceiptError, match=expected):
+        auth.verify_authorization_receipt(receipt, store)
 
 
 def test_private_key_like_material_in_store_is_rejected(tmp_path: Path) -> None:
@@ -353,7 +408,6 @@ def test_ecdsa_p256_receipt_verifies(tmp_path: Path) -> None:
     receipt = _receipt(ed25519.Ed25519PrivateKey.generate())
     receipt.pop("signature")
     receipt["authorization_ref"] = auth.build_authorization_ref(receipt)
-    from cryptography.hazmat.primitives import hashes
     receipt["signature"] = {
         "algorithm": "ECDSA-P256-SHA256",
         "key_id": KEY_ID,
@@ -365,7 +419,18 @@ def test_ecdsa_p256_receipt_verifies(tmp_path: Path) -> None:
     assert verified.authorization_ref == receipt["authorization_ref"]
 
 
-def test_resigned_change_produces_a_different_control_plane_reference() -> None:
+def test_resigned_effect_change_produces_different_control_plane_reference() -> None:
+    key = ed25519.Ed25519PrivateKey.generate()
+    receipt = _receipt(key)
+    changed = copy.deepcopy(receipt)
+    changed["operation_parameters_sha256"] = auth.canonical_parameters_sha256(
+        {"follow_redirects": True}
+    )
+    changed = _resign(changed, key)
+    assert changed["authorization_ref"] != receipt["authorization_ref"]
+
+
+def test_resigned_run_change_produces_different_control_plane_reference() -> None:
     key = ed25519.Ed25519PrivateKey.generate()
     receipt = _receipt(key)
     changed = copy.deepcopy(receipt)
