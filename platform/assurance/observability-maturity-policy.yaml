@@ -1,0 +1,94 @@
+schema_version: "1.0"
+policy_id: observability-maturity-default
+trace_context:
+  standard: W3C
+  required_fields:
+    - traceparent
+  correlation_attributes:
+    - campaign_id
+    - run_id
+    - step_id
+    - attempt_id
+telemetry:
+  conventions: OpenTelemetry
+  service_metrics:
+    RED:
+      - rate
+      - errors
+      - duration
+    USE:
+      - utilization
+      - saturation
+      - errors
+readiness:
+  required_before_executable_step: true
+  accepted_states:
+    - ready
+  fail_closed_on:
+    - missing
+    - stale
+    - degraded
+    - unknown
+    - not_ready
+failure_cases:
+  - restart
+  - invalid_json
+  - empty_stdout
+  - timeout
+  - network_loss
+  - disk_full
+  - partial_cleanup
+  - concurrency
+  - cancellation
+  - incompatible_version
+maturity_levels:
+  M0:
+    requires: []
+  M1:
+    requires:
+      - happy_path
+      - readiness
+  M2:
+    requires:
+      - happy_path
+      - readiness
+      - failure_suite
+  M3:
+    requires:
+      - happy_path
+      - readiness
+      - failure_suite
+      - golden_lab
+      - golden_finding
+      - reproducibility
+  M4:
+    requires:
+      - happy_path
+      - readiness
+      - failure_suite
+      - golden_lab
+      - golden_finding
+      - reproducibility
+      - false_positive_rate
+      - false_negative_rate
+      - cleanup_score
+  M5:
+    requires:
+      - happy_path
+      - readiness
+      - failure_suite
+      - golden_lab
+      - golden_finding
+      - reproducibility
+      - false_positive_rate
+      - false_negative_rate
+      - cleanup_score
+      - production_observation
+      - retirement_readiness
+operations:
+  advertised_noop_allowed: false
+runtime_status:
+  otel_export: NOT_RUN
+  real_readiness_probe: NOT_RUN
+  chaos_execution: NOT_RUN
+  production_maturity_assessment: NOT_RUN
