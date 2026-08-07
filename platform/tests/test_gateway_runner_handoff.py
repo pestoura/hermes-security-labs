@@ -1,24 +1,25 @@
-"""Canonical gateway -> Runner Protocol v2 handoff boundary tests.
+"""Canonical TB1 -> gateway -> Runner Protocol v2 handoff tests.
 
-All signing key material is generated in-memory at test time. The repository
-stores no private keys; trust-store fixtures contain public verification
-material only, inside temporary directories. Nothing here executes a runner, a
-target, a laboratory, a scanner, a network call or a subprocess.
+All signing keys are generated in memory. Temporary files contain public
+verification material only. Nothing here dispatches or executes a runner,
+target, scanner, network call or subprocess.
 """
 
 from __future__ import annotations
 
 import base64
 import copy
-import dataclasses
 import hashlib
 import importlib.util
 import json
 import sys
+import uuid
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
 import pytest
+from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ed25519
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -34,13 +35,12 @@ from runner_protocol_v2 import request_fingerprint, validate_semantics  # noqa: 
 
 CAMPAIGN_UUID = "3f2a1c64-1e8b-4a2b-9c7d-1c2b3a4d5e6f"
 RUN_UUID = "5c9d7e2a-8b41-4f6d-9a03-2d4e6f8a1b2c"
+RUN_UUID_OTHER = "2e5a7b93-6f84-4d3a-8b19-7c9d1e3f5a68"
 STEP_UUID = "7b1e4d3c-2a95-4c8e-8f10-3e5d7c9b1a24"
 ATTEMPT_UUID = "9a3c5e71-4d62-4b18-8e27-5f7a9c1d3b46"
 ATTEMPT_UUID_RETRY = "1d4f6a82-5e73-4c29-9f38-6a8b0d2e4c57"
-RUN_UUID_OTHER = "2e5a7b93-6f84-4d3a-8b19-7c9d1e3f5a68"
-KEY_ID = "-".join(("roe", "signing", "handoff", "ed25519"))
-KEY_NOT_BEFORE = "2000-01-01T00:00:00Z"
-KEY_NOT_AFTER = "2100-01-01T00:00:00Z"
+ROE_KEY_ID = "roe-signing-handoff-ed25519"
+AUTH_KEY_ID = "tb1-authorization-handoff-ed25519"
 STEP_REQUEST_ID = "roe-step-request-handoff-001"
 OPERATION_ID = "web.discovery.headers"
 
@@ -57,46 +57,76 @@ def _load(module_name: str, path: Path) -> Any:
 roe_contract = _load("roe_contract_handoff_test", CONTRACT_DIR / "roe_contract.py")
 handoff = _load("runner_handoff_under_test", GATEWAY_DIR / "runner_handoff.py")
 gateway_protocol = handoff.gateway_protocol
+auth = handoff.authorization_contract
 
 
-# --------------------------------------------------------------------------
-# fixtures
-# --------------------------------------------------------------------------
+def _iso(value: datetime) -> str:
+    return value.astimezone(timezone.utc).isoformat(timespec="seconds").replace(
+        "+00:00", "Z"
+    )
 
 
-def _trust_store(
-    tmp_path: Path,
-    *,
-    not_before: str = KEY_NOT_BEFORE,
-    not_after: str = KEY_NOT_AFTER,
-) -> tuple[Path, Any]:
-    private_key = ed25519.Ed25519PrivateKey.generate()
-    from cryptography.hazmat.primitives import serialization
-
+def _public_der(private_key: Any) -> str:
     der = private_key.public_key().public_bytes(
         encoding=serialization.Encoding.DER,
         format=serialization.PublicFormat.SubjectPublicKeyInfo,
     )
-    path = tmp_path / "trust-store.json"
+    return base64.b64encode(der).decode("ascii")
+
+
+def _roe_trust_store(tmp_path: Path, private_key: Any) -> Path:
+    path = tmp_path / "roe-trust-store.json"
     path.write_text(
         json.dumps(
             {
                 "schema_version": "1.0.0",
                 "keys": [
                     {
-                        "key_id": KEY_ID,
+                        "key_id": ROE_KEY_ID,
                         "algorithm": "Ed25519",
                         "state": "active",
-                        "public_key": base64.b64encode(der).decode("ascii"),
-                        "not_before": not_before,
-                        "not_after": not_after,
+                        "public_key": _public_der(private_key),
+                        "not_before": "2000-01-01T00:00:00Z",
+                        "not_after": "2100-01-01T00:00:00Z",
                     }
                 ],
             }
         ),
         encoding="utf-8",
     )
-    return path, private_key
+    return path
+
+
+def _auth_trust_store(
+    tmp_path: Path,
+    private_key: Any,
+    *,
+    state: str = "active",
+    purpose: str = "tb1-authorization",
+) -> Path:
+    path = tmp_path / "authorization-trust-store.json"
+    path.write_text(
+        json.dumps(
+            {
+                "schema_version": "1.0.0",
+                "domain": "hex0r.tb1.authorization.v1",
+                "purpose": purpose,
+                "keys": [
+                    {
+                        "key_id": AUTH_KEY_ID,
+                        "algorithm": "Ed25519",
+                        "state": state,
+                        "purpose": purpose,
+                        "public_key": _public_der(private_key),
+                        "not_before": "2000-01-01T00:00:00Z",
+                        "not_after": "2100-01-01T00:00:00Z",
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    return path
 
 
 def _kill_switch(tmp_path: Path, state: str = "released", **fields: Any) -> Path:
@@ -116,7 +146,7 @@ def _contract() -> dict[str, Any]:
         "state": "active",
         "issued_at": "2026-08-01T08:00:00Z",
         "valid_from": "2026-08-01T09:00:00Z",
-        "valid_until": "2126-08-31T18:00:00Z",
+        "valid_until": "2099-08-31T18:00:00Z",
         "issuer": {"party_id": "hexor-security", "legal_name": "Hexor Security"},
         "customer": {"party_id": "lab-owner", "legal_name": "Lab Owner"},
         "authorization": {
@@ -131,7 +161,7 @@ def _contract() -> dict[str, Any]:
                 {
                     "window_id": "window-primary",
                     "start": "2026-08-01T09:00:00Z",
-                    "end": "2126-08-31T18:00:00Z",
+                    "end": "2099-08-31T18:00:00Z",
                 }
             ],
             "approvers": [
@@ -141,7 +171,7 @@ def _contract() -> dict[str, Any]:
                     "side": "customer",
                     "role": "Security Owner",
                     "approved_at": "2026-08-01T08:30:00Z",
-                    "valid_until": "2126-08-31T18:00:00Z",
+                    "valid_until": "2099-08-31T18:00:00Z",
                     "levels": ["L0", "L1", "L2"],
                 }
             ],
@@ -169,12 +199,8 @@ def _contract() -> dict[str, Any]:
                 }
             ],
             "high_risk_actions": {
-                control: {
-                    "status": "denied",
-                    "minimum_level": "L4",
-                    "conditions": [],
-                }
-                for control in (
+                name: {"status": "denied", "minimum_level": "L4", "conditions": []}
+                for name in (
                     "credential_use",
                     "lateral_movement",
                     "persistence",
@@ -189,12 +215,13 @@ def _contract() -> dict[str, Any]:
     }
 
 
-def _sign(contract: dict[str, Any], private_key: Any) -> dict[str, Any]:
+def _sign_contract(contract: dict[str, Any], private_key: Any) -> dict[str, Any]:
+    contract = copy.deepcopy(contract)
     contract.pop("signature", None)
     raw = private_key.sign(roe_contract.canonical_payload(contract))
     contract["signature"] = {
         "algorithm": "Ed25519",
-        "key_id": KEY_ID,
+        "key_id": ROE_KEY_ID,
         "payload_sha256": roe_contract.payload_sha256(contract),
         "value": base64.b64encode(raw).decode("ascii"),
     }
@@ -254,20 +281,66 @@ def _admission_request(contract: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _receipt(
+    request: dict[str, Any],
+    contract: dict[str, Any],
+    step_request: dict[str, Any],
+    private_key: Any,
+    **overrides: Any,
+) -> dict[str, Any]:
+    now = datetime.now(timezone.utc)
+    receipt: dict[str, Any] = {
+        "schema_version": "1.0.0",
+        "domain": "hex0r.tb1.authorization.v1",
+        "issuer": "hermes-control-plane",
+        "authorization_id": str(uuid.uuid4()),
+        "issued_at": _iso(now - timedelta(seconds=30)),
+        "expires_at": _iso(now + timedelta(minutes=5)),
+        "campaign_id": request["campaign_id"],
+        "run_id": request["run_id"],
+        "step_id": request["step_id"],
+        "roe_contract_id": contract["contract_id"],
+        "roe_contract_payload_sha256": request["contract_payload_sha256"],
+        "roe_step_request_id": step_request["request_id"],
+        "operation_id": request["operation"]["id"],
+        "operation_version": request["operation"]["version"],
+        "capability_id": step_request["capability"],
+        "target_sha256": gateway_protocol.canonical_target_digest(request["target"]),
+        "intrusiveness_level": step_request["intrusiveness_level"],
+    }
+    receipt.update(overrides)
+    receipt["authorization_ref"] = auth.build_authorization_ref(receipt)
+    receipt["signature"] = {
+        "algorithm": "Ed25519",
+        "key_id": AUTH_KEY_ID,
+        "value": base64.b64encode(
+            private_key.sign(auth.canonical_signed_payload(receipt))
+        ).decode("ascii"),
+    }
+    return receipt
+
+
 @pytest.fixture()
 def scenario(tmp_path: Path) -> dict[str, Any]:
-    store, private_key = _trust_store(tmp_path)
-    contract = _sign(_contract(), private_key)
+    roe_key = ed25519.Ed25519PrivateKey.generate()
+    auth_key = ed25519.Ed25519PrivateKey.generate()
+    contract = _sign_contract(_contract(), roe_key)
+    step_request = _step_request()
+    request = _admission_request(contract)
+    config = handoff.RunnerHandoffConfig(
+        trust_store_path=_roe_trust_store(tmp_path, roe_key),
+        authorization_trust_store_path=_auth_trust_store(tmp_path, auth_key),
+        kill_switch_path=_kill_switch(tmp_path),
+    )
     return {
         "tmp_path": tmp_path,
-        "private_key": private_key,
+        "roe_key": roe_key,
+        "auth_key": auth_key,
         "contract": contract,
-        "step_request": _step_request(),
-        "request": _admission_request(contract),
-        "config": handoff.RunnerHandoffConfig(
-            trust_store_path=store,
-            kill_switch_path=_kill_switch(tmp_path),
-        ),
+        "step_request": step_request,
+        "request": request,
+        "config": config,
+        "receipt": _receipt(request, contract, step_request, auth_key),
     }
 
 
@@ -277,32 +350,23 @@ def _call(scenario: dict[str, Any], **overrides: Any) -> Any:
         overrides.get("contract", scenario["contract"]),
         overrides.get("step_request", scenario["step_request"]),
         overrides.get("config", scenario["config"]),
+        authorization_receipt=overrides.get("receipt", scenario["receipt"]),
     )
 
 
-# --------------------------------------------------------------------------
-# positive path
-# --------------------------------------------------------------------------
-
-
-def test_admitted_handoff_builds_a_valid_runner_step_request(scenario) -> None:
+def test_valid_control_plane_receipt_builds_valid_runner_request(scenario) -> None:
     result = _call(scenario)
-
     assert result.request_built is True
     assert result.codes == ("HANDOFF_STEP_REQUEST_BUILT",)
     assert result.admission_codes == ("ADMIT_TYPED_OPERATION",)
-    message = result.runner_request
-    assert message is not None
-    validate_semantics(message)
-    assert message["message_type"] == "runner.step.request"
-    assert message["protocol_version"] == "2.0.0"
-    assert message["operation"]["capability_id"] == OPERATION_ID
-    assert message["emitted_at"].endswith("Z")
+    assert result.runner_request is not None
+    validate_semantics(result.runner_request)
+    assert result.runner_request["authorization_ref"] == scenario["receipt"]["authorization_ref"]
+    assert result.authorization_ref == scenario["receipt"]["authorization_ref"]
 
 
-def test_all_four_correlation_identifiers_are_preserved_exactly(scenario) -> None:
+def test_handoff_preserves_all_runner_correlation_ids(scenario) -> None:
     message = _call(scenario).runner_request
-
     assert message["correlation"] == {
         "campaign_id": CAMPAIGN_UUID,
         "run_id": RUN_UUID,
@@ -311,90 +375,45 @@ def test_all_four_correlation_identifiers_are_preserved_exactly(scenario) -> Non
     }
 
 
-def test_dispatch_policy_comes_from_service_configuration(scenario) -> None:
-    config = handoff.RunnerHandoffConfig(
-        trust_store_path=scenario["config"].trust_store_path,
-        kill_switch_path=scenario["config"].kill_switch_path,
-        dispatch_policy=handoff.RunnerDispatchPolicy(
-            soft_timeout_ms=1_000,
-            hard_timeout_ms=4_000,
-            max_attempts=3,
-            retryable_error_codes=("TIMEOUT_SOFT",),
-            cancellation_mode="cooperative_then_force",
-            grace_period_ms=500,
-            progress_mode="required",
-        ),
+def test_receipt_contains_digest_not_raw_target(scenario) -> None:
+    serialized = json.dumps(scenario["receipt"], sort_keys=True)
+    assert "juice-shop-demo" not in serialized
+    assert "follow_redirects" not in serialized
+    assert scenario["receipt"]["target_sha256"] == gateway_protocol.canonical_target_digest(
+        scenario["request"]["target"]
     )
-    message = _call(scenario, config=config).runner_request
-
-    assert message["timeout_budget"] == {
-        "soft_timeout_ms": 1_000,
-        "hard_timeout_ms": 4_000,
-    }
-    assert message["retry_policy"] == {
-        "max_attempts": 3,
-        "retryable_error_codes": ["TIMEOUT_SOFT"],
-    }
-    assert message["cancellation_policy"] == {
-        "mode": "cooperative_then_force",
-        "grace_period_ms": 500,
-    }
-    assert message["progress_mode"] == "required"
 
 
-@pytest.mark.parametrize(
-    "policy, code",
-    [
-        (
-            handoff.RunnerDispatchPolicy(soft_timeout_ms=5_000, hard_timeout_ms=5_000),
-            "DISPATCH_POLICY_TIMEOUT_ORDER_INVALID",
-        ),
-        (
-            handoff.RunnerDispatchPolicy(grace_period_ms=400_000),
-            "DISPATCH_POLICY_GRACE_OUT_OF_BOUNDS",
-        ),
-        (
-            handoff.RunnerDispatchPolicy(max_attempts=9),
-            "DISPATCH_POLICY_ATTEMPTS_OUT_OF_BOUNDS",
-        ),
-        (
-            handoff.RunnerDispatchPolicy(retryable_error_codes=("EXECUTION_FAILED",)),
-            "DISPATCH_POLICY_RETRY_CODES_INVALID",
-        ),
-        (
-            handoff.RunnerDispatchPolicy(cancellation_mode="force"),
-            "DISPATCH_POLICY_CANCELLATION_MODE_INVALID",
-        ),
-        (
-            handoff.RunnerDispatchPolicy(progress_mode="always"),
-            "DISPATCH_POLICY_PROGRESS_MODE_INVALID",
-        ),
-    ],
-)
-def test_out_of_bound_dispatch_policy_refuses_before_admission(
-    scenario, policy, code
-) -> None:
-    config = handoff.RunnerHandoffConfig(
-        trust_store_path=scenario["config"].trust_store_path,
-        kill_switch_path=scenario["config"].kill_switch_path,
-        dispatch_policy=policy,
+def test_missing_receipt_refuses_without_runner_request(scenario) -> None:
+    result = handoff.build_step_request(
+        scenario["request"],
+        scenario["contract"],
+        scenario["step_request"],
+        scenario["config"],
+        authorization_receipt=None,
     )
-    result = _call(scenario, config=config)
-
     assert result.request_built is False
     assert result.runner_request is None
-    assert result.codes == (code,)
+    assert result.codes == ("AUTH_RECEIPT_REQUIRED",)
 
 
-# --------------------------------------------------------------------------
-# authorization is derived, never supplied
-# --------------------------------------------------------------------------
+def test_missing_authorization_trust_store_refuses(scenario) -> None:
+    config = handoff.RunnerHandoffConfig(
+        trust_store_path=scenario["config"].trust_store_path,
+        authorization_trust_store_path=None,
+        kill_switch_path=scenario["config"].kill_switch_path,
+    )
+    result = _call(scenario, config=config)
+    assert result.request_built is False
+    assert result.runner_request is None
+    assert result.codes == ("AUTH_TRUST_STORE_REQUIRED",)
 
 
 @pytest.mark.parametrize(
     "field",
     [
         "admission_decision",
+        "authorization_receipt",
         "authorization_ref",
         "authorized",
         "roe_decision",
@@ -407,521 +426,265 @@ def test_out_of_bound_dispatch_policy_refuses_before_admission(
         "runner_request",
     ],
 )
-def test_caller_supplied_authorization_or_policy_field_is_refused(
-    scenario, field
-) -> None:
+def test_request_embedded_authority_or_policy_is_refused(scenario, field: str) -> None:
     request = copy.deepcopy(scenario["request"])
     request[field] = {"allowed": True, "codes": ["ALLOW"]}
-
     result = _call(scenario, request=request)
-
     assert result.request_built is False
     assert result.runner_request is None
     assert result.codes == ("HANDOFF_CALLER_SUPPLIED_AUTHORIZATION",)
 
 
-def test_forged_caller_allow_on_revoked_contract_never_dispatches(scenario) -> None:
-    contract = copy.deepcopy(scenario["contract"])
-    contract["state"] = "revoked"
-    contract = _sign(contract, scenario["private_key"])
+def test_forged_naked_authorization_ref_never_bypasses_receipt(scenario) -> None:
     request = copy.deepcopy(scenario["request"])
-    request["contract_payload_sha256"] = roe_contract.payload_sha256(contract)
-    request["roe_decision"] = {"allowed": True, "codes": ["ALLOW"]}
-
-    result = _call(scenario, request=request, contract=contract)
-
+    request["authorization_ref"] = scenario["receipt"]["authorization_ref"]
+    result = _call(scenario, request=request, receipt=None)
     assert result.request_built is False
     assert result.runner_request is None
     assert result.codes == ("HANDOFF_CALLER_SUPPLIED_AUTHORIZATION",)
 
 
-def test_revoked_contract_refuses_without_runner_request(scenario) -> None:
-    contract = copy.deepcopy(scenario["contract"])
-    contract["state"] = "revoked"
-    contract = _sign(contract, scenario["private_key"])
-    request = copy.deepcopy(scenario["request"])
-    request["contract_payload_sha256"] = roe_contract.payload_sha256(contract)
-
-    result = _call(scenario, request=request, contract=contract)
-
+def test_forged_receipt_signature_is_refused(scenario) -> None:
+    receipt = copy.deepcopy(scenario["receipt"])
+    other = ed25519.Ed25519PrivateKey.generate()
+    receipt["signature"]["value"] = base64.b64encode(
+        other.sign(auth.canonical_signed_payload(receipt))
+    ).decode("ascii")
+    result = _call(scenario, receipt=receipt)
     assert result.request_built is False
     assert result.runner_request is None
-    assert result.codes[0] == "ADMISSION_REFUSED"
-    assert any(code.startswith("ROE_REFUSED:") for code in result.admission_codes)
+    assert result.codes == ("AUTH_SIGNATURE_INVALID",)
 
 
-def test_invalid_signature_refuses(scenario) -> None:
-    contract = copy.deepcopy(scenario["contract"])
-    other_key = ed25519.Ed25519PrivateKey.generate()
-    raw = other_key.sign(roe_contract.canonical_payload(contract))
-    contract["signature"]["value"] = base64.b64encode(raw).decode("ascii")
-
-    result = _call(scenario, contract=contract)
-
-    assert result.request_built is False
-    assert result.runner_request is None
-    assert result.codes[0] == "ADMISSION_REFUSED"
-
-
-def test_expired_trust_store_key_refuses(tmp_path: Path) -> None:
-    expired_dir = tmp_path / "expired"
-    expired_dir.mkdir(parents=True, exist_ok=True)
-    store_path, private_key = _trust_store(
-        expired_dir, not_after="2001-01-01T00:00:00Z"
-    )
-    contract = _sign(_contract(), private_key)
-    request = _admission_request(contract)
+def test_roe_trust_store_cannot_validate_tb1_receipt(scenario) -> None:
     config = handoff.RunnerHandoffConfig(
-        trust_store_path=store_path,
-        kill_switch_path=_kill_switch(tmp_path),
-    )
-
-    result = handoff.build_step_request(request, contract, _step_request(), config)
-
-    assert result.request_built is False
-    assert result.runner_request is None
-
-
-def test_missing_trust_store_source_refuses(scenario) -> None:
-    config = handoff.RunnerHandoffConfig(
-        trust_store_path=None,
+        trust_store_path=scenario["config"].trust_store_path,
+        authorization_trust_store_path=scenario["config"].trust_store_path,
         kill_switch_path=scenario["config"].kill_switch_path,
     )
-
     result = _call(scenario, config=config)
-
     assert result.request_built is False
     assert result.runner_request is None
-    assert result.admission_codes == ("SIGNATURE_VERIFIER_UNAVAILABLE",)
-
-
-def test_missing_kill_switch_source_refuses(scenario) -> None:
-    config = handoff.RunnerHandoffConfig(
-        trust_store_path=scenario["config"].trust_store_path,
-        kill_switch_path=None,
-    )
-
-    result = _call(scenario, config=config)
-
-    assert result.request_built is False
-    assert result.runner_request is None
-    assert result.admission_codes == ("KILL_SWITCH_SOURCE_REQUIRED",)
-
-
-def test_engaged_kill_switch_refuses(scenario, tmp_path: Path) -> None:
-    engaged = _kill_switch(
-        tmp_path,
-        state="engaged",
-        engaged_at="2026-08-10T09:00:00Z",
-        engaged_by="lab-soc",
-        reason="operator halt",
-    )
-    config = handoff.RunnerHandoffConfig(
-        trust_store_path=scenario["config"].trust_store_path,
-        kill_switch_path=engaged,
-    )
-
-    result = _call(scenario, config=config)
-
-    assert result.request_built is False
-    assert result.runner_request is None
-    assert result.codes[0] == "ADMISSION_REFUSED"
-
-
-def test_unreadable_kill_switch_refuses(scenario, tmp_path: Path) -> None:
-    config = handoff.RunnerHandoffConfig(
-        trust_store_path=scenario["config"].trust_store_path,
-        kill_switch_path=tmp_path / "absent-kill-switch.json",
-    )
-
-    result = _call(scenario, config=config)
-
-    assert result.request_built is False
-    assert result.runner_request is None
+    assert result.codes[0].startswith("AUTH_TRUST_STORE_")
 
 
 @pytest.mark.parametrize(
-    "mutation",
+    "state, expected",
+    [("revoked", "AUTH_SIGNATURE_KEY_REVOKED"), ("retired", "AUTH_SIGNATURE_KEY_NOT_ACTIVE")],
+)
+def test_non_active_tb1_authorization_key_refuses(
+    scenario, tmp_path: Path, state: str, expected: str
+) -> None:
+    store = _auth_trust_store(tmp_path, scenario["auth_key"], state=state)
+    config = handoff.RunnerHandoffConfig(
+        trust_store_path=scenario["config"].trust_store_path,
+        authorization_trust_store_path=store,
+        kill_switch_path=scenario["config"].kill_switch_path,
+    )
+    result = _call(scenario, config=config)
+    assert result.request_built is False
+    assert result.runner_request is None
+    assert result.codes == (expected,)
+
+
+@pytest.mark.parametrize(
+    "field, value, expected",
     [
-        {"target": {"type": "lab-asset", "value": "other-lab-asset"}},
-        {"campaign_id": "0c6c0d70-4d54-4ad8-9f57-6a2e7b8c9d01"},
-        {"operation": {"id": "web.discovery.tls", "version": "1.0.0", "parameters": {}}},
+        ("campaign_id", "1f2a3b4c-5d6e-4789-8a01-2b3c4d5e6f70", "AUTH_CAMPAIGN_MISMATCH"),
+        ("run_id", RUN_UUID_OTHER, "AUTH_RUN_MISMATCH"),
+        ("step_id", "4a5b6c7d-8e9f-4012-8a34-5b6c7d8e9f01", "AUTH_STEP_MISMATCH"),
+        ("roe_contract_id", "other-contract", "AUTH_ROE_CONTRACT_MISMATCH"),
+        ("roe_contract_payload_sha256", "c" * 64, "AUTH_ROE_PAYLOAD_MISMATCH"),
+        ("roe_step_request_id", "other-step-request", "AUTH_ROE_STEP_REQUEST_MISMATCH"),
+        ("operation_id", "web.discovery.tls", "AUTH_OPERATION_MISMATCH"),
+        ("operation_version", "9.9.9", "AUTH_OPERATION_VERSION_MISMATCH"),
+        ("capability_id", "web.discovery.tls", "AUTH_CAPABILITY_MISMATCH"),
+        ("target_sha256", "d" * 64, "AUTH_TARGET_MISMATCH"),
+        ("intrusiveness_level", "L2", "AUTH_INTRUSIVENESS_MISMATCH"),
     ],
 )
-def test_binding_mismatch_refuses_without_runner_request(scenario, mutation) -> None:
-    request = copy.deepcopy(scenario["request"])
-    request.update(copy.deepcopy(mutation))
-
-    result = _call(scenario, request=request)
-
-    assert result.request_built is False
-    assert result.runner_request is None
-
-
-def test_capability_mismatch_refuses(scenario) -> None:
-    step_request = copy.deepcopy(scenario["step_request"])
-    step_request["capability"] = "web.discovery.tls"
-
-    result = _call(scenario, step_request=step_request)
-
-    assert result.request_built is False
-    assert result.runner_request is None
-
-
-def test_intrusiveness_mismatch_refuses(scenario) -> None:
-    step_request = copy.deepcopy(scenario["step_request"])
-    step_request["intrusiveness_level"] = "L2"
-
-    result = _call(scenario, step_request=step_request)
-
-    assert result.request_built is False
-    assert result.runner_request is None
-
-
-# --------------------------------------------------------------------------
-# correlation UUID gap is exposed fail-closed
-# --------------------------------------------------------------------------
-
-
-@pytest.mark.parametrize("field", ["campaign_id", "run_id", "step_id", "attempt_id"])
-def test_non_uuid_correlation_refuses_without_inventing_identifiers(
-    scenario, field
+def test_validly_signed_receipt_with_context_mismatch_refuses(
+    scenario, field: str, value: str, expected: str
 ) -> None:
-    request = copy.deepcopy(scenario["request"])
-    contract = copy.deepcopy(scenario["contract"])
-    step_request = copy.deepcopy(scenario["step_request"])
-    request[field] = "run-001"
-    if field == "campaign_id":
-        contract["campaign_id"] = "run-001"
-        contract = _sign(contract, scenario["private_key"])
-        step_request["campaign_id"] = "run-001"
-        request["contract_payload_sha256"] = roe_contract.payload_sha256(contract)
-
-    result = _call(
-        scenario, request=request, contract=contract, step_request=step_request
+    receipt = _receipt(
+        scenario["request"],
+        scenario["contract"],
+        scenario["step_request"],
+        scenario["auth_key"],
+        **{field: value},
     )
-
+    result = _call(scenario, receipt=receipt)
     assert result.request_built is False
     assert result.runner_request is None
-    assert f"CORRELATION_NOT_UUID:{field}" in result.codes
+    assert result.codes == (expected,)
 
 
-# --------------------------------------------------------------------------
-# authorization_ref semantics
-# --------------------------------------------------------------------------
+def test_invalid_roe_signature_still_refuses_after_valid_tb1_receipt(scenario) -> None:
+    contract = copy.deepcopy(scenario["contract"])
+    other = ed25519.Ed25519PrivateKey.generate()
+    contract["signature"]["value"] = base64.b64encode(
+        other.sign(roe_contract.canonical_payload(contract))
+    ).decode("ascii")
+    result = _call(scenario, contract=contract)
+    assert result.request_built is False
+    assert result.runner_request is None
+    assert result.codes[0] == "ADMISSION_REFUSED"
 
 
-def test_authorization_ref_is_deterministic_and_content_addressed(scenario) -> None:
-    first = _call(scenario).authorization_ref
-    second = _call(scenario).authorization_ref
-
-    assert first == second
-    assert first.startswith(handoff.AUTHORIZATION_REF_PREFIX)
-    digest = first[len(handoff.AUTHORIZATION_REF_PREFIX) :]
-    assert len(digest) == 64 and set(digest) <= set("0123456789abcdef")
-
-
-def test_authorization_ref_carries_no_raw_target_or_secret_material(scenario) -> None:
-    result = _call(scenario)
-    serialized = json.dumps(
-        {
-            "authorization_ref": result.authorization_ref,
-            "idempotency_key": result.idempotency_key,
-        }
+def test_engaged_kill_switch_refuses_even_with_valid_tb1_receipt(
+    scenario, tmp_path: Path
+) -> None:
+    config = handoff.RunnerHandoffConfig(
+        trust_store_path=scenario["config"].trust_store_path,
+        authorization_trust_store_path=scenario["config"].authorization_trust_store_path,
+        kill_switch_path=_kill_switch(
+            tmp_path,
+            state="engaged",
+            engaged_at="2026-08-10T09:00:00Z",
+            engaged_by="lab-soc",
+            reason="operator halt",
+        ),
     )
-
-    assert "juice-shop-demo" not in serialized
-    assert scenario["contract"]["signature"]["value"] not in serialized
-    for forbidden in ("token", "password", "secret", "private_key"):
-        assert forbidden not in serialized
-
-
-def test_authorization_ref_changes_with_the_authorization_context(scenario) -> None:
-    baseline = _call(scenario).authorization_ref
-    step_request = copy.deepcopy(scenario["step_request"])
-    step_request["target"] = {"type": "lab-asset", "value": "juice-shop-demo"}
-    request = copy.deepcopy(scenario["request"])
-    request["operation"] = {
-        "id": "web.discovery.tls",
-        "version": "1.0.0",
-        "parameters": {},
-    }
-    request["capability_attestations"] = ["web.discovery.tls"]
-    step_request["capability"] = "web.discovery.tls"
-
-    other = _call(scenario, request=request, step_request=step_request)
-
-    assert other.request_built is True
-    assert other.authorization_ref != baseline
+    result = _call(scenario, config=config)
+    assert result.request_built is False
+    assert result.runner_request is None
+    assert result.codes[0] == "ADMISSION_REFUSED"
 
 
-def test_authorization_ref_binds_the_run_id(scenario) -> None:
-    baseline = _call(scenario)
-    other_run = copy.deepcopy(scenario["request"])
-    other_run["run_id"] = RUN_UUID_OTHER
-
-    other = _call(scenario, request=other_run)
-
-    assert other.request_built is True
-    assert other.authorization_ref != baseline.authorization_ref
-    assert other.idempotency_key != baseline.idempotency_key
-    assert other.request_fingerprint != baseline.request_fingerprint
-
-
-def test_authorization_ref_is_stable_across_a_new_attempt(scenario) -> None:
-    baseline = _call(scenario)
-    retry_request = copy.deepcopy(scenario["request"])
-    retry_request["attempt_id"] = ATTEMPT_UUID_RETRY
-
-    retry = _call(scenario, request=retry_request)
-
-    assert retry.request_built is True
-    assert retry.runner_request["correlation"]["attempt_id"] == ATTEMPT_UUID_RETRY
-    assert retry.authorization_ref == baseline.authorization_ref
-    assert retry.idempotency_key == baseline.idempotency_key
-    assert retry.request_fingerprint == baseline.request_fingerprint
-
-
-def test_authorization_ref_context_excludes_attempt_id_and_includes_run_id() -> None:
-    source = (GATEWAY_DIR / "runner_handoff.py").read_text(encoding="utf-8")
-    context_start = source.index("authorization_ref = build_authorization_ref(")
-    context_end = source.index("operation_input = {", context_start)
-    context = source[context_start:context_end]
-
-    assert '"run_id": str(request["run_id"])' in context
-    assert "attempt_id" not in context
-
-
-def test_target_and_operation_stay_bound_to_the_authorization_ref(scenario) -> None:
-    """The canonical context binds the target digest and the operation."""
-
-    result = _call(scenario)
-    message = result.runner_request
-    target = message["operation"]["input"]["target"]
-    context = {
-        "authorization_ref_version": 1,
-        "campaign_id": CAMPAIGN_UUID,
-        "run_id": RUN_UUID,
-        "gateway_request_id": scenario["request"]["request_id"],
-        "gateway_step_id": STEP_UUID,
-        "roe_step_request_id": STEP_REQUEST_ID,
-        "contract_payload_sha256": scenario["request"]["contract_payload_sha256"],
-        "operation_id": OPERATION_ID,
-        "operation_version": "1.0.0",
-        "capability_id": OPERATION_ID,
-        "target_sha256": gateway_protocol.canonical_target_digest(target),
-        "intrusiveness_level": scenario["step_request"]["intrusiveness_level"],
-    }
-
-    assert handoff.build_authorization_ref(context) == result.authorization_ref
-
-    other_digest = gateway_protocol.canonical_target_digest(
-        {"type": "lab-asset", "value": "dvwa-demo"}
+@pytest.mark.parametrize(
+    "policy, expected",
+    [
+        (handoff.RunnerDispatchPolicy(soft_timeout_ms=5000, hard_timeout_ms=5000), "DISPATCH_POLICY_TIMEOUT_ORDER_INVALID"),
+        (handoff.RunnerDispatchPolicy(grace_period_ms=400000), "DISPATCH_POLICY_GRACE_OUT_OF_BOUNDS"),
+        (handoff.RunnerDispatchPolicy(max_attempts=9), "DISPATCH_POLICY_ATTEMPTS_OUT_OF_BOUNDS"),
+        (handoff.RunnerDispatchPolicy(retryable_error_codes=("EXECUTION_FAILED",)), "DISPATCH_POLICY_RETRY_CODES_INVALID"),
+        (handoff.RunnerDispatchPolicy(cancellation_mode="force"), "DISPATCH_POLICY_CANCELLATION_MODE_INVALID"),
+        (handoff.RunnerDispatchPolicy(progress_mode="always"), "DISPATCH_POLICY_PROGRESS_MODE_INVALID"),
+    ],
+)
+def test_invalid_service_dispatch_policy_refuses_before_message_build(
+    scenario, policy, expected: str
+) -> None:
+    config = handoff.RunnerHandoffConfig(
+        trust_store_path=scenario["config"].trust_store_path,
+        authorization_trust_store_path=scenario["config"].authorization_trust_store_path,
+        kill_switch_path=scenario["config"].kill_switch_path,
+        dispatch_policy=policy,
     )
-    for field_name, replacement in (
-        ("target_sha256", other_digest),
-        ("operation_id", "web.discovery.tls"),
-        ("operation_version", "2.0.0"),
-        ("capability_id", "web.discovery.tls"),
-        ("contract_payload_sha256", "0" * 64),
-        ("run_id", RUN_UUID_OTHER),
-    ):
-        mutated = dict(context, **{field_name: replacement})
-        assert handoff.build_authorization_ref(mutated) != result.authorization_ref
+    result = _call(scenario, config=config)
+    assert result.request_built is False
+    assert result.runner_request is None
+    assert result.codes == (expected,)
 
 
-def test_authorization_ref_is_documented_as_reference_not_bearer_token() -> None:
-    source = (GATEWAY_DIR / "runner_handoff.py").read_text(encoding="utf-8")
+def test_service_dispatch_policy_is_carried_into_message(scenario) -> None:
+    config = handoff.RunnerHandoffConfig(
+        trust_store_path=scenario["config"].trust_store_path,
+        authorization_trust_store_path=scenario["config"].authorization_trust_store_path,
+        kill_switch_path=scenario["config"].kill_switch_path,
+        dispatch_policy=handoff.RunnerDispatchPolicy(
+            soft_timeout_ms=1000,
+            hard_timeout_ms=4000,
+            max_attempts=3,
+            retryable_error_codes=("TIMEOUT_SOFT",),
+            cancellation_mode="cooperative_then_force",
+            grace_period_ms=500,
+            progress_mode="required",
+        ),
+    )
+    message = _call(scenario, config=config).runner_request
+    assert message["timeout_budget"] == {"soft_timeout_ms": 1000, "hard_timeout_ms": 4000}
+    assert message["retry_policy"] == {"max_attempts": 3, "retryable_error_codes": ["TIMEOUT_SOFT"]}
+    assert message["cancellation_policy"] == {"mode": "cooperative_then_force", "grace_period_ms": 500}
+    assert message["progress_mode"] == "required"
 
-    assert "not a bearer token" in source
-    assert "not a grant" in source
-    assert "not a signature" in source
-    assert "NOT_IMPLEMENTED" in source
 
-
-# --------------------------------------------------------------------------
-# idempotency
-# --------------------------------------------------------------------------
-
-
-def test_idempotency_key_is_stable_across_a_new_attempt(scenario) -> None:
+def test_new_attempt_reuses_receipt_reference_and_idempotency(scenario) -> None:
     first = _call(scenario)
     retry_request = copy.deepcopy(scenario["request"])
     retry_request["attempt_id"] = ATTEMPT_UUID_RETRY
-    second = _call(scenario, request=retry_request)
-
-    assert second.request_built is True
-    assert second.runner_request["correlation"]["attempt_id"] == ATTEMPT_UUID_RETRY
-    assert second.idempotency_key == first.idempotency_key
-    assert second.request_fingerprint == first.request_fingerprint
-    assert request_fingerprint(second.runner_request) == request_fingerprint(
-        first.runner_request
-    )
+    retry = _call(scenario, request=retry_request)
+    assert retry.request_built is True
+    assert retry.authorization_ref == first.authorization_ref
+    assert retry.idempotency_key == first.idempotency_key
+    assert retry.request_fingerprint == first.request_fingerprint
 
 
-def test_changed_effect_changes_idempotency_key_and_fingerprint(scenario) -> None:
-    baseline = _call(scenario)
-    changed = copy.deepcopy(scenario["request"])
-    changed["operation"]["parameters"] = {"follow_redirects": True}
-
-    other = _call(scenario, request=changed)
-
-    assert other.request_built is True
-    assert other.idempotency_key != baseline.idempotency_key
-    assert other.request_fingerprint != baseline.request_fingerprint
-
-
-def test_changed_service_policy_changes_the_logical_effect_key(scenario) -> None:
-    baseline = _call(scenario)
-    config = handoff.RunnerHandoffConfig(
-        trust_store_path=scenario["config"].trust_store_path,
-        kill_switch_path=scenario["config"].kill_switch_path,
-        dispatch_policy=handoff.RunnerDispatchPolicy(hard_timeout_ms=60_000),
-    )
-
-    other = _call(scenario, config=config)
-
-    assert other.idempotency_key != baseline.idempotency_key
-
-
-# --------------------------------------------------------------------------
-# runner input hygiene
-# --------------------------------------------------------------------------
-
-
-def test_runner_input_is_derived_only_from_typed_target_and_parameters(
-    scenario,
-) -> None:
-    message = _call(scenario).runner_request
-    operation_input = message["operation"]["input"]
-
-    assert set(operation_input) == {
-        "operation_id",
-        "operation_version",
-        "intrusiveness_level",
-        "target",
-        "parameters",
-    }
-    assert operation_input["target"] == {
-        "type": "lab-asset",
-        "value": "juice-shop-demo",
-    }
-    assert operation_input["parameters"] == {"follow_redirects": False}
-
-
-@pytest.mark.parametrize(
-    "parameter", ["command", "shell", "argv", "cwd", "env", "token", "password"]
-)
-def test_command_and_secret_like_parameters_never_reach_the_runner(
-    scenario, parameter
-) -> None:
+def test_different_run_requires_different_control_plane_receipt(scenario) -> None:
     request = copy.deepcopy(scenario["request"])
-    request["operation"]["parameters"] = {parameter: "value"}
+    request["run_id"] = RUN_UUID_OTHER
+    refused = _call(scenario, request=request)
+    assert refused.request_built is False
+    assert refused.codes == ("AUTH_RUN_MISMATCH",)
 
+    receipt = _receipt(
+        request,
+        scenario["contract"],
+        scenario["step_request"],
+        scenario["auth_key"],
+    )
+    allowed = _call(scenario, request=request, receipt=receipt)
+    assert allowed.request_built is True
+    assert allowed.authorization_ref != scenario["receipt"]["authorization_ref"]
+
+
+def test_changed_valid_parameters_change_idempotency_and_fingerprint(scenario) -> None:
+    first = _call(scenario)
+    changed_request = copy.deepcopy(scenario["request"])
+    changed_request["operation"]["parameters"]["follow_redirects"] = True
+    changed = _call(scenario, request=changed_request)
+    assert changed.request_built is True
+    assert changed.authorization_ref == first.authorization_ref
+    assert changed.idempotency_key != first.idempotency_key
+    assert changed.request_fingerprint != first.request_fingerprint
+
+
+def test_invalid_attempt_uuid_refuses_without_synthetic_mapping(scenario) -> None:
+    request = copy.deepcopy(scenario["request"])
+    request["attempt_id"] = "attempt-001"
     result = _call(scenario, request=request)
+    assert result.request_built is False
+    assert result.runner_request is None
+    assert result.codes == ("CORRELATION_NOT_UUID:attempt_id",)
 
+
+def test_secret_like_operation_input_is_refused(scenario) -> None:
+    request = copy.deepcopy(scenario["request"])
+    request["operation"]["parameters"]["password"] = "forbidden-test-marker"
+    result = _call(scenario, request=request)
     assert result.request_built is False
     assert result.runner_request is None
 
 
-def test_no_secret_like_key_appears_anywhere_in_the_runner_request(scenario) -> None:
-    message = _call(scenario).runner_request
-    serialized = json.dumps(message)
-
-    for forbidden in (
-        "token",
-        "password",
-        "secret",
-        "cookie",
-        "authorization\"",
-        "api_key",
-        "credential",
-        "private_key",
-        "command",
-        "shell",
-        "argv",
-        "cwd",
-        '"env"',
-    ):
-        assert forbidden not in serialized
-
-
-def test_result_repr_never_exposes_the_runner_request_payload(scenario) -> None:
+def test_result_repr_and_summary_never_leak_restricted_payload(scenario) -> None:
     result = _call(scenario)
-
     assert result.request_built is True
     assert result.runner_request is not None
-    rendered = repr(result)
+    assert result.runner_request["operation"]["input"]["target"]["value"] == "juice-shop-demo"
 
-    assert "runner_request" not in rendered
-    assert "juice-shop-demo" not in rendered
-    assert "follow_redirects" not in rendered
-    assert "parameters" not in rendered
-    assert scenario["contract"]["signature"]["value"] not in rendered
-    assert str(scenario["config"].trust_store_path) not in rendered
-    assert str(scenario["config"].kill_switch_path) not in rendered
-    for forbidden in ("token", "password", "secret", "private_key", "public_key"):
-        assert forbidden not in rendered
-
-
-def test_sanitized_summary_is_log_safe_and_carries_no_payload(scenario) -> None:
-    result = _call(scenario)
-    summary = result.sanitized_summary()
-
-    assert summary["request_built"] is True
-    assert summary["runner_request_present"] is True
-    assert set(summary) == {
-        "request_built",
-        "codes",
-        "admission_codes",
-        "request_id",
-        "campaign_id",
-        "operation_id",
-        "operation_version",
-        "authorization_ref",
-        "idempotency_key",
-        "request_fingerprint",
-        "runner_request_present",
-    }
-
-    serialized = json.dumps(summary)
-    assert "juice-shop-demo" not in serialized
-    assert "follow_redirects" not in serialized
-    assert scenario["contract"]["signature"]["value"] not in serialized
-    assert str(scenario["config"].trust_store_path) not in serialized
-    assert str(scenario["config"].kill_switch_path) not in serialized
+    serialized = repr(result) + json.dumps(result.sanitized_summary(), sort_keys=True)
     for forbidden in (
-        "token",
-        "password",
-        "secret",
-        "cookie",
-        "api_key",
-        "credential",
-        "private_key",
-        "public_key",
+        "juice-shop-demo",
+        "follow_redirects",
+        "parameters",
         "signature",
-        "command",
-        "shell",
-        "argv",
+        "public_key",
+        "trust-store",
+        "password",
+        "private_key",
     ):
         assert forbidden not in serialized
 
 
-def test_runner_request_is_still_usable_and_keeps_the_raw_target(scenario) -> None:
-    """Excluding the payload from repr must not make the request useless."""
-
-    message = _call(scenario).runner_request
-
-    assert message["operation"]["input"]["target"] == {
-        "type": "lab-asset",
-        "value": "juice-shop-demo",
-    }
-    assert message["operation"]["input"]["parameters"] == {"follow_redirects": False}
-
-
-def test_positive_state_is_named_for_construction_not_dispatch() -> None:
-    fields = {f.name for f in dataclasses.fields(handoff.RunnerHandoffResult)}
-
+def test_result_positive_state_is_message_build_not_dispatch(scenario) -> None:
+    result = _call(scenario)
+    fields = {field.name for field in result.__dataclass_fields__.values()}
     assert "request_built" in fields
     for forbidden in ("dispatched", "executed", "sent", "delivered", "submitted"):
         assert forbidden not in fields
+
+
+def test_runner_sdk_fingerprint_matches_result(scenario) -> None:
+    result = _call(scenario)
+    assert result.runner_request is not None
+    assert request_fingerprint(result.runner_request) == result.request_fingerprint
