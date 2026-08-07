@@ -16,6 +16,9 @@ def _epic26() -> dict:
 def test_epic26_is_implementing_not_as_built_or_final() -> None:
     text = EPIC_26.read_text(encoding="utf-8")
     assert "**IMPLEMENTING**" in text
+    assert "**AS_BUILT**" not in text
+    assert "**FINAL**" not in text
+    assert "| INTENT | yes |" in text
     assert "| IMPLEMENTING | yes |" in text
     assert "| AS_BUILT | no |" in text
     assert "| FINAL | no |" in text
@@ -47,4 +50,7 @@ def test_machine_readable_catalogue_matches_j02_lifecycle() -> None:
     item = _epic26()
     assert item["status"] == "implementing"
     assert "PR #157" in item["current_state"]
+    assert "PR #156" not in item["current_state"]
     assert "NOT_RUN" in item["current_state"]
+    assert "NOT_IMPLEMENTED" in item["current_state"]
+    assert "NO_RUNTIME_CHANGE" in item["current_state"]

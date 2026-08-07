@@ -212,7 +212,7 @@ Current factual boundary:
 - cryptographic signing: `NOT_RUN`;
 - external transport/delivery: `NOT_RUN`;
 - external consumers: `NOT_RUN`;
-- external import/export and round-trip compatibility remain `NOT_RUN`;
+- External import/export and round-trip compatibility remain `NOT_RUN`;
 - certified conformance: **not claimed**;
 - runtime changes: `NO_RUNTIME_CHANGE`.
 
