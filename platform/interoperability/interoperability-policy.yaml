@@ -1,0 +1,23 @@
+schema_version: "1.0"
+policy_id: interoperability-export-policy
+formats:
+  - oscal-assessment-results
+  - oscal-poam
+  - cacao-2.0
+  - attack-flow
+validation:
+  explicit_target_schema_required: true
+  schema_identifier_required: true
+  schema_version_required: true
+  fail_closed_on_schema_error: true
+data_markings:
+  required: true
+signature:
+  verified_evidence_required: true
+runtime_status:
+  authoritative_schema_fetch: NOT_IMPLEMENTED
+  cryptographic_signing: NOT_RUN
+  external_transport: NOT_RUN
+  oscal_export_delivery: NOT_RUN
+  cacao_export_delivery: NOT_RUN
+  attack_flow_export_delivery: NOT_RUN
