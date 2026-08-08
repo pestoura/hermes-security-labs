@@ -1,0 +1,67 @@
+name: issue4-kali-safe-tool-validation
+
+on:
+  push:
+    paths:
+      - '.github/workflows/issue4-kali-safe-tool-validation.yml'
+      - 'kali-mcp/**'
+      - 'platform/tests/test_kali_writable_tool_state.py'
+  pull_request:
+    paths:
+      - '.github/workflows/issue4-kali-safe-tool-validation.yml'
+      - 'kali-mcp/**'
+      - 'platform/tests/test_kali_writable_tool_state.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  controlled-tools:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate Compose boundary
+        run: docker compose -f kali-mcp/compose.yaml config --quiet
+      - name: Build Kali MCP image
+        run: docker compose -f kali-mcp/compose.yaml build kali-mcp
+      - name: WPScan diagnostic with dedicated writable state
+        run: |
+          set -euo pipefail
+          docker compose -f kali-mcp/compose.yaml run --rm --no-deps \
+            --entrypoint /bin/sh kali-mcp -c '
+              test -w /root/.wpscan
+              test -w /root/.cache
+              wpscan --version
+            '
+      - name: John synthetic hash control
+        run: |
+          set -euo pipefail
+          docker compose -f kali-mcp/compose.yaml run --rm --no-deps \
+            --entrypoint /bin/sh kali-mcp -c '
+              test -w /root/.john
+              printf "%s\n" test > /tmp/controlled-words.txt
+              printf "%s\n" 098f6bcd4621d373cade4e832627b4f6 > /tmp/controlled-hash.txt
+              john --format=Raw-MD5 --wordlist=/tmp/controlled-words.txt \
+                --pot=/root/.john/controlled.pot /tmp/controlled-hash.txt
+              john --show --format=Raw-MD5 --pot=/root/.john/controlled.pot \
+                /tmp/controlled-hash.txt | grep -F "test"
+            '
+      - name: Metasploit non-exploitation module load
+        run: |
+          set -euo pipefail
+          docker compose -f kali-mcp/compose.yaml run --rm --no-deps \
+            --entrypoint /bin/sh kali-mcp -c '
+              test -w /root/.msf4
+              msfconsole -q -x "use auxiliary/scanner/http/http_version; info; exit -y" \
+                | grep -F "http_version"
+            '
+      - name: Verify no Kali test container residue
+        if: always()
+        run: |
+          set -euo pipefail
+          docker compose -f kali-mcp/compose.yaml down --remove-orphans || true
+          if docker ps -a --filter label=com.docker.compose.project=hermes-kali-mcp --format '{{.ID}}' | grep -q .; then
+            echo 'Kali controlled-tool container residue detected' >&2
+            exit 1
+          fi
