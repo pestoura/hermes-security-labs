@@ -37,19 +37,54 @@ services:
       start_period: 60s
     networks:
       - webgoat-lab
-    ports:
-      - "127.0.0.1:${WEBGOAT_HOST_PORT:-8080}:8080"
-      - "127.0.0.1:${WEBWOLF_HOST_PORT:-9090}:9090"
     restart: on-failure
     security_opt:
       - no-new-privileges:true
     volumes:
       - webgoat-data:/home/webgoat
 
+  webgoat-proxy:
+    image: docker.io/alpine/socat@sha256:7955a82d66fd43c711946ba5c499e3ec8bf494db8ce6b32ad4df5e1b13b8f1d2
+    depends_on:
+      webgoat:
+        condition: service_healthy
+    entrypoint:
+      - /bin/sh
+      - -c
+    command:
+      - |
+        socat TCP-LISTEN:8080,reuseaddr,fork TCP:webgoat:8080 & p1=$$!
+        socat TCP-LISTEN:9090,reuseaddr,fork TCP:webgoat:9090 & p2=$$!
+        trap 'kill $$p1 $$p2 2>/dev/null || true' TERM INT
+        wait $$p1
+    cap_drop:
+      - all
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 64M
+          pids: 32
+    networks:
+      - webgoat-lab
+      - webgoat-publish
+    ports:
+      - "127.0.0.1:${WEBGOAT_HOST_PORT:-8080}:8080"
+      - "127.0.0.1:${WEBWOLF_HOST_PORT:-9090}:9090"
+    read_only: true
+    restart: on-failure
+    security_opt:
+      - no-new-privileges:true
+
 networks:
   webgoat-lab:
     name: webgoat-lab
     driver: bridge
+    internal: true
+  webgoat-publish:
+    name: webgoat-publish
+    driver: bridge
+    internal: false
 
 volumes:
   webgoat-data:
