@@ -4,13 +4,15 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
 BACKLOG = ROOT / "roadmap" / "epics" / "security-validation-platform-v2.yaml"
+EPIC_05 = ROOT / "docs" / "roadmap" / "epics" / "EPIC-05-runner-protocol-v2.md"
 EPIC_09 = ROOT / "docs" / "roadmap" / "epics" / "EPIC-09-exploitation-safety.md"
+COMPATIBILITY = ROOT / "platform" / "runner-protocol" / "compatibility.yaml"
 A02_COMPLETION = ROOT / "docs" / "roadmap" / "SVP2-A-02-completion-as-built.md"
+B02_COMPLETION = ROOT / "docs" / "roadmap" / "SVP2-B-02-completion-as-built.md"
 
-COMPLETED = {"SVP2-A-01", "SVP2-A-02", "SVP2-A-03", "SVP2-J-01"}
+COMPLETED = {"SVP2-A-01", "SVP2-A-02", "SVP2-A-03", "SVP2-B-02", "SVP2-J-01"}
 IMPLEMENTING = {
     "SVP2-B-01",
-    "SVP2-B-02",
     "SVP2-B-03",
     "SVP2-C-01",
     "SVP2-C-02",
@@ -52,7 +54,6 @@ def test_runtime_heavy_epics_without_done_evidence_are_not_falsely_completed() -
     epics = _epics()
     runtime_heavy = {
         "SVP2-B-01",
-        "SVP2-B-02",
         "SVP2-B-03",
         "SVP2-C-01",
         "SVP2-C-02",
@@ -90,3 +91,32 @@ def test_a02_delivery_completion_does_not_claim_epic09_finality() -> None:
     assert "EPIC-09 FINAL`: **`no`**" in completion
     assert "DOD-10" in completion
     assert "production-ready exploitation safety" in completion
+
+
+def test_b02_delivery_completion_does_not_claim_epic05_finality_or_production_readiness() -> None:
+    epic = _epics()["SVP2-B-02"]
+    epic05 = EPIC_05.read_text(encoding="utf-8")
+    compatibility = yaml.safe_load(COMPATIBILITY.read_text(encoding="utf-8"))
+    completion = B02_COMPLETION.read_text(encoding="utf-8")
+
+    assert epic["status"] == "completed"
+    assert "status:completed" in epic["labels"]
+    assert "docs/roadmap/SVP2-B-02-completion-as-built.md" in epic["references"]
+
+    assert "**AS_BUILT**" in epic05
+    assert "| FINAL | no |" in epic05
+    assert "`FINAL` remains false" in epic05
+
+    assert compatibility["protocol"]["status"] == "contract_only"
+    assert compatibility["cross_family_supervised_conformance"]["status"] == "PASS_SYNTHETIC_PROCESS"
+    assert compatibility["cross_family_supervised_conformance"]["sandbox_status"] == "NOT_IMPLEMENTED"
+    assert compatibility["cross_family_supervised_conformance"]["execution_integration"] == "NOT_RUN"
+    assert compatibility["cross_family_supervised_conformance"]["promotion_status"] == "blocked"
+    assert all(family["execution_integration"] == "NOT_RUN" for family in compatibility["runner_families"])
+    assert all(family["promotion_status"] == "blocked" for family in compatibility["runner_families"])
+
+    assert "SVP2-B-02`: **candidate for `completed`**" in completion
+    assert "EPIC-05 FINAL`: **`no`**" in completion
+    assert "production execution integration: **`NOT_RUN`**" in completion
+    assert "sandbox: **`NOT_IMPLEMENTED`**" in completion
+    assert "DOD-10" in completion

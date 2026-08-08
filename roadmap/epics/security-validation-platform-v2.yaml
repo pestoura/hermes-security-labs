@@ -188,7 +188,7 @@ epics:
     pillar: B
     priority: P0
     phase: 1
-    status: implementing
+    status: completed
     rationale: >-
       Runners heterogeneos impedem correlacao de evidencia, cancelamento fiavel e
       tratamento uniforme de erros e timeouts.
@@ -208,9 +208,10 @@ epics:
     effort: L
     risks:
       - Divergencia entre runners existentes e o novo protocolo
-    labels: [roadmap, architecture, "pillar:B", "priority:P0", "runtime:runner", "status:implementing", "type:epic"]
+    labels: [roadmap, architecture, "pillar:B", "priority:P0", "runtime:runner", "status:completed", "type:epic"]
     references:
       - docs/architecture/security-validation-reference-architecture.md
+      - docs/roadmap/SVP2-B-02-completion-as-built.md
 
   - id: SVP2-B-03
     title: Transactional lab lifecycle cleanup proof and network egress profiles
@@ -477,7 +478,7 @@ epics:
     effort: L
     risks:
       - Dependencia de telemetria defensiva fora do ambito da plataforma
-    labels: [roadmap, architecture, "pillar:F", "priority:P1", "status:implementing", "type:epic"]
+    labels: [roadmap, architecture, "pillar:F", "priority:P1", "impact:L3", "status:implementing", "type:epic"]
     references:
       - docs/architecture/framework-crosswalk.md
 
