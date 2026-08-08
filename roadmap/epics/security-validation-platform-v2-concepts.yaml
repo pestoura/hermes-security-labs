@@ -551,12 +551,12 @@ concept_epics:
     pillar: E
     phase: 5
     priority: P1
-    status: intent
+    status: implementing
     umbrella_id: SVP2-E-01
     umbrella_issue: 86
     dependencies: [EPIC-36]
     doc_path: docs/roadmap/epics/EPIC-39-attack-synchronization-service.md
-    current_state: "PR #146 provides ATT&CK entity/provenance support, but EPIC-39 remains INTENT: TAXII/external synchronization, version adoption, deprecation/rename handling, migration reports and mapping impact analysis remain NOT_IMPLEMENTED/NOT_RUN."
+    current_state: "IMPLEMENTING. PR #188 integrated the repository-level ATT&CK supplied-snapshot version/migration contract in main a702fd70a7a6bc65653cfde270ca8de0b48a2460: strict supplied-dataset and migration-report schemas, deterministic dataset identity, canonical ATT&CK/STIX identifiers, replacement validation with cycle refusal, strictly-newer same-domain migration preconditions, deterministic added/removed/renamed/revoked/deprecated/replaced/object-id-change reporting, source-dataset-bound mapping impact analysis, review-only affected mappings, blocking findings, automatic_adoption false, historical_rewrite false, external_sync NOT_PERFORMED and execution_authority NONE. TAXII/external ATT&CK synchronization remains NOT_RUN; upstream source provenance/signature verification remains NOT_IMPLEMENTED/NOT_RUN; scheduled synchronization/release polling and automatic version adoption remain NOT_IMPLEMENTED; production migration/adoption and graph/planner consumption remain NOT_IMPLEMENTED/NOT_RUN. Supplied snapshots are not claimed authoritative/current solely because they validate structurally. Hermes/Control Plane remains the sole execution-authorization authority. AS_BUILT and FINAL are not claimed. NO_RUNTIME_CHANGE."
     target_state: "A managed synchronization process for ATT&CK content with version pinning, deprecation handling and migration reporting."
   - concept_id: EPIC-40
     slug: nist-control-knowledge-layer
