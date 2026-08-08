@@ -34,12 +34,14 @@ def test_concept_epic_records_control_plane_as_only_authority() -> None:
 
 def test_supplementary_record_never_claims_final_or_runtime_enforcement() -> None:
     text = AS_BUILT.read_text(encoding="utf-8")
+    normalized = text.lower()
 
     assert "AS_BUILT — contract candidate" in text
     assert "| FINAL | no |" in text
-    assert "production trust-store integration: `NOT_IMPLEMENTED`" in text
-    assert "gateway enforcement: `NOT_RUN`" in text
-    assert "runtime changes: `NO_RUNTIME_CHANGE`" in text
+    assert "production/deployed trust-store and signing operations: `not_run`" in normalized
+    assert "deployed gateway enforcement: `not_run`" in normalized
+    assert "cancellation request transport/dispatch: `not_implemented` / `not_run`" in normalized
+    assert "runtime changes: `no_runtime_change`" in normalized
 
 
 def test_supplementary_record_references_every_contract_component() -> None:
@@ -51,6 +53,10 @@ def test_supplementary_record_references_every_contract_component() -> None:
         "intrusiveness-policy.yaml",
         "roe_contract.py",
         "test_roe_contract.py",
+        "trust_store.py",
+        "kill_switch.py",
+        "admission.py",
+        "kill_switch_cancellation.py",
     ):
         assert path in text
 

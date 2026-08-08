@@ -7,62 +7,75 @@
 | Canonical concept epic | [`EPIC-28 — Rules of Engagement as Code`](epics/EPIC-28-rules-of-engagement-as-code.md) |
 | Delivery umbrella | `SVP2-A-02` — issue [#77](https://github.com/pestoura/hermes-security-labs/issues/77) |
 | Master tracker | issue [#97](https://github.com/pestoura/hermes-security-labs/issues/97) |
-| Technical PR | [#133](https://github.com/pestoura/hermes-security-labs/pull/133) |
-| Technical merge | `4c85529f3fe325d97ef7795e4fac7ea1512a3ec2` |
+| Foundation technical PR | [#133](https://github.com/pestoura/hermes-security-labs/pull/133) |
+| Latest safety increment | [#198](https://github.com/pestoura/hermes-security-labs/pull/198) |
 | Record state | `AS_BUILT — contract candidate` |
 | FINAL | no |
 | Runtime declaration | `NO_RUNTIME_CHANGE` |
 
-This is a supplementary implementation record. The canonical concept document remains an INTENT document with its reserved lifecycle sections, as required by the 45-epic catalogue contract.
+This supplementary record describes the repository-level RoE/safety enforcement contract. It does not claim production deployment or operational execution evidence.
 
 ## 2. Delivered boundary
 
-The repository contains a validated, fail-closed Rules of Engagement (RoE) contract and deterministic decision layer for proposed steps. The block delivers:
+The repository now contains a fail-closed RoE decision/admission chain and a repository-only in-flight cancellation-message fan-out contract:
 
-- a versioned RoE contract schema;
-- a versioned proposed-step request schema;
-- a canonical L0–L4 intrusiveness policy;
+- versioned RoE and proposed-step schemas;
+- canonical L0–L4 intrusiveness policy;
 - deterministic allow/refuse decisions with stable codes;
-- structural, semantic and signature-boundary validation;
-- explicit scope, exclusions, windows, limits, approvers, emergency contacts and stop conditions;
-- explicit controls for credential use, lateral movement, persistence, evasion, destructive actions, data exfiltration, denial of service and mass data access;
-- 37 dedicated positive, negative and adversarial tests.
+- scope, exclusions, execution windows, limits, approvals, emergency contacts and stop conditions;
+- high-risk action controls and L4 dual approval/rollback;
+- file-backed public-key trust-store verification;
+- external global/campaign kill-switch state;
+- canonical gateway admission before Runner request construction;
+- sanitized active-attempt inventory;
+- deterministic construction of Runner Protocol v2 `runner.cancellation.request` messages for already-active attempts.
 
-The implementation does not dispatch, execute, schedule or cancel any runtime operation.
+The repository still does not dispatch cancellation messages, terminate runtime processes, operate a production Runner or execute against a target.
 
 ## 3. As-built architecture
 
 ```mermaid
 flowchart LR
   CONTRACT[Signed RoE contract]
-  REQUEST[Proposed step request]
-  VERIFIER[External signature verifier]
-  POLICY[L0-L4 policy]
-  ENGINE[Fail-closed decision engine]
-  ALLOW[ALLOW decision]
-  REFUSE[REFUSE with stable codes]
-  GATEWAY[Future execution gateway]
+  TRUST[Public-key trust store]
+  REQUEST[Proposed step]
+  KILL[External kill switch]
+  ENGINE[Fail-closed RoE engine]
+  GATEWAY[Canonical gateway admission]
+  RUNREQ[Runner request]
+  ACTIVE[Sanitized active-attempt inventory]
+  CANCEL[Cancellation-plan builder]
+  CANMSG[Runner cancellation request]
+  RUNTIME[Runtime dispatch / interruption]
 
   CONTRACT --> ENGINE
+  TRUST --> ENGINE
   REQUEST --> ENGINE
-  VERIFIER --> ENGINE
-  POLICY --> ENGINE
-  ENGINE --> ALLOW
-  ENGINE --> REFUSE
-  ALLOW -. enforcement NOT_RUN .-> GATEWAY
-  REFUSE -. enforcement NOT_RUN .-> GATEWAY
+  KILL --> ENGINE
+  ENGINE --> GATEWAY
+  GATEWAY --> RUNREQ
+  KILL --> CANCEL
+  ACTIVE --> CANCEL
+  CANCEL --> CANMSG
+  CANMSG -. dispatch NOT_RUN .-> RUNTIME
 ```
 
 ## 4. Canonical components
 
 | Component | Path | State |
 | --- | --- | --- |
-| RoE contract schema | [`roe-contract.schema.json`](../../platform/roe-contract/roe-contract.schema.json) | candidate |
-| Step request schema | [`roe-step-request.schema.json`](../../platform/roe-contract/roe-step-request.schema.json) | candidate |
-| L0–L4 policy | [`intrusiveness-policy.yaml`](../../platform/roe-contract/intrusiveness-policy.yaml) | candidate |
-| Decision implementation | [`roe_contract.py`](../../platform/roe-contract/roe_contract.py) | candidate |
-| Technical boundary | [`README.md`](../../platform/roe-contract/README.md) | as built |
-| Contract tests | [`test_roe_contract.py`](../../platform/tests/test_roe_contract.py) | validated |
+| RoE contract schema | `platform/roe-contract/roe-contract.schema.json` | as built |
+| Step request schema | `platform/roe-contract/roe-step-request.schema.json` | as built |
+| L0–L4 policy | `platform/roe-contract/intrusiveness-policy.yaml` | as built |
+| RoE decision implementation | `platform/roe-contract/roe_contract.py` | as built |
+| RoE decision tests | `platform/tests/test_roe_contract.py` | as built |
+| Public-key trust store | `platform/roe-contract/trust_store.py` | as built |
+| External kill switch | `platform/roe-contract/kill_switch.py` | as built |
+| Canonical gateway admission | `platform/gateway-protocol/admission.py` | as built |
+| Runner handoff | `platform/gateway-protocol/runner_handoff.py` | as built contract |
+| Active-attempt cancellation planning | `platform/gateway-protocol/kill_switch_cancellation.py` | as built contract |
+| Active-attempt inventory schema | `platform/gateway-protocol/active-attempt-inventory.schema.json` | as built contract |
+| Cancellation-plan schema | `platform/gateway-protocol/kill-switch-cancellation-plan.schema.json` | as built contract |
 
 ## 5. Intrusiveness policy
 
@@ -74,81 +87,90 @@ flowchart LR
 | L3 | Controlled exploitation | 1 | 1 | yes |
 | L4 | High impact | 2 | 2 | yes |
 
-A contract can lower the intrusiveness ceiling but cannot relax these requirements.
+A contract can lower the ceiling but cannot relax canonical safety requirements.
 
 ## 6. Fail-closed behaviour
 
-A proposed step is refused when any of the following applies:
+Admission is refused when, among other causes:
 
-- the contract is missing, malformed, inactive, expired or revoked;
-- the canonical digest does not match the signed payload;
-- no external signature verifier is available or verification fails;
-- the campaign identifier differs or the campaign is not `RUNNING`;
-- the kill switch or any stop condition is active;
-- the target is excluded or outside the allowlist;
-- the capability is prohibited or not allowed;
-- the requested level exceeds the contract ceiling;
-- the request is outside an execution window;
-- approvals, approval separation or rollback evidence are missing;
-- a high-risk action is denied or below its minimum level;
-- estimated rate, concurrency, data or duration exceeds the contract;
-- unknown or secret-bearing fields are present.
+- contract/signature/trust validation is unavailable or invalid;
+- campaign state, scope, target, capability, window or resource limits do not match;
+- requested intrusiveness exceeds the contract;
+- required approvals/rollback are missing;
+- stop conditions or external kill switch are active;
+- caller attempts to supply its own authorization/RoE decision.
 
-Exclusions and prohibitions always take precedence over broader allow rules.
+For already-active attempts, PR #198 adds restrictive cancellation planning:
+
+- global engaged switch → cancellation requests for all supplied cancellable attempts;
+- campaign engaged switch → cancellation requests only for matching Runner campaign UUID;
+- non-correlatable campaign identifier → global fail-closed cancellation planning;
+- already-cancelling attempt → no duplicate request;
+- missing/unreadable/invalid switch source → fail closed;
+- released switch requires a recent timestamp under explicit freshness policy;
+- missing, stale or future release timestamp → fail closed.
 
 ## 7. Decisions
 
 | Decision | Justification |
 | --- | --- |
-| External verifier is mandatory | The repository must not embed keys or silently substitute test cryptography. |
-| Test verifier is scaffolding only | Deterministic tests are not production signature evidence. |
-| Emergency stop does not require the original approver | A configured emergency contact with pause, stop or revoke authority must be able to fail safe. |
-| L4 requires two distinct sides | A single actor or organizational side cannot authorize high-impact work alone. |
-| Production enforcement remains blocked | Contract evidence alone does not prove gateway or runtime behaviour. |
+| External signature/trust verification is mandatory | No embedded private key or implicit trust fallback. |
+| RoE and kill switch only restrict | They never create/expand execution authorization. |
+| Hermes / Control Plane remains sole execution-authorization authority | Separation between policy safety and authorization is explicit. |
+| Kill-switch source defects fail closed | Safety must not depend on an unreadable control state. |
+| Campaign correlation mismatch fails globally closed | Prevent silent continuation caused by identifier mismatch. |
+| Cancellation fan-out is message construction only | No operational cancellation claim without transport/process evidence. |
 
 ## 8. Acceptance assessment
 
-| Criterion | Result | Evidence |
+| Criterion | Repository result | Operational boundary |
 | --- | --- | --- |
-| Out-of-scope steps are refused deterministically | met in decision layer | target, capability and window tests |
-| Expired and revoked contracts refuse decisions | met in decision layer | lifecycle tests |
-| L0–L4 requirements are explicit | met | policy and regression tests |
-| Kill switch blocks new step decisions | met in decision layer | kill-switch test |
-| L4 dual approval and rollback are enforced | met | separation and rollback tests |
-| Production signature and revocation trust | `NOT_RUN` | trust store not implemented |
-| Gateway refuses before dispatch | `NOT_RUN` | gateway integration not delivered |
-| Runtime kill switch stops in-flight work | `NOT_RUN` | execution proof not delivered |
+| Out-of-scope steps refused | `MET` | deployed gateway evidence remains `NOT_RUN` |
+| L0–L4 explicit/enforced | `MET` | real intrusive execution remains `NOT_RUN` |
+| Kill switch blocks new admissions | `MET` | deployed runtime drill remains `NOT_RUN` |
+| L4 dual approval/rollback | `MET` | production approval workflow evidence remains incomplete |
+| Public-key trust verification | `MET` repository | production key distribution/rotation/revocation freshness remains incomplete/`NOT_RUN` |
+| Gateway refuses before Runner request construction | `MET` repository | deployed gateway remains `NOT_RUN` |
+| Kill switch addresses active attempts | `MET` for cancellation-message planning — PR #198 | dispatch/process interruption remains `NOT_IMPLEMENTED` / `NOT_RUN` |
 
 ## 9. Evidence
 
+Latest cancellation increment:
+
 | Evidence | Result |
 | --- | --- |
-| Local isolated RoE tests | 37 passed |
-| PR #133 validate / repository | success |
-| PR #133 validate / security | success |
-| PR #133 security / gitleaks | success |
-| Technical merge | `4c85529f3fe325d97ef7795e4fac7ea1512a3ec2` |
-| Post-merge validate `31132711641` | success |
-| Post-merge security/gitleaks `31132711788` | success |
+| PR #198 head `7d053740d829ca72958ffb2675a5a65674f15074` | validated |
+| Pre-merge security `31234488135` | PASS |
+| Pre-merge validate `31234488148` | PASS |
+| Main `c4b4f161ef34a4a1df1e67bb4213de42a7d681b6` | integrated |
+| Post-merge security `31234563241` | PASS |
+| Post-merge validate `31234563147` | PASS |
+
+Earlier repository evidence remains represented by PRs #133, #159 and #160.
 
 ## 10. Preserved limitations
 
-- production signature verification: `NOT_RUN`;
-- production trust-store integration: `NOT_IMPLEMENTED`;
-- gateway enforcement: `NOT_RUN`;
-- Hermes integration: `NOT_RUN`;
-- runtime kill-switch and cancellation proof: `NOT_RUN`;
+- production/deployed trust-store and signing operations: `NOT_RUN`;
+- production key rotation/revocation freshness: incomplete / `NOT_RUN`;
+- deployed gateway enforcement: `NOT_RUN`;
+- Hermes operational trust-store/kill-switch integration: incomplete / `NOT_RUN`;
+- runtime active-attempt inventory authenticity/integration: `NOT_IMPLEMENTED` / `NOT_RUN`;
+- cancellation request transport/dispatch: `NOT_IMPLEMENTED` / `NOT_RUN`;
+- cooperative runtime process interruption: `NOT_IMPLEMENTED` / `NOT_RUN`;
+- force-after-grace: `NOT_IMPLEMENTED` / `NOT_RUN`;
+- runtime kill-switch drills: `NOT_RUN`;
 - customer-target execution: `NOT_RUN`;
 - runtime changes: `NO_RUNTIME_CHANGE`;
 - umbrella #77 remains open;
-- FINAL remains **no**.
+- `FINAL = no`.
 
 ## 11. Remaining work before FINAL
 
-- select and integrate a production trust store and revocation mechanism;
-- bind verified contract digests to campaign evidence;
-- integrate the decision layer into the typed gateway before dispatch;
-- prove cache invalidation and revocation freshness;
-- prove kill-switch behaviour against in-flight runtime work;
-- validate production signing, rotation and emergency revocation procedures;
-- complete post-integration positive, negative, adversarial and rollback tests.
+- define/prove production key rotation and revocation freshness;
+- deploy trust-store/kill-switch/gateway enforcement in a controlled non-production runtime;
+- integrate an authenticated/current active-attempt inventory source;
+- dispatch cancellation requests through the real Runner transport;
+- prove cooperative cancellation and terminal-state transition;
+- prove controlled force-after-grace where explicitly authorized;
+- execute global/campaign kill-switch drills and preserve evidence;
+- validate rollback/recovery and emergency procedures end-to-end.
