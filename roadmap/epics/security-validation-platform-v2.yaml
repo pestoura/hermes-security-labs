@@ -371,7 +371,7 @@ epics:
     pillar: E
     priority: P0
     phase: 5
-    status: implementing
+    status: completed
     rationale: >-
       O planeamento informado por ameaca exige conhecimento versionado com proveniencia
       e nao mapeamentos manuais dispersos pela documentacao.
@@ -393,10 +393,11 @@ epics:
     risks:
       - Volume e ritmo das fontes tornarem o sync fragil
       - Derivacoes heuristicas contaminarem decisoes de risco
-    labels: [roadmap, architecture, "pillar:E", "priority:P0", "status:implementing", "type:epic"]
+    labels: [roadmap, architecture, "pillar:E", "priority:P0", "status:completed", "type:epic"]
     references:
       - docs/architecture/security-knowledge-fabric.md
       - docs/architecture/framework-crosswalk.md
+      - docs/roadmap/SVP2-E-01-completion-as-built.md
 
   - id: SVP2-E-02
     title: Security Knowledge API queries and per-campaign snapshots

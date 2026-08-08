@@ -101,4 +101,5 @@ def test_external_sync_and_graph_store_are_not_claimed() -> None:
         "kev_sync": "NOT_RUN",
         "epss_sync": "NOT_RUN",
         "graph_store": "NOT_IMPLEMENTED",
+        "production_persistence": "NOT_RUN",
     }
