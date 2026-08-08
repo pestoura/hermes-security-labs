@@ -1,0 +1,63 @@
+name: epic40-control-hardening-patch
+
+on:
+  push:
+    branches:
+      - feat/svp2-e02-nist-control-knowledge-layer
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/svp2-e02-nist-control-knowledge-layer
+          fetch-depth: 0
+      - name: Apply exact fail-closed hardening
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('platform/knowledge-fabric/control_knowledge.py')
+          text = path.read_text(encoding='utf-8')
+
+          replacements = [
+              (
+                  'MAX_EVIDENCE = 256\n',
+                  'MAX_EVIDENCE = 256\nMAX_OBSERVATIONS = MAX_MAPPINGS\n',
+              ),
+              (
+                  '''    if any(\n        item["control_catalogue_id"] != validated_catalogue["catalogue_id"]\n        for item in validated_mappings\n    ):\n        raise ControlKnowledgeError("all mappings must reference the supplied catalogue")\n\n    control_mappings = sorted(\n''',
+                  '''    if any(\n        item["control_catalogue_id"] != validated_catalogue["catalogue_id"]\n        for item in validated_mappings\n    ):\n        raise ControlKnowledgeError("all mappings must reference the supplied catalogue")\n    if any(item["control_id"] not in controls for item in validated_mappings):\n        raise ControlKnowledgeError(\n            "mapping control is not present in supplied catalogue"\n        )\n\n    control_mappings = sorted(\n''',
+              ),
+              (
+                  '''    known_mapping_ids = {item["mapping_id"] for item in control_mappings}\n\n    validated_observations = [_validate_observation(item) for item in observations]\n''',
+                  '''    known_mapping_ids = {item["mapping_id"] for item in control_mappings}\n\n    if (\n        not isinstance(observations, Sequence)\n        or isinstance(observations, (str, bytes))\n        or len(observations) > MAX_OBSERVATIONS\n    ):\n        raise ControlKnowledgeError(\n            "observation set exceeds the bounded contract"\n        )\n    validated_observations = [_validate_observation(item) for item in observations]\n''',
+              ),
+              (
+                  '''        if mapping_confidence < threshold or any(\n            item["state"] in {"INCONCLUSIVE", "NOT_OBSERVED"} for item in observed\n        ):\n            projection_state = "REVIEW_REQUIRED"\n        elif any(item["state"] == "OBSERVED" for item in observed):\n            projection_state = "MAPPED_EVIDENCE_PRESENT"\n        else:\n            projection_state = "MAPPED_NO_OBSERVATION"\n''',
+                  '''        if mapping_confidence < threshold or any(\n            item["state"] in {"INCONCLUSIVE", "NOT_OBSERVED"} for item in observed\n        ):\n            projection_state = "REVIEW_REQUIRED"\n        else:\n            observed_mapping_ids = {\n                item["mapping_id"]\n                for item in observed\n                if item["state"] == "OBSERVED"\n            }\n            if observed_mapping_ids:\n                if observed_mapping_ids == known_mapping_ids:\n                    projection_state = "MAPPED_EVIDENCE_PRESENT"\n                else:\n                    projection_state = "REVIEW_REQUIRED"\n            else:\n                projection_state = "MAPPED_NO_OBSERVATION"\n''',
+              ),
+          ]
+
+          for old, new in replacements:
+              if text.count(old) != 1:
+                  raise SystemExit(f'expected patch target not found exactly once: {old[:80]!r}')
+              text = text.replace(old, new, 1)
+
+          path.write_text(text, encoding='utf-8')
+          PY
+          git diff --check
+          test -n "$(git diff -- platform/knowledge-fabric/control_knowledge.py)"
+      - name: Self-remove helper and commit
+        run: |
+          git rm .github/workflows/epic40-control-hardening-patch.yml
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add platform/knowledge-fabric/control_knowledge.py
+          git commit -m "security(svp2-e02): harden control projection semantics"
+          git push origin HEAD:feat/svp2-e02-nist-control-knowledge-layer
