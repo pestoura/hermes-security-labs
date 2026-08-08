@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hex0r.local/schemas/control-projection-v1.json",
+  "title": "Control-Oriented Validation Projection",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["projection_id", "schema_version", "control_catalogue_id", "catalogue_version", "control_id", "projection_state", "mapping_count", "mapping_confidence", "minimum_confidence", "mapping_ids", "evidence_ids", "coverage_semantics", "compliance_verdict", "certification_claim", "planning_effect", "execution_authority", "limitations"],
+  "properties": {
+    "projection_id": {"type": "string", "pattern": "^ctrlproj_[a-f0-9]{32}$"},
+    "schema_version": {"const": "1.0"},
+    "control_catalogue_id": {"type": "string", "pattern": "^ctrlcat_[a-f0-9]{32}$"},
+    "catalogue_version": {"type": "string", "minLength": 1},
+    "control_id": {"type": "string", "pattern": "^[A-Z]{2}-[0-9]+(\\([0-9]+\\))?$"},
+    "projection_state": {"enum": ["UNMAPPED", "MAPPED_NO_OBSERVATION", "MAPPED_EVIDENCE_PRESENT", "REVIEW_REQUIRED"]},
+    "mapping_count": {"type": "integer", "minimum": 0},
+    "mapping_confidence": {"oneOf": [{"type": "null"}, {"type": "number", "minimum": 0.0, "maximum": 1.0}]},
+    "minimum_confidence": {"type": "number", "minimum": 0.0, "maximum": 1.0},
+    "mapping_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^ctrlmap_[a-f0-9]{32}$"}},
+    "evidence_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^ev_[a-f0-9]{32}$"}},
+    "coverage_semantics": {"const": "MAPPED_VALIDATION_COVERAGE_ONLY"},
+    "compliance_verdict": {"const": "NOT_EVALUATED"},
+    "certification_claim": {"const": "NONE"},
+    "planning_effect": {"const": "ADVISORY_ONLY"},
+    "execution_authority": {"const": "NONE"},
+    "limitations": {
+      "type": "array",
+      "const": ["MAPPING_DOES_NOT_ESTABLISH_COMPLIANCE", "EVIDENCE_DOES_NOT_ESTABLISH_CONTROL_EFFECTIVENESS_BY_ITSELF", "UNMAPPED_OR_UNOBSERVED_ARE_NOT_PASS_STATES"]
+    }
+  },
+  "allOf": [
+    {"if": {"properties": {"projection_state": {"const": "UNMAPPED"}}}, "then": {"properties": {"mapping_count": {"const": 0}, "mapping_confidence": {"type": "null"}, "mapping_ids": {"maxItems": 0}, "evidence_ids": {"maxItems": 0}}}},
+    {"if": {"properties": {"projection_state": {"const": "MAPPED_EVIDENCE_PRESENT"}}}, "then": {"properties": {"mapping_count": {"minimum": 1}, "evidence_ids": {"minItems": 1}}}}
+  ]
+}
