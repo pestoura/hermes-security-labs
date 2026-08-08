@@ -1,55 +1,53 @@
 apiVersion: v1
-kind: Namespace
-metadata:
-  name: hex0r-rbac-lab
-  labels:
-    hex0r.controlled-lab: "true"
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: lab-reader
-  namespace: hex0r-rbac-lab
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: synthetic-application-secret
-  namespace: hex0r-rbac-lab
-type: Opaque
-stringData:
-  value: synthetic-only
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: intentionally-overbroad-secret-reader
-  namespace: hex0r-rbac-lab
-rules:
-  - apiGroups: [""]
-    resources: ["secrets"]
-    verbs: ["get", "list"]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: synthetic-reader-binding
-  namespace: hex0r-rbac-lab
-subjects:
-  - kind: ServiceAccount
-    name: lab-reader
-    namespace: hex0r-rbac-lab
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: intentionally-overbroad-secret-reader
----
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: default-deny-egress
-  namespace: hex0r-rbac-lab
-spec:
-  podSelector: {}
-  policyTypes:
-    - Egress
+kind: List
+items:
+  - apiVersion: v1
+    kind: Namespace
+    metadata:
+      name: hex0r-rbac-lab
+      labels:
+        hex0r.controlled-lab: "true"
+  - apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name: lab-reader
+      namespace: hex0r-rbac-lab
+  - apiVersion: v1
+    kind: Secret
+    metadata:
+      name: synthetic-application-secret
+      namespace: hex0r-rbac-lab
+    type: Opaque
+    stringData:
+      value: synthetic-only
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: Role
+    metadata:
+      name: intentionally-overbroad-secret-reader
+      namespace: hex0r-rbac-lab
+    rules:
+      - apiGroups: [""]
+        resources: ["secrets"]
+        verbs: ["get", "list"]
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: RoleBinding
+    metadata:
+      name: synthetic-reader-binding
+      namespace: hex0r-rbac-lab
+    subjects:
+      - kind: ServiceAccount
+        name: lab-reader
+        namespace: hex0r-rbac-lab
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: Role
+      name: intentionally-overbroad-secret-reader
+  - apiVersion: networking.k8s.io/v1
+    kind: NetworkPolicy
+    metadata:
+      name: default-deny-egress
+      namespace: hex0r-rbac-lab
+    spec:
+      podSelector: {}
+      policyTypes:
+        - Egress
