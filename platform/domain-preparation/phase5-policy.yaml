@@ -1,0 +1,96 @@
+schema_version: "1.0"
+policy_id: phase5-domain-preparation
+execution_authority: NONE
+real_cloud_resources_created: false
+host_emulator_installation: false
+external_hardware_activation: false
+firmware_payloads_in_git: false
+credentials_in_git: false
+
+domains:
+  local-cloud-emulation:
+    classification: CURRENT-LIMITED
+    runtime: docker
+    drivers:
+      - localstack
+      - azurite
+    activation: false
+    constraints:
+      - isolated network required
+      - synthetic credentials only
+      - no provider control-plane access
+
+  cloud-sandbox:
+    classification: CLOUD-SANDBOX
+    runtime: cloud
+    drivers:
+      - terraform-sandbox
+      - aws-sandbox
+      - azure-sandbox
+      - gcp-sandbox
+    activation: false
+    constraints:
+      - dedicated sandbox account or subscription required
+      - ephemeral credentials required
+      - explicit budget and TTL required
+      - mandatory tags and deterministic destroy required
+      - operator approval required before activation
+
+  mobile-emulation:
+    classification: FUTURE-HARDWARE
+    runtime: emulator
+    drivers:
+      - android-emulator
+      - adb
+      - mobsf-sidecar
+    activation: false
+    constraints:
+      - no emulator installation on Hermes host in this phase
+      - APK and device data remain outside Git
+      - isolated device lifecycle and cleanup required
+
+  firmware-analysis:
+    classification: FUTURE-HARDWARE
+    runtime: emulator
+    drivers:
+      - qemu
+      - firmware-analysis-sidecar
+    activation: false
+    constraints:
+      - firmware images remain outside Git
+      - unpacked firmware evidence is restricted and sanitized before export
+      - dedicated sandbox required
+
+  iot-ot-simulation:
+    classification: FUTURE-HARDWARE
+    runtime: emulator
+    drivers:
+      - mqtt-simulator
+      - modbus-simulator
+      - ics-simulator
+    activation: false
+    constraints:
+      - simulation only before dedicated isolation review
+      - no physical process or production control system connectivity
+
+  external-rf-ot-hardware:
+    classification: EXTERNAL-HARDWARE
+    runtime: emulator
+    drivers:
+      - zigbee-adapter
+      - usb-hardware-boundary
+      - external-ot-interface
+    activation: false
+    constraints:
+      - explicit human approval required
+      - physical device inventory and ownership required
+      - USB passthrough disabled by default
+      - no automatic activation
+
+admission:
+  default: deny
+  requires_cleanup_evidence: true
+  cloud_requires_ephemeral_credentials: true
+  cloud_requires_budget: true
+  cloud_requires_ttl: true
+  external_hardware_requires_human_approval: true
