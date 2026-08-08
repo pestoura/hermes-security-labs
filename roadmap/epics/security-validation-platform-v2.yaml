@@ -524,7 +524,7 @@ epics:
     pillar: H
     priority: P1
     phase: 6
-    status: implementing
+    status: completed
     rationale: >-
       A cobertura tem de crescer de forma continua sem degradar qualidade, duplicar
       conteudo ou introduzir falsos positivos.
@@ -548,9 +548,10 @@ epics:
     risks:
       - Geracao automatica produzir volume ingerivel de propostas
       - Gates mal calibrados bloquearem conteudo util
-    labels: [roadmap, architecture, "pillar:H", "priority:P1", "status:implementing", "type:epic"]
+    labels: [roadmap, architecture, "pillar:H", "priority:P1", "status:completed", "type:epic"]
     references:
       - docs/architecture/continuous-content-factories.md
+      - docs/roadmap/SVP2-H-01-completion-as-built.md
 
   - id: SVP2-I-01
     title: Lab Schema v2 families isolation and deterministic reset
