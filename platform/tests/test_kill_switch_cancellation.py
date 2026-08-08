@@ -29,7 +29,6 @@ STEP_A = str(uuid.UUID("33333333-3333-4333-8333-333333333333"))
 STEP_B = str(uuid.UUID("44444444-4444-4444-8444-444444444444"))
 ATTEMPT_A = str(uuid.UUID("55555555-5555-4555-8555-555555555555"))
 ATTEMPT_B = str(uuid.UUID("66666666-6666-4666-8666-666666666666"))
-ATTEMPT_C = str(uuid.UUID("77777777-7777-4777-8777-777777777777"))
 NOW = "2026-08-08T02:15:00Z"
 
 
@@ -57,11 +56,18 @@ def inventory(*attempts: dict) -> dict:
     )
 
 
-def write_switch(path: Path, *, state: str, scope: str = "global", campaign_id=None, updated_at="2026-08-08T02:14:50Z") -> Path:
+def write_switch(
+    path: Path,
+    *,
+    state: str,
+    scope: str = "global",
+    campaign_id=None,
+    updated_at="2026-08-08T02:14:50Z",
+) -> Path:
     path.write_text(
         json.dumps(
             {
-                "version": 1,
+                "schema_version": "1.0.0",
                 "state": state,
                 "scope": scope,
                 "campaign_id": campaign_id,
@@ -182,6 +188,7 @@ def test_missing_or_invalid_switch_source_fails_closed(tmp_path: Path) -> None:
         kill_switch_path=broken_path, inventory=inv, emitted_at=NOW
     )
     assert broken["fail_closed"] is True
+    assert broken["codes"] == ["KILL_SWITCH_INVALID"]
     assert len(broken["cancellation_requests"]) == 1
 
 
@@ -202,7 +209,7 @@ def test_inventory_tampering_and_forbidden_fields_fail_closed() -> None:
     inv = inventory(attempt())
     tampered = deepcopy(inv)
     tampered["attempts"][0]["state"] = "accepted"
-    with pytest.raises(ksc.KillSwitchCancellationError, match="inventory id"):
+    with pytest.raises(ksc.KillSwitchCancellationError, match="canonical content"):
         ksc.plan_kill_switch_cancellations(
             kill_switch_path=None, inventory=tampered, emitted_at=NOW
         )
