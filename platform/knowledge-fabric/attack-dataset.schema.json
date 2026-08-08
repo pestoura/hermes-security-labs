@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hex0r.local/schemas/attack-dataset-v1.json",
+  "title": "Supplied ATT&CK Dataset Snapshot",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "dataset_id",
+    "provider",
+    "domain",
+    "dataset_version",
+    "published_at",
+    "source_locator",
+    "source_origin",
+    "external_fetch",
+    "techniques"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "dataset_id": {"type": "string", "pattern": "^attackds_[a-f0-9]{32}$"},
+    "provider": {"const": "MITRE ATT&CK"},
+    "domain": {"enum": ["enterprise-attack", "mobile-attack", "ics-attack"]},
+    "dataset_version": {"type": "string", "pattern": "^[0-9]+(\\.[0-9]+){0,2}$"},
+    "published_at": {"type": "string", "format": "date-time"},
+    "source_locator": {"type": "string", "pattern": "^snapshot:"},
+    "source_origin": {"const": "SUPPLIED_SNAPSHOT"},
+    "external_fetch": {"const": "NOT_PERFORMED"},
+    "techniques": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 5000,
+      "items": {"$ref": "#/$defs/technique"}
+    }
+  },
+  "$defs": {
+    "technique": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "attack_id",
+        "object_id",
+        "name",
+        "revoked",
+        "deprecated",
+        "replaced_by",
+        "platforms"
+      ],
+      "properties": {
+        "attack_id": {"type": "string", "pattern": "^T[0-9]{4}(\\.[0-9]{3})?$"},
+        "object_id": {
+          "type": "string",
+          "pattern": "^attack-pattern--[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$"
+        },
+        "name": {"type": "string", "minLength": 1},
+        "revoked": {"type": "boolean"},
+        "deprecated": {"type": "boolean"},
+        "replaced_by": {
+          "oneOf": [
+            {"type": "null"},
+            {"type": "string", "pattern": "^T[0-9]{4}(\\.[0-9]{3})?$"}
+          ]
+        },
+        "platforms": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        }
+      }
+    }
+  }
+}
