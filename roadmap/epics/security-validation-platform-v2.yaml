@@ -557,6 +557,7 @@ epics:
     labels: [roadmap, architecture, "pillar:H", "priority:P1", "status:completed", "type:epic"]
     references:
       - docs/architecture/continuous-content-factories.md
+      - docs/roadmap/SVP2-H-01-completion-as-built.md
       - docs/roadmap/SVP2-final-delivery-reconciliation.md
 
   - id: SVP2-I-01
