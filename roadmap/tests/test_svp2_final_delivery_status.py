@@ -5,20 +5,22 @@ import yaml
 ROOT = Path(__file__).resolve().parents[2]
 BACKLOG = ROOT / "roadmap" / "epics" / "security-validation-platform-v2.yaml"
 EPIC_05 = ROOT / "docs" / "roadmap" / "epics" / "EPIC-05-runner-protocol-v2.md"
+EPIC_06 = ROOT / "docs" / "roadmap" / "epics" / "EPIC-06-kali-image-factory.md"
 EPIC_09 = ROOT / "docs" / "roadmap" / "epics" / "EPIC-09-exploitation-safety.md"
 EPIC_10 = ROOT / "docs" / "roadmap" / "epics" / "EPIC-10-evidence-plane.md"
 EPIC_12 = ROOT / "docs" / "roadmap" / "epics" / "EPIC-12-redaction-and-data-classification.md"
 COMPATIBILITY = ROOT / "platform" / "runner-protocol" / "compatibility.yaml"
+RUNTIME_POLICY = ROOT / "platform" / "runtime-base" / "runtime-base-policy.yaml"
 EVIDENCE_POLICY = ROOT / "platform" / "evidence-plane" / "evidence-policy.yaml"
 A02_COMPLETION = ROOT / "docs" / "roadmap" / "SVP2-A-02-completion-as-built.md"
 B02_COMPLETION = ROOT / "docs" / "roadmap" / "SVP2-B-02-completion-as-built.md"
+C01_COMPLETION = ROOT / "docs" / "roadmap" / "SVP2-C-01-completion-as-built.md"
 D01_COMPLETION = ROOT / "docs" / "roadmap" / "SVP2-D-01-completion-as-built.md"
 
-COMPLETED = {"SVP2-A-01", "SVP2-A-02", "SVP2-A-03", "SVP2-B-02", "SVP2-D-01", "SVP2-J-01"}
+COMPLETED = {"SVP2-A-01", "SVP2-A-02", "SVP2-A-03", "SVP2-B-02", "SVP2-C-01", "SVP2-D-01", "SVP2-J-01"}
 IMPLEMENTING = {
     "SVP2-B-01",
     "SVP2-B-03",
-    "SVP2-C-01",
     "SVP2-C-02",
     "SVP2-D-02",
     "SVP2-E-01",
@@ -58,7 +60,6 @@ def test_runtime_heavy_epics_without_done_evidence_are_not_falsely_completed() -
     runtime_heavy = {
         "SVP2-B-01",
         "SVP2-B-03",
-        "SVP2-C-01",
         "SVP2-C-02",
         "SVP2-D-02",
         "SVP2-E-01",
@@ -121,6 +122,49 @@ def test_b02_delivery_completion_does_not_claim_epic05_finality_or_production_re
     assert "EPIC-05 FINAL`: **`no`**" in completion
     assert "production execution integration: **`NOT_RUN`**" in completion
     assert "sandbox: **`NOT_IMPLEMENTED`**" in completion
+    assert "DOD-10" in completion
+
+
+def test_c01_delivery_completion_does_not_claim_epic06_or_supply_chain_finality() -> None:
+    epic = _epics()["SVP2-C-01"]
+    epic06 = EPIC_06.read_text(encoding="utf-8")
+    policy = yaml.safe_load(RUNTIME_POLICY.read_text(encoding="utf-8"))
+    completion = C01_COMPLETION.read_text(encoding="utf-8")
+
+    assert epic["status"] == "completed"
+    assert "status:completed" in epic["labels"]
+    assert "docs/roadmap/SVP2-C-01-completion-as-built.md" in epic["references"]
+
+    assert "**IMPLEMENTING**" in epic06
+    assert "| AS_BUILT | no |" in epic06
+    assert "| FINAL | no |" in epic06
+
+    assert policy["runtime_user"]["required_non_root"] is True
+    assert policy["runtime_user"]["allow_uid_zero"] is False
+    assert policy["capabilities"]["default_drop_all"] is True
+    assert policy["capabilities"]["profiles"]["core"]["add"] == []
+    assert policy["capabilities"]["profiles"]["core"]["nmap_default_mode"] == "-sT"
+    raw_network = policy["capabilities"]["profiles"]["raw-network"]
+    assert raw_network["add"] == ["NET_RAW"]
+    assert raw_network["requires_explicit_profile"] is True
+    assert raw_network["requires_justification"] is True
+    assert policy["capabilities"]["profiles"]["privileged"]["allowed"] is False
+    assert policy["runtime_status"] == {
+        "image_build": "PASS_CONTROLLED_CI",
+        "container_start": "PASS_CONTROLLED_CI",
+        "non_root_observation": "PASS_CONTROLLED_CI",
+        "read_only_root_observation": "PASS_CONTROLLED_CI",
+        "capability_drop_observation": "PASS_CONTROLLED_CI",
+    }
+    assert policy["runtime_evidence"]["security_tool_execution"] == "NOT_RUN"
+    assert policy["runtime_evidence"]["image_publication"] == "NOT_RUN"
+    assert policy["runtime_evidence"]["hermes_deployment"] == "NOT_RUN"
+
+    assert "SVP2-C-01`: **candidate for `completed`**" in completion
+    assert "EPIC-06`: **`IMPLEMENTING` / `AS_BUILT=no` / `FINAL=no`**" in completion
+    assert "image publication: **`NOT_RUN`**" in completion
+    assert "SBOM/signing/provenance: **`NOT_RUN`**" in completion
+    assert "Hermes deployment: **`NOT_RUN`**" in completion
     assert "DOD-10" in completion
 
 

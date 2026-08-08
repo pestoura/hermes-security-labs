@@ -249,7 +249,7 @@ epics:
     pillar: C
     priority: P1
     phase: 3
-    status: implementing
+    status: completed
     rationale: >-
       Imagens monoliticas aumentam a superficie de ataque e tornam a proveniencia e a
       manutencao dificeis de garantir.
@@ -268,9 +268,10 @@ epics:
     effort: L
     risks:
       - Regressao funcional em ferramentas que assumem root
-    labels: [roadmap, architecture, "pillar:C", "priority:P1", "runtime:image", "status:implementing", "type:epic"]
+    labels: [roadmap, architecture, "pillar:C", "priority:P1", "runtime:image", "status:completed", "type:epic"]
     references:
       - docs/architecture/security-validation-reference-architecture.md
+      - docs/roadmap/SVP2-C-01-completion-as-built.md
 
   - id: SVP2-C-02
     title: Capability registry profiles and signed supply chain promotion
