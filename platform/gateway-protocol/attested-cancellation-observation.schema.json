@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hexor.local/schemas/attested-cancellation-observation.schema.json",
+  "title": "Attested Cancellation Observation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "base_observation", "ack_event_ref", "outcome_event_ref",
+    "observed_event_authenticity", "authenticity_effect",
+    "dispatch_performed_by_attestor", "authorization_effect",
+    "execution_authority", "limitations"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "base_observation": {"$ref": "cancellation-observation.schema.json"},
+    "ack_event_ref": {
+      "oneOf": [
+        {"$ref": "verified-runner-event-ref.schema.json"},
+        {"type": "null"}
+      ]
+    },
+    "outcome_event_ref": {
+      "oneOf": [
+        {"$ref": "verified-runner-event-ref.schema.json"},
+        {"type": "null"}
+      ]
+    },
+    "observed_event_authenticity": {"enum": ["EXTERNALLY_VERIFIED", "NO_EVENTS_OBSERVED"]},
+    "authenticity_effect": {"const": "ANNOTATION_ONLY"},
+    "dispatch_performed_by_attestor": {"const": false},
+    "authorization_effect": {"const": "NONE"},
+    "execution_authority": {"const": "NONE"},
+    "limitations": {
+      "type": "array",
+      "minItems": 4,
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    }
+  }
+}
