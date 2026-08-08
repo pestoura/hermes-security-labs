@@ -135,7 +135,9 @@ def test_kill_switch_cancellation_crosses_json_lines_subprocess_transport(
 
         active = candidate.exchange({"action": "stats"})["stats"]
         assert active["active_processes"] == 1
-        assert active["effect_count"] == 1
+        # The supervised effect is counted only after supervisor.run() returns.
+        # While the asynchronous cancel-capable worker is active, completion count stays 0.
+        assert active["effect_count"] == 0
 
         inventory = cancellation.build_active_attempt_inventory(
             attempts=[
