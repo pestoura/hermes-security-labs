@@ -129,14 +129,16 @@ def test_policy_records_controlled_local_evidence_boundaries_without_production_
         "technical_pr": 219,
         "merge_sha": "383d60479f5874ac103fe3a74654e85690be19d0",
         "free_text_secret_discovery": "NOT_CLAIMED",
-        "redaction_before_persistence": "NOT_RUN",
+        "redaction_before_persistence": "PASS_CONTROLLED_CI",
+        "safe_ingress_pr": 221,
+        "safe_ingress_merge_sha": "cbf88aecb9bf69ad4d7bd0164f8ac8f61f04b4aa",
     }
     assert policy["runtime_status"] == {
         "storage_backend": "PASS_LOCAL_CONTROLLED_CI",
         "local_integrity_replay": "PASS_CONTROLLED_CI",
         "local_export_boundary": "PASS_CONTROLLED_CI",
         "structured_redaction": "PASS_CONTROLLED_CI",
-        "redaction_before_persistence": "NOT_RUN",
+        "redaction_before_persistence": "PASS_CONTROLLED_CI",
         "encryption_at_rest": "NOT_RUN",
         "immutable_store": "NOT_RUN",
         "retention_enforcement": "NOT_RUN",
@@ -150,6 +152,8 @@ def test_policy_records_controlled_local_evidence_boundaries_without_production_
         "merge_sha": "aa589bbaa6ede9192963ff2a47244ab34309c1c6",
         "redaction_pr": 219,
         "redaction_merge_sha": "383d60479f5874ac103fe3a74654e85690be19d0",
+        "safe_ingress_pr": 221,
+        "safe_ingress_merge_sha": "cbf88aecb9bf69ad4d7bd0164f8ac8f61f04b4aa",
         "backend": "local_content_addressed_filesystem",
         "object_storage": "NOT_RUN",
         "worm_storage": "NOT_RUN",
@@ -165,6 +169,7 @@ def test_repository_owns_all_contract_files() -> None:
         "evidence_plane.py",
         "local_store.py",
         "redaction.py",
+        "safe_persistence.py",
     }
     assert expected.issubset({path.name for path in EVIDENCE_DIR.iterdir()})
     for name in expected:
