@@ -1,4 +1,4 @@
-schema_version: "1.0"
+schema_version: "1.1"
 policy_id: security-knowledge-api-policy
 queries:
   snapshot_required: true
@@ -26,6 +26,22 @@ campaigns:
     - environment
     - executable
     - entrypoint
+controlled_local_persistence:
+  status: PASS_CONTROLLED_CI
+  technical_pr: 228
+  merge_sha: 79ad05837b6bbe7c26787be31c2ff2229aa97438
+  backend: local_create_only_filesystem
+  snapshot_persistence: PASS_CONTROLLED_CI
+  snapshot_provenance_gate: PASS_CONTROLLED_CI
+  campaign_snapshot_pinning: PASS_CONTROLLED_CI
+  campaign_rebind: FORBIDDEN
+  temporal_append_only: PASS_CONTROLLED_CI
+  proposal_persistence: PASS_CONTROLLED_CI
+  proposal_execution_authority: NONE
+  proposal_dispatch_available: false
+  operational_query_snapshot_filter: PASS_CONTROLLED_CI
+  operational_query_minimum_confidence: PASS_CONTROLLED_CI
+  production_service_claim: NONE
 runtime_status:
   http_api: NOT_IMPLEMENTED
   database: NOT_IMPLEMENTED
@@ -33,3 +49,6 @@ runtime_status:
   external_sync: NOT_RUN
   production_planner: NOT_RUN
   production_temporal_ingestion: NOT_RUN
+  production_snapshot_store: NOT_RUN
+  production_campaign_binding_store: NOT_RUN
+  control_plane_runtime_integration: NOT_RUN

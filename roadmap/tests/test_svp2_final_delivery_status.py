@@ -22,14 +22,13 @@ E01_COMPLETION = ROOT / "docs" / "roadmap" / "SVP2-E-01-completion-as-built.md"
 
 COMPLETED = {
     "SVP2-A-01", "SVP2-A-02", "SVP2-A-03", "SVP2-B-02", "SVP2-C-01",
-    "SVP2-D-01", "SVP2-E-01", "SVP2-J-01",
+    "SVP2-D-01", "SVP2-E-01", "SVP2-E-02", "SVP2-J-01",
 }
 IMPLEMENTING = {
     "SVP2-B-01",
     "SVP2-B-03",
     "SVP2-C-02",
     "SVP2-D-02",
-    "SVP2-E-02",
     "SVP2-F-01",
     "SVP2-F-02",
     "SVP2-G-01",
@@ -63,7 +62,7 @@ def test_status_labels_match_machine_readable_status() -> None:
 def test_runtime_heavy_epics_without_done_evidence_are_not_falsely_completed() -> None:
     epics = _epics()
     runtime_heavy = {
-        "SVP2-B-01", "SVP2-B-03", "SVP2-C-02", "SVP2-D-02", "SVP2-E-02",
+        "SVP2-B-01", "SVP2-B-03", "SVP2-C-02", "SVP2-D-02",
         "SVP2-F-01", "SVP2-F-02", "SVP2-G-01", "SVP2-H-01", "SVP2-I-01",
         "SVP2-J-02", "SVP2-K-01", "SVP2-L-01",
     }
