@@ -1,0 +1,121 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hex0r.local/schemas/attack-migration-report-v1.json",
+  "title": "ATT&CK Dataset Migration Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "report_id",
+    "schema_version",
+    "from_dataset_id",
+    "to_dataset_id",
+    "from_version",
+    "to_version",
+    "domain",
+    "changes",
+    "affected_mappings",
+    "blocking_findings",
+    "adoption_decision",
+    "automatic_adoption",
+    "historical_rewrite",
+    "external_sync",
+    "execution_authority"
+  ],
+  "properties": {
+    "report_id": {"type": "string", "pattern": "^attackmig_[a-f0-9]{32}$"},
+    "schema_version": {"const": "1.0"},
+    "from_dataset_id": {"type": "string", "pattern": "^attackds_[a-f0-9]{32}$"},
+    "to_dataset_id": {"type": "string", "pattern": "^attackds_[a-f0-9]{32}$"},
+    "from_version": {"type": "string", "pattern": "^[0-9]+(\\.[0-9]+){0,2}$"},
+    "to_version": {"type": "string", "pattern": "^[0-9]+(\\.[0-9]+){0,2}$"},
+    "domain": {"enum": ["enterprise-attack", "mobile-attack", "ics-attack"]},
+    "changes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["added", "removed", "renamed", "status_changed", "replacements", "object_id_changed"],
+      "properties": {
+        "added": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/attack_id"}},
+        "removed": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/attack_id"}},
+        "renamed": {"type": "array", "items": {"$ref": "#/$defs/rename"}},
+        "status_changed": {"type": "array", "items": {"$ref": "#/$defs/status_change"}},
+        "replacements": {"type": "array", "items": {"$ref": "#/$defs/replacement"}},
+        "object_id_changed": {"type": "array", "items": {"$ref": "#/$defs/object_id_change"}}
+      }
+    },
+    "affected_mappings": {"type": "array", "maxItems": 10000, "items": {"$ref": "#/$defs/affected_mapping"}},
+    "blocking_findings": {"type": "array", "items": {"$ref": "#/$defs/blocking_finding"}},
+    "adoption_decision": {"enum": ["ELIGIBLE_FOR_REVIEW", "REVIEW_REQUIRED"]},
+    "automatic_adoption": {"const": false},
+    "historical_rewrite": {"const": false},
+    "external_sync": {"const": "NOT_PERFORMED"},
+    "execution_authority": {"const": "NONE"}
+  },
+  "$defs": {
+    "attack_id": {"type": "string", "pattern": "^T[0-9]{4}(\\.[0-9]{3})?$"},
+    "rename": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["attack_id", "from_name", "to_name"],
+      "properties": {
+        "attack_id": {"$ref": "#/$defs/attack_id"},
+        "from_name": {"type": "string", "minLength": 1},
+        "to_name": {"type": "string", "minLength": 1}
+      }
+    },
+    "status_change": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["attack_id", "from_revoked", "to_revoked", "from_deprecated", "to_deprecated"],
+      "properties": {
+        "attack_id": {"$ref": "#/$defs/attack_id"},
+        "from_revoked": {"type": "boolean"},
+        "to_revoked": {"type": "boolean"},
+        "from_deprecated": {"type": "boolean"},
+        "to_deprecated": {"type": "boolean"}
+      }
+    },
+    "replacement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["attack_id", "replaced_by"],
+      "properties": {
+        "attack_id": {"$ref": "#/$defs/attack_id"},
+        "replaced_by": {"$ref": "#/$defs/attack_id"}
+      }
+    },
+    "object_id_change": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["attack_id", "from_object_id", "to_object_id"],
+      "properties": {
+        "attack_id": {"$ref": "#/$defs/attack_id"},
+        "from_object_id": {"type": "string", "minLength": 1},
+        "to_object_id": {"type": "string", "minLength": 1}
+      }
+    },
+    "affected_mapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mapping_id", "knowledge_snapshot_id", "attack_id", "reason", "proposed_replacement", "action", "historical_rewrite"],
+      "properties": {
+        "mapping_id": {"type": "string", "pattern": "^map_[a-f0-9]{32}$"},
+        "knowledge_snapshot_id": {"type": "string", "pattern": "^ks_[a-f0-9]{32}$"},
+        "attack_id": {"$ref": "#/$defs/attack_id"},
+        "reason": {"enum": ["REMOVED", "REVOKED", "DEPRECATED", "REPLACED", "RENAMED", "OBJECT_ID_CHANGED"]},
+        "proposed_replacement": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/attack_id"}]},
+        "action": {"const": "REVIEW_REQUIRED"},
+        "historical_rewrite": {"const": false}
+      }
+    },
+    "blocking_finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "attack_id", "message"],
+      "properties": {
+        "code": {"enum": ["REMOVED_TECHNIQUE", "OBJECT_ID_CHANGED", "STATUS_CHANGE_WITHOUT_REPLACEMENT"]},
+        "attack_id": {"$ref": "#/$defs/attack_id"},
+        "message": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}
