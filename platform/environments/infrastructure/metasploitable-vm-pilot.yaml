@@ -1,0 +1,38 @@
+id: metasploitable-vm-pilot
+name: Metasploitable VM Pilot
+description: Future isolated Linux VM lifecycle pilot for validating hypervisor create, snapshot, reset and cleanup controls.
+category: infrastructure
+runtime: virtual-machine
+driver: libvirt
+risk: high
+source: future-approved-vm-template
+version: "design-1"
+resources:
+  cpu: "2"
+  memory: 2Gi
+  disk: 24Gi
+  max_concurrent: 1
+networks:
+  - isolated-vm-lab
+  - temporary-kali-attachment
+egress: false
+targets: []
+attacker: kali-controlled
+lifecycle:
+  - create
+  - start
+  - status
+  - stop
+  - reset
+  - destroy
+reset: snapshot-reference-required
+cleanup: zero-residue-proof-required
+evidence: sanitized lifecycle, snapshot, network and cleanup receipts only
+dependencies:
+  - virtual-machine
+  - approved-hypervisor
+limitations:
+  - No VM is provisioned by the repository-only delivery.
+  - Host capability discovery remains read-only until runtime approval.
+  - LAN bridging and uncontrolled egress are forbidden.
+status: FUTURE-VM

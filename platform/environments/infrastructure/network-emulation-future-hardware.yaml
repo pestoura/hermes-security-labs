@@ -1,0 +1,27 @@
+id: network-emulation-future-hardware
+name: Network Emulation Future Hardware
+category: infrastructure
+runtime: virtual-machine
+driver: external-hypervisor
+risk: high
+source: future-approved-network-emulation-appliance
+version: "design-1"
+resources:
+  cpu: "8"
+  memory: 16Gi
+  disk: 120Gi
+  max_concurrent: 0
+networks:
+  - isolated-network-emulation
+egress: false
+targets: []
+lifecycle:
+  - status
+evidence: read-only inventory and capacity evidence only
+dependencies:
+  - dedicated-virtualization-host
+limitations:
+  - Represents future EVE-NG or GNS3 capacity on dedicated hardware.
+  - It cannot be started on the current Hermes host.
+  - External hardware or hypervisor interaction requires explicit operator approval.
+status: FUTURE-HARDWARE
