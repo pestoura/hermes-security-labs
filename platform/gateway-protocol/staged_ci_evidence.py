@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import importlib.util
+import sys
 import tempfile
 from pathlib import Path
 from typing import Any, Mapping
@@ -16,6 +17,7 @@ HERE = Path(__file__).resolve().parent
 SPEC = importlib.util.spec_from_file_location("gateway_deployment_gate_ci", HERE / "deployment_gate.py")
 assert SPEC and SPEC.loader
 GATE = importlib.util.module_from_spec(SPEC)
+sys.modules[SPEC.name] = GATE
 SPEC.loader.exec_module(GATE)
 
 
