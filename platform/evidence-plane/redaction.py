@@ -32,6 +32,18 @@ SENSITIVE_NAMES = {
     "command",
     "argv",
 }
+SENSITIVE_NAME_SEGMENTS = {
+    "authorization",
+    "cookie",
+    "credential",
+    "password",
+    "secret",
+    "token",
+    "stdout",
+    "stderr",
+    "command",
+    "argv",
+}
 SAFE_FIELD_NAME = re.compile(r"^[A-Za-z][A-Za-z0-9_.-]{0,63}$")
 MAX_FIELDS = 128
 MAX_DEPTH = 6
@@ -52,6 +64,13 @@ def sha256_hex(payload: bytes) -> str:
 
 def _normalize_name(name: str) -> str:
     return name.lower().replace("-", "_").replace(".", "_")
+
+
+def _is_sensitive_name(name: str) -> bool:
+    normalized = _normalize_name(name)
+    if normalized in SENSITIVE_NAMES:
+        return True
+    return bool(set(normalized.split("_")) & SENSITIVE_NAME_SEGMENTS)
 
 
 def _validate_safe_value(value: Any, *, depth: int = 0) -> None:
@@ -75,7 +94,7 @@ def _validate_safe_value(value: Any, *, depth: int = 0) -> None:
         for key, item in value.items():
             if not isinstance(key, str) or not SAFE_FIELD_NAME.fullmatch(key):
                 raise RedactionError("nested field key is invalid")
-            if _normalize_name(key) in SENSITIVE_NAMES:
+            if _is_sensitive_name(key):
                 raise RedactionError("sensitive nested field name cannot be retained")
             _validate_safe_value(item, depth=depth + 1)
         return
@@ -119,8 +138,7 @@ def redact_structured_payload(payload: bytes, *, policy_id: str = "structured-la
         if classification not in FIELD_CLASSIFICATIONS:
             raise RedactionError("unsupported field classification")
 
-        normalized = _normalize_name(name)
-        if classification in SENSITIVE_FIELD_CLASSIFICATIONS or normalized in SENSITIVE_NAMES:
+        if classification in SENSITIVE_FIELD_CLASSIFICATIONS or _is_sensitive_name(name):
             removed_fields.append(name)
             removed_classes.add(
                 classification if classification in SENSITIVE_FIELD_CLASSIFICATIONS else "sensitive_name_override"
