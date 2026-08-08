@@ -1,0 +1,69 @@
+name: epic40-catalogue-patch
+
+on:
+  push:
+    branches:
+      - docs/svp2-e02-nist-control-lifecycle-reconciliation
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: docs/svp2-e02-nist-control-lifecycle-reconciliation
+          fetch-depth: 0
+      - name: Apply exact EPIC-40 catalogue patch
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('roadmap/epics/security-validation-platform-v2-concepts.yaml')
+          text = path.read_text(encoding='utf-8')
+          old = '''  - concept_id: EPIC-40
+              slug: nist-control-knowledge-layer
+              title: "NIST Control Knowledge Layer"
+              pillar: E
+              phase: 5
+              priority: P1
+              status: intent
+              umbrella_id: SVP2-E-02
+              umbrella_issue: 87
+              dependencies: [EPIC-36, EPIC-21]
+              doc_path: docs/roadmap/epics/EPIC-40-nist-control-knowledge-layer.md
+              current_state: "PR #148 provides snapshot-scoped generic knowledge queries, but EPIC-40 remains INTENT: versioned control ingestion, control-specific mappings and control-oriented result projection remain NOT_IMPLEMENTED/NOT_RUN."
+              target_state: "A control knowledge layer linking controls to techniques, runbooks and evidence, enabling control-oriented reporting without compliance claims."
+          '''.replace('          ', '')
+          new = '''  - concept_id: EPIC-40
+              slug: nist-control-knowledge-layer
+              title: "NIST Control Knowledge Layer"
+              pillar: E
+              phase: 5
+              priority: P1
+              status: implementing
+              umbrella_id: SVP2-E-02
+              umbrella_issue: 87
+              dependencies: [EPIC-36, EPIC-21]
+              doc_path: docs/roadmap/epics/EPIC-40-nist-control-knowledge-layer.md
+              current_state: "IMPLEMENTING. PR #190 integrated the repository-level NIST control knowledge contract in main 560cfa44c10d8a7de285a2e83e51c62df9ec7582: strict supplied NIST catalogue schema and deterministic identity, canonical control ids/objectives/provenance, typed ATT&CK/runbook/evidence mappings with confidence/rationale/provenance, fail-closed absent-control mappings, explicit OBSERVED/NOT_OBSERVED/NOT_RUN/INCONCLUSIVE observations, conservative UNMAPPED/MAPPED_NO_OBSERVATION/MAPPED_EVIDENCE_PRESENT/REVIEW_REQUIRED projections, partial multi-mapping observation requiring review, and bounded inputs. Every projection fixes coverage_semantics MAPPED_VALIDATION_COVERAGE_ONLY, compliance_verdict NOT_EVALUATED, certification_claim NONE, planning_effect ADVISORY_ONLY and execution_authority NONE. External NIST acquisition remains NOT_RUN; authoritative/current-source verification remains NOT_IMPLEMENTED/NOT_RUN; complete production control population remains NOT_RUN; production graph/planner/report integration and formal control-effectiveness assessment remain NOT_IMPLEMENTED/NOT_RUN; compliance/certification conclusions are not implemented or claimed. Hermes/Control Plane remains the sole execution-authorization authority. AS_BUILT and FINAL are not claimed. NO_RUNTIME_CHANGE."
+              target_state: "A control knowledge layer linking controls to techniques, runbooks and evidence, enabling control-oriented reporting without compliance claims."
+          '''.replace('          ', '')
+          if text.count(old) != 1:
+              raise SystemExit('expected exact EPIC-40 block not found exactly once')
+          path.write_text(text.replace(old, new, 1), encoding='utf-8')
+          PY
+          additions=$(git diff --numstat -- roadmap/epics/security-validation-platform-v2-concepts.yaml | awk '{print $1}')
+          deletions=$(git diff --numstat -- roadmap/epics/security-validation-platform-v2-concepts.yaml | awk '{print $2}')
+          test "$additions" = "2"
+          test "$deletions" = "2"
+      - name: Self-remove helper and commit
+        run: |
+          git rm .github/workflows/epic40-catalogue-patch.yml
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add roadmap/epics/security-validation-platform-v2-concepts.yaml
+          git commit -m "docs(svp2-e02): synchronize EPIC-40 lifecycle catalogue"
+          git push origin HEAD:docs/svp2-e02-nist-control-lifecycle-reconciliation
