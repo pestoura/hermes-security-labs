@@ -126,7 +126,7 @@ def test_kill_switch_reaches_running_synthetic_process_and_observes_cancelled(
         )
 
         assert plan["decision"] == "CANCEL_REQUIRED"
-        assert plan["cancellation_scope"] == "global"
+        assert plan["kill_switch_scope"] == "global"
         assert plan["dispatch_performed"] is False
         assert plan["execution_authority"] == "NONE"
         assert len(plan["cancellation_requests"]) == 1
