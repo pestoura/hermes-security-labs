@@ -9,7 +9,7 @@
 | Master tracker | issue [#97](https://github.com/pestoura/hermes-security-labs/issues/97) |
 | Foundation technical PR | [#133](https://github.com/pestoura/hermes-security-labs/pull/133) |
 | Latest safety increment | [#198](https://github.com/pestoura/hermes-security-labs/pull/198) |
-| Record state | `AS_BUILT — repository contract candidate` |
+| Record state | `AS_BUILT — contract candidate` |
 | FINAL | no |
 | Runtime declaration | `NO_RUNTIME_CHANGE` |
 
@@ -28,7 +28,7 @@ The repository now contains a fail-closed RoE decision/admission chain and a rep
 - external global/campaign kill-switch state;
 - canonical gateway admission before Runner request construction;
 - sanitized active-attempt inventory;
-- deterministic Runner Protocol v2 cancellation-message construction for already-active attempts.
+- deterministic construction of Runner Protocol v2 `runner.cancellation.request` messages for already-active attempts.
 
 The repository still does not dispatch cancellation messages, terminate runtime processes, operate a production Runner or execute against a target.
 
@@ -68,6 +68,7 @@ flowchart LR
 | Step request schema | `platform/roe-contract/roe-step-request.schema.json` | as built |
 | L0–L4 policy | `platform/roe-contract/intrusiveness-policy.yaml` | as built |
 | RoE decision implementation | `platform/roe-contract/roe_contract.py` | as built |
+| RoE decision tests | `platform/tests/test_roe_contract.py` | as built |
 | Public-key trust store | `platform/roe-contract/trust_store.py` | as built |
 | External kill switch | `platform/roe-contract/kill_switch.py` | as built |
 | Canonical gateway admission | `platform/gateway-protocol/admission.py` | as built |
