@@ -48,7 +48,6 @@ QUESTION_CATALOGUE = {
         "scope_mode": "CAMPAIGN",
     },
 }
-
 INDEX_KINDS = {"ASSET", "CONTROL_MAPPING", "VALIDATION", "FINDING", "CAMPAIGN"}
 
 FORBIDDEN_FIELDS = {
@@ -64,19 +63,16 @@ INDEX_FIELDS = {
     "technique_ids", "vulnerability_ids", "control_ids", "campaign_id", "finding_id",
     "evidence_ids", "confidence", "summary", "sanitization_state",
 }
-
 ACCESS_FIELDS = {
     "schema_version", "policy_id", "principal_id", "allowed_asset_ids",
     "allowed_campaign_ids", "allowed_index_kinds", "allow_unscoped_knowledge",
     "effect", "execution_authority",
 }
-
 QUERY_FIELDS = {
     "schema_version", "query_id", "question_id", "knowledge_snapshot_id",
     "principal_id", "minimum_confidence", "parameters", "read_only",
     "assurance_effect", "execution_authority",
 }
-
 RESULT_FIELDS = {
     "schema_version", "result_id", "query_id", "question_id", "knowledge_snapshot_id",
     "access_policy_id", "access_decision", "items", "index_scope_ids",
@@ -86,25 +82,28 @@ RESULT_FIELDS = {
 
 
 def _digest(value: Any) -> str:
-    encoded = json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode()
-    return hashlib.sha256(encoded).hexdigest()
+    return hashlib.sha256(
+        json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode()
+    ).hexdigest()
 
 
 def _walk_keys(value: Any) -> set[str]:
-    keys: set[str] = set()
+    result: set[str] = set()
     if isinstance(value, Mapping):
         for key, item in value.items():
-            keys.add(str(key).lower())
-            keys.update(_walk_keys(item))
+            result.add(str(key).lower())
+            result.update(_walk_keys(item))
     elif isinstance(value, list):
         for item in value:
-            keys.update(_walk_keys(item))
-    return keys
+            result.update(_walk_keys(item))
+    return result
 
 
 def _reject_forbidden_fields(value: Any, label: str) -> None:
     if _walk_keys(value).intersection(FORBIDDEN_FIELDS):
-        raise OperationalQueryError(f"{label} contains raw, secret, target, execution or authorization material")
+        raise OperationalQueryError(
+            f"{label} contains raw, secret, target, execution or authorization material"
+        )
 
 
 def _exact_fields(value: Mapping[str, Any], expected: set[str], label: str) -> None:
@@ -143,25 +142,22 @@ def question_catalogue() -> tuple[str, ...]:
 
 
 def build_access_policy(
-    *,
-    principal_id: str,
-    allowed_asset_ids: Sequence[str],
-    allowed_campaign_ids: Sequence[str],
-    allowed_index_kinds: Sequence[str],
-    allow_unscoped_knowledge: bool,
+    *, principal_id: str, allowed_asset_ids: Sequence[str], allowed_campaign_ids: Sequence[str],
+    allowed_index_kinds: Sequence[str], allow_unscoped_knowledge: bool,
 ) -> dict[str, Any]:
-    principal_id = _safe_id(principal_id, "principal id")
+    principal = _safe_id(principal_id, "principal id")
     assets = _unique_ids(list(allowed_asset_ids), label="asset scope")
     campaigns = _unique_ids(list(allowed_campaign_ids), label="campaign scope")
-    if not isinstance(allowed_index_kinds, Sequence) or isinstance(allowed_index_kinds, (str, bytes)):
+    if isinstance(allowed_index_kinds, (str, bytes)) or not isinstance(allowed_index_kinds, Sequence):
         raise OperationalQueryError("allowed index kinds must be a list")
-    kinds = sorted(set(allowed_index_kinds))
-    if len(kinds) != len(list(allowed_index_kinds)) or not set(kinds).issubset(INDEX_KINDS):
+    original_kinds = list(allowed_index_kinds)
+    kinds = sorted(set(original_kinds))
+    if len(kinds) != len(original_kinds) or not set(kinds).issubset(INDEX_KINDS):
         raise OperationalQueryError("invalid allowed index kinds")
     if not isinstance(allow_unscoped_knowledge, bool):
         raise OperationalQueryError("allow_unscoped_knowledge must be boolean")
     seed = {
-        "principal_id": principal_id,
+        "principal_id": principal,
         "allowed_asset_ids": assets,
         "allowed_campaign_ids": campaigns,
         "allowed_index_kinds": kinds,
@@ -198,18 +194,14 @@ def _validate_access_policy(policy: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def build_query(
-    *,
-    question_id: str,
-    knowledge_snapshot_id: str,
-    principal_id: str,
-    minimum_confidence: float,
-    parameters: Mapping[str, str],
+    *, question_id: str, knowledge_snapshot_id: str, principal_id: str,
+    minimum_confidence: float, parameters: Mapping[str, str],
 ) -> dict[str, Any]:
     if question_id not in QUESTION_CATALOGUE:
         raise OperationalQueryError("unsupported canonical question")
     if not isinstance(knowledge_snapshot_id, str) or not SNAPSHOT_ID_RE.fullmatch(knowledge_snapshot_id):
         raise OperationalQueryError("invalid knowledge snapshot id")
-    principal_id = _safe_id(principal_id, "principal id")
+    principal = _safe_id(principal_id, "principal id")
     threshold = _confidence(minimum_confidence)
     if not isinstance(parameters, Mapping):
         raise OperationalQueryError("query parameters must be an object")
@@ -228,7 +220,7 @@ def build_query(
     seed = {
         "question_id": question_id,
         "knowledge_snapshot_id": knowledge_snapshot_id,
-        "principal_id": principal_id,
+        "principal_id": principal,
         "minimum_confidence": threshold,
         "parameters": normalized,
     }
@@ -264,18 +256,11 @@ def _validate_query(query: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def build_index_entry(
-    *,
-    kind: str,
-    knowledge_snapshot_id: str,
-    asset_ids: Sequence[str] = (),
-    technique_ids: Sequence[str] = (),
-    vulnerability_ids: Sequence[str] = (),
-    control_ids: Sequence[str] = (),
-    campaign_id: str | None = None,
-    finding_id: str | None = None,
-    evidence_ids: Sequence[str] = (),
-    confidence: float = 1.0,
-    summary: str,
+    *, kind: str, knowledge_snapshot_id: str, asset_ids: Sequence[str] = (),
+    technique_ids: Sequence[str] = (), vulnerability_ids: Sequence[str] = (),
+    control_ids: Sequence[str] = (), campaign_id: str | None = None,
+    finding_id: str | None = None, evidence_ids: Sequence[str] = (),
+    confidence: float = 1.0, summary: str,
 ) -> dict[str, Any]:
     if kind not in INDEX_KINDS:
         raise OperationalQueryError("unsupported sanitized index kind")
@@ -283,24 +268,42 @@ def build_index_entry(
         raise OperationalQueryError("invalid knowledge snapshot id")
     assets = _unique_ids(list(asset_ids), label="index asset ids")
     techniques = sorted(set(technique_ids))
-    if len(techniques) != len(list(technique_ids)) or any(not isinstance(item, str) or not TECHNIQUE_ID_RE.fullmatch(item) for item in techniques):
+    if len(techniques) != len(list(technique_ids)) or any(
+        not isinstance(item, str) or not TECHNIQUE_ID_RE.fullmatch(item) for item in techniques
+    ):
         raise OperationalQueryError("invalid index technique ids")
     vulnerabilities = sorted(set(vulnerability_ids))
-    if len(vulnerabilities) != len(list(vulnerability_ids)) or any(not isinstance(item, str) or not CVE_ID_RE.fullmatch(item) for item in vulnerabilities):
+    if len(vulnerabilities) != len(list(vulnerability_ids)) or any(
+        not isinstance(item, str) or not CVE_ID_RE.fullmatch(item) for item in vulnerabilities
+    ):
         raise OperationalQueryError("invalid index vulnerability ids")
     controls = sorted(set(control_ids))
-    if len(controls) != len(list(control_ids)) or any(not isinstance(item, str) or not CONTROL_ID_RE.fullmatch(item) for item in controls):
+    if len(controls) != len(list(control_ids)) or any(
+        not isinstance(item, str) or not CONTROL_ID_RE.fullmatch(item) for item in controls
+    ):
         raise OperationalQueryError("invalid control ids")
-    if campaign_id is not None:
-        campaign_id = _safe_id(campaign_id, "campaign id")
-    if finding_id is not None:
-        finding_id = _safe_id(finding_id, "finding id")
+    campaign = None if campaign_id is None else _safe_id(campaign_id, "campaign id")
+    finding = None if finding_id is None else _safe_id(finding_id, "finding id")
     evidences = sorted(set(evidence_ids))
-    if len(evidences) != len(list(evidence_ids)) or len(evidences) > MAX_SCOPE_IDS or any(not isinstance(item, str) or not EVIDENCE_ID_RE.fullmatch(item) for item in evidences):
+    if len(evidences) != len(list(evidence_ids)) or len(evidences) > MAX_SCOPE_IDS or any(
+        not isinstance(item, str) or not EVIDENCE_ID_RE.fullmatch(item) for item in evidences
+    ):
         raise OperationalQueryError("invalid evidence ids")
     score = _confidence(confidence)
     if not isinstance(summary, str) or not summary.strip() or len(summary) > 1024:
         raise OperationalQueryError("sanitized summary is required and bounded")
+
+    if kind in {"ASSET", "VALIDATION", "FINDING"} and len(assets) != 1:
+        raise OperationalQueryError(f"{kind} index requires exactly one asset id")
+    if kind == "CONTROL_MAPPING" and (not techniques or not controls):
+        raise OperationalQueryError("CONTROL_MAPPING index requires technique and control ids")
+    if kind == "VALIDATION" and not vulnerabilities:
+        raise OperationalQueryError("VALIDATION index requires vulnerability ids")
+    if kind == "FINDING" and finding is None:
+        raise OperationalQueryError("FINDING index requires finding id")
+    if kind == "CAMPAIGN" and campaign is None:
+        raise OperationalQueryError("CAMPAIGN index requires campaign id")
+
     seed = {
         "kind": kind,
         "knowledge_snapshot_id": knowledge_snapshot_id,
@@ -308,8 +311,8 @@ def build_index_entry(
         "technique_ids": techniques,
         "vulnerability_ids": vulnerabilities,
         "control_ids": controls,
-        "campaign_id": campaign_id,
-        "finding_id": finding_id,
+        "campaign_id": campaign,
+        "finding_id": finding,
         "evidence_ids": evidences,
         "confidence": score,
         "summary": summary.strip(),
@@ -332,16 +335,11 @@ def _validate_index_entry(entry: Mapping[str, Any], snapshot_id: str) -> dict[st
     if entry.get("knowledge_snapshot_id") != snapshot_id:
         raise OperationalQueryError("index entry snapshot does not match query snapshot")
     expected = build_index_entry(
-        kind=entry["kind"],
-        knowledge_snapshot_id=entry["knowledge_snapshot_id"],
-        asset_ids=entry["asset_ids"],
-        technique_ids=entry["technique_ids"],
-        vulnerability_ids=entry["vulnerability_ids"],
-        control_ids=entry["control_ids"],
-        campaign_id=entry["campaign_id"],
-        finding_id=entry["finding_id"],
-        evidence_ids=entry["evidence_ids"],
-        confidence=entry["confidence"],
+        kind=entry["kind"], knowledge_snapshot_id=entry["knowledge_snapshot_id"],
+        asset_ids=entry["asset_ids"], technique_ids=entry["technique_ids"],
+        vulnerability_ids=entry["vulnerability_ids"], control_ids=entry["control_ids"],
+        campaign_id=entry["campaign_id"], finding_id=entry["finding_id"],
+        evidence_ids=entry["evidence_ids"], confidence=entry["confidence"],
         summary=entry["summary"],
     )
     if entry.get("index_id") != expected["index_id"]:
@@ -362,12 +360,16 @@ def _entry_allowed(entry: Mapping[str, Any], policy: Mapping[str, Any]) -> bool:
 def _answer_items(query: Mapping[str, Any], entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
     question = query["question_id"]
     params = query["parameters"]
-    threshold = query["minimum_confidence"]
-    eligible = [item for item in entries if item["confidence"] >= threshold]
+    eligible = [item for item in entries if item["confidence"] >= query["minimum_confidence"]]
 
     if question == "CONTROLS_FOR_TECHNIQUE":
         technique = params["technique_id"]
-        controls = sorted({control for item in eligible if item["kind"] == "CONTROL_MAPPING" and technique in item["technique_ids"] for control in item["control_ids"]})
+        controls = sorted({
+            control
+            for item in eligible
+            if item["kind"] == "CONTROL_MAPPING" and technique in item["technique_ids"]
+            for control in item["control_ids"]
+        })
         return [{"control_id": control} for control in controls]
 
     if question == "FINDINGS_FOR_ASSET":
@@ -380,22 +382,30 @@ def _answer_items(query: Mapping[str, Any], entries: list[dict[str, Any]]) -> li
         return sorted(rows, key=lambda row: row["finding_id"])
 
     if question == "CAMPAIGNS_USING_SNAPSHOT":
-        campaigns = sorted({item["campaign_id"] for item in eligible if item["kind"] == "CAMPAIGN" and item["campaign_id"] is not None})
+        campaigns = sorted({
+            item["campaign_id"]
+            for item in eligible
+            if item["kind"] == "CAMPAIGN" and item["campaign_id"] is not None
+        })
         return [{"campaign_id": campaign} for campaign in campaigns]
 
     vulnerability = params["vulnerability_id"]
-    assets = sorted({asset for item in eligible if item["kind"] == "ASSET" for asset in item["asset_ids"]})
+    assets = sorted({
+        item["asset_ids"][0]
+        for item in eligible
+        if item["kind"] == "ASSET"
+    })
     validated_assets = {
-        asset
+        item["asset_ids"][0]
         for item in eligible
         if item["kind"] == "VALIDATION" and vulnerability in item["vulnerability_ids"]
-        for asset in item["asset_ids"]
     }
     return [{"asset_id": asset} for asset in assets if asset not in validated_assets]
 
 
 def execute_query(
-    *, query: Mapping[str, Any], access_policy: Mapping[str, Any], sanitized_index: Sequence[Mapping[str, Any]]
+    *, query: Mapping[str, Any], access_policy: Mapping[str, Any],
+    sanitized_index: Sequence[Mapping[str, Any]],
 ) -> dict[str, Any]:
     validated_query = _validate_query(query)
     policy = _validate_access_policy(access_policy)
@@ -403,27 +413,37 @@ def execute_query(
         raise OperationalQueryError("query principal does not match access policy")
     if isinstance(sanitized_index, (str, bytes)) or not isinstance(sanitized_index, Sequence) or len(sanitized_index) > MAX_INDEX_ENTRIES:
         raise OperationalQueryError("sanitized index exceeds the bounded contract")
-    entries = [_validate_index_entry(item, validated_query["knowledge_snapshot_id"]) for item in sanitized_index]
+    entries = [
+        _validate_index_entry(item, validated_query["knowledge_snapshot_id"])
+        for item in sanitized_index
+    ]
     ids = [item["index_id"] for item in entries]
     if len(set(ids)) != len(ids):
         raise OperationalQueryError("sanitized index ids must be unique")
 
-    required_kinds = set(QUESTION_CATALOGUE[validated_query["question_id"]]["index_kinds"])
-    scoped = [item for item in entries if item["kind"] in required_kinds and _entry_allowed(item, policy)]
-    mode = QUESTION_CATALOGUE[validated_query["question_id"]]["scope_mode"]
+    definition = QUESTION_CATALOGUE[validated_query["question_id"]]
+    required_kinds = set(definition["index_kinds"])
+    scoped = [
+        item for item in entries
+        if item["kind"] in required_kinds and _entry_allowed(item, policy)
+    ]
     access_decision = "ALLOW"
-    if mode == "UNSCOPED_KNOWLEDGE" and not policy["allow_unscoped_knowledge"]:
+    if not required_kinds.issubset(set(policy["allowed_index_kinds"])):
         access_decision = "DENY"
-    elif mode == "ASSET" and not policy["allowed_asset_ids"]:
+    elif definition["scope_mode"] == "UNSCOPED_KNOWLEDGE" and not policy["allow_unscoped_knowledge"]:
         access_decision = "DENY"
-    elif mode == "CAMPAIGN" and not policy["allowed_campaign_ids"]:
+    elif definition["scope_mode"] == "ASSET" and not policy["allowed_asset_ids"]:
+        access_decision = "DENY"
+    elif definition["scope_mode"] == "CAMPAIGN" and not policy["allowed_campaign_ids"]:
         access_decision = "DENY"
 
     items = [] if access_decision == "DENY" else _answer_items(validated_query, scoped)
     if len(items) > MAX_ITEMS:
         raise OperationalQueryError("query result exceeds the bounded contract")
     index_scope_ids = [] if access_decision == "DENY" else sorted(item["index_id"] for item in scoped)
-    evidence_scope_ids = [] if access_decision == "DENY" else sorted({evidence for item in scoped for evidence in item["evidence_ids"]})
+    evidence_scope_ids = [] if access_decision == "DENY" else sorted({
+        evidence for item in scoped for evidence in item["evidence_ids"]
+    })
     body = {
         "schema_version": "1.0",
         "query_id": validated_query["query_id"],
@@ -443,6 +463,7 @@ def execute_query(
             "ABSENCE_OF_RESULTS_IS_NOT_A_PASS_VERDICT",
             "SANITIZED_METADATA_ONLY_NO_RAW_EVIDENCE",
             "QUERY_RESULT_DOES_NOT_ESTABLISH_CONTROL_EFFECTIVENESS_OR_COMPLIANCE",
+            "NEGATIVE_RESULTS_ARE_LIMITED_TO_THE_SUPPLIED_AUTHORIZED_INDEX_SCOPE",
         ],
     }
     return {"result_id": f"kor_{_digest(body)[:32]}", **body}
@@ -462,4 +483,6 @@ def validate_result(result: Mapping[str, Any]) -> None:
     if result.get("read_only") is not True or result.get("raw_evidence_exposed") is not False:
         raise OperationalQueryError("operational result boundary changed")
     if result.get("assurance_effect") != "NONE" or result.get("compliance_effect") != "NONE" or result.get("execution_authority") != "NONE":
-        raise OperationalQueryError("query result cannot create assurance, compliance or execution authority")
+        raise OperationalQueryError(
+            "query result cannot create assurance, compliance or execution authority"
+        )
