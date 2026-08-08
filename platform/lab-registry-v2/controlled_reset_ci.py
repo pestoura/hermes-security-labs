@@ -8,6 +8,7 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import shutil
+import sys
 import tempfile
 from pathlib import Path
 from typing import Any
@@ -16,6 +17,7 @@ HERE = Path(__file__).resolve().parent
 SPEC = importlib.util.spec_from_file_location("lab_reset_attestation_ci", HERE / "reset_attestation.py")
 assert SPEC and SPEC.loader
 ATTEST = importlib.util.module_from_spec(SPEC)
+sys.modules[SPEC.name] = ATTEST
 SPEC.loader.exec_module(ATTEST)
 
 FIXTURES = {
