@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hexor.local/schemas/operational-query-access-policy.schema.json",
+  "title": "Operational Query Access Policy",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "policy_id", "principal_id", "allowed_asset_ids", "allowed_campaign_ids", "allowed_index_kinds", "allow_unscoped_knowledge", "effect", "execution_authority"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "policy_id": {"type": "string", "pattern": "^koap_[a-f0-9]{32}$"},
+    "principal_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "allowed_asset_ids": {"type": "array", "maxItems": 2000, "uniqueItems": true, "items": {"type": "string", "minLength": 1, "maxLength": 128}},
+    "allowed_campaign_ids": {"type": "array", "maxItems": 2000, "uniqueItems": true, "items": {"type": "string", "minLength": 1, "maxLength": 128}},
+    "allowed_index_kinds": {"type": "array", "maxItems": 5, "uniqueItems": true, "items": {"enum": ["ASSET", "CONTROL_MAPPING", "VALIDATION", "FINDING", "CAMPAIGN"]}},
+    "allow_unscoped_knowledge": {"type": "boolean"},
+    "effect": {"const": "READ_FILTER_ONLY"},
+    "execution_authority": {"const": "NONE"}
+  }
+}
