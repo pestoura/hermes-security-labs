@@ -112,4 +112,7 @@ def test_runtime_nonclaims_are_preserved() -> None:
         "external_sync": "NOT_RUN",
         "production_planner": "NOT_RUN",
         "production_temporal_ingestion": "NOT_RUN",
+        "production_snapshot_store": "NOT_RUN",
+        "production_campaign_binding_store": "NOT_RUN",
+        "control_plane_runtime_integration": "NOT_RUN",
     }
