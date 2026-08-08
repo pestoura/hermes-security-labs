@@ -1,0 +1,59 @@
+name: d01-completion-patch
+
+on:
+  push:
+    branches:
+      - docs/svp2-d01-completion
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: docs/svp2-d01-completion
+          fetch-depth: 0
+      - name: Apply exact D-01 backlog reconciliation
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('roadmap/epics/security-validation-platform-v2.yaml')
+          text = path.read_text(encoding='utf-8')
+          start = text.index('  - id: SVP2-D-01\n')
+          end = text.index('\n  - id: SVP2-D-02\n', start)
+          block = text[start:end]
+
+          assert block.count('status: implementing') == 1, block
+          assert block.count('"status:implementing"') == 1, block
+          assert 'docs/roadmap/SVP2-D-01-completion-as-built.md' not in block
+          assert block.count('      - docs/architecture/security-validation-reference-architecture.md') == 1, block
+
+          block = block.replace('    status: implementing\n', '    status: completed\n', 1)
+          block = block.replace('"status:implementing"', '"status:completed"', 1)
+          block = block.replace(
+              '      - docs/architecture/security-validation-reference-architecture.md',
+              '      - docs/architecture/security-validation-reference-architecture.md\n'
+              '      - docs/roadmap/SVP2-D-01-completion-as-built.md',
+              1,
+          )
+          text = text[:start] + block + text[end:]
+          path.write_text(text, encoding='utf-8')
+          PY
+          rm .github/workflows/d01-completion-patch.yml
+          git diff --check
+          git diff --exit-code -- . ':!.github/workflows/d01-completion-patch.yml' >/dev/null && {
+            echo 'Expected backlog change not found' >&2
+            exit 1
+          }
+      - name: Commit guarded patch and self-removal
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add roadmap/epics/security-validation-platform-v2.yaml .github/workflows/d01-completion-patch.yml
+          git commit -m 'docs(d01): promote delivery backlog status'
+          git push origin HEAD:docs/svp2-d01-completion
