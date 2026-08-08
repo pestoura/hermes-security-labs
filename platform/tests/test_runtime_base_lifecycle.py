@@ -16,35 +16,39 @@ def test_epic06_is_implementing_but_not_final() -> None:
     assert "| AS_BUILT | no |" in text
     assert "| FINAL | no |" in text
     assert "PR #142" in text
+    assert "PR #215" in text
     assert "Reserved" in text
 
 
-def test_epic06_preserves_non_runtime_boundary() -> None:
+def test_epic06_records_controlled_ci_runtime_without_production_overclaim() -> None:
     text = EPIC.read_text(encoding="utf-8")
 
     for marker in (
-        "image build/publication: `NOT_RUN`",
-        "container start: `NOT_RUN`",
-        "real non-root observation: `NOT_RUN`",
-        "real read-only-root observation: `NOT_RUN`",
-        "real capability-drop observation: `NOT_RUN`",
+        "image build: `PASS_CONTROLLED_CI`",
+        "container start: `PASS_CONTROLLED_CI`",
+        "non-root observation: `PASS_CONTROLLED_CI`",
+        "read-only root observation: `PASS_CONTROLLED_CI`",
+        "capability-drop observation: `PASS_CONTROLLED_CI`",
+        "image publication: `NOT_RUN`",
+        "SBOM/signing/provenance promotion: `NOT_RUN`",
         "Hermes deployment: `NOT_RUN`",
-        "runtime changes: `NO_RUNTIME_CHANGE`",
+        "deployed runtime changes: `NO_DEPLOYED_RUNTIME_CHANGE`",
     ):
         assert marker in text
 
 
-def test_runtime_base_readme_keeps_candidate_only_claims() -> None:
+def test_runtime_base_readme_scopes_controlled_candidate_claims() -> None:
     text = README.read_text(encoding="utf-8")
 
-    assert "core runtime must execute as a non-root UID" in text
-    assert "root filesystem is declared read-only" in text
+    assert "core runtime policy requires execution as a non-root UID" in text
+    assert "root filesystem is read-only for the controlled candidate" in text
     assert "`NET_RAW` exists only in an explicit, justified `raw-network` profile" in text
-    assert "No image is built or promoted by this block" in text
-    assert "`NO_RUNTIME_CHANGE`" in text
+    assert "PR #215" in text
+    assert "Image publication, SBOM generation, signing, provenance attestation" in text
+    assert "`NO_DEPLOYED_RUNTIME_CHANGE`" in text
 
 
-def test_epic06_catalogue_matches_implementing_state() -> None:
+def test_epic06_catalogue_remains_implementing_until_broader_factory_evidence() -> None:
     data = yaml.safe_load(CATALOGUE.read_text(encoding="utf-8"))
     epics = data["concept_epics"]
     epic = next(item for item in epics if item["concept_id"] == "EPIC-06")
