@@ -17,7 +17,7 @@
 
 ## 2. Current status
 
-**IMPLEMENTING** — PR #139 integrated the repository-level transactional lifecycle, isolation, zero-residue and quarantine contract candidate. The current block adds a read-only orphan observation/assessment candidate. Real Docker lifecycle operations, runtime resource scanning, periodic scheduling, cleanup/remediation and residue observation against real resources remain `NOT_RUN` / `NOT_IMPLEMENTED` as applicable.
+**IMPLEMENTING** — PR #139 integrated the transactional lifecycle/isolation contract and PR #231 added controlled Docker CI evidence using disposable owned network/volume resources. Controlled scanning, bounded periodic orphan detection, cleanup and zero-residue observation are `PASS_CONTROLLED_CI`. Production/container lifecycle adapters, remediation and real L3/L4 snapshot/rollback remain `NOT_RUN` / `NOT_IMPLEMENTED` as applicable.
 
 | Lifecycle state | Reached |
 | --- | --- |
@@ -54,7 +54,7 @@ A separate orphan-assessment contract classifies normalized read-only observatio
 ### Non-goals
 
 - Introducing privileged containers, host networking, Docker socket or host mounts
-- Executing Docker lifecycle operations in this repository block
+- Production/container Docker lifecycle operations outside the controlled CI network/volume candidate
 - Enumerating real Docker/Kubernetes/process/network resources in the assessor
 - Automatically deleting, stopping or quarantining observed resources
 - Claiming real cleanup, rollback, orphan detection cadence or residue observation without runtime evidence
@@ -107,7 +107,7 @@ flowchart LR
   TRACKED -. no automatic action .-> CLEAN
 ```
 
-No runtime cleanup path exists in the current candidate.
+A controlled CI network/volume cleanup path now exists. Production/container cleanup remains outside this candidate.
 
 ## 7. Contracts, data and capabilities
 
@@ -160,7 +160,7 @@ Current repository invariants:
 - live retained quarantine residue produces `TRACKED_RESIDUE`, never `CLEAR` and never a zero-residue claim;
 - cleanup-in-progress states are not prematurely classified as orphaned;
 - orphan assessment always records `cleanup_performed: false`;
-- runtime status remains `NOT_RUN`;
+- controlled CI network/volume lifecycle and scanner status is `PASS_CONTROLLED_CI`; production runtime remains `NOT_RUN`;
 - no execution outside an active authorization contract;
 - no secrets, tokens, cookies or raw credential material in decision records;
 - no target outside registered laboratories.
@@ -179,16 +179,14 @@ Repository candidates already delivered:
 - non-destructive orphan classification logic;
 - regression and adversarial tests.
 
-Still pending:
+Still pending for broader concept finality:
 
-- reviewed Docker lifecycle adapters;
-- real state-based attach/detach and cleanup;
-- real zero-residue scanner/proof production;
-- runtime resource scanner producing normalized orphan observations;
-- periodic orphan scan scheduler/cadence;
+- production/container Docker lifecycle adapters and state-based attach/detach;
+- production-authenticated scanner/attestation and durable scheduler ownership;
 - cleanup/remediation action after human/policy decision;
 - deployed rollback/snapshot execution;
-- controlled runtime acceptance and rollback validation.
+- real L3/L4 TTL and data-budget enforcement;
+- production runtime acceptance and rollback validation.
 
 ## 11. Acceptance criteria
 
@@ -205,14 +203,7 @@ Repository-level criteria implemented by #139 and the current orphan-assessment 
 - orphan assessment does not execute cleanup or runtime mutations;
 - opaque resource references prevent raw path input in this contract.
 
-Umbrella completion still requires runtime evidence that:
-
-- real Docker cleanup produces zero residue;
-- state-based attach/detach behaves transactionally under failures/races;
-- a real authenticated/controlled scanner observes runtime resources correctly;
-- periodic orphan detection identifies leftover resources in the real runtime;
-- orphan cleanup/quarantine actions are separately controlled and auditable;
-- real snapshot/rollback, TTL and data budgets are enforced.
+The delivery umbrella now has controlled-Docker-CI evidence for cleanup quarantine, default internal networking and periodic orphan detection. Broader concept finality still requires production/container attach/detach, authenticated scanner identity, separately controlled remediation and real snapshot/rollback, TTL and data-budget enforcement.
 
 ## 12. Evidence and validation plan
 
@@ -225,7 +216,7 @@ Existing repository evidence:
 
 Current block adds schema/adversarial tests for orphan classification, partial/unavailable scans, lifecycle/campaign mismatch, contract expiry, quarantine retention, duplicate observations, explicit tracked-residue semantics and non-destructive summaries.
 
-Deployment/runtime evidence remains `NOT_RUN` and must be referenced from issue #81 before the umbrella may close.
+PR #231 provides controlled Docker CI runtime evidence for owned network/volume cleanup, zero residue and periodic orphan detection. Production/container runtime evidence remains `NOT_RUN`.
 
 ## 13. Decisions and open questions
 
@@ -255,8 +246,8 @@ Deployment/runtime evidence remains `NOT_RUN` and must be referenced from issue 
 - PR #139 implemented the contract-only transactional lifecycle, isolation and zero-residue decision candidate.
 - Technical merge: `591552d652fbff82d81f750535799380e9c643a9`.
 - PR #166 reconciled EPIC-04/08 lifecycle/source-of-truth to factual `IMPLEMENTING` with green post-merge validation.
-- The current block adds the repository-only orphan observation/assessment contract and decision logic.
-- No Docker, scanner, network, laboratory, target or cleanup operation is executed by the assessor.
+- PR #231 adds the controlled Docker CI network/volume lifecycle, scanner and periodic orphan-detection harness.
+- The assessor remains non-destructive; the controlled cleanup driver operates only on exact ownership-labelled CI network/volume resources and runs no targets or containers.
 
 ## 15. As-built / final architecture
 
@@ -266,15 +257,15 @@ Current factual boundary:
 
 - lifecycle contract and decision logic: `CANDIDATE`;
 - zero-residue proof contract/validation: `CANDIDATE`;
-- quarantine/reuse blocking: `CANDIDATE`;
+- quarantine/reuse blocking: `PASS_CONTROLLED_CI`;
 - orphan observation/assessment contract and decision logic: `CANDIDATE`;
-- runtime resource scanner: `NOT_IMPLEMENTED` / `NOT_RUN`;
-- periodic orphan scan scheduler: `NOT_IMPLEMENTED`;
-- orphan cleanup/remediation: `NOT_IMPLEMENTED` / `NOT_RUN`;
-- Docker lifecycle integration: `NOT_RUN`;
-- zero-residue observation against real resources: `NOT_RUN`;
+- controlled Docker CI network/volume scanner: `PASS_CONTROLLED_CI`;
+- bounded periodic orphan scans: `PASS_CONTROLLED_CI`;
+- controlled owned network/volume cleanup and zero-residue observation: `PASS_CONTROLLED_CI`;
+- production/container scanner and lifecycle integration: `NOT_RUN`;
+- orphan remediation: `NOT_IMPLEMENTED` / `NOT_RUN`;
 - real snapshot/rollback execution: `NOT_RUN`;
-- runtime changes: `NO_RUNTIME_CHANGE`.
+- production runtime changes: `NO_RUNTIME_CHANGE`.
 
 `AS_BUILT` and `FINAL` remain false.
 

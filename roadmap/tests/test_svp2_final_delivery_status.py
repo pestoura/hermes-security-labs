@@ -4,7 +4,9 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
 BACKLOG = ROOT / "roadmap" / "epics" / "security-validation-platform-v2.yaml"
+EPIC_04 = ROOT / "docs" / "roadmap" / "epics" / "EPIC-04-transactional-lifecycle-and-isolation.md"
 EPIC_05 = ROOT / "docs" / "roadmap" / "epics" / "EPIC-05-runner-protocol-v2.md"
+EPIC_08 = ROOT / "docs" / "roadmap" / "epics" / "EPIC-08-network-and-egress-policy.md"
 EPIC_06 = ROOT / "docs" / "roadmap" / "epics" / "EPIC-06-kali-image-factory.md"
 EPIC_09 = ROOT / "docs" / "roadmap" / "epics" / "EPIC-09-exploitation-safety.md"
 EPIC_10 = ROOT / "docs" / "roadmap" / "epics" / "EPIC-10-evidence-plane.md"
@@ -16,17 +18,17 @@ EVIDENCE_POLICY = ROOT / "platform" / "evidence-plane" / "evidence-policy.yaml"
 KNOWLEDGE_SOURCE_POLICY = ROOT / "platform" / "knowledge-fabric" / "source-policy.yaml"
 A02_COMPLETION = ROOT / "docs" / "roadmap" / "SVP2-A-02-completion-as-built.md"
 B02_COMPLETION = ROOT / "docs" / "roadmap" / "SVP2-B-02-completion-as-built.md"
+B03_COMPLETION = ROOT / "docs" / "roadmap" / "SVP2-B-03-completion-as-built.md"
 C01_COMPLETION = ROOT / "docs" / "roadmap" / "SVP2-C-01-completion-as-built.md"
 D01_COMPLETION = ROOT / "docs" / "roadmap" / "SVP2-D-01-completion-as-built.md"
 E01_COMPLETION = ROOT / "docs" / "roadmap" / "SVP2-E-01-completion-as-built.md"
 
 COMPLETED = {
-    "SVP2-A-01", "SVP2-A-02", "SVP2-A-03", "SVP2-B-02", "SVP2-C-01",
+    "SVP2-A-01", "SVP2-A-02", "SVP2-A-03", "SVP2-B-02", "SVP2-B-03", "SVP2-C-01",
     "SVP2-D-01", "SVP2-E-01", "SVP2-E-02", "SVP2-J-01",
 }
 IMPLEMENTING = {
     "SVP2-B-01",
-    "SVP2-B-03",
     "SVP2-C-02",
     "SVP2-D-02",
     "SVP2-F-01",
@@ -62,7 +64,7 @@ def test_status_labels_match_machine_readable_status() -> None:
 def test_runtime_heavy_epics_without_done_evidence_are_not_falsely_completed() -> None:
     epics = _epics()
     runtime_heavy = {
-        "SVP2-B-01", "SVP2-B-03", "SVP2-C-02", "SVP2-D-02",
+        "SVP2-B-01", "SVP2-C-02", "SVP2-D-02",
         "SVP2-F-01", "SVP2-F-02", "SVP2-G-01", "SVP2-H-01", "SVP2-I-01",
         "SVP2-J-02", "SVP2-K-01", "SVP2-L-01",
     }
@@ -225,4 +227,25 @@ def test_e01_delivery_completion_does_not_claim_graph_or_sync_finality() -> None
     assert "external sync: **`NOT_RUN`**" in completion
     assert "production graph store: **`NOT_IMPLEMENTED`**" in completion
     assert "execution authority from knowledge: **`NONE`**" in completion
+    assert "DOD-10" in completion
+
+
+def test_b03_delivery_completion_does_not_claim_epic04_or_epic08_finality() -> None:
+    epic = _epics()["SVP2-B-03"]
+    epic04 = EPIC_04.read_text(encoding="utf-8")
+    epic08 = EPIC_08.read_text(encoding="utf-8")
+    completion = B03_COMPLETION.read_text(encoding="utf-8")
+    assert epic["status"] == "completed"
+    assert "status:completed" in epic["labels"]
+    assert "docs/roadmap/SVP2-B-03-completion-as-built.md" in epic["references"]
+    assert "**IMPLEMENTING**" in epic04
+    assert "| AS_BUILT | no |" in epic04
+    assert "| FINAL | no |" in epic04
+    assert "**IMPLEMENTING**" in epic08
+    assert "| AS_BUILT | no |" in epic08
+    assert "| FINAL | no |" in epic08
+    assert "controlled Docker network/volume lifecycle: **`PASS_CONTROLLED_CI`**" in completion
+    assert "periodic orphan detection: **`PASS_CONTROLLED_CI`**" in completion
+    assert "production Docker lifecycle/scanner: **`NOT_RUN`**" in completion
+    assert "real L3/L4 snapshot/rollback: **`NOT_RUN`**" in completion
     assert "DOD-10" in completion
