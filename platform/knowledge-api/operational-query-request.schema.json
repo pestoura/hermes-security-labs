@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hexor.local/schemas/operational-query-request.schema.json",
+  "title": "Operational Query Request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "query_id", "question_id", "knowledge_snapshot_id", "principal_id", "minimum_confidence", "parameters", "read_only", "assurance_effect", "execution_authority"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "query_id": {"type": "string", "pattern": "^koq_[a-f0-9]{32}$"},
+    "question_id": {"enum": ["CONTROLS_FOR_TECHNIQUE", "ASSETS_UNVALIDATED_FOR_VULNERABILITY", "FINDINGS_FOR_ASSET", "CAMPAIGNS_USING_SNAPSHOT"]},
+    "knowledge_snapshot_id": {"type": "string", "pattern": "^ks_[a-f0-9]{32}$"},
+    "principal_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "minimum_confidence": {"type": "number", "minimum": 0, "maximum": 1},
+    "parameters": {"type": "object", "maxProperties": 1, "additionalProperties": {"type": "string", "minLength": 1, "maxLength": 128}},
+    "read_only": {"const": true},
+    "assurance_effect": {"const": "NONE"},
+    "execution_authority": {"const": "NONE"}
+  }
+}

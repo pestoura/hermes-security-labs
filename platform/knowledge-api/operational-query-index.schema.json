@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hexor.local/schemas/operational-query-index.schema.json",
+  "title": "Sanitized Operational Query Index Entry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "index_id", "kind", "knowledge_snapshot_id", "asset_ids", "technique_ids", "vulnerability_ids", "control_ids", "campaign_id", "finding_id", "evidence_ids", "confidence", "summary", "sanitization_state"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "index_id": {"type": "string", "pattern": "^koi_[a-f0-9]{32}$"},
+    "kind": {"enum": ["ASSET", "CONTROL_MAPPING", "VALIDATION", "FINDING", "CAMPAIGN"]},
+    "knowledge_snapshot_id": {"type": "string", "pattern": "^ks_[a-f0-9]{32}$"},
+    "asset_ids": {"type": "array", "maxItems": 2000, "uniqueItems": true, "items": {"type": "string", "minLength": 1, "maxLength": 128}},
+    "technique_ids": {"type": "array", "maxItems": 2000, "uniqueItems": true, "items": {"type": "string", "pattern": "^T[0-9]{4}(?:\\.[0-9]{3})?$"}},
+    "vulnerability_ids": {"type": "array", "maxItems": 2000, "uniqueItems": true, "items": {"type": "string", "pattern": "^CVE-[0-9]{4}-[0-9]{4,}$"}},
+    "control_ids": {"type": "array", "maxItems": 2000, "uniqueItems": true, "items": {"type": "string", "minLength": 2, "maxLength": 32}},
+    "campaign_id": {"type": ["string", "null"], "maxLength": 128},
+    "finding_id": {"type": ["string", "null"], "maxLength": 128},
+    "evidence_ids": {"type": "array", "maxItems": 2000, "uniqueItems": true, "items": {"type": "string", "pattern": "^ev_[A-Za-z0-9._:-]{1,120}$"}},
+    "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+    "summary": {"type": "string", "minLength": 1, "maxLength": 1024},
+    "sanitization_state": {"const": "SANITIZED_METADATA_ONLY"}
+  }
+}
