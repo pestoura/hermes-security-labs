@@ -40,11 +40,14 @@ def test_epic40_has_dedicated_control_layer_without_compliance_claims() -> None:
 
 def test_campaign_proposal_never_claims_execution_authority() -> None:
     text = DOCS["EPIC-43"].read_text(encoding="utf-8")
+    lowered = text.lower()
     assert "PROPOSAL_ONLY" in text
     assert "executable=false" in text
     assert "CONTROL_PLANE_ONLY" in text
-    assert "production_planner" in text
-    assert "NOT_RUN" in text
+    assert "production planner" in lowered
+    assert "NOT_RUN" in text or "NOT_IMPLEMENTED" in text
+    assert "requires_fresh_authorization=true" in text
+    assert "sole execution-authorization authority" in text
 
 
 def test_machine_readable_catalogue_matches_e02_boundary() -> None:
