@@ -1,0 +1,28 @@
+name: svp2-b03-controlled-docker-evidence
+
+on:
+  pull_request:
+    paths:
+      - 'platform/lab-lifecycle/**'
+      - 'platform/tests/test_controlled_docker_lab_lifecycle.py'
+      - '.github/workflows/svp2-b03-controlled-docker-evidence.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  controlled-docker-evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Require real Docker daemon
+        run: docker info
+      - name: Install bounded test dependencies
+        run: python -m pip install --disable-pip-version-check pytest jsonschema
+      - name: Execute real controlled Docker lifecycle evidence
+        run: python -m pytest platform/tests/test_controlled_docker_lab_lifecycle.py -q -ra
