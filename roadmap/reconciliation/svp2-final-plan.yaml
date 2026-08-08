@@ -1,6 +1,6 @@
 schema_version: "1.0"
 reconciliation_id: svp2-final-controlled-delivery-20260808
-attempt: 2
+attempt: 3
 completion_reference: docs/roadmap/SVP2-final-delivery-reconciliation.md
 complete:
   - SVP2-B-01
