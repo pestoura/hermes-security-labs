@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hex0r.local/schemas/control-mapping-v1.json",
+  "title": "NIST Control Knowledge Mapping",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "mapping_id", "control_catalogue_id", "control_id", "target_kind", "target_ref", "confidence", "provenance_record_ids", "rationale"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "mapping_id": {"type": "string", "pattern": "^ctrlmap_[a-f0-9]{32}$"},
+    "control_catalogue_id": {"type": "string", "pattern": "^ctrlcat_[a-f0-9]{32}$"},
+    "control_id": {"type": "string", "pattern": "^[A-Z]{2}-[0-9]+(\\([0-9]+\\))?$"},
+    "target_kind": {"enum": ["attack", "runbook", "evidence_requirement"]},
+    "target_ref": {"type": "string", "minLength": 1},
+    "confidence": {"type": "number", "minimum": 0.0, "maximum": 1.0},
+    "provenance_record_ids": {"type": "array", "minItems": 1, "maxItems": 64, "uniqueItems": true, "items": {"type": "string", "pattern": "^kr_[a-f0-9]{32}$"}},
+    "rationale": {"type": "string", "minLength": 1}
+  },
+  "allOf": [
+    {"if": {"properties": {"target_kind": {"const": "attack"}}}, "then": {"properties": {"target_ref": {"pattern": "^T[0-9]{4}(\\.[0-9]{3})?$"}}}},
+    {"if": {"properties": {"target_kind": {"const": "runbook"}}}, "then": {"properties": {"target_ref": {"pattern": "^runbook:[A-Za-z0-9._/-]+$"}}}},
+    {"if": {"properties": {"target_kind": {"const": "evidence_requirement"}}}, "then": {"properties": {"target_ref": {"pattern": "^evidence:[A-Za-z0-9._/-]+$"}}}}
+  ]
+}
