@@ -1,0 +1,38 @@
+id: goad-mini-future
+name: GOAD Mini Future Lab
+description: Future multi-VM Active Directory lab admitted only after the base VM lifecycle pilot passes isolation and cleanup gates.
+category: active-directory
+runtime: virtual-machine
+driver: external-hypervisor
+risk: high
+source: future-approved-goad-mini-template
+version: "design-1"
+resources:
+  cpu: "6"
+  memory: 12Gi
+  disk: 180Gi
+  max_concurrent: 1
+networks:
+  - isolated-ad-lab
+egress: false
+targets: []
+attacker: kali-controlled
+lifecycle:
+  - create
+  - start
+  - status
+  - stop
+  - reset
+  - destroy
+reset: clean-snapshot-set-required
+cleanup: zero-residue-proof-required
+evidence: sanitized lifecycle, snapshot, network and cleanup receipts only
+dependencies:
+  - virtual-machine
+  - approved-hypervisor
+  - vm-pilot-accepted
+limitations:
+  - Not admitted on the current Hermes host until resource discovery and lifecycle validation pass.
+  - Lab credentials must be synthetic and external to Git.
+  - No automatic provisioning is enabled by this manifest.
+status: FUTURE-VM
