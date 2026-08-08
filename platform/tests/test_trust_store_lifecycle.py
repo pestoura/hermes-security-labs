@@ -152,7 +152,9 @@ def test_key_material_algorithm_and_validity_mutation_fail_closed(tmp_path: Path
         "TRUST_STORE_KEY_ALGORITHM_MUTATION",
         "TRUST_STORE_KEY_VALIDITY_MUTATION",
     ]
-    for index, (mutated, expected) in enumerate(zip(mutation_cases, expected_codes), start=1):
+    for index, (mutated, expected) in enumerate(
+        zip(mutation_cases, expected_codes, strict=True), start=1
+    ):
         new_store = write_store(tmp_path / f"new-{index}.json", mutated)
         current = generation(
             new_store,
