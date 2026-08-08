@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hexor.local/schemas/campaign-plan-candidate.schema.json",
+  "title": "Campaign Plan Candidate",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "candidate_id", "operation_id", "capability_id",
+    "intrusiveness_level", "asset_ids", "technique_ids", "vulnerability_ids",
+    "knowledge_record_ids", "confidence", "rationale", "executable", "authorization_effect"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "candidate_id": {"type": "string", "pattern": "^kpcand_[a-f0-9]{32}$"},
+    "operation_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "capability_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "intrusiveness_level": {"enum": ["L0", "L1", "L2", "L3", "L4"]},
+    "asset_ids": {"type": "array", "minItems": 1, "maxItems": 512, "uniqueItems": true, "items": {"type": "string", "minLength": 1, "maxLength": 128}},
+    "technique_ids": {"type": "array", "maxItems": 512, "uniqueItems": true, "items": {"type": "string", "pattern": "^T[0-9]{4}(?:\\.[0-9]{3})?$"}},
+    "vulnerability_ids": {"type": "array", "maxItems": 512, "uniqueItems": true, "items": {"type": "string", "pattern": "^CVE-[0-9]{4}-[0-9]{4,}$"}},
+    "knowledge_record_ids": {"type": "array", "minItems": 1, "maxItems": 64, "uniqueItems": true, "items": {"type": "string", "pattern": "^kr_[a-f0-9]{32}$"}},
+    "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+    "rationale": {"type": "string", "minLength": 1, "maxLength": 4096},
+    "executable": {"const": false},
+    "authorization_effect": {"const": "NONE"}
+  }
+}

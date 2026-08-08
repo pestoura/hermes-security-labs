@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hexor.local/schemas/campaign-plan-diff.schema.json",
+  "title": "Campaign Plan Proposal Diff",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "diff_id", "schema_version", "campaign_id", "previous_plan_id", "current_plan_id",
+    "added_candidate_ids", "removed_candidate_ids", "common_order_changed",
+    "effect", "authorization_effect", "execution_authority"
+  ],
+  "properties": {
+    "diff_id": {"type": "string", "pattern": "^kpd_[a-f0-9]{32}$"},
+    "schema_version": {"const": "1.0"},
+    "campaign_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "previous_plan_id": {"type": "string", "pattern": "^kp_[a-f0-9]{32}$"},
+    "current_plan_id": {"type": "string", "pattern": "^kp_[a-f0-9]{32}$"},
+    "added_candidate_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^kpcand_[a-f0-9]{32}$"}},
+    "removed_candidate_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^kpcand_[a-f0-9]{32}$"}},
+    "common_order_changed": {"type": "boolean"},
+    "effect": {"const": "PROPOSAL_DIFF_ONLY"},
+    "authorization_effect": {"const": "NONE"},
+    "execution_authority": {"const": "CONTROL_PLANE_ONLY"}
+  }
+}
