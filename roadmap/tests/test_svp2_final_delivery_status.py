@@ -22,11 +22,10 @@ B03_COMPLETION = ROOT / "docs" / "roadmap" / "SVP2-B-03-completion-as-built.md"
 C01_COMPLETION = ROOT / "docs" / "roadmap" / "SVP2-C-01-completion-as-built.md"
 D01_COMPLETION = ROOT / "docs" / "roadmap" / "SVP2-D-01-completion-as-built.md"
 E01_COMPLETION = ROOT / "docs" / "roadmap" / "SVP2-E-01-completion-as-built.md"
-H01_COMPLETION = ROOT / "docs" / "roadmap" / "SVP2-H-01-completion-as-built.md"
 
 COMPLETED = {
     "SVP2-A-01", "SVP2-A-02", "SVP2-A-03", "SVP2-B-02", "SVP2-B-03", "SVP2-C-01",
-    "SVP2-D-01", "SVP2-E-01", "SVP2-E-02", "SVP2-H-01", "SVP2-J-01",
+    "SVP2-D-01", "SVP2-E-01", "SVP2-E-02", "SVP2-J-01",
 }
 IMPLEMENTING = {
     "SVP2-B-01",
@@ -35,6 +34,7 @@ IMPLEMENTING = {
     "SVP2-F-01",
     "SVP2-F-02",
     "SVP2-G-01",
+    "SVP2-H-01",
     "SVP2-I-01",
     "SVP2-J-02",
     "SVP2-K-01",
@@ -65,7 +65,7 @@ def test_runtime_heavy_epics_without_done_evidence_are_not_falsely_completed() -
     epics = _epics()
     runtime_heavy = {
         "SVP2-B-01", "SVP2-C-02", "SVP2-D-02",
-        "SVP2-F-01", "SVP2-F-02", "SVP2-G-01", "SVP2-I-01",
+        "SVP2-F-01", "SVP2-F-02", "SVP2-G-01", "SVP2-H-01", "SVP2-I-01",
         "SVP2-J-02", "SVP2-K-01", "SVP2-L-01",
     }
     assert all(epics[epic_id]["status"] == "implementing" for epic_id in runtime_heavy)
@@ -248,21 +248,4 @@ def test_b03_delivery_completion_does_not_claim_epic04_or_epic08_finality() -> N
     assert "periodic orphan detection: **`PASS_CONTROLLED_CI`**" in completion
     assert "production Docker lifecycle/scanner: **`NOT_RUN`**" in completion
     assert "real L3/L4 snapshot/rollback: **`NOT_RUN`**" in completion
-    assert "DOD-10" in completion
-
-
-def test_h01_delivery_completion_is_governance_only_and_non_executable() -> None:
-    epic = _epics()["SVP2-H-01"]
-    completion = H01_COMPLETION.read_text(encoding="utf-8")
-    assert epic["status"] == "completed"
-    assert "status:completed" in epic["labels"]
-    assert "docs/roadmap/SVP2-H-01-completion-as-built.md" in epic["references"]
-    assert "review/promotion governance: **`PASS_CONTROLLED_CI`**" in completion
-    assert "duplicate blocking: **`PASS_CONTROLLED_CI`**" in completion
-    assert "positive/negative control enforcement: **`PASS_CONTROLLED_CI`**" in completion
-    assert "automatic merge: **disabled / not permitted**" in completion
-    assert "execution authority from content-factory evidence: **`NONE`**" in completion
-    assert "production content execution/deployment: **`NOT_RUN`**" in completion
-    assert "external content sync/scheduler: **`NOT_RUN`**" in completion
-    assert "production promotion: **`NOT_RUN`**" in completion
     assert "DOD-10" in completion
