@@ -1,6 +1,6 @@
-# Security Knowledge Fabric — contract candidate
+# Security Knowledge Fabric — contract candidates
 
-Repository-owned contract candidate for `SVP2-E-01`.
+Repository-owned contract candidates for `SVP2-E-01` and `SVP2-E-02`.
 
 ## Implemented guarantees
 
@@ -55,9 +55,33 @@ The repository contract intentionally stops before external synchronization:
 
 No TAXII client, scheduled fetcher, upstream release poller or automatic version adoption is introduced by this contract.
 
+## EPIC-40 NIST control knowledge layer
+
+`control_knowledge.py` adds a repository-only control-knowledge contract over explicitly supplied NIST catalogue snapshots.
+
+The contract is deliberately not a compliance engine:
+
+- catalogues are `SUPPLIED_SNAPSHOT` only and declare `external_fetch = NOT_PERFORMED`;
+- each control carries a canonical control identifier, objective and Knowledge Fabric provenance;
+- mappings bind a control to an ATT&CK technique, `runbook:` reference or `evidence:` requirement with explicit confidence, rationale and provenance;
+- mappings must reference a control that actually exists in the supplied catalogue;
+- observations are explicit `OBSERVED`, `NOT_OBSERVED`, `NOT_RUN` or `INCONCLUSIVE` states and only `OBSERVED` may carry canonical Evidence Plane IDs;
+- partial observation of a multi-mapping control is `REVIEW_REQUIRED`, never a positive coverage state;
+- all mappings must be observed before a projection can report `MAPPED_EVIDENCE_PRESENT`;
+- unmapped or unobserved controls never become a `PASS` state;
+- control projection semantics are limited to `UNMAPPED`, `MAPPED_NO_OBSERVATION`, `MAPPED_EVIDENCE_PRESENT` and `REVIEW_REQUIRED`;
+- every projection fixes `coverage_semantics = MAPPED_VALIDATION_COVERAGE_ONLY`;
+- every projection fixes `compliance_verdict = NOT_EVALUATED` and `certification_claim = NONE`;
+- evidence presence does not by itself establish control effectiveness;
+- mappings/projections are `ADVISORY_ONLY` with `execution_authority = NONE`;
+- authority-, execution-, secret- and compliance-shaped input fields fail closed;
+- catalogue, mapping, observation, provenance and evidence collections are bounded.
+
+This repository contract does not fetch NIST content, establish that a supplied catalogue is authoritative/current, perform a formal control assessment, issue a compliance/certification conclusion or integrate with a production reporting/planning service.
+
 ## Deliberate non-claims
 
-No external framework feed is synchronized by these repository contracts. NVD, TAXII, KEV, EPSS, CWE, CAPEC and ATT&CK external sync operations remain `NOT_RUN`, and no graph database is selected or deployed (`NOT_IMPLEMENTED`). The semantic-chain resolver does not validate external mappings merely because they are supplied; external mapping acquisition/curation and production planner consumption remain outside this repository-only block. The ATT&CK migration contract does not prove that a supplied dataset is current, authoritative or fetched from MITRE; source acquisition, signature/provenance verification, adoption workflow and production migration remain future work.
+No external framework feed is synchronized by these repository contracts. NVD, TAXII, KEV, EPSS, CWE, CAPEC, ATT&CK and NIST external sync operations remain `NOT_RUN`, and no graph database is selected or deployed (`NOT_IMPLEMENTED`). The semantic-chain resolver does not validate external mappings merely because they are supplied; external mapping acquisition/curation and production planner consumption remain outside this repository-only block. The ATT&CK migration contract does not prove that a supplied dataset is current, authoritative or fetched from MITRE; source acquisition, signature/provenance verification, adoption workflow and production migration remain future work. The NIST control layer does not claim formal compliance, certification or control effectiveness; authoritative catalogue acquisition, complete population, production reporting/planner consumption and assessment workflow remain future work.
 
 Hermes / Control Plane remains the sole execution-authorization authority.
 
