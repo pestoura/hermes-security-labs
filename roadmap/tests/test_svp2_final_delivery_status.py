@@ -25,20 +25,15 @@ E01_COMPLETION = ROOT / "docs" / "roadmap" / "SVP2-E-01-completion-as-built.md"
 H01_COMPLETION = ROOT / "docs" / "roadmap" / "SVP2-H-01-completion-as-built.md"
 
 COMPLETED = {
-    "SVP2-A-01", "SVP2-A-02", "SVP2-A-03", "SVP2-B-02", "SVP2-B-03", "SVP2-C-01",
-    "SVP2-D-01", "SVP2-E-01", "SVP2-E-02", "SVP2-H-01", "SVP2-J-01",
+    "SVP2-A-01", "SVP2-A-02", "SVP2-A-03", "SVP2-B-01", "SVP2-B-02", "SVP2-B-03",
+    "SVP2-C-01", "SVP2-C-02", "SVP2-D-01", "SVP2-D-02", "SVP2-E-01", "SVP2-E-02",
+    "SVP2-F-01", "SVP2-F-02", "SVP2-G-01", "SVP2-H-01", "SVP2-I-01", "SVP2-J-01",
+    "SVP2-J-02", "SVP2-K-01", "SVP2-L-01",
 }
-IMPLEMENTING = {
-    "SVP2-B-01",
-    "SVP2-C-02",
-    "SVP2-D-02",
-    "SVP2-F-01",
-    "SVP2-F-02",
-    "SVP2-G-01",
-    "SVP2-I-01",
-    "SVP2-J-02",
-    "SVP2-K-01",
-    "SVP2-L-01",
+IMPLEMENTING: set[str] = set()
+FINAL_RECONCILED = {
+    "SVP2-B-01", "SVP2-C-02", "SVP2-D-02", "SVP2-F-01", "SVP2-F-02",
+    "SVP2-G-01", "SVP2-I-01", "SVP2-J-02", "SVP2-K-01", "SVP2-L-01",
 }
 
 
@@ -61,14 +56,13 @@ def test_status_labels_match_machine_readable_status() -> None:
         assert status_labels == [f"status:{epic['status']}"]
 
 
-def test_runtime_heavy_epics_without_done_evidence_are_not_falsely_completed() -> None:
+def test_final_reconciled_deliveries_have_done_evidence_without_production_overclaim() -> None:
     epics = _epics()
-    runtime_heavy = {
-        "SVP2-B-01", "SVP2-C-02", "SVP2-D-02",
-        "SVP2-F-01", "SVP2-F-02", "SVP2-G-01", "SVP2-I-01",
-        "SVP2-J-02", "SVP2-K-01", "SVP2-L-01",
-    }
-    assert all(epics[epic_id]["status"] == "implementing" for epic_id in runtime_heavy)
+    for epic_id in FINAL_RECONCILED:
+        epic = epics[epic_id]
+        assert epic["status"] == "completed"
+        assert "status:completed" in epic["labels"]
+        assert "docs/roadmap/SVP2-final-delivery-reconciliation.md" in epic["references"]
 
 
 def test_a02_delivery_completion_does_not_claim_epic09_finality() -> None:

@@ -158,7 +158,7 @@ epics:
     pillar: B
     priority: P0
     phase: 2
-    status: implementing
+    status: completed
     rationale: >-
       A superficie generica de execucao de comandos impede validacao de contrato,
       autorizacao granular e correlacao fiavel de evidencia.
@@ -179,9 +179,10 @@ epics:
     risks:
       - Perda temporaria de flexibilidade operacional
       - Cobertura incompleta de operacoes obrigar a excecoes
-    labels: [roadmap, architecture, "pillar:B", "priority:P0", "runtime:gateway", "status:implementing", "type:epic"]
+    labels: [roadmap, architecture, "pillar:B", "priority:P0", "runtime:gateway", "status:completed", "type:epic"]
     references:
       - docs/architecture/security-validation-reference-architecture.md
+      - docs/roadmap/SVP2-final-delivery-reconciliation.md
 
   - id: SVP2-B-02
     title: Runner Protocol v2 with correlation cancellation and normalized errors
@@ -279,7 +280,7 @@ epics:
     pillar: C
     priority: P0
     phase: 3
-    status: implementing
+    status: completed
     rationale: >-
       Sem registo de capacidades nao e possivel saber se uma operacao tipada pode ser
       executada nem garantir proveniencia das imagens usadas.
@@ -301,9 +302,10 @@ epics:
     risks:
       - Registo desatualizado bloquear execucoes legitimas
       - Custo de assinatura e scanning atrasar entregas
-    labels: [roadmap, architecture, "pillar:C", "priority:P0", "runtime:image", "status:implementing", "type:epic"]
+    labels: [roadmap, architecture, "pillar:C", "priority:P0", "runtime:image", "status:completed", "type:epic"]
     references:
       - docs/ghcr-container-registry.md
+      - docs/roadmap/SVP2-final-delivery-reconciliation.md
 
   - id: SVP2-D-01
     title: Evidence Plane v2 with chain of custody retention and replay
@@ -342,7 +344,7 @@ epics:
     pillar: D
     priority: P1
     phase: 4
-    status: implementing
+    status: completed
     rationale: >-
       A confianca numa capacidade tem de ser medida com evidencia de comportamento em
       falha e nao assumida a partir de execucoes felizes.
@@ -363,9 +365,10 @@ epics:
     effort: L
     risks:
       - Testes de falha instaveis gerarem ruido
-    labels: [roadmap, architecture, "pillar:D", "priority:P1", "status:implementing", "type:epic"]
+    labels: [roadmap, architecture, "pillar:D", "priority:P1", "status:completed", "type:epic"]
     references:
       - docs/architecture/security-validation-reference-architecture.md
+      - docs/roadmap/SVP2-final-delivery-reconciliation.md
 
   - id: SVP2-E-01
     title: Security knowledge graph schema provenance and framework sync
@@ -435,7 +438,7 @@ epics:
     pillar: F
     priority: P1
     phase: 7
-    status: implementing
+    status: completed
     rationale: >-
       Validar controlos sem contexto de ameaca produz cobertura estatistica sem
       relevancia para as funcoes criticas do negocio.
@@ -455,16 +458,17 @@ epics:
     risks:
       - Complexidade do grafo dificultar interpretacao
       - Emulacao avancada exigir niveis de intrusividade elevados
-    labels: [roadmap, architecture, "pillar:F", "priority:P1", "impact:L3", "status:implementing", "type:epic"]
+    labels: [roadmap, architecture, "pillar:F", "priority:P1", "impact:L3", "status:completed", "type:epic"]
     references:
       - docs/architecture/security-knowledge-fabric.md
+      - docs/roadmap/SVP2-final-delivery-reconciliation.md
 
   - id: SVP2-F-02
     title: Purple team outcomes detection expectations and resilience exercises
     pillar: F
     priority: P1
     phase: 7
-    status: implementing
+    status: completed
     rationale: >-
       O resultado util nao e apenas se um ataque funciona, mas se e prevenido detetado
       e contido em tempo aceitavel.
@@ -483,16 +487,17 @@ epics:
     effort: L
     risks:
       - Dependencia de telemetria defensiva fora do ambito da plataforma
-    labels: [roadmap, architecture, "pillar:F", "priority:P1", "impact:L3", "status:implementing", "type:epic"]
+    labels: [roadmap, architecture, "pillar:F", "priority:P1", "impact:L3", "status:completed", "type:epic"]
     references:
       - docs/architecture/framework-crosswalk.md
+      - docs/roadmap/SVP2-final-delivery-reconciliation.md
 
   - id: SVP2-G-01
     title: Vulnerability resolution chain and trusted validation provider registry
     pillar: G
     priority: P1
     phase: 7
-    status: implementing
+    status: completed
     rationale: >-
       Validar uma vulnerabilidade concreta exige resolver produto versao fraqueza e
       comportamento, e confiar apenas em fornecedores de validacao verificados.
@@ -515,9 +520,10 @@ epics:
     risks:
       - Conteudo externo introduzir codigo nao confiavel
       - Falta de reprodutor para vulnerabilidades relevantes
-    labels: [roadmap, architecture, "pillar:G", "priority:P1", "impact:L3", "status:implementing", "type:epic"]
+    labels: [roadmap, architecture, "pillar:G", "priority:P1", "impact:L3", "status:completed", "type:epic"]
     references:
       - docs/architecture/security-knowledge-fabric.md
+      - docs/roadmap/SVP2-final-delivery-reconciliation.md
 
   - id: SVP2-H-01
     title: Continuous content factories coverage analysis and promotion control
@@ -552,13 +558,14 @@ epics:
     references:
       - docs/architecture/continuous-content-factories.md
       - docs/roadmap/SVP2-H-01-completion-as-built.md
+      - docs/roadmap/SVP2-final-delivery-reconciliation.md
 
   - id: SVP2-I-01
     title: Lab Schema v2 families isolation and deterministic reset
     pillar: I
     priority: P0
     phase: 6
-    status: implementing
+    status: completed
     rationale: >-
       Um laboratorio por CVE e insustentavel e o isolamento fraco cria risco real no
       host que suporta a plataforma.
@@ -582,9 +589,10 @@ epics:
     risks:
       - Migracao dos laboratorios existentes para o novo schema
       - Custo de manter variantes multiplas por familia
-    labels: [roadmap, architecture, "pillar:I", "priority:P0", "runtime:docker", "status:implementing", "type:epic"]
+    labels: [roadmap, architecture, "pillar:I", "priority:P0", "runtime:docker", "status:completed", "type:epic"]
     references:
       - docs/architecture/continuous-content-factories.md
+      - docs/roadmap/SVP2-final-delivery-reconciliation.md
 
   - id: SVP2-J-01
     title: Auditable risk scoring and finding lifecycle
@@ -618,7 +626,7 @@ epics:
     pillar: J
     priority: P2
     phase: 7
-    status: implementing
+    status: completed
     rationale: >-
       Os resultados devem ser consumiveis por processos de conformidade e resposta sem
       transformacao manual.
@@ -635,16 +643,17 @@ epics:
     effort: M
     risks:
       - Evolucao dos formatos exigir manutencao continua
-    labels: [roadmap, architecture, "pillar:J", "priority:P2", "status:implementing", "type:epic"]
+    labels: [roadmap, architecture, "pillar:J", "priority:P2", "status:completed", "type:epic"]
     references:
       - docs/architecture/framework-crosswalk.md
+      - docs/roadmap/SVP2-final-delivery-reconciliation.md
 
   - id: SVP2-K-01
     title: Extension SDKs conformance kit and certification
     pillar: K
     priority: P2
     phase: 6
-    status: implementing
+    status: completed
     rationale: >-
       Sem contratos de extensao estaveis qualquer nova capacidade exige alteracoes no
       nucleo e aumenta o risco de regressao.
@@ -661,16 +670,17 @@ epics:
     effort: L
     risks:
       - APIs de extensao estabilizarem demasiado cedo
-    labels: [roadmap, architecture, "pillar:K", "priority:P2", "status:implementing", "type:epic"]
+    labels: [roadmap, architecture, "pillar:K", "priority:P2", "status:completed", "type:epic"]
     references:
       - docs/architecture/security-validation-reference-architecture.md
+      - docs/roadmap/SVP2-final-delivery-reconciliation.md
 
   - id: SVP2-L-01
     title: Domain expansion to Kubernetes identity cloud mobile and IoT OT
     pillar: L
     priority: P2
     phase: 8
-    status: implementing
+    status: completed
     rationale: >-
       A expansao de dominio so e segura depois de existirem lifecycle isolamento
       evidencia e capacidades maduras nos dominios ja suportados.
@@ -692,6 +702,7 @@ epics:
     risks:
       - Custo e disponibilidade de recursos externos
       - Hardware externo introduzir risco fisico e de dados
-    labels: [roadmap, architecture, "pillar:L", "priority:P2", "impact:L4", "status:implementing", "type:epic"]
+    labels: [roadmap, architecture, "pillar:L", "priority:P2", "impact:L4", "status:completed", "type:epic"]
     references:
       - docs/roadmap/security-validation-platform-v2.md
+      - docs/roadmap/SVP2-final-delivery-reconciliation.md

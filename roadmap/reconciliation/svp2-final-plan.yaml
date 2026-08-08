@@ -1,0 +1,24 @@
+schema_version: "1.0"
+reconciliation_id: svp2-final-controlled-delivery-20260808
+attempt: 4
+completion_reference: docs/roadmap/SVP2-final-delivery-reconciliation.md
+complete:
+  - SVP2-B-01
+  - SVP2-C-02
+  - SVP2-D-02
+  - SVP2-F-01
+  - SVP2-F-02
+  - SVP2-G-01
+  - SVP2-I-01
+  - SVP2-J-02
+  - SVP2-K-01
+  - SVP2-L-01
+already_completed_confirmed:
+  - SVP2-H-01
+boundaries:
+  delivery_status_only: true
+  production_promotion: false
+  final_concept_promotion: false
+  customer_target_execution: false
+  external_provider_execution: false
+  cloud_or_hardware_activation: false
