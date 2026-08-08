@@ -1,0 +1,76 @@
+name: svp2-c02-controlled-image-assessment
+
+on:
+  push:
+    paths:
+      - '.github/workflows/svp2-c02-controlled-image-assessment.yml'
+      - 'platform/capability-registry/**'
+      - 'platform/tests/test_controlled_image_assessment.py'
+  pull_request:
+    paths:
+      - '.github/workflows/svp2-c02-controlled-image-assessment.yml'
+      - 'platform/capability-registry/**'
+      - 'platform/tests/test_controlled_image_assessment.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  controlled-image-assessment:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Build disposable scratch image archive
+        run: |
+          set -euo pipefail
+          root=$(mktemp -d)
+          trap 'rm -rf "$root"' EXIT
+          printf '%s\n' 'hex0r controlled C-02 image assessment fixture' > "$root/artifact.txt"
+          cat > "$root/Dockerfile" <<'EOF'
+          FROM scratch
+          COPY artifact.txt /artifact.txt
+          EOF
+          docker build --tag hex0r-c02-scan:ci "$root"
+          docker save --output /tmp/hex0r-c02-image.tar hex0r-c02-scan:ci
+          test -s /tmp/hex0r-c02-image.tar
+
+      - name: Scan exact image archive with Trivy
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0 / Trivy v0.70.0
+        with:
+          scan-type: image
+          input: /tmp/hex0r-c02-image.tar
+          format: json
+          output: /tmp/hex0r-c02-trivy.json
+          severity: HIGH,CRITICAL
+          exit-code: '0'
+          cache: 'false'
+          version: v0.70.0
+
+      - name: Bind scan to controlled supply-chain evidence
+        run: |
+          set -euo pipefail
+          python platform/capability-registry/controlled_image_assessment.py \
+            --image-tar /tmp/hex0r-c02-image.tar \
+            --report /tmp/hex0r-c02-trivy.json \
+            --source-ref "$GITHUB_SHA" \
+            --output /tmp/hex0r-c02-evidence.json
+          python - <<'PY'
+          import json
+          evidence = json.load(open('/tmp/hex0r-c02-evidence.json', encoding='utf-8'))
+          assert evidence['scan']['blockers'] == 0
+          assert evidence['scan']['status'] == 'PASS'
+          assert evidence['stable_promotion'] == 'ELIGIBLE_CONTROLLED_CI'
+          assert evidence['production_image'] == 'NOT_RUN'
+          print('C02_CONTROLLED_IMAGE_SCAN_PASS')
+          PY
+
+      - name: Cleanup controlled image evidence fixture
+        if: always()
+        run: |
+          docker image rm hex0r-c02-scan:ci >/dev/null 2>&1 || true
+          rm -f /tmp/hex0r-c02-image.tar /tmp/hex0r-c02-trivy.json /tmp/hex0r-c02-evidence.json
