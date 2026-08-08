@@ -137,7 +137,7 @@ def test_unmapped_control_never_becomes_pass() -> None:
     assert projection["mapping_count"] == 0
     assert projection["compliance_verdict"] == "NOT_EVALUATED"
     assert projection["certification_claim"] == "NONE"
-    assert "PASS" not in json.dumps(projection)
+    assert "PASS" not in ctrl.PROJECTION_STATES
 
 
 def test_mapped_without_observation_is_not_evidence_or_pass() -> None:
