@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hexor.local/schemas/trust-store-lifecycle-assessment.schema.json",
+  "title": "RoE Trust Store Lifecycle Assessment",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "assessment_id", "schema_version", "previous_generation_id", "current_generation_id",
+    "evaluated_at", "decision", "codes", "freshness_state", "rollback_detected",
+    "active_key_count", "added_key_ids", "removed_key_ids", "state_changes",
+    "automatic_activation", "activation_effect", "authorization_effect",
+    "execution_authority", "limitations"
+  ],
+  "properties": {
+    "assessment_id": {"type": "string", "pattern": "^tsa_[a-f0-9]{32}$"},
+    "schema_version": {"const": "1.0.0"},
+    "previous_generation_id": {"type": ["string", "null"], "pattern": "^tsg_[a-f0-9]{32}$"},
+    "current_generation_id": {"type": "string", "pattern": "^tsg_[a-f0-9]{32}$"},
+    "evaluated_at": {"type": "string", "format": "date-time"},
+    "decision": {"enum": ["ACCEPT_FOR_REVIEW", "REFUSE"]},
+    "codes": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1, "maxLength": 128}},
+    "freshness_state": {"enum": ["FRESH", "STALE", "FUTURE"]},
+    "rollback_detected": {"type": "boolean"},
+    "active_key_count": {"type": "integer", "minimum": 0},
+    "added_key_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+    "removed_key_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+    "state_changes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["key_id", "from", "to"],
+        "properties": {
+          "key_id": {"type": "string"},
+          "from": {"enum": ["active", "retired", "revoked"]},
+          "to": {"enum": ["active", "retired", "revoked"]}
+        }
+      }
+    },
+    "automatic_activation": {"const": false},
+    "activation_effect": {"const": "NONE"},
+    "authorization_effect": {"const": "NONE"},
+    "execution_authority": {"const": "NONE"},
+    "limitations": {
+      "type": "array",
+      "minItems": 3,
+      "uniqueItems": true,
+      "contains": {"const": "GENERATION_ACCEPTANCE_DOES_NOT_ACTIVATE_TRUST_STORE"},
+      "items": {"type": "string"}
+    }
+  }
+}
