@@ -53,7 +53,7 @@ def synthetic_step_request() -> dict:
         "message_type": "runner.step.request",
         "protocol_version": "2.0.0",
         "correlation": CORRELATION,
-        "emitted_at": "2026-08-06T11:14:59Z",
+        "emitted_at": "2026-08-06T10:44:59Z",
         "authorization_ref": "authz/conformance/active",
         "idempotency_key": "svp2-a02-subprocess-transport-drill-001",
         "operation": {
@@ -86,7 +86,7 @@ def write_engaged_switch(path: Path) -> Path:
                 "state": "engaged",
                 "scope": "global",
                 "reason_code": "svp2-a02-subprocess-drill",
-                "updated_at": "2026-08-06T11:15:00Z",
+                "updated_at": "2026-08-06T10:45:00Z",
             }
         ),
         encoding="utf-8",
@@ -148,12 +148,12 @@ def test_kill_switch_cancellation_crosses_json_lines_subprocess_transport(
                     "grace_period_ms": 100,
                 }
             ],
-            generated_at="2026-08-06T11:15:00Z",
+            generated_at="2026-08-06T10:45:00Z",
         )
         plan = cancellation.plan_kill_switch_cancellations(
             kill_switch_path=write_engaged_switch(tmp_path / "kill-switch.json"),
             inventory=inventory,
-            emitted_at="2026-08-06T11:15:00Z",
+            emitted_at="2026-08-06T10:45:00Z",
         )
 
         assert plan["decision"] == "CANCEL_REQUIRED"
@@ -195,7 +195,7 @@ def test_kill_switch_cancellation_crosses_json_lines_subprocess_transport(
             cancellation_request=cancellation_request,
             acknowledgements=acknowledgements,
             outcomes=outcomes,
-            observed_at="2026-08-06T11:15:02Z",
+            observed_at="2026-08-06T10:45:02Z",
             acknowledgement_deadline_seconds=30,
             terminal_deadline_seconds=300,
         )
