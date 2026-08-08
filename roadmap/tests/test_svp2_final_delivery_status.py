@@ -23,10 +23,11 @@ C01_COMPLETION = ROOT / "docs" / "roadmap" / "SVP2-C-01-completion-as-built.md"
 D01_COMPLETION = ROOT / "docs" / "roadmap" / "SVP2-D-01-completion-as-built.md"
 E01_COMPLETION = ROOT / "docs" / "roadmap" / "SVP2-E-01-completion-as-built.md"
 H01_COMPLETION = ROOT / "docs" / "roadmap" / "SVP2-H-01-completion-as-built.md"
+I01_COMPLETION = ROOT / "docs" / "roadmap" / "SVP2-I-01-completion-as-built.md"
 
 COMPLETED = {
     "SVP2-A-01", "SVP2-A-02", "SVP2-A-03", "SVP2-B-02", "SVP2-B-03", "SVP2-C-01",
-    "SVP2-D-01", "SVP2-E-01", "SVP2-E-02", "SVP2-H-01", "SVP2-J-01",
+    "SVP2-D-01", "SVP2-E-01", "SVP2-E-02", "SVP2-H-01", "SVP2-I-01", "SVP2-J-01",
 }
 IMPLEMENTING = {
     "SVP2-B-01",
@@ -35,7 +36,6 @@ IMPLEMENTING = {
     "SVP2-F-01",
     "SVP2-F-02",
     "SVP2-G-01",
-    "SVP2-I-01",
     "SVP2-J-02",
     "SVP2-K-01",
     "SVP2-L-01",
@@ -65,7 +65,7 @@ def test_runtime_heavy_epics_without_done_evidence_are_not_falsely_completed() -
     epics = _epics()
     runtime_heavy = {
         "SVP2-B-01", "SVP2-C-02", "SVP2-D-02",
-        "SVP2-F-01", "SVP2-F-02", "SVP2-G-01", "SVP2-I-01",
+        "SVP2-F-01", "SVP2-F-02", "SVP2-G-01",
         "SVP2-J-02", "SVP2-K-01", "SVP2-L-01",
     }
     assert all(epics[epic_id]["status"] == "implementing" for epic_id in runtime_heavy)
@@ -265,4 +265,21 @@ def test_h01_delivery_completion_is_governance_only_and_non_executable() -> None
     assert "production content execution/deployment: **`NOT_RUN`**" in completion
     assert "external content sync/scheduler: **`NOT_RUN`**" in completion
     assert "production promotion: **`NOT_RUN`**" in completion
+    assert "DOD-10" in completion
+
+
+def test_i01_delivery_completion_preserves_domain_and_production_nonclaims() -> None:
+    epic = _epics()["SVP2-I-01"]
+    completion = I01_COMPLETION.read_text(encoding="utf-8")
+    assert epic["status"] == "completed"
+    assert "status:completed" in epic["labels"]
+    assert "docs/roadmap/SVP2-I-01-completion-as-built.md" in epic["references"]
+    assert "Lab Schema v2 isolation contract: **`PASS`**" in completion
+    assert "three-state + positive/negative control family contract: **`PASS`**" in completion
+    assert "deterministic reset attestation: **`PASS_CONTROLLED_CI`**" in completion
+    assert "controlled Docker reset/recreation: **`PASS_CONTROLLED_CI`**" in completion
+    assert "controlled zero-residue verification: **`PASS_CONTROLLED_CI`**" in completion
+    assert "migration of every legacy lab: **`NOT_CLAIMED`**" in completion
+    assert "production container/Kubernetes/VM/cloud/mobile/identity/IoT-OT/hardware labs: **`NOT_RUN`**" in completion
+    assert "production lab orchestration/remediation: **`NOT_RUN`**" in completion
     assert "DOD-10" in completion

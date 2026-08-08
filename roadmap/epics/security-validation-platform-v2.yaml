@@ -558,7 +558,7 @@ epics:
     pillar: I
     priority: P0
     phase: 6
-    status: implementing
+    status: completed
     rationale: >-
       Um laboratorio por CVE e insustentavel e o isolamento fraco cria risco real no
       host que suporta a plataforma.
@@ -582,9 +582,10 @@ epics:
     risks:
       - Migracao dos laboratorios existentes para o novo schema
       - Custo de manter variantes multiplas por familia
-    labels: [roadmap, architecture, "pillar:I", "priority:P0", "runtime:docker", "status:implementing", "type:epic"]
+    labels: [roadmap, architecture, "pillar:I", "priority:P0", "runtime:docker", "status:completed", "type:epic"]
     references:
       - docs/architecture/continuous-content-factories.md
+      - docs/roadmap/SVP2-I-01-completion-as-built.md
 
   - id: SVP2-J-01
     title: Auditable risk scoring and finding lifecycle
