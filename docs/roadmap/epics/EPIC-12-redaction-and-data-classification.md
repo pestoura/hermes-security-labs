@@ -34,7 +34,8 @@ Current factual boundary:
 - derived lineage into local store: `PASS_CONTROLLED_CI`;
 - free-text/heuristic secret discovery: `NOT_CLAIMED`;
 - redaction before persistence of sensitive source material: `NOT_RUN`;
-- production redaction/publication enforcement: `NOT_RUN`;
+- Production redaction: `NOT_IMPLEMENTED` / `NOT_RUN`;
+- production publication enforcement: `NOT_IMPLEMENTED` / `NOT_RUN`;
 - telemetry/report coverage: `NOT_RUN`;
 - Human-in-the-Loop publication review: `NOT_RUN`.
 
@@ -126,6 +127,7 @@ Delivered so far:
 Still pending:
 
 - redaction-before-persistence boundary for source material;
+- Production redaction integration;
 - production telemetry/report integration;
 - customer publication/export path;
 - Human-in-the-Loop publication approval evidence;
@@ -145,7 +147,7 @@ Not yet demonstrated:
 
 - no credential/token/cookie value is ever persisted from a sensitive source: the current #219 integration deliberately stores only synthetic source fixtures before derivation, so redaction-before-persistence is still `NOT_RUN`;
 - all telemetry/report persistence paths apply the same classification/redaction policy;
-- production publication/review enforcement.
+- Production redaction and publication/review enforcement remain `NOT_IMPLEMENTED` / `NOT_RUN`.
 
 ## 12. Evidence and validation plan
 
@@ -186,7 +188,7 @@ Next evidence must prove that structured sensitive source material is transforme
 - PR #141 integrated classification, non-exportability, metadata refusal and derived-evidence lineage constraints.
 - PR #219 integrated deterministic structured redaction and synthetic canary coverage.
 - All #219 values are synthetic test canaries; no customer payload or credential was used.
-- Production/deployed redaction remains `NOT_RUN`.
+- Production redaction and deployed publication remain `NOT_IMPLEMENTED` / `NOT_RUN`.
 
 ## 15. As-built / final architecture
 
@@ -201,8 +203,9 @@ Current state:
 - derived local-store lineage: `PASS_CONTROLLED_CI`;
 - free-text secret discovery: `NOT_CLAIMED`;
 - redaction before persistence: `NOT_RUN`;
+- Production redaction: `NOT_IMPLEMENTED` / `NOT_RUN`;
 - telemetry/report integration: `NOT_RUN`;
-- publication review/enforcement: `NOT_RUN`;
+- publication review/enforcement: `NOT_IMPLEMENTED` / `NOT_RUN`;
 - deployed runtime: `NO_RUNTIME_CHANGE`.
 
 `AS_BUILT` for the complete concept remains false and `FINAL` remains false.
@@ -213,4 +216,4 @@ Current state:
 | --- | --- | --- |
 | 2026-08-06 | 1.0.0 | Initial intent document created from the concept epic catalogue. |
 | 2026-08-07 | 1.1.0 | Reconciled lifecycle to IMPLEMENTING against PR #141 while preserving production redaction/persistence/publication claims as NOT_IMPLEMENTED/NOT_RUN. |
-| 2026-08-08 | 1.2.0 | Record PR #219 deterministic structured-redaction evidence and explicitly preserve redaction-before-persistence, telemetry/report and publication boundaries as NOT_RUN. |
+| 2026-08-08 | 1.2.0 | Record PR #219 deterministic structured-redaction evidence and explicitly preserve redaction-before-persistence, Production redaction, telemetry/report and publication boundaries as NOT_IMPLEMENTED/NOT_RUN. |
