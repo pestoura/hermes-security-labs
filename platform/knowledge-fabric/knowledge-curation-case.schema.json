@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hex0r.local/schemas/knowledge-curation-case-v1.json",
+  "title": "Knowledge Curation Case",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "case_id", "knowledge_snapshot_id", "finding_type", "subject_ref", "candidate_source_record_ids", "rationale", "state", "automatic_resolution", "execution_authority"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "case_id": {"type": "string", "pattern": "^kqcase_[a-f0-9]{32}$"},
+    "knowledge_snapshot_id": {"type": "string", "pattern": "^ks_[a-f0-9]{32}$"},
+    "finding_type": {"enum": ["CONFLICT", "LOW_CONFIDENCE", "STALE", "INCOMPLETE"]},
+    "subject_ref": {"type": "string", "minLength": 1},
+    "candidate_source_record_ids": {"type": "array", "minItems": 1, "maxItems": 64, "uniqueItems": true, "items": {"type": "string", "pattern": "^kr_[a-f0-9]{32}$"}},
+    "rationale": {"type": "string", "minLength": 1},
+    "state": {"const": "OPEN"},
+    "automatic_resolution": {"const": false},
+    "execution_authority": {"const": "NONE"}
+  }
+}
