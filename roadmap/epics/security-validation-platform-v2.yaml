@@ -404,7 +404,7 @@ epics:
     pillar: E
     priority: P1
     phase: 5
-    status: implementing
+    status: completed
     rationale: >-
       Resultados so sao interpretaveis contra o estado de conhecimento em que foram
       produzidos, o que exige snapshots e consultas estaveis.
@@ -424,9 +424,10 @@ epics:
     effort: L
     risks:
       - Crescimento de snapshots sem politica de retencao
-    labels: [roadmap, architecture, "pillar:E", "priority:P1", "status:implementing", "type:epic"]
+    labels: [roadmap, architecture, "pillar:E", "priority:P1", "status:completed", "type:epic"]
     references:
       - docs/architecture/security-knowledge-fabric.md
+      - docs/roadmap/SVP2-E-02-completion-as-built.md
 
   - id: SVP2-F-01
     title: Threat profiles adversary emulation plans and attack graph
