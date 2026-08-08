@@ -83,11 +83,21 @@ def test_policy_fails_closed_on_unexpected_writable_path() -> None:
         validate_runtime_policy(policy)
 
 
-def test_runtime_observations_remain_not_run() -> None:
-    assert _policy()["runtime_status"] == {
-        "image_build": "NOT_RUN",
-        "container_start": "NOT_RUN",
-        "non_root_observation": "NOT_RUN",
-        "read_only_root_observation": "NOT_RUN",
-        "capability_drop_observation": "NOT_RUN",
+def test_runtime_observations_are_scoped_to_controlled_ci_candidate() -> None:
+    policy = _policy()
+    assert policy["runtime_status"] == {
+        "image_build": "PASS_CONTROLLED_CI",
+        "container_start": "PASS_CONTROLLED_CI",
+        "non_root_observation": "PASS_CONTROLLED_CI",
+        "read_only_root_observation": "PASS_CONTROLLED_CI",
+        "capability_drop_observation": "PASS_CONTROLLED_CI",
+    }
+    assert policy["runtime_evidence"] == {
+        "boundary": "controlled_ci_candidate",
+        "technical_pr": 215,
+        "merge_sha": "75208c271e9e2a2caa836e4c4a9385d290ff2e07",
+        "network_mode": "none",
+        "security_tool_execution": "NOT_RUN",
+        "image_publication": "NOT_RUN",
+        "hermes_deployment": "NOT_RUN",
     }
