@@ -99,7 +99,7 @@ epics:
     pillar: A
     priority: P0
     phase: 1
-    status: implementing
+    status: completed
     rationale: >-
       Sem um contrato de autorizacao legivel por maquina nao e possivel recusar
       deterministicamente passos fora de ambito nem sustentar acoes de alto impacto.
@@ -120,9 +120,10 @@ epics:
     risks:
       - Contrato demasiado rigido bloquear operacao legitima
       - Ambiguidade na definicao de nivel levar a subclassificacao de risco
-    labels: [roadmap, architecture, "pillar:A", "priority:P0", "impact:L4", "status:implementing", "type:epic"]
+    labels: [roadmap, architecture, "pillar:A", "priority:P0", "impact:L4", "status:completed", "type:epic"]
     references:
       - docs/architecture/security-validation-reference-architecture.md
+      - docs/roadmap/SVP2-A-02-completion-as-built.md
 
   - id: SVP2-A-03
     title: Governance labels definition of ready done and release roadmap
