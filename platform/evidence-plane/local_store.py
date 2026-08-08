@@ -78,7 +78,9 @@ class LocalEvidenceStore:
     """Local reference persistence boundary for controlled CI evidence.
 
     This store intentionally does not claim encryption, WORM semantics, object-storage
-    durability, retention deletion, customer export or production readiness.
+    durability, retention deletion, customer export or production readiness. Record
+    sidecars detect accidental or single-file metadata tampering; they are not a claim
+    of protection against an actor with write access to the complete store.
     """
 
     def __init__(self, root: str | Path) -> None:
@@ -90,6 +92,12 @@ class LocalEvidenceStore:
         for path in (self.root, self.objects, self.records):
             path.mkdir(parents=True, exist_ok=True)
             os.chmod(path, 0o700)
+
+    def _record_path(self, evidence_id: str) -> Path:
+        return self.records / f"{evidence_id}.json"
+
+    def _record_digest_path(self, evidence_id: str) -> Path:
+        return self.records / f"{evidence_id}.sha256"
 
     def put(self, record: Mapping[str, Any], payload: bytes) -> str:
         _validate_record_shape(record)
@@ -132,15 +140,18 @@ class LocalEvidenceStore:
             raise LocalEvidenceStoreError("raw/restricted evidence cannot claim derived lineage")
 
         object_path = self.objects / digest[:2] / digest
-        record_path = self.records / f"{evidence_id}.json"
+        record_path = self._record_path(evidence_id)
+        record_payload = _canonical_json(record)
+        record_digest = _sha256(record_payload).encode("ascii")
         _atomic_create(object_path, payload, mode=0o600)
-        _atomic_create(record_path, _canonical_json(record), mode=0o600)
+        _atomic_create(record_path, record_payload, mode=0o600)
+        _atomic_create(self._record_digest_path(evidence_id), record_digest, mode=0o600)
         return evidence_id
 
     def get_record(self, evidence_id: str) -> dict[str, Any]:
         if not EVIDENCE_ID.fullmatch(evidence_id):
             raise LocalEvidenceStoreError("invalid evidence_id")
-        path = self.records / f"{evidence_id}.json"
+        path = self._record_path(evidence_id)
         try:
             record = json.loads(path.read_bytes())
         except (OSError, json.JSONDecodeError) as exc:
@@ -153,6 +164,12 @@ class LocalEvidenceStore:
     def verify(self, evidence_id: str) -> bool:
         try:
             record = self.get_record(evidence_id)
+            record_digest = self._record_digest_path(evidence_id).read_text(encoding="ascii")
+            if not SHA256.fullmatch(record_digest):
+                return False
+            if _sha256(_canonical_json(record)) != record_digest:
+                return False
+
             content = record["content"]
             digest = content.get("sha256")
             size = content.get("size_bytes")
@@ -172,7 +189,7 @@ class LocalEvidenceStore:
                 if not self.verify(parent_id):
                     return False
             return True
-        except (LocalEvidenceStoreError, OSError):
+        except (LocalEvidenceStoreError, OSError, UnicodeError):
             return False
 
     def replay_descriptor(self, evidence_id: str) -> dict[str, Any]:
