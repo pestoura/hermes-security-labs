@@ -79,11 +79,22 @@ def _validate_fresh_candidate(candidate: Mapping[str, Any]) -> None:
     if candidate.get("duplicate_of") is not None:
         raise ReviewLedgerError("duplicate classification is ledger-owned")
     seed = _candidate_seed(candidate)
-    expected = f"cc_{factory._digest(seed)[:32]}"  # same identity contract as build_candidate
+    expected = f"cc_{factory._digest(seed)[:32]}"
     if candidate.get("candidate_id") != expected:
         raise ReviewLedgerError("candidate identity does not match canonical content")
-    # Reuse the existing contract as the semantic validator.
     factory.promotion_failures(candidate, target="LAB_VALIDATED")
+
+
+def _review_identity(receipt: Mapping[str, Any]) -> str:
+    unsigned = dict(receipt)
+    unsigned.pop("review_receipt_id", None)
+    return f"rv_{hashlib.sha256(_canonical(unsigned)).hexdigest()[:32]}"
+
+
+def _promotion_identity(receipt: Mapping[str, Any]) -> str:
+    unsigned = dict(receipt)
+    unsigned.pop("promotion_receipt_id", None)
+    return f"pm_{hashlib.sha256(_canonical(unsigned)).hexdigest()[:32]}"
 
 
 class LocalReviewLedger:
@@ -163,15 +174,16 @@ class LocalReviewLedger:
             "auto_merge": False,
             "execution_authority": "NONE",
         }
-        receipt_id = f"rv_{hashlib.sha256(_canonical(receipt)).hexdigest()[:32]}"
-        receipt["review_receipt_id"] = receipt_id
-        _atomic_create(self.reviews / f"{receipt_id}.json", _canonical(receipt))
+        receipt["review_receipt_id"] = _review_identity(receipt)
+        _atomic_create(self.reviews / f"{receipt['review_receipt_id']}.json", _canonical(receipt))
         return receipt
 
     def promote(self, candidate_id: str, *, target: str, review_receipt_id: str) -> dict[str, Any]:
         if target not in PROMOTION_TARGETS:
             raise ReviewLedgerError("unsupported controlled promotion target")
         candidate = self._candidate(candidate_id)
+        if not self.verify_review(review_receipt_id):
+            raise ReviewLedgerError("review receipt integrity verification failed")
         review = self._receipt(self.reviews, review_receipt_id)
         if review.get("candidate_id") != candidate_id or review.get("candidate_sha256") != _sha(candidate):
             raise ReviewLedgerError("review receipt is not bound to candidate")
@@ -194,16 +206,37 @@ class LocalReviewLedger:
             "execution_authority": "NONE",
             "promoted_candidate_sha256": _sha(promoted),
         }
-        promotion_id = f"pm_{hashlib.sha256(_canonical(receipt)).hexdigest()[:32]}"
-        receipt["promotion_receipt_id"] = promotion_id
-        _atomic_create(self.promotions / f"{promotion_id}.json", _canonical(receipt))
+        receipt["promotion_receipt_id"] = _promotion_identity(receipt)
+        _atomic_create(self.promotions / f"{receipt['promotion_receipt_id']}.json", _canonical(receipt))
         return receipt
 
     def verify_review(self, review_receipt_id: str) -> bool:
         try:
             review = self._receipt(self.reviews, review_receipt_id)
+            if review.get("review_receipt_id") != review_receipt_id:
+                return False
+            if _review_identity(review) != review_receipt_id:
+                return False
+            if review.get("decision") not in DECISIONS or review.get("auto_merge") is not False:
+                return False
+            if review.get("execution_authority") != "NONE":
+                return False
             candidate = self._candidate(str(review["candidate_id"]))
-            return review.get("candidate_sha256") == _sha(candidate) and review.get("auto_merge") is False
+            return review.get("candidate_sha256") == _sha(candidate)
+        except (ReviewLedgerError, KeyError, OSError, json.JSONDecodeError):
+            return False
+
+    def verify_promotion(self, promotion_receipt_id: str) -> bool:
+        try:
+            receipt = self._receipt(self.promotions, promotion_receipt_id)
+            return (
+                receipt.get("promotion_receipt_id") == promotion_receipt_id
+                and _promotion_identity(receipt) == promotion_receipt_id
+                and receipt.get("result") == "PROMOTION_ELIGIBLE"
+                and receipt.get("auto_merge") is False
+                and receipt.get("execution_authority") == "NONE"
+                and self.verify_review(str(receipt["review_receipt_id"]))
+            )
         except (ReviewLedgerError, KeyError, OSError, json.JSONDecodeError):
             return False
 
