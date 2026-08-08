@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hexor.local/schemas/verified-active-attempt-inventory-ref.schema.json",
+  "title": "Verified Active Runner Attempt Inventory Reference",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "verification_id", "attestation_id", "inventory_id",
+    "source_instance_id", "source_sequence", "verified_at", "source_authenticity",
+    "inventory_freshness", "source_completeness", "authorization_effect",
+    "execution_authority", "limitations"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "verification_id": {"type": "string", "pattern": "^raiver_[a-f0-9]{32}$"},
+    "attestation_id": {"type": "string", "pattern": "^raiatt_[a-f0-9]{32}$"},
+    "inventory_id": {"type": "string", "pattern": "^raiinv_[a-f0-9]{32}$"},
+    "source_instance_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "source_sequence": {"type": "integer", "minimum": 1},
+    "verified_at": {"type": "string", "format": "date-time"},
+    "source_authenticity": {"const": "EXTERNALLY_VERIFIED"},
+    "inventory_freshness": {"const": "FRESH"},
+    "source_completeness": {"const": "SOURCE_DECLARED_COMPLETE_NOT_INDEPENDENTLY_VERIFIED"},
+    "authorization_effect": {"const": "NONE"},
+    "execution_authority": {"const": "NONE"},
+    "limitations": {
+      "type": "array",
+      "minItems": 3,
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    }
+  }
+}
