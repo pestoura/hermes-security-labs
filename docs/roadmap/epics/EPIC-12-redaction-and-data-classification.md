@@ -10,14 +10,14 @@
 | Phase | 2 |
 | Priority | P0 |
 | Delivery umbrella | `SVP2-D-01` (issue [#84](https://github.com/pestoura/hermes-security-labs/issues/84)) |
-| Document version | 1.1.0 |
-| Document date | 2026-08-07 |
+| Document version | 1.2.0 |
+| Document date | 2026-08-08 |
 | Catalogue | [Epic catalogue 45](../epic-catalogue-45.md) |
 | Lifecycle contract | [Architecture documentation lifecycle](../../architecture/architecture-documentation-lifecycle.md) |
 
 ## 2. Current status
 
-**IMPLEMENTING** — PR #141 integrated repository-level classification and redaction constraints inside the Evidence Plane v2 contract. Production redaction and publication enforcement remain unimplemented/unexecuted.
+**IMPLEMENTING** — PR #141 integrated repository-level classification/redaction constraints. PR #219 added a deterministic structured redaction engine exercised with synthetic fixtures and integrated with the controlled local Evidence Plane store. The engine removes explicitly sensitive classes, overrides sensitive field names even when misclassified as safe, rejects unknown shapes/classifications and preserves source-digest lineage for derived evidence.
 
 | Lifecycle state | Reached |
 | --- | --- |
@@ -26,17 +26,17 @@
 | AS_BUILT | no |
 | FINAL | no |
 
-Implemented contract state:
+Current factual boundary:
 
-- evidence classification is mandatory as `raw`, `restricted`, `sanitized` or `summary`;
-- sanitized/summary records require parent linkage and redaction lineage;
-- raw/restricted evidence is non-exportable by default;
-- secret-bearing metadata is refused;
-- raw commands and raw stdout/stderr are refused from record metadata;
-- replay descriptors exclude payload bytes and carry identifiers, provenance and hashes only;
-- derived evidence validation fails closed on source-hash mismatch.
-
-Production redaction at emission/persistence/publication, review workflow, telemetry/report coverage and real storage enforcement remain `NOT_IMPLEMENTED` or `NOT_RUN`.
+- evidence classification contract: implemented;
+- structured label-driven redaction: `PASS_CONTROLLED_CI`;
+- sensitive-name override: `PASS_CONTROLLED_CI`;
+- derived lineage into local store: `PASS_CONTROLLED_CI`;
+- free-text/heuristic secret discovery: `NOT_CLAIMED`;
+- redaction before persistence of sensitive source material: `NOT_RUN`;
+- production redaction/publication enforcement: `NOT_RUN`;
+- telemetry/report coverage: `NOT_RUN`;
+- Human-in-the-Loop publication review: `NOT_RUN`.
 
 ## 3. Problem and motivation
 
@@ -54,88 +54,158 @@ A data classification scheme with enforced redaction at emission and clear rules
 - Redaction rules and enforcement points
 - Prohibited persistence list
 - Review procedure for sanitized publication
+- Controlled deterministic redaction for explicitly classified structured evidence
 
-### Non-goals
+### Non-goals of the current controlled engine
 
 - Weakening existing prohibitions on secrets in the repository
+- Claiming heuristic detection of arbitrary secrets embedded in free text
+- Processing customer evidence or credentials in CI
+- Claiming redaction-before-persistence until that specific boundary is demonstrated
 
 ## 6. Intent architecture
 
 Classification is assigned at production time; redaction is applied before persistence and again before publication, with the stricter rule winning.
 
+The currently implemented controlled engine demonstrates the transformation itself and the derived lineage boundary, but the technical #219 fixture persists its synthetic source before derivation. Therefore it is evidence for deterministic structured redaction, not yet evidence that production-sensitive source material is always redacted before persistence.
+
 ## 7. Contracts, data and capabilities
 
-- Classification labels
-- Redaction rule set
-- Publication approval record
+Canonical implementation:
 
-Contracts are canonical in Git. Where this epic reuses a platform-wide contract, the canonical definition lives in the [reference architecture](../../architecture/security-validation-reference-architecture.md) and in [EPIC-01](EPIC-01-architecture-and-canonical-contracts.md); this document references it instead of restating it.
+- `platform/evidence-plane/evidence-policy.yaml`;
+- `platform/evidence-plane/evidence_plane.py`;
+- `platform/evidence-plane/local_store.py`;
+- `platform/evidence-plane/redaction.py`.
+
+The structured redactor accepts only the canonical envelope `schema_version + fields`. Every field must declare `name`, `classification` and `value`.
+
+Safe field classifications are limited to `public` and `operational`. Sensitive classes include `secret`, `credential`, `token`, `cookie`, `personal_data`, `customer_data`, `raw_command` and `raw_output`.
+
+Sensitive field names and compound names such as token/cookie/password-bearing keys are removed even when a caller mislabels them as safe. Sensitive nested keys in retained structures fail closed. Unknown classifications, duplicate fields, unsupported shapes and excessive nesting fail closed.
+
+The engine does not infer execution authority. Redaction metadata and evidence records are descriptive only and never grant or expand authorization.
 
 ## 8. Dependencies and sequencing
 
 - [EPIC-10 — Evidence Plane](EPIC-10-evidence-plane.md)
 
-Sequencing follows the phase model in the [intent document](../../architecture/security-validation-platform-v2-intent.md). This epic is planned for phase 2.
+PR #217 delivered the controlled local persistence boundary consumed by the PR #219 redaction integration tests. The next dependency-safe block is redaction-before-persistence for structured source material, so synthetic sensitive canaries are transformed before any persistent object is created.
 
 ## 9. Security, risks and failure modes
 
 - Over-redaction destroying analytic value
 - Redaction bypass through new output paths
 - Classification mismatch between evidence, telemetry and reports
-- Treating schema-level refusal as proof of production redaction coverage
+- Treating label-driven redaction as heuristic discovery of secrets in arbitrary text
+- Sensitive field names being deliberately misclassified as safe
+- Persisting source material before applying the redaction boundary
+- Treating controlled CI evidence as production redaction coverage
 
 Platform-wide invariants that this epic must not weaken:
 
 - absence of evidence never produces a `PASS` verdict;
 - no execution outside an active authorization contract;
-- no secrets, tokens, cookies or raw credential material in documentation, telemetry or persisted evidence;
-- no target outside registered laboratories.
+- no secrets, tokens, cookies or raw credential material in documentation or telemetry;
+- no target outside registered laboratories;
+- unknown classification or redaction shape fails closed;
+- derived evidence does not become authorization.
 
 ## 10. Deliverables
 
-- Classification and redaction specification
+Delivered so far:
+
+- classification and redaction specification;
+- deterministic structured redaction engine;
+- fail-closed field/classification/shape validation;
+- synthetic canary tests for credential/token/cookie/raw-output classes;
+- sensitive-name override tests including compound names;
+- deterministic output tests;
+- local Evidence Plane parent/source-digest lineage integration.
+
+Still pending:
+
+- redaction-before-persistence boundary for source material;
+- production telemetry/report integration;
+- customer publication/export path;
+- Human-in-the-Loop publication approval evidence;
+- any free-text secret-discovery capability, if ever adopted.
 
 ## 11. Acceptance criteria
 
-- Every persisted artefact carries a classification label
-- No credential, token or cookie value is persisted
+Partially demonstrated:
 
-These criteria are only partially represented at contract level. Real persistence paths and publication/export boundaries still require operational validation before `AS_BUILT` or `FINAL`.
+- persisted Evidence Plane records carry a classification label by contract;
+- the structured redactor removes classified credential/token/cookie fields from its derived payload;
+- sensitive names are removed even when explicitly misclassified as `public`;
+- derived payloads preserve verified parent/source-digest lineage;
+- raw/restricted evidence remains non-exportable by default.
+
+Not yet demonstrated:
+
+- no credential/token/cookie value is ever persisted from a sensitive source: the current #219 integration deliberately stores only synthetic source fixtures before derivation, so redaction-before-persistence is still `NOT_RUN`;
+- all telemetry/report persistence paths apply the same classification/redaction policy;
+- production publication/review enforcement.
 
 ## 12. Evidence and validation plan
 
-- Contract/schema and adversarial tests from PR #141
-- Future redaction rule coverage matrix across evidence, telemetry and reports
-- Future storage/export tests demonstrating secret-bearing material is refused or redacted
-- Future Human-in-the-Loop publication review evidence where required
+Current evidence:
+
+- PR #141 — contract/schema constraints;
+- PR #219 validated head `1e694b6ab4303e55ac671a3721e461018dfcb045`;
+- PR #219 `security` run `31266256283`: PASS;
+- PR #219 `validate` run `31266256292`: PASS;
+- PR #219 squash merge `383d60479f5874ac103fe3a74654e85690be19d0`;
+- post-merge `security` run `31266367567`: PASS;
+- post-merge `validate` run `31266367331`: PASS.
+
+Next evidence must prove that structured sensitive source material is transformed in memory before any local persistence occurs, and that the persisted lineage contains only a safe source manifest/digest plus the derived sanitized payload.
 
 ## 13. Decisions and open questions
 
 ### Decisions taken
 
-- Unclassified or unsupported evidence never receives a permissive export path.
+- Unclassified or unsupported evidence never receives a permissive path.
 - Raw/restricted evidence is non-exportable by default.
-- Derived evidence must preserve parent/redaction lineage.
+- Derived evidence preserves parent/redaction lineage.
+- The controlled redactor is label-driven, not heuristic free-text discovery.
+- Sensitive-name overrides are fail-closed even when classification is falsely permissive.
+- PR #219 is not sufficient evidence for redaction-before-persistence because its raw source fixture is persisted in the disposable CI store.
 
 ### Open questions
 
-- Whether hashes of secrets are acceptable for correlation
+- Whether hashes of real secrets are acceptable for correlation in production policy
 - Canonical cross-plane classification labels for telemetry and reports
 - Publication review workflow and retention of approval evidence
+- Whether a future free-text detector is needed or explicit structured classification is sufficient for the MVP
 
 ## 14. Implementation notes
 
 > Reserved. Populate during implementation with pull request references, deviations from intent, and decisions taken while building. Do not delete this heading.
 
 - PR #141 integrated classification, non-exportability, metadata refusal and derived-evidence lineage constraints.
-- Production redaction and publication/export enforcement were deliberately not activated.
-- `NO_RUNTIME_CHANGE`.
+- PR #219 integrated deterministic structured redaction and synthetic canary coverage.
+- All #219 values are synthetic test canaries; no customer payload or credential was used.
+- Production/deployed redaction remains `NOT_RUN`.
 
 ## 15. As-built / final architecture
 
-> Reserved. Populate when the delivery umbrella reaches completion. Must record what was actually built, evidence links, and every divergence from sections 6 to 11. No umbrella may be closed while this section is empty.
+> Reserved. This section records the current controlled boundary but remains non-final.
 
-_Not final. Production redaction, persistence, telemetry/report coverage and publication review/enforcement remain to be implemented and evidenced._
+Current state:
+
+- classification contract: implemented;
+- structured redaction engine: `PASS_CONTROLLED_CI`;
+- sensitive classes removed from derived payload: `PASS_CONTROLLED_CI`;
+- sensitive-name override: `PASS_CONTROLLED_CI`;
+- derived local-store lineage: `PASS_CONTROLLED_CI`;
+- free-text secret discovery: `NOT_CLAIMED`;
+- redaction before persistence: `NOT_RUN`;
+- telemetry/report integration: `NOT_RUN`;
+- publication review/enforcement: `NOT_RUN`;
+- deployed runtime: `NO_RUNTIME_CHANGE`.
+
+`AS_BUILT` for the complete concept remains false and `FINAL` remains false.
 
 ## 16. Document change log
 
@@ -143,3 +213,4 @@ _Not final. Production redaction, persistence, telemetry/report coverage and pub
 | --- | --- | --- |
 | 2026-08-06 | 1.0.0 | Initial intent document created from the concept epic catalogue. |
 | 2026-08-07 | 1.1.0 | Reconciled lifecycle to IMPLEMENTING against PR #141 while preserving production redaction/persistence/publication claims as NOT_IMPLEMENTED/NOT_RUN. |
+| 2026-08-08 | 1.2.0 | Record PR #219 deterministic structured-redaction evidence and explicitly preserve redaction-before-persistence, telemetry/report and publication boundaries as NOT_RUN. |
