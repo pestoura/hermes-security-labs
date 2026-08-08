@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from typing import Any
 
 RECONSTRUCTABLE_CLASSIFICATIONS = {"sanitized", "summary"}
+SAFE_POLICY_ID = re.compile(r"^[A-Za-z0-9._:-]{1,128}$")
 
 
 class ReconstructionError(ValueError):
@@ -36,6 +38,9 @@ def reconstruct_verified_result(store: Any, evidence_id: str) -> tuple[bytes, di
     redaction = record.get("redaction")
     if not isinstance(parent_id, str) or not isinstance(redaction, dict):
         raise ReconstructionError("derived lineage is required")
+    policy_id = redaction.get("policy_id")
+    if not isinstance(policy_id, str) or not SAFE_POLICY_ID.fullmatch(policy_id):
+        raise ReconstructionError("bounded redaction policy identity is required")
     if not store.verify(parent_id):
         raise ReconstructionError("parent evidence integrity verification failed")
 
@@ -57,6 +62,7 @@ def reconstruct_verified_result(store: Any, evidence_id: str) -> tuple[bytes, di
         "schema_version": "1.0",
         "mode": "verified_stored_result_reconstruction",
         "execution_replayed": False,
+        "authorization_replayed": False,
         "evidence_id": evidence_id,
         "parent_evidence_id": parent_id,
         "correlation": descriptor["correlation"],
@@ -67,7 +73,7 @@ def reconstruct_verified_result(store: Any, evidence_id: str) -> tuple[bytes, di
         "payload_sha256": content["sha256"],
         "payload_size": content["size_bytes"],
         "parent_payload_sha256": parent_content["sha256"],
-        "redaction_policy_id": redaction.get("policy_id"),
+        "redaction_policy_id": policy_id,
     }
     receipt["receipt_sha256"] = hashlib.sha256(_canonical_bytes(receipt)).hexdigest()
     return payload, receipt
