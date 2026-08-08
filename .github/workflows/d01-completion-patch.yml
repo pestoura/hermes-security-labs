@@ -46,10 +46,10 @@ jobs:
           PY
           rm .github/workflows/d01-completion-patch.yml
           git diff --check
-          git diff --exit-code -- . ':!.github/workflows/d01-completion-patch.yml' >/dev/null && {
+          if git diff --quiet -- . ':!.github/workflows/d01-completion-patch.yml'; then
             echo 'Expected backlog change not found' >&2
             exit 1
-          }
+          fi
       - name: Commit guarded patch and self-removal
         run: |
           git config user.name github-actions[bot]
