@@ -242,7 +242,7 @@ def test_exact_inventory_digest_binding_detects_tampering() -> None:
     tampered = deepcopy(snapshot)
     tampered["attempts"][0]["grace_period_ms"] = 1
 
-    with pytest.raises(Exception):
+    with pytest.raises(cancellation.KillSwitchCancellationError):
         attestation.verify_inventory_attestation(
             attestation=signed,
             inventory=tampered,
