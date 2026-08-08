@@ -117,15 +117,26 @@ def test_replay_descriptor_contains_no_payload_or_storage_reference() -> None:
     }
 
 
-def test_policy_records_local_controlled_persistence_without_production_overclaim() -> None:
+def test_policy_records_controlled_local_evidence_boundaries_without_production_overclaim() -> None:
     policy = yaml.safe_load((EVIDENCE_DIR / "evidence-policy.yaml").read_text())
     assert policy["sharing_default"] == "deny"
     assert policy["classifications"]["raw"]["shareable"] is False
     assert policy["classifications"]["restricted"]["shareable"] is False
+    assert policy["redaction"]["controlled_structured_engine"] == {
+        "status": "PASS_CONTROLLED_CI",
+        "schema_version": "1.0",
+        "mode": "label_and_sensitive_name_fail_closed",
+        "technical_pr": 219,
+        "merge_sha": "383d60479f5874ac103fe3a74654e85690be19d0",
+        "free_text_secret_discovery": "NOT_CLAIMED",
+        "redaction_before_persistence": "NOT_RUN",
+    }
     assert policy["runtime_status"] == {
         "storage_backend": "PASS_LOCAL_CONTROLLED_CI",
         "local_integrity_replay": "PASS_CONTROLLED_CI",
         "local_export_boundary": "PASS_CONTROLLED_CI",
+        "structured_redaction": "PASS_CONTROLLED_CI",
+        "redaction_before_persistence": "NOT_RUN",
         "encryption_at_rest": "NOT_RUN",
         "immutable_store": "NOT_RUN",
         "retention_enforcement": "NOT_RUN",
@@ -137,6 +148,8 @@ def test_policy_records_local_controlled_persistence_without_production_overclai
         "boundary": "local_controlled_ci",
         "technical_pr": 217,
         "merge_sha": "aa589bbaa6ede9192963ff2a47244ab34309c1c6",
+        "redaction_pr": 219,
+        "redaction_merge_sha": "383d60479f5874ac103fe3a74654e85690be19d0",
         "backend": "local_content_addressed_filesystem",
         "object_storage": "NOT_RUN",
         "worm_storage": "NOT_RUN",
@@ -151,6 +164,7 @@ def test_repository_owns_all_contract_files() -> None:
         "evidence-policy.yaml",
         "evidence_plane.py",
         "local_store.py",
+        "redaction.py",
     }
     assert expected.issubset({path.name for path in EVIDENCE_DIR.iterdir()})
     for name in expected:
