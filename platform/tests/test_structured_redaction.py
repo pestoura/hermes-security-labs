@@ -98,9 +98,10 @@ def test_sensitive_classes_are_removed_and_safe_fields_are_deterministic() -> No
     assert metadata["source_sha256"] == sha256_hex(payload)
 
 
-def test_sensitive_name_override_removes_mislabeled_public_field() -> None:
+@pytest.mark.parametrize("field_name", ["token", "access_token", "session_cookie", "user_password", "api_key"])
+def test_sensitive_name_override_removes_mislabeled_public_field(field_name: str) -> None:
     payload = _source([
-        {"name": "token", "classification": "public", "value": "CANARY-MISLABEL"},
+        {"name": field_name, "classification": "public", "value": "CANARY-MISLABEL"},
         {"name": "status", "classification": "public", "value": "safe"},
     ])
     sanitized, metadata = redact_structured_payload(payload)
@@ -111,7 +112,7 @@ def test_sensitive_name_override_removes_mislabeled_public_field() -> None:
 
 def test_sensitive_nested_key_in_retained_field_fails_closed() -> None:
     payload = _source([
-        {"name": "details", "classification": "public", "value": {"token": "CANARY"}},
+        {"name": "details", "classification": "public", "value": {"access_token": "CANARY"}},
     ])
     with pytest.raises(RedactionError):
         redact_structured_payload(payload)
