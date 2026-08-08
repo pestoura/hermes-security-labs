@@ -1,0 +1,153 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hex0r.local/schemas/semantic-chain-v1.json",
+  "title": "Security Knowledge Fabric Semantic Chain",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "chain_id",
+    "schema_version",
+    "knowledge_snapshot_id",
+    "vulnerability_id",
+    "status",
+    "hops",
+    "gap",
+    "ambiguity",
+    "chain_confidence",
+    "minimum_confidence",
+    "quality",
+    "planning_effect",
+    "planning_recommendation",
+    "executable",
+    "execution_authority"
+  ],
+  "properties": {
+    "chain_id": {"type": "string", "pattern": "^sc_[a-f0-9]{32}$"},
+    "schema_version": {"const": "1.0"},
+    "knowledge_snapshot_id": {"type": "string", "pattern": "^ks_[a-f0-9]{32}$"},
+    "vulnerability_id": {"type": "string", "pattern": "^CVE-[0-9]{4}-[0-9]{4,}$"},
+    "status": {"enum": ["COMPLETE", "GAP", "AMBIGUOUS"]},
+    "hops": {
+      "type": "array",
+      "maxItems": 3,
+      "items": {"$ref": "#/$defs/hop"}
+    },
+    "gap": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/gap"}]},
+    "ambiguity": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/ambiguity"}]},
+    "chain_confidence": {"oneOf": [{"type": "null"}, {"type": "number", "minimum": 0.0, "maximum": 1.0}]},
+    "minimum_confidence": {"type": "number", "minimum": 0.0, "maximum": 1.0},
+    "quality": {"enum": ["MEETS_THRESHOLD", "BELOW_THRESHOLD", "INCOMPLETE"]},
+    "planning_effect": {"const": "ADVISORY_ONLY"},
+    "planning_recommendation": {"enum": ["ADVISORY_CANDIDATE", "REVIEW_REQUIRED"]},
+    "executable": {"const": false},
+    "execution_authority": {"const": "NONE"}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"status": {"const": "COMPLETE"}}},
+      "then": {
+        "properties": {
+          "hops": {"minItems": 3, "maxItems": 3},
+          "gap": {"type": "null"},
+          "ambiguity": {"type": "null"},
+          "chain_confidence": {"type": "number", "minimum": 0.0, "maximum": 1.0},
+          "quality": {"enum": ["MEETS_THRESHOLD", "BELOW_THRESHOLD"]}
+        }
+      }
+    },
+    {
+      "if": {"properties": {"status": {"const": "GAP"}}},
+      "then": {
+        "properties": {
+          "gap": {"$ref": "#/$defs/gap"},
+          "ambiguity": {"type": "null"},
+          "quality": {"const": "INCOMPLETE"},
+          "planning_recommendation": {"const": "REVIEW_REQUIRED"}
+        }
+      }
+    },
+    {
+      "if": {"properties": {"status": {"const": "AMBIGUOUS"}}},
+      "then": {
+        "properties": {
+          "gap": {"type": "null"},
+          "ambiguity": {"$ref": "#/$defs/ambiguity"},
+          "quality": {"const": "INCOMPLETE"},
+          "planning_recommendation": {"const": "REVIEW_REQUIRED"}
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "entity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "id"],
+      "properties": {
+        "type": {"enum": ["vulnerability", "cwe", "capec", "attack"]},
+        "id": {"type": "string", "minLength": 1, "maxLength": 128}
+      }
+    },
+    "hop": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["stage", "relation_id", "relation_kind", "from_entity", "to_entity", "confidence", "provenance_record_ids", "rationale"],
+      "properties": {
+        "stage": {"type": "integer", "minimum": 1, "maximum": 3},
+        "relation_id": {"type": "string", "pattern": "^sr_[a-f0-9]{32}$"},
+        "relation_kind": {"enum": ["VULNERABILITY_TO_CWE", "CWE_TO_CAPEC", "CAPEC_TO_ATTACK"]},
+        "from_entity": {"$ref": "#/$defs/entity"},
+        "to_entity": {"$ref": "#/$defs/entity"},
+        "confidence": {"type": "number", "minimum": 0.0, "maximum": 1.0},
+        "provenance_record_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": {"type": "string", "pattern": "^kr_[a-f0-9]{32}$"}
+        },
+        "rationale": {"type": "string", "minLength": 1}
+      }
+    },
+    "gap": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["stage", "relation_kind", "from_entity", "reason"],
+      "properties": {
+        "stage": {"type": "integer", "minimum": 1, "maximum": 3},
+        "relation_kind": {"enum": ["VULNERABILITY_TO_CWE", "CWE_TO_CAPEC", "CAPEC_TO_ATTACK"]},
+        "from_entity": {"$ref": "#/$defs/entity"},
+        "reason": {"const": "NO_MAPPING_IN_SNAPSHOT"}
+      }
+    },
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["relation_id", "to_entity", "confidence", "provenance_record_ids"],
+      "properties": {
+        "relation_id": {"type": "string", "pattern": "^sr_[a-f0-9]{32}$"},
+        "to_entity": {"$ref": "#/$defs/entity"},
+        "confidence": {"type": "number", "minimum": 0.0, "maximum": 1.0},
+        "provenance_record_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": {"type": "string", "pattern": "^kr_[a-f0-9]{32}$"}
+        }
+      }
+    },
+    "ambiguity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["stage", "relation_kind", "from_entity", "reason", "candidates"],
+      "properties": {
+        "stage": {"type": "integer", "minimum": 1, "maximum": 3},
+        "relation_kind": {"enum": ["VULNERABILITY_TO_CWE", "CWE_TO_CAPEC", "CAPEC_TO_ATTACK"]},
+        "from_entity": {"$ref": "#/$defs/entity"},
+        "reason": {"const": "MULTIPLE_MAPPINGS_IN_SNAPSHOT"},
+        "candidates": {"type": "array", "minItems": 2, "items": {"$ref": "#/$defs/candidate"}}
+      }
+    }
+  }
+}
