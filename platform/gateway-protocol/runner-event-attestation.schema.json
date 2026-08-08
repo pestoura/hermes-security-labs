@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hexor.local/schemas/runner-event-attestation.schema.json",
+  "title": "Runner Cancellation Event Attestation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "attestation_id", "trust_domain", "source_kind",
+    "source_instance_id", "source_sequence", "issued_at", "expires_at",
+    "previous_attestation_id", "message_type", "message_sha256",
+    "correlation", "signature"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "attestation_id": {"type": "string", "pattern": "^revt_[a-f0-9]{32}$"},
+    "trust_domain": {"const": "RUNNER_EVENT_ATTESTATION_V1"},
+    "source_kind": {"const": "RUNNER"},
+    "source_instance_id": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"},
+    "source_sequence": {"type": "integer", "minimum": 1},
+    "issued_at": {"type": "string", "format": "date-time"},
+    "expires_at": {"type": "string", "format": "date-time"},
+    "previous_attestation_id": {"type": ["string", "null"], "pattern": "^revt_[a-f0-9]{32}$"},
+    "message_type": {"enum": ["runner.cancellation.ack", "runner.outcome"]},
+    "message_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "correlation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["campaign_id", "run_id", "step_id", "attempt_id"],
+      "properties": {
+        "campaign_id": {"type": "string", "format": "uuid"},
+        "run_id": {"type": "string", "format": "uuid"},
+        "step_id": {"type": "string", "format": "uuid"},
+        "attempt_id": {"type": "string", "format": "uuid"}
+      }
+    },
+    "signature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key_id", "algorithm", "value"],
+      "properties": {
+        "key_id": {"type": "string", "minLength": 1, "maxLength": 128},
+        "algorithm": {"enum": ["Ed25519", "ECDSA-P256-SHA256"]},
+        "value": {"type": "string", "minLength": 1, "maxLength": 8192}
+      }
+    }
+  }
+}
