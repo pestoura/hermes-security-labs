@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hex0r.local/schemas/knowledge-quality-report-v1.json",
+  "title": "Knowledge Quality Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["quality_report_id", "schema_version", "knowledge_snapshot_id", "as_of", "quality_state", "completeness", "freshness", "confidence", "conflicts", "assurance_effect", "execution_authority", "limitations"],
+  "properties": {
+    "quality_report_id": {"type": "string", "pattern": "^kqr_[a-f0-9]{32}$"},
+    "schema_version": {"const": "1.0"},
+    "knowledge_snapshot_id": {"type": "string", "pattern": "^ks_[a-f0-9]{32}$"},
+    "as_of": {"type": "string", "format": "date-time"},
+    "quality_state": {"enum": ["QUALITY_POLICY_MET", "REVIEW_REQUIRED"]},
+    "completeness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["expected_record_count", "provided_record_count", "missing_record_ids", "ratio"],
+      "properties": {
+        "expected_record_count": {"type": "integer", "minimum": 1},
+        "provided_record_count": {"type": "integer", "minimum": 0},
+        "missing_record_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^kr_[a-f0-9]{32}$"}},
+        "ratio": {"type": "number", "minimum": 0.0, "maximum": 1.0}
+      }
+    },
+    "freshness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fresh_record_ids", "stale_record_ids", "policy_seconds"],
+      "properties": {
+        "fresh_record_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^kr_[a-f0-9]{32}$"}},
+        "stale_record_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^kr_[a-f0-9]{32}$"}},
+        "policy_seconds": {"type": "object", "minProperties": 1, "additionalProperties": {"type": "integer", "minimum": 1}}
+      }
+    },
+    "confidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["relation_count", "minimum", "maximum", "mean", "below_policy_count", "policy_minimum"],
+      "properties": {
+        "relation_count": {"type": "integer", "minimum": 0},
+        "minimum": {"oneOf": [{"type": "null"}, {"type": "number", "minimum": 0.0, "maximum": 1.0}]},
+        "maximum": {"oneOf": [{"type": "null"}, {"type": "number", "minimum": 0.0, "maximum": 1.0}]},
+        "mean": {"oneOf": [{"type": "null"}, {"type": "number", "minimum": 0.0, "maximum": 1.0}]},
+        "below_policy_count": {"type": "integer", "minimum": 0},
+        "policy_minimum": {"type": "number", "minimum": 0.0, "maximum": 1.0}
+      }
+    },
+    "conflicts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["total", "unresolved", "resolved"],
+      "properties": {
+        "total": {"type": "integer", "minimum": 0},
+        "unresolved": {"type": "integer", "minimum": 0},
+        "resolved": {"type": "integer", "minimum": 0}
+      }
+    },
+    "assurance_effect": {"const": "NONE"},
+    "execution_authority": {"const": "NONE"},
+    "limitations": {
+      "const": ["QUALITY_POLICY_MET_IS_NOT_A_SECURITY_VERDICT", "QUALITY_METRICS_DO_NOT_ESTABLISH_SOURCE_AUTHORITY", "ABSENCE_OF_QUALITY_FINDINGS_DOES_NOT_IMPLY_ASSURANCE"]
+    }
+  }
+}
