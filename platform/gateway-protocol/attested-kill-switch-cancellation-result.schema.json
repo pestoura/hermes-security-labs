@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hexor.local/schemas/attested-kill-switch-cancellation-result.schema.json",
+  "title": "Attested Kill Switch Cancellation Planning Result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "verified_inventory_ref", "cancellation_plan",
+    "dispatch_performed", "authorization_effect", "execution_authority"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "verified_inventory_ref": {
+      "$ref": "verified-active-attempt-inventory-ref.schema.json"
+    },
+    "cancellation_plan": {
+      "$ref": "kill-switch-cancellation-plan.schema.json"
+    },
+    "dispatch_performed": {"const": false},
+    "authorization_effect": {"const": "NONE"},
+    "execution_authority": {"const": "NONE"}
+  }
+}
