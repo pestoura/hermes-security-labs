@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hexor.local/schemas/cancellation-observation.schema.json",
+  "title": "Runner Cancellation Observation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "observation_id", "cancellation_request_sha256",
+    "correlation", "observed_at", "state", "ack_observed", "ack_status",
+    "terminal_outcome_observed", "outcome_status", "cancellation_result",
+    "transport_authenticity", "terminal_outcome_authenticity",
+    "dispatch_performed_by_observer", "authorization_effect",
+    "execution_authority", "limitations"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "observation_id": {"type": "string", "pattern": "^cobs_[a-f0-9]{32}$"},
+    "cancellation_request_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "correlation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["campaign_id", "run_id", "step_id", "attempt_id"],
+      "properties": {
+        "campaign_id": {"type": "string", "format": "uuid"},
+        "run_id": {"type": "string", "format": "uuid"},
+        "step_id": {"type": "string", "format": "uuid"},
+        "attempt_id": {"type": "string", "format": "uuid"}
+      }
+    },
+    "observed_at": {"type": "string", "format": "date-time"},
+    "state": {
+      "enum": [
+        "WAITING_ACK",
+        "ACK_TIMEOUT",
+        "WAITING_TERMINAL",
+        "TERMINAL_TIMEOUT",
+        "CANCELLED_DECLARED",
+        "TERMINAL_NON_CANCELLED_DECLARED",
+        "CANCELLED_DECLARED_WITHOUT_ACK",
+        "TERMINAL_NON_CANCELLED_DECLARED_WITHOUT_ACK",
+        "ALREADY_TERMINAL_CANCELLED_DECLARED",
+        "ALREADY_TERMINAL_NON_CANCELLED_DECLARED",
+        "NOT_FOUND_DECLARED",
+        "REFUSED_DECLARED"
+      ]
+    },
+    "ack_observed": {"type": "boolean"},
+    "ack_status": {"type": ["string", "null"], "enum": ["accepted", "already_terminal", "not_found", "refused", null]},
+    "terminal_outcome_observed": {"type": "boolean"},
+    "outcome_status": {"type": ["string", "null"], "enum": ["PASS", "FAIL", "ERROR", "CANCELLED", "TIMED_OUT", "INCONCLUSIVE", "REFUSED", null]},
+    "cancellation_result": {"enum": ["CANCELLED_DECLARED", "NON_CANCELLED_TERMINAL_DECLARED", "UNPROVEN"]},
+    "transport_authenticity": {"const": "NOT_VERIFIED"},
+    "terminal_outcome_authenticity": {"const": "NOT_VERIFIED"},
+    "dispatch_performed_by_observer": {"const": false},
+    "authorization_effect": {"const": "NONE"},
+    "execution_authority": {"const": "NONE"},
+    "limitations": {
+      "type": "array",
+      "minItems": 4,
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    }
+  }
+}
