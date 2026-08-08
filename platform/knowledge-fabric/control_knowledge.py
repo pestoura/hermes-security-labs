@@ -64,6 +64,7 @@ MAX_CONTROLS = 5000
 MAX_MAPPINGS = 10000
 MAX_PROVENANCE = 64
 MAX_EVIDENCE = 256
+MAX_OBSERVATIONS = MAX_MAPPINGS
 
 FORBIDDEN_KEYS = {
     "authorization",
@@ -453,6 +454,10 @@ def project_control(
         for item in validated_mappings
     ):
         raise ControlKnowledgeError("all mappings must reference the supplied catalogue")
+    if any(item["control_id"] not in controls for item in validated_mappings):
+        raise ControlKnowledgeError(
+            "mapping control is not present in supplied catalogue"
+        )
 
     control_mappings = sorted(
         [item for item in validated_mappings if item["control_id"] == control_id],
@@ -460,6 +465,14 @@ def project_control(
     )
     known_mapping_ids = {item["mapping_id"] for item in control_mappings}
 
+    if (
+        not isinstance(observations, Sequence)
+        or isinstance(observations, (str, bytes))
+        or len(observations) > MAX_OBSERVATIONS
+    ):
+        raise ControlKnowledgeError(
+            "observation set exceeds the bounded contract"
+        )
     validated_observations = [_validate_observation(item) for item in observations]
     observation_ids = [item["mapping_id"] for item in validated_observations]
     if len(set(observation_ids)) != len(observation_ids):
@@ -482,10 +495,19 @@ def project_control(
             item["state"] in {"INCONCLUSIVE", "NOT_OBSERVED"} for item in observed
         ):
             projection_state = "REVIEW_REQUIRED"
-        elif any(item["state"] == "OBSERVED" for item in observed):
-            projection_state = "MAPPED_EVIDENCE_PRESENT"
         else:
-            projection_state = "MAPPED_NO_OBSERVATION"
+            observed_mapping_ids = {
+                item["mapping_id"]
+                for item in observed
+                if item["state"] == "OBSERVED"
+            }
+            if observed_mapping_ids:
+                if observed_mapping_ids == known_mapping_ids:
+                    projection_state = "MAPPED_EVIDENCE_PRESENT"
+                else:
+                    projection_state = "REVIEW_REQUIRED"
+            else:
+                projection_state = "MAPPED_NO_OBSERVATION"
 
     evidence_ids = sorted(
         {
