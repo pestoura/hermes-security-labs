@@ -34,19 +34,20 @@ def test_concept_epics_record_controlled_runtime_evidence_without_production_pro
     epic_08 = EPIC_08.read_text(encoding="utf-8")
 
     for text in (epic_04, epic_08):
-        assert "orphan observation/assessment contract and decision logic: `CANDIDATE`" in text
         assert "`PASS_CONTROLLED_CI`" in text
         assert "periodic orphan" in text
         assert "orphan" in text and "remediation" in text
         assert "`NOT_RUN`" in text
         assert "NO_RUNTIME_CHANGE" in text
 
+    assert "orphan observation/assessment contract and decision logic: `CANDIDATE`" in epic_04
     assert "controlled Docker CI network/volume scanner: `PASS_CONTROLLED_CI`" in epic_04
     assert "bounded periodic orphan scans: `PASS_CONTROLLED_CI`" in epic_04
     assert "controlled owned network/volume cleanup and zero-residue observation: `PASS_CONTROLLED_CI`" in epic_04
     assert "production/container scanner and lifecycle integration: `NOT_RUN`" in epic_04
     assert "real snapshot/rollback execution: `NOT_RUN`" in epic_04
 
+    assert "effective network observation decision logic: `CANDIDATE`" in epic_08
     assert "controlled Docker CI internal-network observation: `PASS_CONTROLLED_CI`" in epic_08
     assert "controlled owned network/volume scanner: `PASS_CONTROLLED_CI`" in epic_08
     assert "bounded periodic orphan/network scans: `PASS_CONTROLLED_CI`" in epic_08
