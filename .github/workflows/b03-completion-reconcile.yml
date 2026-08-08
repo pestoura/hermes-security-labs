@@ -1,0 +1,125 @@
+name: b03-completion-reconcile
+
+on:
+  push:
+    branches:
+      - docs/svp2-b03-completion
+
+permissions:
+  contents: write
+
+jobs:
+  reconcile:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: docs/svp2-b03-completion
+          fetch-depth: 0
+      - name: Apply exact B-03 completion reconciliation
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          backlog = Path('roadmap/epics/security-validation-platform-v2.yaml')
+          text = backlog.read_text(encoding='utf-8')
+          start = text.index('  - id: SVP2-B-03\n')
+          end = text.index('\n  - id: SVP2-C-01\n', start)
+          block = text[start:end]
+          assert block.count('status: implementing') == 1
+          assert block.count('"status:implementing"') == 1
+          assert 'SVP2-B-03-completion-as-built.md' not in block
+          block = block.replace('    status: implementing\n', '    status: completed\n', 1)
+          block = block.replace('"status:implementing"', '"status:completed"', 1)
+          block = block.replace(
+              '      - docs/architecture/security-validation-reference-architecture.md',
+              '      - docs/architecture/security-validation-reference-architecture.md\n'
+              '      - docs/roadmap/SVP2-B-03-completion-as-built.md',
+              1,
+          )
+          backlog.write_text(text[:start] + block + text[end:], encoding='utf-8')
+
+          guard = Path('roadmap/tests/test_svp2_final_delivery_status.py')
+          g = guard.read_text(encoding='utf-8')
+          assert 'B03_COMPLETION' not in g
+          g = g.replace(
+              'EPIC_05 = ROOT / "docs" / "roadmap" / "epics" / "EPIC-05-runner-protocol-v2.md"\n',
+              'EPIC_04 = ROOT / "docs" / "roadmap" / "epics" / "EPIC-04-transactional-lifecycle-and-isolation.md"\n'
+              'EPIC_05 = ROOT / "docs" / "roadmap" / "epics" / "EPIC-05-runner-protocol-v2.md"\n'
+              'EPIC_08 = ROOT / "docs" / "roadmap" / "epics" / "EPIC-08-network-and-egress-policy.md"\n',
+              1,
+          )
+          g = g.replace(
+              'B02_COMPLETION = ROOT / "docs" / "roadmap" / "SVP2-B-02-completion-as-built.md"\n',
+              'B02_COMPLETION = ROOT / "docs" / "roadmap" / "SVP2-B-02-completion-as-built.md"\n'
+              'B03_COMPLETION = ROOT / "docs" / "roadmap" / "SVP2-B-03-completion-as-built.md"\n',
+              1,
+          )
+          g = g.replace('"SVP2-A-01", "SVP2-A-02", "SVP2-A-03", "SVP2-B-02", "SVP2-C-01",',
+                        '"SVP2-A-01", "SVP2-A-02", "SVP2-A-03", "SVP2-B-02", "SVP2-B-03", "SVP2-C-01",', 1)
+          g = g.replace('    "SVP2-B-03",\n', '', 1)
+          g = g.replace('"SVP2-B-01", "SVP2-B-03", "SVP2-C-02", "SVP2-D-02",',
+                        '"SVP2-B-01", "SVP2-C-02", "SVP2-D-02",', 1)
+          g += '''\n\ndef test_b03_delivery_completion_does_not_claim_epic04_or_epic08_finality() -> None:\n    epic = _epics()["SVP2-B-03"]\n    epic04 = EPIC_04.read_text(encoding="utf-8")\n    epic08 = EPIC_08.read_text(encoding="utf-8")\n    completion = B03_COMPLETION.read_text(encoding="utf-8")\n    assert epic["status"] == "completed"\n    assert "status:completed" in epic["labels"]\n    assert "docs/roadmap/SVP2-B-03-completion-as-built.md" in epic["references"]\n    assert "**IMPLEMENTING**" in epic04\n    assert "| AS_BUILT | no |" in epic04\n    assert "| FINAL | no |" in epic04\n    assert "**IMPLEMENTING**" in epic08\n    assert "| AS_BUILT | no |" in epic08\n    assert "| FINAL | no |" in epic08\n    assert "controlled Docker network/volume lifecycle: **`PASS_CONTROLLED_CI`**" in completion\n    assert "periodic orphan detection: **`PASS_CONTROLLED_CI`**" in completion\n    assert "production Docker lifecycle/scanner: **`NOT_RUN`**" in completion\n    assert "real L3/L4 snapshot/rollback: **`NOT_RUN`**" in completion\n    assert "DOD-10" in completion\n'''
+          guard.write_text(g, encoding='utf-8')
+
+          epic04 = Path('docs/roadmap/epics/EPIC-04-transactional-lifecycle-and-isolation.md')
+          e4 = epic04.read_text(encoding='utf-8')
+          old = '**IMPLEMENTING** — PR #139 integrated the repository-level transactional lifecycle, isolation, zero-residue and quarantine contract candidate. The current block adds a read-only orphan observation/assessment candidate. Real Docker lifecycle operations, runtime resource scanning, periodic scheduling, cleanup/remediation and residue observation against real resources remain `NOT_RUN` / `NOT_IMPLEMENTED` as applicable.'
+          new = '**IMPLEMENTING** — PR #139 integrated the transactional lifecycle/isolation contract and PR #231 added controlled Docker CI evidence using disposable owned network/volume resources. Controlled scanning, bounded periodic orphan detection, cleanup and zero-residue observation are `PASS_CONTROLLED_CI`. Production/container lifecycle adapters, remediation and real L3/L4 snapshot/rollback remain `NOT_RUN` / `NOT_IMPLEMENTED` as applicable.'
+          assert old in e4
+          e4 = e4.replace(old, new, 1)
+          e4 = e4.replace('No runtime cleanup path exists in the current candidate.', 'A controlled CI network/volume cleanup path now exists. Production/container cleanup remains outside this candidate.', 1)
+          e4 = e4.replace('- Executing Docker lifecycle operations in this repository block\n', '- Production/container Docker lifecycle operations outside the controlled CI network/volume candidate\n', 1)
+          e4 = e4.replace('- runtime status remains `NOT_RUN`;\n', '- controlled CI network/volume lifecycle and scanner status is `PASS_CONTROLLED_CI`; production runtime remains `NOT_RUN`;\n', 1)
+          old_pending = '''Still pending:\n\n- reviewed Docker lifecycle adapters;\n- real state-based attach/detach and cleanup;\n- real zero-residue scanner/proof production;\n- runtime resource scanner producing normalized orphan observations;\n- periodic orphan scan scheduler/cadence;\n- cleanup/remediation action after human/policy decision;\n- deployed rollback/snapshot execution;\n- controlled runtime acceptance and rollback validation.'''
+          new_pending = '''Still pending for broader concept finality:\n\n- production/container Docker lifecycle adapters and state-based attach/detach;\n- production-authenticated scanner/attestation and durable scheduler ownership;\n- cleanup/remediation action after human/policy decision;\n- deployed rollback/snapshot execution;\n- real L3/L4 TTL and data-budget enforcement;\n- production runtime acceptance and rollback validation.'''
+          assert old_pending in e4
+          e4 = e4.replace(old_pending, new_pending, 1)
+          old_req = '''Umbrella completion still requires runtime evidence that:\n\n- real Docker cleanup produces zero residue;\n- state-based attach/detach behaves transactionally under failures/races;\n- a real authenticated/controlled scanner observes runtime resources correctly;\n- periodic orphan detection identifies leftover resources in the real runtime;\n- orphan cleanup/quarantine actions are separately controlled and auditable;\n- real snapshot/rollback, TTL and data budgets are enforced.'''
+          new_req = '''The delivery umbrella now has controlled-Docker-CI evidence for cleanup quarantine, default internal networking and periodic orphan detection. Broader concept finality still requires production/container attach/detach, authenticated scanner identity, separately controlled remediation and real snapshot/rollback, TTL and data-budget enforcement.'''
+          assert old_req in e4
+          e4 = e4.replace(old_req, new_req, 1)
+          e4 = e4.replace('Deployment/runtime evidence remains `NOT_RUN` and must be referenced from issue #81 before the umbrella may close.', 'PR #231 provides controlled Docker CI runtime evidence for owned network/volume cleanup, zero residue and periodic orphan detection. Production/container runtime evidence remains `NOT_RUN`.', 1)
+          e4 = e4.replace('- The current block adds the repository-only orphan observation/assessment contract and decision logic.\n- No Docker, scanner, network, laboratory, target or cleanup operation is executed by the assessor.\n', '- PR #231 adds the controlled Docker CI network/volume lifecycle, scanner and periodic orphan-detection harness.\n- The assessor remains non-destructive; the controlled cleanup driver operates only on exact ownership-labelled CI network/volume resources and runs no targets or containers.\n', 1)
+          old_boundary = '''- lifecycle contract and decision logic: `CANDIDATE`;\n- zero-residue proof contract/validation: `CANDIDATE`;\n- quarantine/reuse blocking: `CANDIDATE`;\n- orphan observation/assessment contract and decision logic: `CANDIDATE`;\n- runtime resource scanner: `NOT_IMPLEMENTED` / `NOT_RUN`;\n- periodic orphan scan scheduler: `NOT_IMPLEMENTED`;\n- orphan cleanup/remediation: `NOT_IMPLEMENTED` / `NOT_RUN`;\n- Docker lifecycle integration: `NOT_RUN`;\n- zero-residue observation against real resources: `NOT_RUN`;\n- real snapshot/rollback execution: `NOT_RUN`;\n- runtime changes: `NO_RUNTIME_CHANGE`.'''
+          new_boundary = '''- lifecycle contract and decision logic: `CANDIDATE`;\n- zero-residue proof contract/validation: `CANDIDATE`;\n- quarantine/reuse blocking: `PASS_CONTROLLED_CI`;\n- orphan observation/assessment contract and decision logic: `CANDIDATE`;\n- controlled Docker CI network/volume scanner: `PASS_CONTROLLED_CI`;\n- bounded periodic orphan scans: `PASS_CONTROLLED_CI`;\n- controlled owned network/volume cleanup and zero-residue observation: `PASS_CONTROLLED_CI`;\n- production/container scanner and lifecycle integration: `NOT_RUN`;\n- orphan remediation: `NOT_IMPLEMENTED` / `NOT_RUN`;\n- real snapshot/rollback execution: `NOT_RUN`;\n- production runtime changes: `NO_RUNTIME_CHANGE`.'''
+          assert old_boundary in e4
+          epic04.write_text(e4.replace(old_boundary, new_boundary, 1), encoding='utf-8')
+
+          epic08 = Path('docs/roadmap/epics/EPIC-08-network-and-egress-policy.md')
+          e8 = epic08.read_text(encoding='utf-8')
+          old = '**IMPLEMENTING** — PR #139 integrated the repository-level network/isolation policy candidate used by the transactional lab lifecycle. The contract defaults to isolated/deny-all egress, permits only explicit restricted exceptions and validates effective network posture before READY/RUNNING. The current block adds read-only classification of orphan network/resource observations; real network-policy enforcement and runtime scanning remain `NOT_RUN` / `NOT_IMPLEMENTED`.'
+          new = '**IMPLEMENTING** — PR #139 integrated the network/isolation policy and PR #231 added a disposable controlled Docker CI network created with `--internal`, plus owned runtime resource scanning and bounded periodic orphan detection. This is `PASS_CONTROLLED_CI`; production firewall/egress-exception enforcement and deployed scanner identity remain `NOT_RUN`.'
+          assert old in e8
+          e8 = e8.replace(old, new, 1)
+          e8 = e8.replace('Actual firewall/container-network enforcement, scanning and remediation remain `NOT_RUN`.', 'Controlled Docker CI internal-network observation and scanning are `PASS_CONTROLLED_CI`; production firewall/container-network enforcement and remediation remain `NOT_RUN`.', 1)
+          old_pending = '''Still pending:\n\n- real Docker/network adapters;\n- default-deny enforcement against actual lab networks;\n- controlled egress exception application/removal;\n- runtime observation proving effective posture;\n- runtime resource scanner;\n- periodic orphan/network scan scheduler;\n- separately authorized/audited orphan remediation.'''
+          new_pending = '''Still pending for broader concept finality:\n\n- production Docker/network adapters;\n- production firewall-level deny/allowlist enforcement and exception application/removal;\n- authenticated deployed scanner identity/attestation;\n- separately authorized/audited orphan remediation.'''
+          assert old_pending in e8
+          e8 = e8.replace(old_pending, new_pending, 1)
+          old_req = '''Umbrella completion still requires runtime evidence that:\n\n- no lab obtains egress by default;\n- actual network isolation matches the declared per-lab profile;\n- expired exceptions are removed and cannot remain effective;\n- a real scanner detects shared/orphan network state;\n- no shared/orphan network state survives cleanup.'''
+          new_req = '''The delivery umbrella now has controlled-Docker-CI evidence that its disposable lab network is internal by default, its owned scanner detects orphan network/volume state and cleanup verifies zero residue. Broader concept finality still requires production firewall/exception enforcement, authenticated scanner identity and deployed remediation.'''
+          assert old_req in e8
+          e8 = e8.replace(old_req, new_req, 1)
+          e8 = e8.replace('Current block adds strict orphan observation/assessment schemas and adversarial classification tests, including network-kind resources and explicit tracked-residue semantics. Real network-policy enforcement and runtime scanning remain `NOT_RUN`.', 'PR #231 adds controlled Docker CI internal-network observation, owned runtime scanning, periodic orphan detection and zero-residue cleanup evidence. Production network-policy enforcement and deployed scanner identity remain `NOT_RUN`.', 1)
+          e8 = e8.replace('- The current block adds read-only orphan observation/assessment including normalized network resources.\n- No firewall, Docker network, runtime scanner, laboratory, target or remediation action is executed.\n', '- PR #231 adds a controlled Docker CI `--internal` network plus owned network/volume scanner and bounded periodic orphan scans.\n- No target, customer system or production firewall/remediation action is executed.\n', 1)
+          old_boundary = '''- isolated/restricted egress contract: `CANDIDATE`;\n- governed exception validation: `CANDIDATE`;\n- effective network observation decision logic: `CANDIDATE`;\n- orphan observation/assessment contract and decision logic: `CANDIDATE`;\n- runtime resource scanner: `NOT_IMPLEMENTED` / `NOT_RUN`;\n- periodic orphan/network scan scheduler: `NOT_IMPLEMENTED`;\n- orphan remediation: `NOT_IMPLEMENTED` / `NOT_RUN`;\n- network-policy enforcement: `NOT_RUN`;\n- actual deny-all observation: `NOT_RUN`;\n- runtime changes: `NO_RUNTIME_CHANGE`.'''
+          new_boundary = '''- isolated/restricted egress contract: `CANDIDATE`;\n- governed exception validation: `CANDIDATE`;\n- effective network observation decision logic: `CANDIDATE`;\n- controlled Docker CI internal-network observation: `PASS_CONTROLLED_CI`;\n- controlled owned network/volume scanner: `PASS_CONTROLLED_CI`;\n- bounded periodic orphan/network scans: `PASS_CONTROLLED_CI`;\n- controlled zero-residue network cleanup observation: `PASS_CONTROLLED_CI`;\n- production scanner identity and firewall/exception enforcement: `NOT_RUN`;\n- orphan remediation: `NOT_IMPLEMENTED` / `NOT_RUN`;\n- production runtime changes: `NO_RUNTIME_CHANGE`.'''
+          assert old_boundary in e8
+          epic08.write_text(e8.replace(old_boundary, new_boundary, 1), encoding='utf-8')
+          PY
+          rm .github/workflows/b03-completion-reconcile.yml
+          git diff --check
+          if git diff --quiet -- . ':!.github/workflows/b03-completion-reconcile.yml'; then
+            echo 'Expected reconciliation changes were not produced' >&2
+            exit 1
+          fi
+      - name: Commit guarded reconciliation and self-removal
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add roadmap/epics/security-validation-platform-v2.yaml roadmap/tests/test_svp2_final_delivery_status.py docs/roadmap/epics/EPIC-04-transactional-lifecycle-and-isolation.md docs/roadmap/epics/EPIC-08-network-and-egress-policy.md .github/workflows/b03-completion-reconcile.yml
+          git commit -m 'docs(b03): reconcile controlled lifecycle evidence'
+          git push origin HEAD:docs/svp2-b03-completion
