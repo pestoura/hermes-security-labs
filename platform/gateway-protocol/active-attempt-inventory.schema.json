@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hexor.local/schemas/active-attempt-inventory.schema.json",
+  "title": "Sanitized Active Runner Attempt Inventory",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "inventory_id", "generated_at", "source",
+    "source_authenticity", "attempts", "authorization_effect", "execution_authority"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "inventory_id": {"type": "string", "pattern": "^raiinv_[a-f0-9]{32}$"},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "source": {"const": "RUNTIME_SUPERVISOR_SNAPSHOT"},
+    "source_authenticity": {"const": "NOT_VERIFIED"},
+    "attempts": {
+      "type": "array",
+      "maxItems": 10000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["attempt_ref", "correlation", "state", "cancellation_mode", "grace_period_ms"],
+        "properties": {
+          "attempt_ref": {"type": "string", "pattern": "^rai_[a-f0-9]{32}$"},
+          "correlation": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["campaign_id", "run_id", "step_id", "attempt_id"],
+            "properties": {
+              "campaign_id": {"type": "string", "format": "uuid"},
+              "run_id": {"type": "string", "format": "uuid"},
+              "step_id": {"type": "string", "format": "uuid"},
+              "attempt_id": {"type": "string", "format": "uuid"}
+            }
+          },
+          "state": {"enum": ["accepted", "running", "cancelling"]},
+          "cancellation_mode": {"enum": ["cooperative", "cooperative_then_force"]},
+          "grace_period_ms": {"type": "integer", "minimum": 0, "maximum": 300000}
+        }
+      }
+    },
+    "authorization_effect": {"const": "NONE"},
+    "execution_authority": {"const": "NONE"}
+  }
+}
