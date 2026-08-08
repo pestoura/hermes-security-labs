@@ -564,12 +564,12 @@ concept_epics:
     pillar: E
     phase: 5
     priority: P1
-    status: intent
+    status: implementing
     umbrella_id: SVP2-E-02
     umbrella_issue: 87
     dependencies: [EPIC-36, EPIC-21]
     doc_path: docs/roadmap/epics/EPIC-40-nist-control-knowledge-layer.md
-    current_state: "PR #148 provides snapshot-scoped generic knowledge queries, but EPIC-40 remains INTENT: versioned control ingestion, control-specific mappings and control-oriented result projection remain NOT_IMPLEMENTED/NOT_RUN."
+    current_state: "IMPLEMENTING. PR #190 integrated the repository-level NIST control knowledge contract in main 560cfa44c10d8a7de285a2e83e51c62df9ec7582: strict supplied NIST catalogue schema and deterministic identity, canonical control ids/objectives/provenance, typed ATT&CK/runbook/evidence mappings with confidence/rationale/provenance, fail-closed absent-control mappings, explicit OBSERVED/NOT_OBSERVED/NOT_RUN/INCONCLUSIVE observations, conservative UNMAPPED/MAPPED_NO_OBSERVATION/MAPPED_EVIDENCE_PRESENT/REVIEW_REQUIRED projections, partial multi-mapping observation requiring review, and bounded inputs. Every projection fixes coverage_semantics MAPPED_VALIDATION_COVERAGE_ONLY, compliance_verdict NOT_EVALUATED, certification_claim NONE, planning_effect ADVISORY_ONLY and execution_authority NONE. External NIST acquisition remains NOT_RUN; authoritative/current-source verification remains NOT_IMPLEMENTED/NOT_RUN; complete production control population remains NOT_RUN; production graph/planner/report integration and formal control-effectiveness assessment remain NOT_IMPLEMENTED/NOT_RUN; compliance/certification conclusions are not implemented or claimed. Hermes/Control Plane remains the sole execution-authorization authority. AS_BUILT and FINAL are not claimed. NO_RUNTIME_CHANGE."
     target_state: "A control knowledge layer linking controls to techniques, runbooks and evidence, enabling control-oriented reporting without compliance claims."
   - concept_id: EPIC-41
     slug: vulnerability-specific-test-synthesis

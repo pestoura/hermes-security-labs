@@ -11,7 +11,7 @@ DOCS = {
     "EPIC-44": ROOT / "docs/roadmap/epics/EPIC-44-knowledge-quality-and-conflict-resolution.md",
     "EPIC-45": ROOT / "docs/roadmap/epics/EPIC-45-operational-query-and-discovery.md",
 }
-IMPLEMENTING = {"EPIC-43", "EPIC-44", "EPIC-45"}
+IMPLEMENTING = {"EPIC-40", "EPIC-43", "EPIC-44", "EPIC-45"}
 
 
 def _catalogue() -> dict[str, dict]:
@@ -29,15 +29,13 @@ def test_supported_e02_concepts_are_implementing_not_final() -> None:
         assert "NO_RUNTIME_CHANGE" in text
 
 
-def test_epic40_remains_intent_without_control_layer() -> None:
+def test_epic40_has_dedicated_control_layer_without_compliance_claims() -> None:
     text = DOCS["EPIC-40"].read_text(encoding="utf-8")
-    assert "**INTENT**" in text
-    assert "| IMPLEMENTING | no |" in text
-    assert "| AS_BUILT | no |" in text
-    assert "| FINAL | no |" in text
-    assert "PR #148" in text
-    assert "remains INTENT" in text
-    assert "NO_RUNTIME_CHANGE" in text
+    assert "PR #190" in text
+    assert "`compliance_verdict = NOT_EVALUATED`" in text
+    assert "`certification_claim = NONE`" in text
+    assert "formal compliance/certification conclusion: not implemented and not claimed" in text
+    assert "Hermes / Control Plane remains the sole execution-authorization authority" in text
 
 
 def test_campaign_proposal_never_claims_execution_authority() -> None:
@@ -58,6 +56,6 @@ def test_machine_readable_catalogue_matches_e02_boundary() -> None:
         assert "NOT_RUN" in item["current_state"] or "NOT_IMPLEMENTED" in item["current_state"]
 
     epic40 = catalogue["EPIC-40"]
-    assert epic40["status"] == "intent"
-    assert "PR #148" in epic40["current_state"]
-    assert "remains INTENT" in epic40["current_state"]
+    assert "PR #190" in epic40["current_state"]
+    assert "NOT_EVALUATED" in epic40["current_state"]
+    assert "AS_BUILT and FINAL are not claimed" in epic40["current_state"]
