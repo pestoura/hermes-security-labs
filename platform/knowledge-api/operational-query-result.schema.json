@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hexor.local/schemas/operational-query-result.schema.json",
+  "title": "Operational Query Result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "result_id", "query_id", "question_id", "knowledge_snapshot_id", "access_policy_id", "access_decision", "items", "index_scope_ids", "evidence_scope_ids", "read_only", "raw_evidence_exposed", "assurance_effect", "compliance_effect", "execution_authority", "limitations"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "result_id": {"type": "string", "pattern": "^kor_[a-f0-9]{32}$"},
+    "query_id": {"type": "string", "pattern": "^koq_[a-f0-9]{32}$"},
+    "question_id": {"enum": ["CONTROLS_FOR_TECHNIQUE", "ASSETS_UNVALIDATED_FOR_VULNERABILITY", "FINDINGS_FOR_ASSET", "CAMPAIGNS_USING_SNAPSHOT"]},
+    "knowledge_snapshot_id": {"type": "string", "pattern": "^ks_[a-f0-9]{32}$"},
+    "access_policy_id": {"type": "string", "pattern": "^koap_[a-f0-9]{32}$"},
+    "access_decision": {"enum": ["ALLOW", "DENY"]},
+    "items": {"type": "array", "maxItems": 5000, "items": {"type": "object"}},
+    "index_scope_ids": {"type": "array", "maxItems": 20000, "uniqueItems": true, "items": {"type": "string", "pattern": "^koi_[a-f0-9]{32}$"}},
+    "evidence_scope_ids": {"type": "array", "maxItems": 2000, "uniqueItems": true, "items": {"type": "string", "pattern": "^ev_[A-Za-z0-9._:-]{1,120}$"}},
+    "read_only": {"const": true},
+    "raw_evidence_exposed": {"const": false},
+    "assurance_effect": {"const": "NONE"},
+    "compliance_effect": {"const": "NONE"},
+    "execution_authority": {"const": "NONE"},
+    "limitations": {
+      "type": "array", "minItems": 3, "uniqueItems": true,
+      "contains": {"const": "ABSENCE_OF_RESULTS_IS_NOT_A_PASS_VERDICT"},
+      "items": {"type": "string"}
+    }
+  }
+}
