@@ -49,13 +49,14 @@ def test_operational_cancellation_nonclaims_remain_explicit_after_synthetic_dril
     epic09 = EPIC_09.read_text(encoding="utf-8")
     normalized = epic09.lower()
 
-    assert "cancellation request dispatch to runtime runner: `not_implemented` / `not_run`" in normalized
+    assert "deployed cancellation request dispatch to runtime runner: `not_implemented` / `not_run`" in normalized
     assert "authoritative runtime supervisor integration: `not_implemented` / `not_run`" in normalized
     assert "independent inventory completeness proof: `not_implemented` / `not_run`" in normalized
     assert "deployed cooperative process interruption: `not_implemented` / `not_run`" in normalized
     assert "deployed force-after-grace interruption: `not_implemented` / `not_run`" in normalized
     assert "runtime deployment of trust store / kill switch: `not_run`" in normalized
     assert "pass_synthetic_runtime" in normalized
+    assert "pass_synthetic_transport" in normalized
 
 
 def test_authority_boundary_is_unchanged() -> None:
