@@ -1,4 +1,4 @@
-schema_version: "1.0"
+schema_version: "1.1"
 policy_id: security-knowledge-source-policy
 sources:
   - CVE
@@ -34,6 +34,19 @@ applicability_keys:
   - sbom
   - cpe
   - purl
+controlled_local_integrity:
+  status: PASS_CONTROLLED_CI
+  technical_pr: 226
+  merge_sha: 3329923039970da74a8b99bd4d28ef4fbe58039c
+  backend: local_content_addressed_filesystem
+  raw_create_only: PASS_CONTROLLED_CI
+  raw_reopen_integrity: PASS_CONTROLLED_CI
+  record_metadata_integrity: PASS_CONTROLLED_CI
+  relation_provenance_gate: PASS_CONTROLLED_CI
+  unresolved_conflict_persistence: PASS_CONTROLLED_CI
+  explicit_resolution_without_historical_rewrite: PASS_CONTROLLED_CI
+  execution_authority: NONE
+  worm_or_admin_tamper_resistance: NOT_CLAIMED
 runtime_status:
   external_sync: NOT_RUN
   taxii_sync: NOT_RUN
@@ -41,3 +54,4 @@ runtime_status:
   kev_sync: NOT_RUN
   epss_sync: NOT_RUN
   graph_store: NOT_IMPLEMENTED
+  production_persistence: NOT_RUN
