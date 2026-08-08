@@ -1,0 +1,79 @@
+name: i01-completion-reconcile
+
+on:
+  push:
+    branches:
+      - docs/svp2-i01-completion
+
+permissions:
+  contents: write
+
+jobs:
+  reconcile:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: docs/svp2-i01-completion
+          fetch-depth: 0
+      - name: Apply exact I-01 completion reconciliation
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          backlog = Path('roadmap/epics/security-validation-platform-v2.yaml')
+          text = backlog.read_text(encoding='utf-8')
+          start = text.index('  - id: SVP2-I-01\n')
+          end = text.index('\n  - id: SVP2-J-01\n', start)
+          block = text[start:end]
+          assert block.count('status: implementing') == 1
+          assert block.count('"status:implementing"') == 1
+          assert 'SVP2-I-01-completion-as-built.md' not in block
+          reference_stanza = '    references:\n      - docs/architecture/continuous-content-factories.md\n'
+          assert block.count(reference_stanza) == 1
+          block = block.replace('    status: implementing\n', '    status: completed\n', 1)
+          block = block.replace('"status:implementing"', '"status:completed"', 1)
+          block = block.replace(
+              reference_stanza,
+              reference_stanza + '      - docs/roadmap/SVP2-I-01-completion-as-built.md\n',
+              1,
+          )
+          backlog.write_text(text[:start] + block + text[end:], encoding='utf-8')
+
+          guard = Path('roadmap/tests/test_svp2_final_delivery_status.py')
+          g = guard.read_text(encoding='utf-8')
+          assert 'I01_COMPLETION' not in g
+          g = g.replace(
+              'H01_COMPLETION = ROOT / "docs" / "roadmap" / "SVP2-H-01-completion-as-built.md"\n',
+              'H01_COMPLETION = ROOT / "docs" / "roadmap" / "SVP2-H-01-completion-as-built.md"\n'
+              'I01_COMPLETION = ROOT / "docs" / "roadmap" / "SVP2-I-01-completion-as-built.md"\n',
+              1,
+          )
+          g = g.replace(
+              '    "SVP2-D-01", "SVP2-E-01", "SVP2-E-02", "SVP2-H-01", "SVP2-J-01",\n',
+              '    "SVP2-D-01", "SVP2-E-01", "SVP2-E-02", "SVP2-H-01", "SVP2-I-01", "SVP2-J-01",\n',
+              1,
+          )
+          g = g.replace('    "SVP2-I-01",\n', '', 1)
+          g = g.replace(
+              '        "SVP2-F-01", "SVP2-F-02", "SVP2-G-01", "SVP2-I-01",\n',
+              '        "SVP2-F-01", "SVP2-F-02", "SVP2-G-01",\n',
+              1,
+          )
+          g += '''\n\ndef test_i01_delivery_completion_preserves_domain_and_production_nonclaims() -> None:\n    epic = _epics()["SVP2-I-01"]\n    completion = I01_COMPLETION.read_text(encoding="utf-8")\n    assert epic["status"] == "completed"\n    assert "status:completed" in epic["labels"]\n    assert "docs/roadmap/SVP2-I-01-completion-as-built.md" in epic["references"]\n    assert "Lab Schema v2 isolation contract: **`PASS`**" in completion\n    assert "three-state + positive/negative control family contract: **`PASS`**" in completion\n    assert "deterministic reset attestation: **`PASS_CONTROLLED_CI`**" in completion\n    assert "controlled Docker reset/recreation: **`PASS_CONTROLLED_CI`**" in completion\n    assert "controlled zero-residue verification: **`PASS_CONTROLLED_CI`**" in completion\n    assert "migration of every legacy lab: **`NOT_CLAIMED`**" in completion\n    assert "production container/Kubernetes/VM/cloud/mobile/identity/IoT-OT/hardware labs: **`NOT_RUN`**" in completion\n    assert "production lab orchestration/remediation: **`NOT_RUN`**" in completion\n    assert "DOD-10" in completion\n'''
+          guard.write_text(g, encoding='utf-8')
+          PY
+          rm .github/workflows/i01-completion-reconcile.yml
+          git diff --check
+          if git diff --quiet -- . ':!.github/workflows/i01-completion-reconcile.yml'; then
+            echo 'Expected I-01 reconciliation changes were not produced' >&2
+            exit 1
+          fi
+      - name: Commit guarded reconciliation and self-removal
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add roadmap/epics/security-validation-platform-v2.yaml roadmap/tests/test_svp2_final_delivery_status.py .github/workflows/i01-completion-reconcile.yml
+          git commit -m 'docs(i01): reconcile delivery completion status'
+          git push origin HEAD:docs/svp2-i01-completion
