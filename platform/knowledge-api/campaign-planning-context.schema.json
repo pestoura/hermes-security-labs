@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hexor.local/schemas/campaign-planning-context.schema.json",
+  "title": "Campaign Planning Context",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "context_id", "campaign_id", "knowledge_snapshot_id",
+    "capability_registry_version", "roe_contract_id", "roe_contract_payload_sha256",
+    "asset_ids", "threat_technique_ids", "vulnerability_ids", "allowed_capability_ids",
+    "max_intrusiveness_level", "minimum_confidence", "constraint_effect",
+    "authorization_effect", "execution_authority"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "context_id": {"type": "string", "pattern": "^kpc_[a-f0-9]{32}$"},
+    "campaign_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "knowledge_snapshot_id": {"type": "string", "pattern": "^ks_[a-f0-9]{32}$"},
+    "capability_registry_version": {"type": "string", "minLength": 1, "maxLength": 128},
+    "roe_contract_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "roe_contract_payload_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "asset_ids": {"type": "array", "minItems": 1, "maxItems": 512, "uniqueItems": true, "items": {"type": "string", "minLength": 1, "maxLength": 128}},
+    "threat_technique_ids": {"type": "array", "maxItems": 512, "uniqueItems": true, "items": {"type": "string", "pattern": "^T[0-9]{4}(?:\\.[0-9]{3})?$"}},
+    "vulnerability_ids": {"type": "array", "maxItems": 512, "uniqueItems": true, "items": {"type": "string", "pattern": "^CVE-[0-9]{4}-[0-9]{4,}$"}},
+    "allowed_capability_ids": {"type": "array", "minItems": 1, "maxItems": 512, "uniqueItems": true, "items": {"type": "string", "minLength": 1, "maxLength": 128}},
+    "max_intrusiveness_level": {"enum": ["L0", "L1", "L2", "L3", "L4"]},
+    "minimum_confidence": {"type": "number", "minimum": 0, "maximum": 1},
+    "constraint_effect": {"const": "PLANNING_FILTER_ONLY"},
+    "authorization_effect": {"const": "NONE"},
+    "execution_authority": {"const": "CONTROL_PLANE_ONLY"}
+  }
+}
