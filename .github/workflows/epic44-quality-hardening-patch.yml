@@ -10,20 +10,21 @@ permissions:
 
 jobs:
   patch:
-    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           ref: feat/svp2-e02-knowledge-quality-curation-contract
           fetch-depth: 0
-      - name: Harden canonical curation case validation
+
+      - name: Bind curation case id to canonical content
+        shell: bash
         run: |
           python - <<'PY'
           from pathlib import Path
 
-          path = Path('platform/knowledge-fabric/knowledge_quality.py')
-          text = path.read_text(encoding='utf-8')
+          path = Path("platform/knowledge-fabric/knowledge_quality.py")
+          text = path.read_text(encoding="utf-8")
           old = '''    if not isinstance(case.get("knowledge_snapshot_id"), str) or not SNAPSHOT_ID_RE.fullmatch(case["knowledge_snapshot_id"]):
         raise KnowledgeQualityError("invalid curation snapshot id")
     candidates = case.get("candidate_source_record_ids")
@@ -66,47 +67,17 @@ jobs:
     return dict(case)
 '''
           if text.count(old) != 1:
-              raise SystemExit('curation validator patch target not found exactly once')
-          path.write_text(text.replace(old, new, 1), encoding='utf-8')
-          PY
-      - name: Document EPIC-44 quality and curation contract
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-
-          path = Path('platform/knowledge-fabric/README.md')
-          text = path.read_text(encoding='utf-8')
-          marker = '## Deliberate non-claims\n'
-          section = '''## EPIC-44 knowledge quality and curation contract
-
-`knowledge_quality.py` evaluates explicitly supplied immutable knowledge snapshots without turning quality into a security verdict.
-
-- snapshot completeness is measured against the snapshot's declared source-record ids;
-- freshness requires an explicit positive maximum age for every supplied source;
-- future retrieval timestamps fail closed;
-- relation confidence is summarized against an explicit minimum policy and relation provenance must remain inside the assessed snapshot;
-- unresolved conflicts are counted as review-required quality findings;
-- `QUALITY_POLICY_MET` means only that the supplied snapshot inputs meet the declared repository quality policy;
-- every report fixes `assurance_effect = NONE` and `execution_authority = NONE`;
-- quality reports explicitly state that policy success is not a security verdict, does not establish source authority and does not imply assurance;
-- curation cases are content-addressed, open, non-automatic and bound to one immutable knowledge snapshot;
-- every resolution records either a named curator or an explicit precedence policy, plus rationale and timestamp;
-- curator/policy selection can only choose a source record already present in the case;
-- curation decisions never rewrite historical snapshots and have `effect = KNOWLEDGE_CURATION_ONLY` and `execution_authority = NONE`.
-
-Production persistence, dashboarding, source-authority verification, external synchronization and an operational curator UI remain outside this repository-only contract.
-
-'''
-          if text.count(marker) != 1:
-              raise SystemExit('README insertion marker not found exactly once')
-          path.write_text(text.replace(marker, section + marker, 1), encoding='utf-8')
+              raise SystemExit("patch target must exist exactly once")
+          path.write_text(text.replace(old, new, 1), encoding="utf-8")
           PY
           git diff --check
-      - name: Self-remove helper and commit
+
+      - name: Commit patch and remove helper
+        shell: bash
         run: |
           git rm .github/workflows/epic44-quality-hardening-patch.yml
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add platform/knowledge-fabric/knowledge_quality.py platform/knowledge-fabric/README.md
-          git commit -m "security(svp2-e02): harden knowledge curation identity"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add platform/knowledge-fabric/knowledge_quality.py
+          git commit -m "fix(svp2-e02): bind curation case identity"
           git push origin HEAD:feat/svp2-e02-knowledge-quality-curation-contract
