@@ -71,12 +71,60 @@ Deterministic refusal codes: `SIGNATURE_KEY_UNKNOWN`, `SIGNATURE_KEY_REVOKED`,
 `CRYPTO_BACKEND_UNAVAILABLE`.
 
 An entry carrying a field named like secret material (`private_key`, `seed`,
-`passphrase`, ...) is rejected outright, so a leaked private key can never be
-loaded silently.
+`passphrase`, ...) is rejected outright, so leaked private key material cannot
+be loaded silently.
 
 The legacy callable-verifier interface is unchanged: any
 `(payload, signature) -> bool` remains accepted, and test scaffolding verifiers
 are still test scaffolding, not a production mechanism.
+
+## Trust-store generation lifecycle
+
+`trust_store_lifecycle.py` adds a repository-only lifecycle envelope around
+successive snapshots of the existing public-key trust store. It does not alter
+the trust-store verifier and it does not activate, distribute or write a trust
+store.
+
+For each already-valid trust-store snapshot it builds a content-addressed
+generation manifest containing:
+
+- generation sequence and timestamp;
+- predecessor generation identifier;
+- SHA-256 of the source trust-store file;
+- key identifier, algorithm, state and validity window;
+- SHA-256 fingerprint of public-key material rather than the public key itself.
+
+`assess_transition()` fails closed on:
+
+- generation-id tampering;
+- non-monotonic sequence or predecessor mismatch;
+- non-monotonic generation timestamps;
+- stale or future generations under an explicit freshness policy;
+- active-key removal;
+- mutation of public-key material, algorithm or validity window under an existing key identity;
+- resurrection of `retired` or `revoked` keys;
+- invalid key-state transitions;
+- absence of any active verification key.
+
+Allowed existing-key state transitions are deliberately monotonic:
+
+- `active -> active | retired | revoked`;
+- `retired -> retired | revoked`;
+- `revoked -> revoked`.
+
+A successful lifecycle decision is named `ACCEPT_FOR_REVIEW`. It is not an
+activation decision. The assessment fixes:
+
+- `automatic_activation=false`;
+- `activation_effect=NONE`;
+- `authorization_effect=NONE`;
+- `execution_authority=NONE`.
+
+External authenticity/attestation of generation manifests, production
+trust-store distribution/activation, runtime gateway enforcement against
+generation metadata, revocation propagation and production rotation drills
+remain outside this repository-only contract and are `NOT_IMPLEMENTED` /
+`NOT_RUN` as applicable.
 
 ## External kill switch
 
@@ -117,6 +165,9 @@ previous behaviour exactly.
    kill_switch_path=switch_path)`.
 5. Revocation is a state change to `revoked` in the trust store; engaging the
    kill switch is a state change to `engaged` in the switch document.
+6. Before production lifecycle promotion, evaluate the candidate trust-store
+   snapshot against its predecessor with the generation lifecycle contract;
+   repository acceptance alone must not activate it.
 
 Runtime status of this deployment procedure: `NOT_RUN`.
 
@@ -127,9 +178,13 @@ Runtime status of this deployment procedure: `NOT_RUN`.
 - `intrusiveness-policy.yaml` — canonical L0-L4 approval and rollback matrix.
 - `roe_contract.py` — structural, semantic, signature-boundary and authorization decision logic.
 - `trust_store.py` — file-backed public-key trust store and cryptographic verifier.
+- `trust_store_lifecycle.py` — content-addressed generation, freshness and anti-rollback assessment.
+- `trust-store-generation.schema.json` — strict trust-store generation manifest schema.
+- `trust-store-lifecycle-assessment.schema.json` — strict lifecycle assessment schema.
 - `kill_switch.py` — external file-backed kill switch.
 - `../tests/test_roe_contract.py` — positive, negative and adversarial tests.
 - `../tests/test_roe_trust_store.py` — trust store and kill-switch tests.
+- `../tests/test_trust_store_lifecycle.py` — trust-store freshness, rotation and anti-rollback tests.
 
 ## Canonical admission path
 
@@ -147,10 +202,14 @@ Runtime gateway integration: `NOT_RUN`.
 
 - Contract and decision logic: `CANDIDATE`.
 - Trust store and cryptographic verification: `CANDIDATE`.
+- Trust-store generation freshness / anti-rollback contract: `CANDIDATE`.
 - External kill switch: `CANDIDATE`.
 - Gateway enforcement: `NOT_RUN`.
 - Hermes trust-store integration: `NOT_IMPLEMENTED`.
 - Production signature verification: `NOT_RUN`.
+- Production trust-store distribution/activation and revocation propagation: `NOT_RUN`.
+- External generation-manifest authenticity/attestation: `NOT_IMPLEMENTED` / `NOT_RUN`.
+- Runtime gateway enforcement against trust-store generation metadata: `NOT_IMPLEMENTED` / `NOT_RUN`.
+- Production key-rotation / emergency-revocation drill: `NOT_RUN`.
 - Runtime deployment of the trust store or kill switch: `NOT_RUN`.
 - Runtime changes: `NO_RUNTIME_CHANGE`.
-

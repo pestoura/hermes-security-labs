@@ -8,7 +8,8 @@
 | Delivery umbrella | `SVP2-A-02` — issue [#77](https://github.com/pestoura/hermes-security-labs/issues/77) |
 | Master tracker | issue [#97](https://github.com/pestoura/hermes-security-labs/issues/97) |
 | Foundation technical PR | [#133](https://github.com/pestoura/hermes-security-labs/pull/133) |
-| Latest safety increment | [#198](https://github.com/pestoura/hermes-security-labs/pull/198) |
+| Latest cancellation increment | [#198](https://github.com/pestoura/hermes-security-labs/pull/198) |
+| Latest trust lifecycle increment | [#200](https://github.com/pestoura/hermes-security-labs/pull/200) |
 | Record state | `AS_BUILT — contract candidate` |
 | FINAL | no |
 | Runtime declaration | `NO_RUNTIME_CHANGE` |
@@ -17,7 +18,7 @@ This supplementary record describes the repository-level RoE/safety enforcement 
 
 ## 2. Delivered boundary
 
-The repository now contains a fail-closed RoE decision/admission chain and a repository-only in-flight cancellation-message fan-out contract:
+The repository now contains a fail-closed RoE decision/admission chain, a repository-only in-flight cancellation-message fan-out contract and a repository-only trust-store generation lifecycle assessment:
 
 - versioned RoE and proposed-step schemas;
 - canonical L0–L4 intrusiveness policy;
@@ -25,12 +26,13 @@ The repository now contains a fail-closed RoE decision/admission chain and a rep
 - scope, exclusions, execution windows, limits, approvals, emergency contacts and stop conditions;
 - high-risk action controls and L4 dual approval/rollback;
 - file-backed public-key trust-store verification;
+- content-addressed trust-store generation manifests with freshness and anti-rollback assessment;
 - external global/campaign kill-switch state;
 - canonical gateway admission before Runner request construction;
 - sanitized active-attempt inventory;
 - deterministic construction of Runner Protocol v2 `runner.cancellation.request` messages for already-active attempts.
 
-The repository still does not dispatch cancellation messages, terminate runtime processes, operate a production Runner or execute against a target.
+The repository still does not activate/distribute trust-store generations, attest their external origin, dispatch cancellation messages, terminate runtime processes, operate a production Runner or execute against a target.
 
 ## 3. As-built architecture
 
@@ -38,6 +40,7 @@ The repository still does not dispatch cancellation messages, terminate runtime 
 flowchart LR
   CONTRACT[Signed RoE contract]
   TRUST[Public-key trust store]
+  GEN[Trust-store generation lifecycle]
   REQUEST[Proposed step]
   KILL[External kill switch]
   ENGINE[Fail-closed RoE engine]
@@ -48,6 +51,8 @@ flowchart LR
   CANMSG[Runner cancellation request]
   RUNTIME[Runtime dispatch / interruption]
 
+  TRUST --> GEN
+  GEN -. review only / no activation .-> TRUST
   CONTRACT --> ENGINE
   TRUST --> ENGINE
   REQUEST --> ENGINE
@@ -70,6 +75,10 @@ flowchart LR
 | RoE decision implementation | `platform/roe-contract/roe_contract.py` | as built |
 | RoE decision tests | `platform/tests/test_roe_contract.py` | as built |
 | Public-key trust store | `platform/roe-contract/trust_store.py` | as built |
+| Trust-store lifecycle implementation | `platform/roe-contract/trust_store_lifecycle.py` | as built contract |
+| Trust-store generation schema | `platform/roe-contract/trust-store-generation.schema.json` | as built contract |
+| Trust-store lifecycle assessment schema | `platform/roe-contract/trust-store-lifecycle-assessment.schema.json` | as built contract |
+| Trust-store lifecycle tests | `platform/tests/test_trust_store_lifecycle.py` | validated |
 | External kill switch | `platform/roe-contract/kill_switch.py` | as built |
 | Canonical gateway admission | `platform/gateway-protocol/admission.py` | as built |
 | Runner handoff | `platform/gateway-protocol/runner_handoff.py` | as built contract |
@@ -110,6 +119,20 @@ For already-active attempts, PR #198 adds restrictive cancellation planning:
 - released switch requires a recent timestamp under explicit freshness policy;
 - missing, stale or future release timestamp → fail closed.
 
+For trust-store lifecycle assessment, PR #200 fails closed when:
+
+- generation identity is tampered;
+- sequence is not exactly monotonic or the predecessor link mismatches;
+- generation time moves backwards;
+- the generation is stale or from the future under the configured freshness policy;
+- an active key is silently removed;
+- key material, algorithm or validity window mutates under an existing key identity;
+- a `retired` or `revoked` key becomes active again;
+- an invalid state transition occurs;
+- no active verification key remains.
+
+An `ACCEPT_FOR_REVIEW` assessment has `automatic_activation=false`, `activation_effect=NONE`, `authorization_effect=NONE` and `execution_authority=NONE`.
+
 ## 7. Decisions
 
 | Decision | Justification |
@@ -120,6 +143,10 @@ For already-active attempts, PR #198 adds restrictive cancellation planning:
 | Kill-switch source defects fail closed | Safety must not depend on an unreadable control state. |
 | Campaign correlation mismatch fails globally closed | Prevent silent continuation caused by identifier mismatch. |
 | Cancellation fan-out is message construction only | No operational cancellation claim without transport/process evidence. |
+| Trust-store generations are content-addressed and predecessor-linked | Makes sequence rollback and tampering detectable at repository policy level. |
+| Existing key identity/material/algorithm/validity cannot mutate silently | Rotation must add new key identity rather than rewrite historical trust. |
+| `retired`/`revoked` state is monotonic | A non-active key cannot be resurrected. |
+| Lifecycle acceptance is review-only | Repository assessment cannot activate, distribute or authorize trust material. |
 
 ## 8. Acceptance assessment
 
@@ -129,13 +156,25 @@ For already-active attempts, PR #198 adds restrictive cancellation planning:
 | L0–L4 explicit/enforced | `MET` | real intrusive execution remains `NOT_RUN` |
 | Kill switch blocks new admissions | `MET` | deployed runtime drill remains `NOT_RUN` |
 | L4 dual approval/rollback | `MET` | production approval workflow evidence remains incomplete |
-| Public-key trust verification | `MET` repository | production key distribution/rotation/revocation freshness remains incomplete/`NOT_RUN` |
+| Public-key trust verification | `MET` repository | production distribution/activation remains `NOT_RUN` |
+| Trust-store generation freshness / anti-rollback | `MET` repository — PR #200 | external generation authenticity, production revocation propagation and rotation drills remain `NOT_IMPLEMENTED` / `NOT_RUN` as applicable |
 | Gateway refuses before Runner request construction | `MET` repository | deployed gateway remains `NOT_RUN` |
 | Kill switch addresses active attempts | `MET` for cancellation-message planning — PR #198 | dispatch/process interruption remains `NOT_IMPLEMENTED` / `NOT_RUN` |
 
 ## 9. Evidence
 
-Latest cancellation increment:
+Latest trust-store lifecycle increment:
+
+| Evidence | Result |
+| --- | --- |
+| PR #200 head `c8a3d3e469aa7efc8111b299b2a960c54048172e` | validated |
+| Pre-merge security `31254616672` | PASS |
+| Pre-merge validate `31254616681` | PASS |
+| Main `1713e90578cd1c31e65946f0a2ae01125464f7dc` | integrated |
+| Post-merge security `31254701201` | PASS |
+| Post-merge validate `31254701194` | PASS |
+
+Cancellation increment:
 
 | Evidence | Result |
 | --- | --- |
@@ -151,8 +190,12 @@ Earlier repository evidence remains represented by PRs #133, #159 and #160.
 ## 10. Preserved limitations
 
 - production/deployed trust-store and signing operations: `NOT_RUN`;
-- production key rotation/revocation freshness: incomplete / `NOT_RUN`;
+- production trust-store distribution/activation: `NOT_RUN`;
+- external authenticity/attestation of trust-store generation manifests: `NOT_IMPLEMENTED` / `NOT_RUN`;
+- runtime gateway enforcement against trust-store generation metadata: `NOT_IMPLEMENTED` / `NOT_RUN`;
+- production revocation propagation and key-rotation drill: `NOT_RUN`;
 - deployed gateway enforcement: `NOT_RUN`;
+- gateway enforcement: `NOT_RUN`;
 - Hermes operational trust-store/kill-switch integration: incomplete / `NOT_RUN`;
 - runtime active-attempt inventory authenticity/integration: `NOT_IMPLEMENTED` / `NOT_RUN`;
 - cancellation request transport/dispatch: `NOT_IMPLEMENTED` / `NOT_RUN`;
@@ -166,7 +209,8 @@ Earlier repository evidence remains represented by PRs #133, #159 and #160.
 
 ## 11. Remaining work before FINAL
 
-- define/prove production key rotation and revocation freshness;
+- operationalize and prove production trust-store distribution/activation and external generation authenticity/attestation;
+- prove production revocation propagation and controlled key-rotation/emergency-revocation drills;
 - deploy trust-store/kill-switch/gateway enforcement in a controlled non-production runtime;
 - integrate an authenticated/current active-attempt inventory source;
 - dispatch cancellation requests through the real Runner transport;
