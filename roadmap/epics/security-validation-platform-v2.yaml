@@ -218,7 +218,7 @@ epics:
     pillar: B
     priority: P0
     phase: 2
-    status: implementing
+    status: completed
     rationale: >-
       Attach e cleanup baseados em suposicao produzem residuo, contaminacao entre
       execucoes e custo operacional nao controlado.
@@ -240,9 +240,10 @@ epics:
     risks:
       - Compensacao incompleta deixar recursos parcialmente removidos
       - Politicas de rede quebrarem laboratorios existentes
-    labels: [roadmap, architecture, "pillar:B", "priority:P0", "impact:L3", "runtime:docker", "status:implementing", "type:epic"]
+    labels: [roadmap, architecture, "pillar:B", "priority:P0", "impact:L3", "runtime:docker", "status:completed", "type:epic"]
     references:
       - docs/architecture/security-validation-reference-architecture.md
+      - docs/roadmap/SVP2-B-03-completion-as-built.md
 
   - id: SVP2-C-01
     title: Minimal non-root runtime base and persistent runner layout

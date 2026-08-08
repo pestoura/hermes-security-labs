@@ -17,7 +17,7 @@
 
 ## 2. Current status
 
-**IMPLEMENTING** — PR #139 integrated the repository-level network/isolation policy candidate used by the transactional lab lifecycle. The contract defaults to isolated/deny-all egress, permits only explicit restricted exceptions and validates effective network posture before READY/RUNNING. The current block adds read-only classification of orphan network/resource observations; real network-policy enforcement and runtime scanning remain `NOT_RUN` / `NOT_IMPLEMENTED`.
+**IMPLEMENTING** — PR #139 integrated the network/isolation policy and PR #231 added a disposable controlled Docker CI network created with `--internal`, plus owned runtime resource scanning and bounded periodic orphan detection. This is `PASS_CONTROLLED_CI`; production firewall/egress-exception enforcement and deployed scanner identity remain `NOT_RUN`.
 
 | Lifecycle state | Reached |
 | --- | --- |
@@ -93,7 +93,7 @@ flowchart LR
   RESULT -. no automatic mutation .-> RUNTIME
 ```
 
-Actual firewall/container-network enforcement, scanning and remediation remain `NOT_RUN`.
+Controlled Docker CI internal-network observation and scanning are `PASS_CONTROLLED_CI`; production firewall/container-network enforcement and remediation remain `NOT_RUN`.
 
 ## 7. Contracts, data and capabilities
 
@@ -156,14 +156,11 @@ Repository candidates already delivered:
 - normalized read-only orphan observation/assessment for network and other lab resources;
 - regression and adversarial tests.
 
-Still pending:
+Still pending for broader concept finality:
 
-- real Docker/network adapters;
-- default-deny enforcement against actual lab networks;
-- controlled egress exception application/removal;
-- runtime observation proving effective posture;
-- runtime resource scanner;
-- periodic orphan/network scan scheduler;
+- production Docker/network adapters;
+- production firewall-level deny/allowlist enforcement and exception application/removal;
+- authenticated deployed scanner identity/attestation;
 - separately authorized/audited orphan remediation.
 
 ## 11. Acceptance criteria
@@ -179,13 +176,7 @@ Repository-level criteria implemented by #139 and the current assessor block:
 - retained quarantine residue is represented explicitly as `TRACKED_RESIDUE`, not `CLEAR`;
 - orphan-network findings do not trigger automatic remediation.
 
-Umbrella completion still requires runtime evidence that:
-
-- no lab obtains egress by default;
-- actual network isolation matches the declared per-lab profile;
-- expired exceptions are removed and cannot remain effective;
-- a real scanner detects shared/orphan network state;
-- no shared/orphan network state survives cleanup.
+The delivery umbrella now has controlled-Docker-CI evidence that its disposable lab network is internal by default, its owned scanner detects orphan network/volume state and cleanup verifies zero residue. Broader concept finality still requires production firewall/exception enforcement, authenticated scanner identity and deployed remediation.
 
 ## 12. Evidence and validation plan
 
@@ -196,7 +187,7 @@ Existing repository evidence:
 - post-merge `validate` run `31135492132`: success;
 - PR #166 reconciled EPIC-04/08 lifecycle/source-of-truth with post-merge `security #1092` and `validate #1094` success.
 
-Current block adds strict orphan observation/assessment schemas and adversarial classification tests, including network-kind resources and explicit tracked-residue semantics. Real network-policy enforcement and runtime scanning remain `NOT_RUN`.
+PR #231 adds controlled Docker CI internal-network observation, owned runtime scanning, periodic orphan detection and zero-residue cleanup evidence. Production network-policy enforcement and deployed scanner identity remain `NOT_RUN`.
 
 ## 13. Decisions and open questions
 
@@ -225,8 +216,8 @@ Current block adds strict orphan observation/assessment schemas and adversarial 
 - PR #139 implemented the network/isolation policy jointly with EPIC-04 transactional lifecycle.
 - Technical merge: `591552d652fbff82d81f750535799380e9c643a9`.
 - PR #166 reconciled EPIC-04/08 source-of-truth to `IMPLEMENTING` with green post-merge gates.
-- The current block adds read-only orphan observation/assessment including normalized network resources.
-- No firewall, Docker network, runtime scanner, laboratory, target or remediation action is executed.
+- PR #231 adds a controlled Docker CI `--internal` network plus owned network/volume scanner and bounded periodic orphan scans.
+- No target, customer system or production firewall/remediation action is executed.
 
 ## 15. As-built / final architecture
 
@@ -237,13 +228,13 @@ Current factual boundary:
 - isolated/restricted egress contract: `CANDIDATE`;
 - governed exception validation: `CANDIDATE`;
 - effective network observation decision logic: `CANDIDATE`;
-- orphan observation/assessment contract and decision logic: `CANDIDATE`;
-- runtime resource scanner: `NOT_IMPLEMENTED` / `NOT_RUN`;
-- periodic orphan/network scan scheduler: `NOT_IMPLEMENTED`;
+- controlled Docker CI internal-network observation: `PASS_CONTROLLED_CI`;
+- controlled owned network/volume scanner: `PASS_CONTROLLED_CI`;
+- bounded periodic orphan/network scans: `PASS_CONTROLLED_CI`;
+- controlled zero-residue network cleanup observation: `PASS_CONTROLLED_CI`;
+- production scanner identity and firewall/exception enforcement: `NOT_RUN`;
 - orphan remediation: `NOT_IMPLEMENTED` / `NOT_RUN`;
-- network-policy enforcement: `NOT_RUN`;
-- actual deny-all observation: `NOT_RUN`;
-- runtime changes: `NO_RUNTIME_CHANGE`.
+- production runtime changes: `NO_RUNTIME_CHANGE`.
 
 `AS_BUILT` and `FINAL` remain false.
 
