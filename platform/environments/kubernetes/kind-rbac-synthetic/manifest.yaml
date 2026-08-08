@@ -1,0 +1,39 @@
+id: kind-rbac-synthetic
+name: Kind Synthetic RBAC Lab
+description: Disposable single-node kind cluster containing a bounded namespace-only RBAC misconfiguration for lifecycle validation.
+category: kubernetes
+runtime: kubernetes
+driver: kind
+risk: medium
+source: repository-owned-synthetic-fixture
+version: "1.0"
+resources:
+  cpu: "2"
+  memory: 4Gi
+  disk: 8Gi
+  max_concurrent: 1
+networks:
+  - dedicated-kind-network
+egress: false
+targets:
+  - kubernetes-api
+attacker: kali-temporary-attachment
+lifecycle:
+  - create
+  - start
+  - status
+  - smoke
+  - stop
+  - reset
+  - destroy
+reset: delete and recreate the synthetic namespace fixture
+cleanup: delete kind cluster, dedicated kubeconfig and project Docker network
+evidence: cluster identity, RBAC can-i result, reset receipt and zero-residue receipt
+dependencies:
+  - kubernetes
+  - kind
+limitations:
+  - The vulnerability is restricted to a synthetic namespace and synthetic secret.
+  - No host Kubernetes installation is permitted.
+  - No cloud cluster or customer asset is used.
+status: CURRENT-LIMITED
