@@ -14,13 +14,12 @@ class KnowledgeQualityError(ValueError):
 SNAPSHOT_ID_RE = re.compile(r"^ks_[a-f0-9]{32}$")
 RECORD_ID_RE = re.compile(r"^kr_[a-f0-9]{32}$")
 CASE_ID_RE = re.compile(r"^kqcase_[a-f0-9]{32}$")
-DECISION_ID_RE = re.compile(r"^kqdec_[a-f0-9]{32}$")
 CURATOR_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._@-]{2,127}$")
 POLICY_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:/-]{2,127}$")
 
-MAX_RECORDS = 10000
-MAX_RELATIONS = 20000
-MAX_CONFLICTS = 5000
+MAX_RECORDS = 10_000
+MAX_RELATIONS = 20_000
+MAX_CONFLICTS = 5_000
 MAX_CANDIDATES = 64
 
 RECORD_KEYS = {
@@ -42,6 +41,8 @@ RELATION_KEYS = {
     "provenance_record_ids",
     "rationale",
 }
+CURATION_FINDINGS = {"CONFLICT", "LOW_CONFIDENCE", "STALE", "INCOMPLETE"}
+CURATOR_DECISIONS = {"SELECT_ASSERTION", "DEFER", "REJECT_ALL"}
 
 FORBIDDEN_KEYS = {
     "authorization",
@@ -143,11 +144,14 @@ def _validate_snapshot(snapshot: Mapping[str, Any]) -> dict[str, Any]:
         or not record_ids
         or len(record_ids) > MAX_RECORDS
         or len(set(record_ids)) != len(record_ids)
-        or any(not isinstance(item, str) or not RECORD_ID_RE.fullmatch(item) for item in record_ids)
+        or any(
+            not isinstance(item, str) or not RECORD_ID_RE.fullmatch(item)
+            for item in record_ids
+        )
     ):
         raise KnowledgeQualityError("snapshot requires unique canonical record ids")
-    digest = snapshot.get("snapshot_sha256")
-    if not isinstance(digest, str) or not re.fullmatch(r"^[a-f0-9]{64}$", digest):
+    snapshot_sha = snapshot.get("snapshot_sha256")
+    if not isinstance(snapshot_sha, str) or not re.fullmatch(r"^[a-f0-9]{64}$", snapshot_sha):
         raise KnowledgeQualityError("invalid snapshot sha256")
     return dict(snapshot)
 
@@ -162,12 +166,14 @@ def _validate_record(record: Mapping[str, Any]) -> dict[str, Any]:
     record_id = record.get("record_id")
     if not isinstance(record_id, str) or not RECORD_ID_RE.fullmatch(record_id):
         raise KnowledgeQualityError("invalid knowledge record id")
+
     entity = record.get("entity")
     if not isinstance(entity, Mapping):
         raise KnowledgeQualityError("knowledge entity must be an object")
     _require_exact_keys(entity, ENTITY_KEYS, "knowledge entity")
     if not all(isinstance(entity.get(key), str) and entity[key] for key in ENTITY_KEYS):
         raise KnowledgeQualityError("knowledge entity type and id are required")
+
     source = record.get("source")
     if not isinstance(source, Mapping):
         raise KnowledgeQualityError("knowledge source must be an object")
@@ -176,13 +182,16 @@ def _validate_record(record: Mapping[str, Any]) -> dict[str, Any]:
         raise KnowledgeQualityError("complete source provenance is required")
     _parse_utc(source["retrieved_at"], "source.retrieved_at")
     _parse_utc(record.get("ingested_at"), "record.ingested_at")
+
     raw_sha = record.get("raw_sha256")
     if not isinstance(raw_sha, str) or not re.fullmatch(r"^[a-f0-9]{64}$", raw_sha):
         raise KnowledgeQualityError("invalid raw sha256")
     return dict(record)
 
 
-def _validate_relation(relation: Mapping[str, Any], snapshot_record_ids: set[str]) -> dict[str, Any]:
+def _validate_relation(
+    relation: Mapping[str, Any], snapshot_record_ids: set[str]
+) -> dict[str, Any]:
     if not isinstance(relation, Mapping):
         raise KnowledgeQualityError("relation must be an object")
     _reject_forbidden_fields(relation, "relation")
@@ -190,6 +199,7 @@ def _validate_relation(relation: Mapping[str, Any], snapshot_record_ids: set[str
     for key in ("relation", "from", "to", "rationale"):
         if not isinstance(relation.get(key), str) or not relation[key]:
             raise KnowledgeQualityError("relation metadata is incomplete")
+
     confidence = relation.get("confidence")
     if (
         isinstance(confidence, bool)
@@ -197,17 +207,22 @@ def _validate_relation(relation: Mapping[str, Any], snapshot_record_ids: set[str
         or not 0.0 <= float(confidence) <= 1.0
     ):
         raise KnowledgeQualityError("relation confidence must be between 0 and 1")
+
     provenance = relation.get("provenance_record_ids")
     if (
         not isinstance(provenance, list)
         or not provenance
         or len(provenance) > MAX_CANDIDATES
         or len(set(provenance)) != len(provenance)
-        or any(not isinstance(item, str) or not RECORD_ID_RE.fullmatch(item) for item in provenance)
+        or any(
+            not isinstance(item, str) or not RECORD_ID_RE.fullmatch(item)
+            for item in provenance
+        )
     ):
         raise KnowledgeQualityError("relation provenance must be unique canonical records")
     if not set(provenance).issubset(snapshot_record_ids):
         raise KnowledgeQualityError("relation provenance must belong to assessed snapshot")
+
     return {
         "relation": relation["relation"],
         "from": relation["from"],
@@ -226,14 +241,27 @@ def _conflict_source_ids(conflict: Mapping[str, Any]) -> list[str]:
         raise KnowledgeQualityError("unsupported conflict status")
     if not isinstance(conflict.get("key"), str) or not conflict["key"]:
         raise KnowledgeQualityError("conflict key is required")
+
     assertions = conflict.get("assertions")
-    if not isinstance(assertions, list) or len(assertions) < 2 or len(assertions) > MAX_CANDIDATES:
+    if (
+        not isinstance(assertions, list)
+        or len(assertions) < 2
+        or len(assertions) > MAX_CANDIDATES
+    ):
         raise KnowledgeQualityError("conflict requires a bounded assertion set")
-    source_ids = [item.get("source_record_id") for item in assertions if isinstance(item, Mapping)]
+    source_ids = [
+        item.get("source_record_id")
+        for item in assertions
+        if isinstance(item, Mapping)
+    ]
     if len(source_ids) != len(assertions) or len(set(source_ids)) != len(source_ids):
         raise KnowledgeQualityError("conflict assertions require unique source records")
-    if any(not isinstance(item, str) or not RECORD_ID_RE.fullmatch(item) for item in source_ids):
+    if any(
+        not isinstance(item, str) or not RECORD_ID_RE.fullmatch(item)
+        for item in source_ids
+    ):
         raise KnowledgeQualityError("conflict assertions require canonical source record ids")
+
     selected = conflict.get("selected_assertion")
     if conflict["status"] == "unresolved" and selected is not None:
         raise KnowledgeQualityError("unresolved conflict cannot select an assertion")
@@ -280,18 +308,24 @@ def assess_quality(
             or not isinstance(seconds, int)
             or seconds <= 0
         ):
-            raise KnowledgeQualityError("freshness policy requires positive seconds per source")
+            raise KnowledgeQualityError(
+                "freshness policy requires positive seconds per source"
+            )
         normalized_policy[source_name] = seconds
     record_sources = {item["source"]["name"] for item in validated_records}
     if not record_sources.issubset(normalized_policy):
-        raise KnowledgeQualityError("freshness policy must cover every provided record source")
+        raise KnowledgeQualityError(
+            "freshness policy must cover every provided record source"
+        )
 
     if (
         isinstance(minimum_relation_confidence, bool)
         or not isinstance(minimum_relation_confidence, (int, float))
         or not 0.0 <= float(minimum_relation_confidence) <= 1.0
     ):
-        raise KnowledgeQualityError("minimum relation confidence must be between 0 and 1")
+        raise KnowledgeQualityError(
+            "minimum relation confidence must be between 0 and 1"
+        )
     threshold = float(minimum_relation_confidence)
 
     if (
@@ -310,12 +344,15 @@ def assess_quality(
         or len(conflicts) > MAX_CONFLICTS
     ):
         raise KnowledgeQualityError("conflict set exceeds the bounded contract")
+
     unresolved = 0
     conflict_keys: set[str] = set()
     for conflict in conflicts:
         source_ids = _conflict_source_ids(conflict)
         if not set(source_ids).issubset(expected_ids):
-            raise KnowledgeQualityError("conflict assertions must belong to assessed snapshot")
+            raise KnowledgeQualityError(
+                "conflict assertions must belong to assessed snapshot"
+            )
         if conflict["key"] in conflict_keys:
             raise KnowledgeQualityError("conflict keys must be unique")
         conflict_keys.add(conflict["key"])
@@ -328,7 +365,9 @@ def assess_quality(
     stale_record_ids: list[str] = []
     fresh_record_ids: list[str] = []
     for record in sorted(validated_records, key=lambda item: item["record_id"]):
-        retrieved = _parse_utc(record["source"]["retrieved_at"], "source.retrieved_at")
+        retrieved = _parse_utc(
+            record["source"]["retrieved_at"], "source.retrieved_at"
+        )
         if retrieved > now:
             raise KnowledgeQualityError("record retrieval time cannot be in the future")
         age = int((now - retrieved).total_seconds())
@@ -338,16 +377,12 @@ def assess_quality(
             fresh_record_ids.append(record["record_id"])
 
     confidences = [item["confidence"] for item in validated_relations]
-    below_threshold = sum(1 for value in confidences if value < threshold)
+    below_threshold = sum(value < threshold for value in confidences)
     confidence_metrics = {
         "relation_count": len(confidences),
         "minimum": min(confidences) if confidences else None,
         "maximum": max(confidences) if confidences else None,
-        "mean": (
-            round(sum(confidences) / len(confidences), 6)
-            if confidences
-            else None
-        ),
+        "mean": round(sum(confidences) / len(confidences), 6) if confidences else None,
         "below_policy_count": below_threshold,
         "policy_minimum": threshold,
     }
@@ -390,6 +425,23 @@ def assess_quality(
     return {"quality_report_id": f"kqr_{_digest(body)[:32]}", **body}
 
 
+def _curation_seed(
+    *,
+    knowledge_snapshot_id: str,
+    finding_type: str,
+    subject_ref: str,
+    candidate_source_record_ids: Sequence[str],
+    rationale: str,
+) -> dict[str, Any]:
+    return {
+        "knowledge_snapshot_id": knowledge_snapshot_id,
+        "finding_type": finding_type,
+        "subject_ref": subject_ref,
+        "candidate_source_record_ids": sorted(candidate_source_record_ids),
+        "rationale": rationale.strip(),
+    }
+
+
 def build_curation_case(
     *,
     knowledge_snapshot_id: str,
@@ -398,9 +450,12 @@ def build_curation_case(
     candidate_source_record_ids: Sequence[str],
     rationale: str,
 ) -> dict[str, Any]:
-    if not isinstance(knowledge_snapshot_id, str) or not SNAPSHOT_ID_RE.fullmatch(knowledge_snapshot_id):
+    if (
+        not isinstance(knowledge_snapshot_id, str)
+        or not SNAPSHOT_ID_RE.fullmatch(knowledge_snapshot_id)
+    ):
         raise KnowledgeQualityError("invalid knowledge snapshot id")
-    if finding_type not in {"CONFLICT", "LOW_CONFIDENCE", "STALE", "INCOMPLETE"}:
+    if finding_type not in CURATION_FINDINGS:
         raise KnowledgeQualityError("unsupported curation finding type")
     if not isinstance(subject_ref, str) or not subject_ref:
         raise KnowledgeQualityError("curation subject is required")
@@ -411,20 +466,25 @@ def build_curation_case(
         or len(candidate_source_record_ids) > MAX_CANDIDATES
     ):
         raise KnowledgeQualityError("curation case requires bounded candidate records")
+
     candidates = list(candidate_source_record_ids)
     if len(set(candidates)) != len(candidates) or any(
-        not isinstance(item, str) or not RECORD_ID_RE.fullmatch(item) for item in candidates
+        not isinstance(item, str) or not RECORD_ID_RE.fullmatch(item)
+        for item in candidates
     ):
-        raise KnowledgeQualityError("curation candidates must be unique canonical record ids")
+        raise KnowledgeQualityError(
+            "curation candidates must be unique canonical record ids"
+        )
     if not isinstance(rationale, str) or not rationale.strip():
         raise KnowledgeQualityError("curation rationale is required")
-    seed = {
-        "knowledge_snapshot_id": knowledge_snapshot_id,
-        "finding_type": finding_type,
-        "subject_ref": subject_ref,
-        "candidate_source_record_ids": sorted(candidates),
-        "rationale": rationale.strip(),
-    }
+
+    seed = _curation_seed(
+        knowledge_snapshot_id=knowledge_snapshot_id,
+        finding_type=finding_type,
+        subject_ref=subject_ref,
+        candidate_source_record_ids=candidates,
+        rationale=rationale,
+    )
     return {
         "schema_version": "1.0",
         "case_id": f"kqcase_{_digest(seed)[:32]}",
@@ -452,24 +512,56 @@ def _validate_case(case: Mapping[str, Any]) -> dict[str, Any]:
         "execution_authority",
     }
     _require_exact_keys(case, required, "curation case")
+
     if case.get("schema_version") != "1.0" or case.get("state") != "OPEN":
         raise KnowledgeQualityError("only open v1 curation cases may be resolved")
-    if case.get("automatic_resolution") is not False or case.get("execution_authority") != "NONE":
+    if (
+        case.get("automatic_resolution") is not False
+        or case.get("execution_authority") != "NONE"
+    ):
         raise KnowledgeQualityError("curation case authority boundary changed")
+
     case_id = case.get("case_id")
     if not isinstance(case_id, str) or not CASE_ID_RE.fullmatch(case_id):
         raise KnowledgeQualityError("invalid curation case id")
-    if not isinstance(case.get("knowledge_snapshot_id"), str) or not SNAPSHOT_ID_RE.fullmatch(case["knowledge_snapshot_id"]):
+    snapshot_id = case.get("knowledge_snapshot_id")
+    if not isinstance(snapshot_id, str) or not SNAPSHOT_ID_RE.fullmatch(snapshot_id):
         raise KnowledgeQualityError("invalid curation snapshot id")
+    finding_type = case.get("finding_type")
+    if finding_type not in CURATION_FINDINGS:
+        raise KnowledgeQualityError("unsupported curation finding type")
+    subject_ref = case.get("subject_ref")
+    if not isinstance(subject_ref, str) or not subject_ref:
+        raise KnowledgeQualityError("curation subject is required")
+    rationale = case.get("rationale")
+    if not isinstance(rationale, str) or not rationale.strip():
+        raise KnowledgeQualityError("curation rationale is required")
+
     candidates = case.get("candidate_source_record_ids")
     if (
         not isinstance(candidates, list)
         or not candidates
         or len(candidates) > MAX_CANDIDATES
         or len(set(candidates)) != len(candidates)
-        or any(not isinstance(item, str) or not RECORD_ID_RE.fullmatch(item) for item in candidates)
+        or any(
+            not isinstance(item, str) or not RECORD_ID_RE.fullmatch(item)
+            for item in candidates
+        )
     ):
         raise KnowledgeQualityError("invalid curation candidates")
+
+    seed = _curation_seed(
+        knowledge_snapshot_id=snapshot_id,
+        finding_type=finding_type,
+        subject_ref=subject_ref,
+        candidate_source_record_ids=candidates,
+        rationale=rationale,
+    )
+    expected_case_id = f"kqcase_{_digest(seed)[:32]}"
+    if case_id != expected_case_id:
+        raise KnowledgeQualityError(
+            "curation case id does not match canonical content"
+        )
     return dict(case)
 
 
@@ -485,17 +577,20 @@ def record_curator_decision(
     validated_case = _validate_case(case)
     if not isinstance(curator_id, str) or not CURATOR_ID_RE.fullmatch(curator_id):
         raise KnowledgeQualityError("invalid curator identity")
-    if decision not in {"SELECT_ASSERTION", "DEFER", "REJECT_ALL"}:
+    if decision not in CURATOR_DECISIONS:
         raise KnowledgeQualityError("unsupported curator decision")
+
     candidates = validated_case["candidate_source_record_ids"]
     if decision == "SELECT_ASSERTION":
         if selected_source_record_id not in candidates:
             raise KnowledgeQualityError("selected assertion must be a case candidate")
     elif selected_source_record_id is not None:
         raise KnowledgeQualityError("non-selection decisions cannot select an assertion")
+
     if not isinstance(rationale, str) or not rationale.strip():
         raise KnowledgeQualityError("curator decision rationale is required")
     _parse_utc(decided_at, "decided_at")
+
     body = {
         "schema_version": "1.0",
         "case_id": validated_case["case_id"],
@@ -524,13 +619,17 @@ def record_policy_decision(
     decided_at: str,
 ) -> dict[str, Any]:
     validated_case = _validate_case(case)
-    if not isinstance(precedence_policy_id, str) or not POLICY_ID_RE.fullmatch(precedence_policy_id):
+    if (
+        not isinstance(precedence_policy_id, str)
+        or not POLICY_ID_RE.fullmatch(precedence_policy_id)
+    ):
         raise KnowledgeQualityError("invalid precedence policy id")
     if selected_source_record_id not in validated_case["candidate_source_record_ids"]:
         raise KnowledgeQualityError("selected assertion must be a case candidate")
     if not isinstance(rationale, str) or not rationale.strip():
         raise KnowledgeQualityError("policy decision rationale is required")
     _parse_utc(decided_at, "decided_at")
+
     body = {
         "schema_version": "1.0",
         "case_id": validated_case["case_id"],
