@@ -308,7 +308,7 @@ epics:
     pillar: D
     priority: P0
     phase: 2
-    status: implementing
+    status: completed
     rationale: >-
       Sem um plano de evidencia unico e normalizado nao existe cadeia de custodia nem
       possibilidade de reproduzir ou auditar um resultado.
@@ -330,9 +330,10 @@ epics:
     risks:
       - Volume de evidencia exceder o orcamento de armazenamento
       - Redaction insuficiente expor dados sensiveis
-    labels: [roadmap, architecture, "pillar:D", "priority:P0", "status:implementing", "type:epic"]
+    labels: [roadmap, architecture, "pillar:D", "priority:P0", "status:completed", "type:epic"]
     references:
       - docs/architecture/security-validation-reference-architecture.md
+      - docs/roadmap/SVP2-D-01-completion-as-built.md
 
   - id: SVP2-D-02
     title: End-to-end observability chaos tests and capability maturity M0-M5
