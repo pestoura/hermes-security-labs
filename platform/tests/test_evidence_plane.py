@@ -122,6 +122,12 @@ def test_policy_records_controlled_local_evidence_boundaries_without_production_
     assert policy["sharing_default"] == "deny"
     assert policy["classifications"]["raw"]["shareable"] is False
     assert policy["classifications"]["restricted"]["shareable"] is False
+    assert policy["required_integrity"] == {
+        "digest": "sha256",
+        "immutable_raw": True,
+        "parent_link_for_derived": True,
+        "canonical_record_digest_sidecar": "PASS_CONTROLLED_CI",
+    }
     assert policy["redaction"]["controlled_structured_engine"] == {
         "status": "PASS_CONTROLLED_CI",
         "schema_version": "1.0",
@@ -133,12 +139,22 @@ def test_policy_records_controlled_local_evidence_boundaries_without_production_
         "safe_ingress_pr": 221,
         "safe_ingress_merge_sha": "cbf88aecb9bf69ad4d7bd0164f8ac8f61f04b4aa",
     }
+    assert policy["replay"]["controlled_result_reconstruction"] == {
+        "status": "PASS_CONTROLLED_CI",
+        "technical_pr": 223,
+        "merge_sha": "fa0e0eb40e0fd558b43a2bae8f411761d51f9807",
+        "mode": "verified_stored_result_reconstruction",
+        "execution_replayed": False,
+        "authorization_replayed": False,
+    }
     assert policy["runtime_status"] == {
         "storage_backend": "PASS_LOCAL_CONTROLLED_CI",
         "local_integrity_replay": "PASS_CONTROLLED_CI",
         "local_export_boundary": "PASS_CONTROLLED_CI",
         "structured_redaction": "PASS_CONTROLLED_CI",
         "redaction_before_persistence": "PASS_CONTROLLED_CI",
+        "controlled_result_reconstruction": "PASS_CONTROLLED_CI",
+        "record_metadata_integrity": "PASS_CONTROLLED_CI",
         "encryption_at_rest": "NOT_RUN",
         "immutable_store": "NOT_RUN",
         "retention_enforcement": "NOT_RUN",
@@ -154,6 +170,8 @@ def test_policy_records_controlled_local_evidence_boundaries_without_production_
         "redaction_merge_sha": "383d60479f5874ac103fe3a74654e85690be19d0",
         "safe_ingress_pr": 221,
         "safe_ingress_merge_sha": "cbf88aecb9bf69ad4d7bd0164f8ac8f61f04b4aa",
+        "reconstruction_pr": 223,
+        "reconstruction_merge_sha": "fa0e0eb40e0fd558b43a2bae8f411761d51f9807",
         "backend": "local_content_addressed_filesystem",
         "object_storage": "NOT_RUN",
         "worm_storage": "NOT_RUN",
@@ -170,6 +188,7 @@ def test_repository_owns_all_contract_files() -> None:
         "local_store.py",
         "redaction.py",
         "safe_persistence.py",
+        "reconstruction.py",
     }
     assert expected.issubset({path.name for path in EVIDENCE_DIR.iterdir()})
     for name in expected:
