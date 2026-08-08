@@ -1,0 +1,63 @@
+name: svp2-i01-controlled-docker-reset
+
+on:
+  push:
+    paths:
+      - '.github/workflows/svp2-i01-controlled-docker-reset.yml'
+      - 'platform/lab-registry-v2/**'
+  pull_request:
+    paths:
+      - '.github/workflows/svp2-i01-controlled-docker-reset.yml'
+      - 'platform/lab-registry-v2/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  controlled-docker-reset:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Exercise controlled Docker reset and cleanup
+        run: |
+          set -euo pipefail
+          docker info >/dev/null
+          python platform/lab-registry-v2/controlled_docker_reset.py >/tmp/hex0r-i01-reset.json
+          python - <<'PY'
+          import json
+          evidence = json.load(open('/tmp/hex0r-i01-reset.json', encoding='utf-8'))
+          assert evidence['boundary'] == 'CONTROLLED_CI_DOCKER'
+          assert evidence['network_internal'] is True
+          assert evidence['privileged'] is False
+          assert evidence['host_network'] is False
+          assert evidence['docker_socket_mounted'] is False
+          assert evidence['host_mounts'] is False
+          assert evidence['rootfs_read_only'] is True
+          assert evidence['capabilities'] == 'DROP_ALL'
+          assert evidence['no_new_privileges'] is True
+          assert evidence['runtime_uid'] == 10001
+          assert evidence['deterministic'] is True
+          assert evidence['cleanup_zero_residue'] is True
+          assert evidence['residue'] == {'network_present': False, 'volume_present': False}
+          assert evidence['production_lab_runtime'] == 'NOT_RUN'
+          print('I01_CONTROLLED_DOCKER_RESET_PASS')
+          PY
+
+      - name: Verify no controlled resources remain
+        if: always()
+        run: |
+          set -euo pipefail
+          if docker network ls --filter label=hex0r.controlled-ci=svp2-i01 --format '{{.Name}}' | grep -q .; then
+            echo 'controlled I-01 network residue detected' >&2
+            exit 1
+          fi
+          if docker volume ls --filter label=hex0r.controlled-ci=svp2-i01 --format '{{.Name}}' | grep -q .; then
+            echo 'controlled I-01 volume residue detected' >&2
+            exit 1
+          fi
+          rm -f /tmp/hex0r-i01-reset.json
