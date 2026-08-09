@@ -1,6 +1,7 @@
-source "$(dirname "$0")/env.sh"
 #!/usr/bin/env bash
 set -euo pipefail
+# shellcheck source=kali-mcp/scripts/env.sh
+source "$(dirname "${BASH_SOURCE[0]}")/env.sh"
 
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 RESULTS_DIR="${PROJECT_DIR}/data/results"

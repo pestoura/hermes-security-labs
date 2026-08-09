@@ -16,6 +16,7 @@ mantidos em Git e são a fonte de verdade. Issues do GitHub são uma vista de tr
 | Contribuir com runbooks, labs ou runners | [Contributor guide](contributor-guide.md) |
 | Resolver uma falha | [Troubleshooting](troubleshooting.md) |
 | Perceber limites de segurança | [Security model](security-model.md) |
+| Consultar a baseline de hardening transversal | [Transversal hardening baseline](transversal-hardening-baseline.md) |
 | Traduzir siglas e frameworks | [Glossary and references](glossary-and-references.md) |
 | Saber quem mantém a documentação | [Documentation governance](documentation-governance.md) |
 | Consultar decisões estruturantes | [ADR index](architecture/adr/README.md) |
@@ -35,6 +36,7 @@ mantidos em Git e são a fonte de verdade. Issues do GitHub são uma vista de tr
 - [Contributor guide](contributor-guide.md)
 - [Troubleshooting](troubleshooting.md)
 - [Security model](security-model.md)
+- [Transversal hardening baseline](transversal-hardening-baseline.md)
 - [Glossary and references](glossary-and-references.md)
 - [Documentation governance](documentation-governance.md)
 
