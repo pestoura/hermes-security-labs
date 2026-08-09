@@ -15,8 +15,19 @@ adapters:
     capabilities:
       - web.discovery.headers
       - web.discovery.tls
+    input_contract:
+      source: platform/gateway-protocol/runner_handoff.py
+      format: canonical-gateway-runner-handoff-v2
+      target:
+        type: lab-asset
+        value: webgoat-web
+      operation_version: "1.0.0"
+      intrusiveness_level: L1
+      arbitrary_locator_input: forbidden
     authorization:
       mode: tb1_verified_resolver_required
+      gateway_receipt_verification: required-before-handoff
+      runner_transport_identity: NOT_IMPLEMENTED
       default: deny-all
     idempotency:
       mode: sqlite-durable-required
