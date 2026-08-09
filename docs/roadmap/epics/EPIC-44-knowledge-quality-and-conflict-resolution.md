@@ -203,12 +203,56 @@ Future evidence required:
 
 > Reserved. Populate when the delivery umbrella reaches completion. Must record what was actually built, evidence links, and every divergence from sections 6 to 11. No umbrella may be closed while this section is empty.
 
-_Not final. The repository-level quality and curation contracts are implemented, but production persistence, operational curator workflow/UI, source-authority verification and production quality observability remain incomplete/NOT_RUN._
+_Lifecycle unchanged: EPIC-44 is `IMPLEMENTING`; `AS_BUILT` and `FINAL` remain no._
+
+### What is actually built and merged
+
+- deterministic completeness, freshness and confidence quality metrics over identical
+  supplied inputs;
+- content-addressed curation cases whose `case_id` is recomputed from canonical case content
+  before any decision is accepted, so tampering fails closed;
+- accountable curator and policy decisions recording identity or policy identifier,
+  rationale and timestamp;
+- fixed non-claims `automatic_resolution = false`, `historical_rewrite = false`,
+  `effect = KNOWLEDGE_CURATION_ONLY`, `execution_authority = NONE`;
+- unresolved conflicts, missing or stale records and below-policy confidence all require
+  review rather than being silently dropped.
+
+Canonical implementation: `platform/knowledge-fabric/knowledge_quality.py` with
+`knowledge-quality-report.schema.json`, `knowledge-curation-case.schema.json` and
+`knowledge-curation-decision.schema.json`. Dedicated tests:
+`platform/tests/test_knowledge_quality.py` and
+`platform/tests/test_knowledge_quality_hardening.py`.
+
+### Exact evidence
+
+| Evidence | Value |
+| --- | --- |
+| Technical pull request | [#192](https://github.com/pestoura/hermes-security-labs/pull/192) |
+| Validated PR head | `0adf35d6f179ee69871323a30c97ad6d2d92feec` |
+| Integrated `main` merge commit | `58fc929be589c3f5dbaaf0779a12c1060f7ad30e` |
+| Pre-merge `validate` | success — run `31232226647` |
+| Pre-merge `security` | success — run `31232226665` |
+| Post-merge `main` `validate` | success — run `31232309593` |
+| Post-merge `main` `security` | success — run `31232309584` |
+
+The merge commit is an ancestor of `main`.
+
+### Evidence that is missing for promotion
+
+- production graph/database persistence: `NOT_IMPLEMENTED`;
+- operational curator UI and workflow engine: `NOT_IMPLEMENTED`;
+- external-source authority and currentness verification: `NOT_IMPLEMENTED` / `NOT_RUN`;
+- persistent operational conflict/case storage and escalation automation: `NOT_RUN`;
+- production quality dashboards and observability: `NOT_RUN`.
+
+`NO_RUNTIME_CHANGE`.
 
 ## 16. Document change log
 
 | Date | Version | Change |
 | --- | --- | --- |
+| 2026-08-09 | 1.3.0 | Populated section 15 with the exact merged evidence and the explicit list of evidence still missing for promotion; lifecycle unchanged at `IMPLEMENTING`. |
 | 2026-08-06 | 1.0.0 | Initial intent document created from the concept epic catalogue. |
 | 2026-08-07 | 1.1.0 | Reconciled lifecycle to IMPLEMENTING using PR #146/#148 conflict, precedence, snapshot and confidence primitives; quality metrics/curation remained incomplete. |
 | 2026-08-08 | 1.2.0 | Reconciled PR #192 quality metrics, tamper-resistant curation cases and accountable curation decisions while preserving production persistence/UI/source-authority/dashboard non-claims. |
