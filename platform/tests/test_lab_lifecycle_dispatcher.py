@@ -65,10 +65,18 @@ def test_dispatcher_resolves_discrete_script() -> None:
     assert res.script.name == "status.sh"
 
 
-def test_dispatcher_refuses_unsupported_action_for_environment() -> None:
-    # juice-shop declares no connect-kali in its manifest lifecycle.
-    with pytest.raises(lifecycle.ResolutionError):
-        lifecycle.resolve("juice-shop", "connect-kali")
+def test_dispatcher_resolves_juice_shop_connectivity_helpers() -> None:
+    # Connectivity actions are deliberately outside the manifest lifecycle
+    # vocabulary. They become supported only when an executable, confined
+    # helper is shipped for the environment.
+    connect = lifecycle.resolve("juice-shop", "connect-kali")
+    disconnect = lifecycle.resolve("juice-shop", "disconnect-kali")
+    assert connect.mode == "discrete"
+    assert connect.script.name == "connect-kali.sh"
+    assert disconnect.mode == "discrete"
+    assert disconnect.script.name == "disconnect-kali.sh"
+    assert lifecycle._confined(connect.script, connect.env_dir)
+    assert lifecycle._confined(disconnect.script, disconnect.env_dir)
 
 
 def test_dispatcher_confines_resolved_script_to_env_dir() -> None:
@@ -79,6 +87,8 @@ def test_dispatcher_confines_resolved_script_to_env_dir() -> None:
 def test_support_matrix_marks_real_env_supported_and_unknown_unsupported() -> None:
     rows = {row["env_id"]: row for row in lifecycle.support_matrix()}
     assert rows[REAL_ENV]["actions"]["start"] == "SUPPORTED"
+    assert rows["juice-shop"]["actions"]["connect-kali"] == "SUPPORTED"
+    assert rows["juice-shop"]["actions"]["disconnect-kali"] == "SUPPORTED"
     # An environment that does not exist yields no row.
     assert UNKNOWN_ENV not in rows
 
