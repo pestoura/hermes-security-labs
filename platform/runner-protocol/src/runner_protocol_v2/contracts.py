@@ -6,6 +6,7 @@ provide durable idempotency and bounded POSIX process supervision, but never aut
 
 from __future__ import annotations
 
+import ast
 import hashlib
 import json
 import os
@@ -310,6 +311,58 @@ def _validate_synthetic_worker(
             )
 
 
+def _validate_projection_module(
+    repository_root: Path,
+    *,
+    relative_path: str,
+    capability_id: str,
+) -> None:
+    """Enforce that the declared runtime projection stays a pure boundary.
+
+    The projection is allowed to translate contracts. It is not allowed to
+    execute the runtime, spawn a process, open a network connection or import
+    the pack's dispatch/execution/adapter layers.
+    """
+    module_path = (repository_root / relative_path).resolve()
+    if repository_root not in module_path.parents or not module_path.is_file():
+        raise ProtocolValidationError(
+            "runtime projection module path is missing or outside repository"
+        )
+    source = module_path.read_text(encoding="utf-8")
+    if capability_id not in source:
+        raise ProtocolValidationError(
+            f"runtime projection does not declare capability {capability_id!r}"
+        )
+    tree = ast.parse(source)
+    imported: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            imported.update(alias.name for alias in node.names)
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            imported.add(node.module)
+    forbidden_imports = {
+        "subprocess",
+        "socket",
+        "http",
+        "requests",
+        "urllib",
+        "urllib.request",
+        "ai_mcp_runbooks.dispatch",
+        "ai_mcp_runbooks.execution",
+        "ai_mcp_runbooks.adapters",
+    }
+    offending = sorted(imported & forbidden_imports)
+    if offending:
+        raise ProtocolValidationError(
+            f"runtime projection must not import execution modules: {offending}"
+        )
+    for forbidden in ("execute_runbook", "execute_command", "build_adapter", "Popen"):
+        if forbidden in source:
+            raise ProtocolValidationError(
+                f"runtime projection must not reference {forbidden}"
+            )
+
+
 def validate_compatibility_matrix() -> None:
     """Validate the compatibility and conformance declaration."""
     root = contract_root()
@@ -555,6 +608,32 @@ def validate_compatibility_matrix() -> None:
             "AI/MCP supervised-process declaration is inconsistent"
         )
 
+    ai_mcp_projection_expected = {
+        "status": "CONTRACT_PROJECTION_ONLY",
+        "integration_scope": "pure_translation_boundary",
+        "module_path": (
+            "security/packs/ai-mcp/src/ai_mcp_runbooks/"
+            "runner_protocol_projection.py"
+        ),
+        "capability_id": "ai-mcp.runtime.handler-invoke",
+        "directions": [
+            "step_request_to_execution_request",
+            "execution_result_to_outcome",
+        ],
+        "authorization_source": "hermes_control_plane",
+        "policy_effect": "narrow_or_refuse_only",
+        "evidence_payload": "digest_only",
+        "executes_runtime": False,
+        "network_access": "none",
+        "subprocess_creation": "none",
+        "execution_integration": "NOT_RUN",
+        "production_effect_claim": "none",
+    }
+    if ai_mcp.get("runtime_projection") != ai_mcp_projection_expected:
+        raise ProtocolValidationError(
+            "AI/MCP runtime-projection declaration is inconsistent"
+        )
+
 
     repository_root = root.parents[1]
     candidate_declarations = (
@@ -612,6 +691,12 @@ def validate_compatibility_matrix() -> None:
         repository_root,
         relative_path=str(ai_mcp_supervised_expected["worker_path"]),
         family_name="AI/MCP",
+    )
+
+    _validate_projection_module(
+        repository_root,
+        relative_path=str(ai_mcp_projection_expected["module_path"]),
+        capability_id=str(ai_mcp_projection_expected["capability_id"]),
     )
 
 

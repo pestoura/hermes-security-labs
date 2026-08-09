@@ -54,7 +54,7 @@ actually built, with evidence.
 
 | Item | What exists | What is missing |
 | --- | --- | --- |
-| Runner Protocol production execution | contract, SDK, conformance kit, supervised candidates for API, DevSecOps and AI/MCP | production execution for every family is unimplemented; the calibrated AI/MCP runtime is not connected to the protocol |
+| Runner Protocol production execution | contract, SDK, conformance kit, supervised candidates for API, DevSecOps and AI/MCP, plus a validated AI/MCP runtime contract projection | production execution for every family is unimplemented; the AI/MCP connection is translation-only and executes nothing |
 | 29 concept epics at `IMPLEMENTING` | intent sections 3–13 complete, section 14 recording delivered increments | section 15 as-built not populated, so none can be promoted |
 | Domain runtimes | contracts, activation gate and constraints under `SVP2-L-01` | Kubernetes, identity/AD, cloud, mobile and IoT/OT runtimes are not activated |
 | Observability and chaos | evidence-bound failure suite and controlled readiness gate | production observability and chaos execution remain unclaimed |
@@ -129,7 +129,7 @@ Ordered so that each entry unblocks the next and none waits on a blocked depende
 | 1 | Reconcile lifecycle state across catalogue, registry and backlog, with a mechanical gate | — | no | Removes the ambiguity that made every other status question unanswerable |
 | 2 | Populate section 15 for the `IMPLEMENTING` concept epics whose umbrella already closed with evidence | 1 | no | The evidence already exists in merged pull requests; only the as-built record is missing |
 | 3 | Promote those epics to `AS_BUILT` once section 15 cites evidence | 2 | no | Restores agreement between the lifecycle contract and reality |
-| 4 | Connect the calibrated AI/MCP runtime to Runner Protocol and record the divergence | — | no | Largest remaining functional gap that needs no external authority |
+| 4 | Connect the calibrated AI/MCP runtime to Runner Protocol and record the divergence | — | no | Largest remaining functional gap that needs no external authority. **Contract projection delivered**: `security/packs/ai-mcp/src/ai_mcp_runbooks/runner_protocol_projection.py` translates both directions and is gated by the compatibility matrix; execution integration remains `NOT_RUN` and is deliberately out of scope |
 | 5 | Delete the 194 remote branches whose pull request is merged | — | no | 206 of 207 remote branches are noise; the signal is one open lane |
 | 6 | Close the milestone accounting gap on `SVP v2 Foundation` | 1 | no | The milestone reports two open items while its four issues are closed |
 | 7 | Provision the dedicated `read:packages` credential | owner authorization | yes | Only step that unblocks the private-registry chain |

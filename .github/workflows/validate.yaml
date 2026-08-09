@@ -236,7 +236,7 @@ jobs:
             security/core/src security/core/tests \
             security/packs/api/src security/packs/api/tests \
             security/packs/devsecops/tools security/packs/devsecops/tests \
-            security/packs/ai-mcp/tools security/packs/ai-mcp/tests \
+            security/packs/ai-mcp/src security/packs/ai-mcp/tools security/packs/ai-mcp/tests \
             security/tools security/tests \
             docs/tests \
             deployment \

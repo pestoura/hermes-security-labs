@@ -139,6 +139,22 @@ runner_families:
       raw_output_persistence: none
       sandbox_status: NOT_IMPLEMENTED
       production_effect_claim: none
+    runtime_projection:
+      status: CONTRACT_PROJECTION_ONLY
+      integration_scope: pure_translation_boundary
+      module_path: security/packs/ai-mcp/src/ai_mcp_runbooks/runner_protocol_projection.py
+      capability_id: ai-mcp.runtime.handler-invoke
+      directions:
+        - step_request_to_execution_request
+        - execution_result_to_outcome
+      authorization_source: hermes_control_plane
+      policy_effect: narrow_or_refuse_only
+      evidence_payload: digest_only
+      executes_runtime: false
+      network_access: none
+      subprocess_creation: none
+      execution_integration: NOT_RUN
+      production_effect_claim: none
     notes: The opt-in AI/MCP candidate proves fixed-worker synthetic process supervision and durable replay through the shared SDK engine. It is isolated from the calibrated AI/MCP runtime, handlers, providers, agents, memory/RAG adapters, campaigns, networks and targets; production AI/MCP execution is not integrated with Runner Protocol.
 
 migration_gates:
