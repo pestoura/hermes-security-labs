@@ -1,142 +1,134 @@
 # Runtime acceptance checkpoint — 2026-08-09
 
 **Project:** Hermes Security Labs  
-**Current Hermes Security Labs main before Lane U:** `2f97034d599c97de22c2a75cf9d37ffcfa17e054`  
-**Mode:** bounded runtime reconciliation; no target execution, no offensive tooling, no blind registration, no policy bypass.
+**Current Hermes Security Labs main:** `88a4ae88ae958cd889fff3a89cd64b269d3b75e6`  
+**Accepted/live Hermes MCP Bridge revision:** `7e4b6b1cd70ddda418f840f54ae7ecef30df52e9`  
+**Mode:** bounded runtime reconciliation; fail closed; no target execution, no offensive tool invocation, no blind registration, no policy bypass.
 
-This file is the canonical runtime-acceptance record for admission/discovery. Repository/CI evidence and live runtime evidence are kept separate.
+This file is the canonical runtime-acceptance record for the current Hermes/Kali admission and discovery boundary. Repository/CI evidence and live runtime evidence remain distinct.
 
 ## Current high-level state
 
 | Item | State |
 | --- | --- |
 | Labs repository contracts | `GREEN-REPO` |
-| RTA-001 gateway admission | `DRAIN-IN-PROGRESS / BLOCKED-ON-RUNTIME` |
-| RTA-002 Kali MCP | `REPO-CONTRACT-RECONCILED / BLOCKED-ON-RUNTIME-REGISTRATION` |
-| RTA-003 approval handoff | `REPO-FIX-AND-ROLLOUT-GREEN / LIVE-FIX-NOT-DEPLOYED` |
+| RTA-001 gateway admission | `RESOLVED-RUNTIME` |
+| RTA-002 Kali MCP | `STAGE-1-GREEN / STAGE-2-EXACT-SUBSET-PENDING` |
+| RTA-003 approval handoff | `RESOLVED-RUNTIME` |
 | Bridge accepted repository head | `7e4b6b1cd70ddda418f840f54ae7ecef30df52e9` |
-| Bridge live OCI revision | `f0b7e72f6bdf42e82712f3d2e8182ff937ae9509` |
-| Walking skeleton execution | not yet admitted |
+| Bridge live OCI revision | `7e4b6b1cd70ddda418f840f54ae7ecef30df52e9` |
+| Kali MCP live registration | present, `enabled:false`, non-matching sentinel allowlist |
+| Walking skeleton execution | not yet admitted; Stage 2/tool-policy binding and target lifecycle acceptance remain |
 
 ## Latest Hermes health/readiness observation
 
-Live Bridge health remains good:
+Live health after RTA-002 Stage 1 and RTA-003 closure:
 
 - Hermes Agent `0.20.0`;
-- Bridge contract/version `1.0.0`;
+- gateway `running`;
+- `gateway_busy=false`;
+- `gateway_drainable=true`;
+- `active_agents=0` at the latest observation;
+- upstream/readiness `ok`;
+- Bridge version `1.0.0`;
 - schema `0.6.1`;
-- 27/27 tools;
-- upstream, state DB, approval registry and security posture ready;
-- production policy loaded/valid;
+- 27/27 Bridge tools;
+- state DB and approval registry ready;
+- production policy loaded and valid;
 - HMAC required and file-backed;
 - metrics loopback-only;
-- tracing/retry/circuit breaker disabled as accepted.
+- tracing/retry/circuit breaker remain disabled as accepted;
+- Bridge security posture `ready`.
 
-Admission is currently closed by a gateway drain already in progress:
+## RTA-001 — gateway admission
 
-- `gateway_state=draining`;
-- `active_api_runs=0`;
-- `active_delegations=0`;
-- `gateway_busy=false`;
-- `active_agents=1`;
-- `gateway_drainable=false`;
-- `accepting_new_work=false`;
-- `exit_reason=null`.
+**Classification:** `RESOLVED-RUNTIME`  
+**State:** `GREEN/PASS`
 
-The previously active Bridge Phase 6 API run completed successfully with `RUNBOOK_ACCEPTED`; the remaining active agent is not represented by the Bridge's current API-run count. No unknown agent is being cancelled merely to reopen admission.
+The later gateway drain observed during concurrent authorized work recovered without a forced restart, process kill, cancellation of an unidentified agent or policy bypass.
 
-Upstream Hermes semantics were reconciled read-only: `gateway_drainable=false` while already `draining` means a new drain cannot be started; it is not a busy flag. In-band restart/drain logic may preserve active turns before stop, with an upstream default `restart_after_turn_timeout` of 21600 seconds. That semantic explains why a drain may legitimately remain open, but the current health surface does not prove which actor requested this specific drain. Do not infer a restart request without direct evidence.
-
-## RTA-001 — gateway drain/admission
-
-**Classification:** `RUNTIME ADMISSION BLOCKER`  
-**State:** `DRAIN-IN-PROGRESS / DO-NOT-FORCE`
-
-The earlier stale drain recovered naturally and was correctly closed at that time. A later drain has since been observed during concurrent authorized work.
-
-Observed progression:
-
-1. gateway previously recovered to `running` / `accepting_new_work=true`;
-2. a legitimate Bridge Phase 6 API run was active while the gateway entered `draining`;
-3. that API run completed with `RUNBOOK_ACCEPTED`;
-4. `active_api_runs` fell to zero;
-5. one non-API active agent remains and admission stays closed.
-
-No restart, forced stop, process kill or cancellation of an unidentified agent has been performed.
-
-### Closure condition
-
-RTA-001 returns to `RESOLVED-RUNTIME` only after live proof of:
+Closure evidence now satisfies:
 
 `gateway_state=running`
-`-> accepting_new_work=true`
+`-> gateway_busy=false`
 `-> gateway_drainable=true`
+`-> admission available`
 
-If the active agent remains wedged beyond its legitimate lifecycle, identify its ownership/state through an authorized read-only mechanism before any intervention.
+RTA-001 is no longer a blocker.
 
-## RTA-002 — Kali MCP absent from Hermes registration
+## RTA-002 — Kali MCP registration and discovery
 
-**Classification:** `BLOCKER — KALI_MCP_NOT_REGISTERED`  
-**State:** `REPO-CONTRACT-RECONCILED / STAGE-1-PENDING-ADMISSION`
+**Classification:** `PARTIALLY ACCEPTED — STAGE 1 COMPLETE`  
+**State:** `STAGE-1-GREEN / STAGE-2-EXACT-SUBSET-PENDING`
 
-### Runtime facts already observed
+### Runtime topology retained
 
-Kali runtime exists and is healthy:
+Kali runtime remains intentionally isolated:
 
 - container `hermes-kali-mcp`;
-- container ID prefix `2cba5fd1d0d9`;
-- Compose `/home/estourpm/hermes-labs/kali-mcp/compose.yaml`;
-- project `hermes-kali-mcp`, service `kali-mcp`;
 - image `hermes/kali-mcp:0.2.0`;
-- command `kali-server-mcp --ip 127.0.0.1 --port 5000`;
+- Compose service command `kali-server-mcp --ip 127.0.0.1 --port 5000`;
 - read-only root filesystem;
 - `cap_drop=all`;
 - `no-new-privileges`;
-- PID limit `100`;
-- memory `512M`;
-- CPU `1.0`;
+- PID/memory/CPU limits retained;
 - internal Docker network;
 - no host port published.
 
-Active Hermes configuration contains only `home-assistant`; no Kali MCP entry exists.
+The container has two distinct roles:
 
-### Canonical transport reconciliation — Lane T
+- `kali-server-mcp` — long-running HTTP backend on container loopback;
+- `mcp-server` — FastMCP STDIO wrapper used by Hermes; it proxies to the container-local backend.
 
-The repository contradiction has been removed and merged in PR #304.
+### First Stage 1 attempt — fail-closed discovery of a bad contract
 
-The authority is now:
-
-`kali-mcp/config/mcp-connectivity.example.yaml`
-
-Preferred Hermes transport:
+The first bounded Stage 1 used the then-canonical command:
 
 `docker exec -i hermes-kali-mcp kali-server-mcp`
 
-This is STDIO and requires no host listener or Docker-network exposure. Therefore the container-local `127.0.0.1:5000` listener is **not** a reason to publish a port and is no longer treated as the normal Hermes connectivity path.
+Configuration validation and the narrow mutation succeeded, but `hermes mcp test hermes-kali-mcp` failed because `kali-server-mcp` is not an MCP JSON-RPC STDIO endpoint.
 
-The repository now also records the actual Hermes filtering semantics:
+The run automatically restored the Hermes configuration exactly to its pre-mutation state:
 
-- `tools.include: []` is not deny-all; it removes the include filter and can expose all discovered tools when enabled;
-- first-stage registration must remain disabled;
-- use a literal non-matching sentinel include;
-- resources/prompts remain disabled;
-- discover metadata only;
-- review exact discovered tool names;
-- enable only an exact accepted subset after policy/typed-operation reconciliation.
+- pre/restore SHA-256: `688e8c80527e45bcfee6f369c94a8772314fbe4b41ea9da856eb69e68d011939`;
+- no Kali tool was invoked;
+- no target traffic occurred;
+- no residual Kali MCP registration remained after the failed attempt.
 
-Post-merge Labs main:
+This failure is accepted as useful runtime evidence: it disproved the repository transport contract without weakening any boundary.
 
-`2f97034d599c97de22c2a75cf9d37ffcfa17e054`
+### Repository correction — PR #306
 
-Exact-main validation: 8/8 repository checks `SUCCESS`.
+PR #306, `fix(rta002): use MCP STDIO wrapper for Kali registration`, changed the canonical STDIO path to:
 
-### Stage 1 pending runtime procedure
+`docker exec -i hermes-kali-mcp mcp-server`
 
-Stable client request id:
+It deliberately did **not** change the Compose backend command. Regression coverage now requires:
 
-`hsl-rta002-stage1-disabled-registration-20260809-01`
+- Hermes STDIO wrapper = `mcp-server`;
+- container HTTP backend = `kali-server-mcp`;
+- the two roles must remain distinct.
 
-Intended bounded entry:
+All PR workflows completed `SUCCESS`, including:
+
+- `security`;
+- `validate`;
+- `Private VAmPI source-repo access deny`;
+- `issue4-kali-safe-tool-validation`;
+- `issue5-synthetic-mcp-targets`.
+
+The PR was squash-merged as Labs main:
+
+`88a4ae88ae958cd889fff3a89cd64b269d3b75e6`
+
+### Corrected Stage 1 — GREEN/PASS
+
+Stable runtime execution:
+
+- execution: `run_09f177940abe43c1be253e843abb8d85`;
+- client request: `hsl-rta002-stage1-disabled-registration-mcp-server-20260809-02`.
+
+Canonical stored entry:
 
 ```yaml
 mcp_servers:
@@ -146,7 +138,7 @@ mcp_servers:
       - exec
       - -i
       - hermes-kali-mcp
-      - kali-server-mcp
+      - mcp-server
     enabled: false
     connect_timeout: 30
     tools:
@@ -156,159 +148,186 @@ mcp_servers:
       prompts: false
 ```
 
-Stage 1 must:
+Evidence:
 
-1. parse current config and fail if the entry already exists unexpectedly;
-2. create a backup and retain only path/hash as evidence;
-3. validate the exact entry through the installed Hermes validator;
-4. make only the narrow config mutation;
-5. reparse and prove unrelated config keys/server names were preserved;
-6. prove the server is stored disabled;
-7. run only `hermes mcp test hermes-kali-mcp` for initialize/tool discovery;
-8. invoke no discovered tool;
-9. auto-restore the backup if any stage fails;
-10. leave the entry disabled with the sentinel on success.
+- initial config contained only the existing `home-assistant` MCP server;
+- backup: `/home/estourpm/.hermes/backups/config.yaml.rta002-20260809T154227Z.bak`;
+- backup SHA-256: `688e8c80527e45bcfee6f369c94a8772314fbe4b41ea9da856eb69e68d011939`;
+- backup/config mode: `0600`;
+- installed Hermes validator accepted the exact entry;
+- narrow line-splice only; no YAML re-dump of unrelated state;
+- post-mutation config SHA-256: `add660c007da353c41e263e389f42eb538dcf38bb68c05c446d38a3104c0c644`;
+- all unrelated top-level sections remained structurally identical;
+- existing `home-assistant` entry remained identical;
+- exact registration invariants were proven;
+- `hermes mcp test hermes-kali-mcp` connected over STDIO/docker in approximately 1230 ms;
+- server name `kali_mcp`;
+- server version `1.22.0`;
+- MCP protocol `2024-11-05`;
+- 12 tools discovered;
+- the sentinel `__hermes_rta002_no_tool__` is not a real discovered tool;
+- effective accepted tool set therefore remains empty while the server is disabled;
+- no discovered tool was invoked;
+- no target traffic occurred;
+- no rollback was required;
+- the registration remains present but disabled.
 
-An attempted Stage 1 submission was refused with HTTP 503 because the gateway was already draining. No run/execution was created and no config mutation occurred.
+Discovered tool names, metadata only:
 
-### Closure condition
+1. `nmap_scan`
+2. `gobuster_scan`
+3. `dirb_scan`
+4. `nikto_scan`
+5. `sqlmap_scan`
+6. `metasploit_run`
+7. `hydra_attack`
+8. `john_crack`
+9. `wpscan_analyze`
+10. `enum4linux_scan`
+11. `server_health`
+12. `execute_command`
+
+Discovery is not authorization. No tool is enabled merely because it exists.
+
+### Stage 2 boundary
+
+Stage 2 must reconcile the discovered surface against the typed operation/tool registry and gateway policy, then select the **minimum exact literal subset** required by an authorized scenario.
+
+Until that reconciliation is accepted:
+
+- keep `hermes-kali-mcp` disabled;
+- retain the non-matching sentinel;
+- keep resources/prompts disabled;
+- do not use wildcard allowlists;
+- do not enable all 12 tools;
+- treat `execute_command`, `metasploit_run`, credential-attack and scan/exploitation capabilities as excluded unless an explicit typed, scoped and authorized scenario requires them and the relevant HITL/policy gate admits them.
+
+### RTA-002 closure condition
 
 RTA-002 closes only after:
 
-`registered -> reachable over canonical STDIO -> healthy/discoverable -> exact tool subset policy-compliant`
+`Stage 1 registration/discovery GREEN`
+`-> exact typed-operation/policy mapping`
+`-> minimum literal allowlist accepted`
+`-> bounded Stage 2 enablement`
+`-> registered/reachable/healthy`
+`-> effective exposed surface equals the accepted subset`
 
-Successful metadata discovery alone does not authorize offensive tool execution.
+No offensive execution is required merely to close registration acceptance.
 
-## RTA-003 — approval required but no approval identifier issued
+## RTA-003 — approval handoff and exact Bridge deployment
 
-**Classification:** `BLOCKER — APPROVAL_ID_NULL / DEPLOYMENT_DRIFT`  
-**State:** `REPO-FIX-AND-ROLLOUT-GREEN / LIVE-FIX-NOT-DEPLOYED`
+**Classification:** `RESOLVED-RUNTIME`  
+**State:** `GREEN/PASS`
 
-### Valid runtime reproduction
+### Accepted candidate and supply-chain evidence
 
-The minimal non-operational probe remains:
-
-`hsl-rta003-approval-smoke-20260809-01`
-
-Using a valid `untrusted_content` provenance label, policy returned `REQUIRE_APPROVAL`, but the live Bridge returned:
-
-- `approval_required=true`;
-- `approval_id=null`;
-- `execution_id=not-created`;
-- no request-bound approval resource;
-- no `approval_decision`.
-
-No approval was invented and no trust label was weakened for retry.
-
-### Exact live drift
-
-Live Bridge:
-
-- container `hermes-mcp-bridge`;
-- container ID prefix `cebc2f719b32`;
-- image `hermes-mcp-bridge:1.0.0-f0b7e72f6bdf-candidate`;
-- image ID prefix `sha256:044ab410ab8d`;
-- OCI revision `f0b7e72f6bdf42e82712f3d2e8182ff937ae9509`;
-- OCI version `1.0.0`;
-- deployment worktree `/home/estourpm/wt-mcp-bridge-f0b7e72/deploy/1.0.0`.
-
-That revision predates PR #95 (`d4fccbe135b51c41a5b668293e9c02b0db3a5147`) and lacks its prompt-approval handoff implementation.
-
-### Current accepted Bridge repository state
-
-The Bridge repository subsequently advanced through Phase 5 DAG and Phase 6 RUNBOOK while preserving the PR #95 fix and the controlled rollout correction.
-
-Current accepted main:
+Exact accepted Bridge revision:
 
 `7e4b6b1cd70ddda418f840f54ae7ecef30df52e9`
 
-Exact-main CI:
+Candidate/live image:
 
-- Python 3.11 `SUCCESS`;
-- Python 3.12 `SUCCESS`;
-- image / isolated acceptance / Trivy / CycloneDX SBOM `SUCCESS`;
-- Phase 6 reports `RUNBOOK_ACCEPTED` with the V1 `1.0.0 / 0.6.1 / 27 tools` contract unchanged.
+- reference `hermes-mcp-bridge:1.0.0-7e4b6b1cd70d-candidate`;
+- immutable image ID `sha256:b124045702bb62f6cd5cc8457a43e150e5b266c0c0f721f35d5f6b6f76e396c6`;
+- OCI revision `7e4b6b1cd70ddda418f840f54ae7ecef30df52e9`;
+- OCI version `1.0.0`.
 
-Retained exact-SHA supply-chain evidence:
+Retained exact-SHA evidence generated for this candidate:
 
-- SBOM SHA-256 `14951e787613a3c82d0c9316aa3793e9486293875714b5e413625f4429ff905f`;
-- provenance SHA-256 `12fd64f55dc8b84d005c0ea3ddb0c01fd5ad14801214ba1d33f105c0452e1b03`.
+- CycloneDX SBOM: `/home/estourpm/hermes-release-evidence/1.0.0/7e4b6b1cd70ddda418f840f54ae7ecef30df52e9/sbom-cyclonedx.json`;
+- SBOM SHA-256 `62894fd81b0d860b5a3d8b977aae21dea2067c2efdc470f8eaf70bb41800763a`;
+- provenance: `/home/estourpm/hermes-release-evidence/1.0.0/7e4b6b1cd70ddda418f840f54ae7ecef30df52e9/image-provenance.json`;
+- provenance SHA-256 `12fce725746aee2a78472358163cd13e49ed4b42016a6553301fc25761683ac6`;
+- isolated acceptance marker `HERMES_BRIDGE_1_0_0_ISOLATED_ACCEPTANCE_PASS`;
+- canonical preflight marker `HERMES_BRIDGE_1_0_0_PREFLIGHT_GO`;
+- canonical deployment dry-run `PASS`.
 
-### Rollout correction — PR #99
+A later deployment attempt correctly aborted fail-closed when its previously observed rollback baseline had changed. Read-only reconciliation then proved that a concurrent, already-authorized Bridge Phase 7-9 lane had promoted the same accepted candidate. The stale-baseline abort therefore prevented an unnecessary duplicate replacement.
 
-PR #99 made the existing `deploy/1.0.0` mechanism explicitly safe for a controlled `1.0.0 -> 1.0.0` candidate refresh.
+Live proof after reconciliation:
 
-It preserves:
+- image reference `hermes-mcp-bridge:1.0.0-7e4b6b1cd70d-candidate`;
+- immutable image ID exactly `sha256:b124045702bb62f6cd5cc8457a43e150e5b266c0c0f721f35d5f6b6f76e396c6`;
+- OCI revision exactly `7e4b6b1cd70ddda418f840f54ae7ecef30df52e9`;
+- version `1.0.0`;
+- health `healthy`;
+- restart count `0` at reconciliation.
 
-- exact candidate Git SHA;
-- exact immutable rollback image ID;
-- explicit rollback Bridge version;
-- CycloneDX SBOM evidence;
-- preflight;
-- dry-run by default;
-- existing dual mutation gate;
-- full `1.0` security validation when rolling back to a `1.0.0` baseline.
+### Approval handoff smoke — GREEN/PASS
 
-Do not downgrade merely to satisfy an old `0.9.0` rollback assumption and do not invent a second deployment mechanism.
+Minimal non-operational request:
 
-### Closure condition
+`hsl-rta003-approval-smoke-20260809-01`
 
-RTA-003 closes only after:
+The production policy returned `REQUIRE_APPROVAL` for `untrusted_content` and the corrected live Bridge emitted a request-bound non-null approval identifier:
+
+`approval-prompt-c364ea4f2364127b83d4ad01113c786ff5352b44039b6785`
+
+Acceptance sequence:
+
+1. first exact request -> `REQUIRE_APPROVAL`;
+2. `approval_id != null`;
+3. audited decision -> `approved`;
+4. exact same logical request retried;
+5. execution `run_317ced10fb164add95872eff66f04420` completed with `RTA003_APPROVAL_SMOKE_PASS`;
+6. approval registry state -> `consumed`;
+7. `consumed_at=2026-08-09T15:31:25.789105+00:00`;
+8. later recheck still reports `consumed`.
+
+This proves the approval is request-bound, auditable and single-use. No approval identifier was invented and no trust label was weakened.
+
+### RTA-003 closure condition — satisfied
 
 `exact accepted Bridge SHA deployed`
 `-> exact live OCI revision verified`
 `-> health/readiness`
-`-> accepting_new_work`
+`-> admission available`
 `-> REQUIRE_APPROVAL`
 `-> approval_id != null`
 `-> audited approval decision`
 `-> exact logical request retry`
 `-> approval consumed once`
 
-Repository GREEN is not runtime acceptance.
+RTA-003 is closed.
 
 ## Actions deliberately not performed
 
-This runtime-reconciliation wave has not:
+This runtime-acceptance wave has not:
 
-- contacted a lab target;
-- executed a Kali/security/offensive tool;
-- scanned or exploited anything;
+- contacted a live lab target from the Stage 1 acceptance path;
+- invoked a discovered Kali MCP tool during registration/discovery;
+- scanned or exploited a target as part of RTA-002 Stage 1;
 - published the Kali HTTP port;
 - altered Kali networking;
 - enabled all discovered MCP tools;
-- restarted/stopped/replaced the gateway merely to clear admission;
-- cancelled an unidentified active agent;
-- registered Kali while the gateway is draining;
-- deployed/replaced the Bridge while admission is unresolved;
-- read/disclosed secret contents;
+- weakened the sentinel/allowlist contract;
+- forced or bypassed the gateway drain;
 - invented an approval ID;
 - weakened provenance/trust labels;
-- treated CI GREEN as live proof.
+- disclosed secret contents;
+- treated repository CI GREEN as a substitute for the live RTA-002/RTA-003 evidence above.
 
 ## Current walking-skeleton position
 
 `authorize`
-`-> [RTA-001: admission drain in progress]`
-`-> [RTA-003: exact accepted Bridge not yet deployed]`
-`-> [RTA-002: Stage 1 Kali registration pending]`
+`-> RTA-001 admission GREEN`
+`-> RTA-003 Bridge/approval GREEN`
+`-> RTA-002 Stage 1 registration/discovery GREEN`
+`-> [RTA-002 Stage 2 exact tool subset/policy binding pending]`
 `-> provision/readiness`
-`-> bounded execution`
+`-> bounded typed execution`
 `-> evidence`
 `-> reset`
 `-> known-state proof`
 
-## Automatic continuation when admission reopens
+## Automatic continuation
 
-1. Re-observe health/readiness and require `running + accepting_new_work`.
-2. Retry the exact RTA-002 Stage 1 disabled STDIO registration request with the stable client request id.
-3. Record discovered tool names without invoking them; reconcile the minimum exact accepted tool subset.
-4. Re-observe the full immutable live Bridge rollback image ID and exact deployment inputs.
-5. Prepare/build the Bridge candidate from exact accepted main `7e4b6b1cd70ddda418f840f54ae7ecef30df52e9` using the canonical build/provenance contract.
-6. Run canonical preflight and deployment dry-run.
-7. Execute the controlled replacement only through the existing exact-SHA/rollback gates and any required audited Human-in-the-Loop approval.
-8. Verify the exact live OCI revision, health/readiness and admission.
-9. Re-run RTA-003 approval handoff and close it only with non-null audited approval + exact-request retry proof.
-10. Close RTA-002 only after the registered STDIO path and exact tool subset are policy-compliant.
-11. Resume WebGoat/WebWolf, DVWA and Juice Shop lifecycle/readiness acceptance.
-12. Execute no bounded scenario until authorization, typed operation binding, gateway policy, backend readiness, evidence contract and reset capability are all proven.
+1. Reconcile the 12 discovered Kali tool names against the canonical typed operation/tool registry and gateway policy.
+2. Select the minimum exact literal tool subset for the first authorized walking-skeleton scenario; retain fail-closed exclusion for everything else.
+3. Validate the Stage 2 configuration mutation before applying it; preserve backup/restore and unrelated-config invariants.
+4. Enable only the accepted subset, keeping resources/prompts disabled.
+5. Verify the effective exposed Kali tool surface equals the accepted subset exactly, without invoking a tool merely for registration proof.
+6. Close RTA-002 when registration/reachability/health/policy-compliance are all demonstrated.
+7. Resume WebGoat/WebWolf, DVWA and Juice Shop lifecycle/readiness acceptance through the canonical backend/lifecycle path.
+8. Execute no bounded scenario until authorization, target allowlist/window, typed operation binding, gateway policy, backend readiness, evidence contract, HITL requirements and reset capability are all proven.
