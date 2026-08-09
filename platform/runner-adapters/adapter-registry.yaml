@@ -1,0 +1,33 @@
+schema_version: "1.0"
+contract:
+  authorization_authority: Hermes
+  fail_closed: true
+  generic_execution: false
+  runtime_status: NOT_RUN
+
+adapters:
+  - adapter_id: webgoat-l1
+    implementation: platform/runner-adapters/webgoat_l1_adapter.py
+    protocol: runner-protocol-v2
+    execution_class: LAB_ONLY
+    target_ids:
+      - webgoat-web
+    capabilities:
+      - web.discovery.headers
+      - web.discovery.tls
+    authorization:
+      mode: tb1_verified_resolver_required
+      default: deny-all
+    idempotency:
+      mode: sqlite-durable-required
+    effect:
+      type: read-only-http
+      fixed_endpoint: http://webgoat:8080/WebGoat/
+      redirects: forbidden
+      arbitrary_target_input: forbidden
+      generic_execution: forbidden
+    evidence:
+      structured_outcome: implemented
+      external_persistence: NOT_IMPLEMENTED
+    status: CANDIDATE
+    runtime_status: NOT_RUN
