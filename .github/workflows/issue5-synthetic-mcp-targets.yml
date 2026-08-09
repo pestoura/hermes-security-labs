@@ -69,8 +69,8 @@ jobs:
 
       - name: Exercise SQLMap Hydra and Enum4linux through MCP
         run: |
-          set -u
-          docker cp platform/environments/synthetic-tool-targets/mcp_validate.py synthetic-kali:/tmp/mcp_validate.py
+          set -euo pipefail
+          docker exec -i synthetic-kali sh -c 'cat > /tmp/mcp_validate.py' < platform/environments/synthetic-tool-targets/mcp_validate.py
           set +e
           docker exec synthetic-kali python /tmp/mcp_validate.py > /tmp/issue5-diagnostic.txt 2>&1
           rc=$?
