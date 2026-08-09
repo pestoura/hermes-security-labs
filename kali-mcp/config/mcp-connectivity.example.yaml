@@ -1,0 +1,52 @@
+# Kali MCP host-to-container connectivity profile (CANONICAL EXAMPLE)
+#
+# This file is a repository reference. It is NOT loaded by the live Hermes
+# runtime and MUST NOT be copied into ~/.hermes. Operators use it to configure
+# the Hermes <-> Kali MCP transport without exposing the server off-host.
+#
+# Hard rule: the MCP server is never published on 0.0.0.0 / :: / '*'.
+# Two transports are defined; the STDIO/docker-exec transport is preferred
+# because it creates zero network listeners.
+
+schema_version: "1.0"
+profile: hermes-kali-mcp-connectivity
+
+forbidden_binds:
+  - "0.0.0.0"
+  - "::"
+  - "*"
+
+transports:
+  # Preferred: no network listener at all. Hermes speaks MCP over the
+  # container's STDIO via `docker exec`. No port, no host publish.
+  stdio_docker_exec:
+    enabled: true
+    host_exposure: none
+    command:
+      - docker
+      - exec
+      - -i
+      - hermes-kali-mcp
+      - kali-server-mcp
+
+  # Fallback: HTTP transport when a socket is required. Bound to loopback
+  # inside the container (--ip 127.0.0.1) and published only to loopback on
+  # the host. Never use a bare "5000:5000" or "0.0.0.0:5000:5000".
+  loopback_http:
+    enabled: false
+    bind: "127.0.0.1"
+    port: 5000
+    host_publish: "127.0.0.1:5000:5000"
+
+# Hermes MCP server registration example (read-only reference).
+# Register only one of the transports above. Do NOT write this section into
+# live ~/.hermes; it documents the intended registration shape.
+registration:
+  name: hermes-kali-mcp
+  transport_ref: stdio_docker_exec
+  scope: local
+  notes: >
+    Register the STDIO/docker-exec or loopback_http transport only. The Kali
+    MCP server stays on an internal Docker network; the host never exposes it
+    beyond 127.0.0.1. No automatic deletion or live ~/.hermes mutation is
+    performed by this repository.

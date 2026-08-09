@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-08-09
+
+- Wave 1 Lane E2 (repo-first runtime remediation): entrega dos remanescentes
+  do lane sem mutação de host/container/rede ou GHCR.
+- `kali-mcp/tool_health.py`: classificador determinístico PRESENT/READY/DEGRADED
+  para ferramentas Kali (reproduz a deriva WPScan observada).
+- `kali-mcp/config/mcp-connectivity.example.yaml`: perfil canónico de
+  conectividade host→Kali MCP, loopback-only / STDIO-docker-exec, nunca 0.0.0.0;
+  exemplo de registro (não escrito em `~/.hermes`).
+- `platform/tests/test_kali_tool_health_states.py`,
+  `platform/tests/test_kali_mcp_connectivity_profile.py`: validadores.
+- `docs/kali-mcp-live-drift-and-migration.md`: documenta deriva entre runtime
+  vivo e canónico + runbook determinístico sem eliminação automática.
+- Nuclei permanece diferido (sem cenário/runbook ativo que o mapeie).
+
 ## 2026-08-06
 
 - EPIC-01 iniciou a implementação da arquitetura canónica da Security Validation Platform v2.
