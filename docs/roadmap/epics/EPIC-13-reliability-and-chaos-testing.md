@@ -132,6 +132,36 @@ The repository currently defines the canonical suite and gating semantics; execu
 
 _Not final. Real chaos execution and runtime failure evidence remain NOT_RUN._
 
+
+_Lifecycle unchanged: EPIC-13 is `IMPLEMENTING`; `AS_BUILT` and `FINAL` remain no. The record below states exactly what was merged and where the evidence lives, so that a future promotion decision is not made from memory or by association._
+
+### What is actually built and merged
+
+- canonical failure suite and maturity gates requiring complete passing failure evidence from PR #144 are integrated in main;
+- real fault injection and chaos execution remain NOT_RUN.
+
+### Exact evidence
+
+| Evidence | Value |
+| --- | --- |
+| Technical pull request | [#144](https://github.com/pestoura/hermes-security-labs/pull/144) |
+| Validated PR head | `0a0f7a61d903905a2aea45f1e6d4ea1040484a01` |
+| Integrated `main` merge commit | `fc89eb4bbaa0a2f356d21ea42b7d0bf1bec6949f` |
+| Pre-merge `validate` | success — run `31171158216` |
+| Pre-merge `security` | success — run `31171158029` |
+| Post-merge `main` `validate` | success — run `31171376644` |
+| Post-merge `main` `security` | success — run `31171376622` |
+
+The merge commit is an ancestor of `main`.
+
+### Evidence that is missing for promotion
+
+`AS_BUILT` is withheld because the epic's target state is not satisfied by repository-level contract integration alone:
+
+- real fault injection and chaos execution: NOT_RUN.
+
+`NO_RUNTIME_CHANGE`.
+
 ## 16. Document change log
 
 | Date | Version | Change |

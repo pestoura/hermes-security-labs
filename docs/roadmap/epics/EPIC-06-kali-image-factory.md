@@ -241,6 +241,30 @@ Current factual boundary:
 
 `AS_BUILT` for the complete concept and `FINAL` remain false. The controlled candidate evidence is narrower than publication/promotion readiness.
 
+
+_Lifecycle unchanged: EPIC-06 is `IMPLEMENTING`; `AS_BUILT` and `FINAL` remain no. The record below states exactly what was merged and where the evidence lives, so that a future promotion decision is not made from memory or by association._
+### Exact evidence
+
+| Evidence | Value |
+| --- | --- |
+| Technical pull request | [#142](https://github.com/pestoura/hermes-security-labs/pull/142) |
+| Validated PR head | `c718177d098b0d72fe329637af229a189d4cd892` |
+| Integrated `main` merge commit | `c6e672cb8c02ed55e63b521fcad04d5e8e97fdc6` |
+| Pre-merge `validate` | success — run `31170174973` |
+| Pre-merge `security` | success — run `31170174910` |
+| Post-merge `main` `validate` | success — run `31170352666` |
+| Post-merge `main` `security` | success — run `31170352690` |
+
+The merge commit is an ancestor of `main`.
+
+### Evidence that is missing for promotion
+
+`AS_BUILT` is withheld because the epic's target state is not satisfied by repository-level contract integration alone:
+
+- image build/publication, runtime non-root/read-only/capability observations, provenance promotion and Hermes deployment: NOT_RUN.
+
+`NO_RUNTIME_CHANGE`.
+
 ## 16. Document change log
 
 | Date | Version | Change |
