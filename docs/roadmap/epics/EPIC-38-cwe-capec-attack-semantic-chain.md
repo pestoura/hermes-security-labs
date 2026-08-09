@@ -201,12 +201,54 @@ Future operational evidence required before `AS_BUILT`:
 
 > Reserved. Populate when the delivery umbrella reaches completion. Must record what was actually built, evidence links, and every divergence from sections 6 to 11. No umbrella may be closed while this section is empty.
 
-_Not populated. EPIC-38 is IMPLEMENTING; AS_BUILT and FINAL remain no._
+_Lifecycle unchanged: EPIC-38 is `IMPLEMENTING`; `AS_BUILT` and `FINAL` remain no._
+
+### What is actually built and merged
+
+- fixed typed hop rules `VULNERABILITY_TO_CWE`, `CWE_TO_CAPEC`, `CAPEC_TO_ATTACK`;
+- strict semantic-relation and semantic-chain schemas with canonical identifier validation;
+- deterministic ordered resolution over explicitly supplied immutable snapshots;
+- per-hop confidence, provenance and rationale;
+- first-class `GAP` and `AMBIGUOUS` states with no silently selected winner;
+- weakest-hop chain confidence and advisory-only, non-executable outputs.
+
+Canonical implementation: `platform/knowledge-fabric/semantic_chain.py` with
+`semantic-relation.schema.json` and `semantic-chain.schema.json`. Dedicated tests:
+`platform/tests/test_semantic_chain.py` and
+`platform/tests/test_semantic_chain_schema_guards.py`.
+
+### Exact evidence
+
+| Evidence | Value |
+| --- | --- |
+| Technical pull request | [#186](https://github.com/pestoura/hermes-security-labs/pull/186) |
+| Validated PR head | `13e91cbab2972f6f18f8d134b2b6b2b0094e0657` |
+| Integrated `main` merge commit | `54220a8c83402f8d8c36d3addbb293269a6f8a45` |
+| Pre-merge `validate` | success — run `31228824154` |
+| Pre-merge `security` | success — run `31228824176` |
+| Post-merge `main` `validate` | success — run `31228937937` |
+| Post-merge `main` `security` | success — run `31228937926` |
+
+The merge commit is an ancestor of `main`.
+
+### Evidence that is missing for promotion
+
+The resolver is complete over *supplied* snapshots, but the epic's chain has never been
+resolved over authoritative content:
+
+- authoritative external CWE/CAPEC/ATT&CK mapping acquisition: `NOT_RUN`;
+- mapping curation/approval workflow: `NOT_IMPLEMENTED`;
+- external mapping-version synchronization/migration: `NOT_IMPLEMENTED` / `NOT_RUN`;
+- production graph persistence/query integration: `NOT_IMPLEMENTED`;
+- production campaign-planner consumption: `NOT_IMPLEMENTED` / `NOT_RUN`.
+
+`NO_RUNTIME_CHANGE`.
 
 ## 16. Document change log
 
 | Date | Version | Change |
 | --- | --- | --- |
+| 2026-08-09 | 1.3.0 | Populated section 15 with the exact merged evidence for PR #186 and the explicit list of evidence still missing for promotion; lifecycle unchanged at `IMPLEMENTING`. |
 | 2026-08-06 | 1.0.0 | Initial intent document created from the concept epic catalogue. |
 | 2026-08-07 | 1.1.0 | Clarified that generic relations from PR #146 do not implement the semantic-chain resolver; lifecycle remains INTENT. |
 | 2026-08-08 | 1.2.0 | Reconciled PR #186 deterministic semantic-chain contract to `IMPLEMENTING`; recorded exact pre/post-merge gates and preserved external mapping/planner non-claims. |
