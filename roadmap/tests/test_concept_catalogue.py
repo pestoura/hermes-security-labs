@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from collections import Counter, defaultdict
 from pathlib import Path
 
@@ -136,3 +137,49 @@ def test_yaml_is_deterministic_and_ascii_safe() -> None:
     assert raw.endswith("\n")
     assert "\t" not in raw
     assert raw.isascii()
+
+
+CATALOGUE_DOC = ROOT / "docs" / "roadmap" / "epic-catalogue-45.md"
+
+
+def _lifecycle_register_rows() -> dict[str, tuple[str, str, str, str]]:
+    """Parse the lifecycle state register table of the master catalogue."""
+    text = CATALOGUE_DOC.read_text(encoding="utf-8")
+    section = text.split("## 7. Lifecycle state register", 1)[1].split("\n## ", 1)[0]
+    rows: dict[str, tuple[str, str, str, str]] = {}
+    pattern = re.compile(
+        r"^\|\s*\[`(EPIC-\d{2})`\]\([^)]+\)\s*\|\s*`([A-Z_]+)`\s*\|"
+        r"\s*`(SVP2-[A-L]-\d{2})`\s*\(#(\d+)\)\s*\|\s*`([a-z_]+)`\s*\|$"
+    )
+    for line in section.splitlines():
+        match = pattern.match(line.strip())
+        if match:
+            rows[match.group(1)] = (match.group(2), match.group(3), match.group(4), match.group(5))
+    return rows
+
+
+def test_lifecycle_register_covers_every_concept_epic() -> None:
+    assert len(_lifecycle_register_rows()) == 45
+
+
+def test_lifecycle_register_matches_both_canonical_sources(
+    concepts: dict, delivery: dict
+) -> None:
+    """The catalogue register must never disagree with the two machine-readable sources."""
+    rows = _lifecycle_register_rows()
+    delivery_status = {epic["id"]: epic["status"] for epic in delivery["epics"]}
+    for item in concepts["concept_epics"]:
+        concept_id = item["concept_id"]
+        assert concept_id in rows, f"{concept_id} missing from the lifecycle register"
+        state, umbrella, issue, umbrella_state = rows[concept_id]
+        assert state == item["status"].upper(), concept_id
+        assert umbrella == item["umbrella_id"], concept_id
+        assert int(issue) == item["umbrella_issue"], concept_id
+        assert umbrella_state == delivery_status[item["umbrella_id"]], concept_id
+
+
+def test_catalogue_does_not_imply_completed_umbrella_means_final() -> None:
+    """A completed delivery umbrella must never be presented as a FINAL concept epic."""
+    text = CATALOGUE_DOC.read_text(encoding="utf-8")
+    assert "delivery status and not a lifecycle claim" in text
+    assert "never implies that every concept epic it covers is `FINAL`" in text

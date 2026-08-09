@@ -49,6 +49,11 @@ jobs:
         run: python -m pytest -q docs/tests -p no:cacheprovider
       - name: Validate environment catalog
         run: python platform/scripts/labctl.py validate
+      - name: Audit environment maturity against the recorded baseline
+        run: |
+          set -euo pipefail
+          python platform/scripts/lab_audit.py audit --strict
+          python platform/scripts/lab_audit.py baseline-check
       - name: Validate runtime source of truth
         run: python platform/scripts/validate_source_of_truth.py validate
       - name: Test runtime source-of-truth contract

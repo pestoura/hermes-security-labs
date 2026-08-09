@@ -18,6 +18,7 @@ publisher_visibility=""
 package_private_confirmed=false
 package_access_confirmed=false
 prove_public_rollback=false
+scope_mode="strict"
 
 auth_dir=""
 run_dir=""
@@ -37,15 +38,23 @@ Usage:
     --publisher-visibility <temporary-public|private> \
     --package-private-confirmed \
     --package-access-confirmed \
-    [--prove-public-rollback]
+    [--prove-public-rollback] \
+    [--scope-mode <strict|dev>]
 
 Compatibility:
   --publisher-private-confirmed is accepted as an alias for
   --publisher-visibility private.
 
-For `accept`, provide the PAT classic as a single line on stdin. The token must
-have exactly `read:packages`. Never place it in command arguments, environment
-variables, Git, evidence, issue comments, screenshots, or shell tracing.
+Scope modes:
+  strict (default, production): the PAT must expose exactly `read:packages`.
+  dev: additional scopes are tolerated only when an approval reference is
+       supplied and `read:packages` is present. The run is recorded as
+       DEGRADED_ACCEPTED_FOR_DEV and still performs zero registry mutation.
+       `dev` is never acceptable for production closure.
+
+For `accept`, provide the PAT classic as a single line on stdin. Never place it
+in command arguments, environment variables, Git, evidence, issue comments,
+screenshots, or shell tracing.
 EOF
 }
 
@@ -98,10 +107,11 @@ case "${mode}" in
     cat <<EOF
 ISSUE53_PRIVATE_GHCR_ACCEPTANCE_PLAN
 Gate F: verify exact PAT classic scope, login via stdin, pull exact private digest.
-Gate G: prove authority from GitHub X-OAuth-Scopes = exactly read:packages; perform no registry mutation and do not request push authority.
+Gate G: prove authority sufficiency from GitHub X-OAuth-Scopes (read:packages present); perform no registry mutation and do not request push authority. Least privilege is only asserted in strict mode.
 Gate H: create an ignored .runtime Compose override, run VAmPI lifecycle parity, connect Kali only to the active lab, then destroy twice.
 Private digest: ${PRIVATE_IMAGE}
 Public rollback digest: ${PUBLIC_ROLLBACK_IMAGE}
+Scope modes: strict (default) requires exactly read:packages; dev accepts additional scopes only with an approval reference and read:packages present, recording DEGRADED_ACCEPTED_FOR_DEV.
 Required manual gates before token read: publisher-visibility + package-private-confirmed + package-access-confirmed + approval-ref.
 Allowed publisher visibility during implementation: temporary-public or private.
 Final issue closure still requires publisher private.
@@ -154,6 +164,11 @@ while [ "$#" -gt 0 ]; do
       prove_public_rollback=true
       shift
       ;;
+    --scope-mode)
+      [ "$#" -ge 2 ] || { usage >&2; exit 2; }
+      scope_mode="$2"
+      shift 2
+      ;;
     *)
       echo "Unknown argument: $1" >&2
       usage >&2
@@ -161,6 +176,11 @@ while [ "$#" -gt 0 ]; do
       ;;
   esac
 done
+
+case "${scope_mode}" in
+  strict|dev) ;;
+  *) fail "scope mode must be strict or dev" ;;
+esac
 
 case "${publisher_visibility}" in
   temporary-public|private) ;;
@@ -236,20 +256,52 @@ PY
 )"
 [ -n "${scopes}" ] || fail "GitHub did not expose X-OAuth-Scopes; minimum-scope proof is unavailable"
 
-scope_result="$(python3 - "${scopes}" <<'PY'
+scope_result="$(python3 - "${scopes}" "${scope_mode}" <<'PY'
 import sys
 
 scopes = {item.strip() for item in sys.argv[1].split(",") if item.strip()}
+mode = sys.argv[2]
 required = {"read:packages"}
-if scopes != required:
-    raise SystemExit(1)
-print("PASS")
-PY
-)" || fail "PAT classic must expose exactly read:packages and no additional scopes"
 
-[ "${scope_result}" = PASS ] || fail "PAT scope verification failed"
-record "gate_f_pat_scope=PASS_EXACT_READ_PACKAGES"
-record "gate_g_credential_authority=PASS_EXACT_READ_PACKAGES_NO_WRITE_DELETE"
+if mode == "strict":
+    if scopes != required:
+        raise SystemExit(1)
+    print("PASS_EXACT")
+else:
+    # GitHub does not list `read:packages` when a broader parent scope is
+    # granted; `write:packages` and `delete:packages` both imply read.
+    implying = {"read:packages", "write:packages", "delete:packages"}
+    if not (scopes & implying):
+        raise SystemExit(1)
+    if scopes == required:
+        print("PASS_EXACT")
+    else:
+        print("PASS_DEGRADED")
+PY
+)" || fail "PAT classic scope verification failed for scope mode ${scope_mode} (strict requires exactly read:packages; dev requires read:packages present)"
+
+case "${scope_result}" in
+  PASS_EXACT)
+    record "gate_f_pat_scope=PASS_EXACT_READ_PACKAGES"
+    record "gate_g_credential_authority=PASS_AUTHORITY_SUFFICIENT_LEAST_PRIVILEGE"
+    record "scope_mode=${scope_mode}"
+    record "scope_posture=LEAST_PRIVILEGE"
+    ;;
+  PASS_DEGRADED)
+    [ "${scope_mode}" = dev ] || fail "degraded scope accepted only in dev scope mode"
+    record "gate_f_pat_scope=PASS_READ_PACKAGES_PRESENT_ADDITIONAL_SCOPES"
+    record "gate_g_credential_authority=PASS_AUTHORITY_SUFFICIENT_NO_MUTATION_ATTEMPTED"
+    record "scope_mode=dev"
+    record "scope_posture=DEGRADED_ACCEPTED_FOR_DEV"
+    record "least_privilege_claimed=false"
+    record "production_closure_blocked_until_read_packages_only=true"
+    record "dev_scope_approval_ref=${approval_ref}"
+    ;;
+  *)
+    fail "PAT scope verification returned an unrecognised result"
+    ;;
+esac
+
 record "gate_g_registry_mutation_attempted=false"
 
 printf '%s' "${GHCR_PAT}" | \

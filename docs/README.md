@@ -12,6 +12,7 @@ mantidos em Git e são a fonte de verdade. Issues do GitHub são uma vista de tr
 | Perceber como o sistema funciona | [Architecture](architecture.md) |
 | Pôr o repositório a validar localmente | [Getting started](getting-started.md) |
 | Operar laboratórios e deployment | [Operator guide](operator-guide.md) |
+| Saber se um laboratório é reprodutível | [Lab catalog maturity](lab-catalog-maturity.md) |
 | Contribuir com runbooks, labs ou runners | [Contributor guide](contributor-guide.md) |
 | Resolver uma falha | [Troubleshooting](troubleshooting.md) |
 | Perceber limites de segurança | [Security model](security-model.md) |
@@ -30,6 +31,7 @@ mantidos em Git e são a fonte de verdade. Issues do GitHub são uma vista de tr
 - [Architecture](architecture.md)
 - [Getting started / tutorial](getting-started.md)
 - [Operator guide](operator-guide.md)
+- [Lab catalog maturity](lab-catalog-maturity.md)
 - [Contributor guide](contributor-guide.md)
 - [Troubleshooting](troubleshooting.md)
 - [Security model](security-model.md)
@@ -41,6 +43,7 @@ mantidos em Git e são a fonte de verdade. Issues do GitHub são uma vista de tr
 - [Roadmap SVP v2](roadmap/security-validation-platform-v2.md)
 - [Platform v2 intent (45 concept epics)](architecture/security-validation-platform-v2-intent.md)
 - [Epic catalogue — 45 concept epics](roadmap/epic-catalogue-45.md)
+- [Lane B — reconciliação transversal, mapa de dependências e fila de execução](roadmap/lane-b-cross-cutting-reconciliation.md)
 - [Architecture documentation lifecycle](architecture/architecture-documentation-lifecycle.md)
 - [Reference architecture](architecture/security-validation-reference-architecture.md)
 - [Architecture Decision Records](architecture/adr/README.md)
