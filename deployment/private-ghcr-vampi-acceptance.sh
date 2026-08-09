@@ -169,7 +169,6 @@ if [ -t 0 ]; then
 fi
 IFS= read -r GHCR_PAT || true
 [ -n "${GHCR_PAT:-}" ] || fail "empty PAT received on stdin"
-[[ "${GHCR_PAT}" != *$'\n'* ]] || fail "invalid multiline PAT input"
 
 netrc_file="${auth_dir}/netrc"
 headers_file="${auth_dir}/github-headers"
@@ -199,11 +198,7 @@ import sys
 scopes={item.strip() for item in sys.argv[1].split(',') if item.strip()}
 required={'read:packages'}
 forbidden={'write:packages','delete:packages','repo','workflow','admin:org'}
-if scopes != required:
-    print('FAIL')
-    raise SystemExit(1)
-if scopes & forbidden:
-    print('FAIL')
+if scopes != required or scopes & forbidden:
     raise SystemExit(1)
 print('PASS')
 PY
@@ -221,27 +216,25 @@ granted_actions="$(
     --data-urlencode 'service=ghcr.io' \
     --data-urlencode "scope=repository:${PACKAGE_REPOSITORY}:pull,push" \
     https://ghcr.io/token |
-  python3 - "${PACKAGE_REPOSITORY}" <<'PY'
-import base64, json, sys
+  python3 -c 'import base64,json,sys
 repo=sys.argv[1]
 try:
     response=json.load(sys.stdin)
-    token=response.get('token') or response.get('access_token')
-    if not isinstance(token, str) or token.count('.') < 2:
-        raise ValueError('registry token is not an inspectable JWT')
-    payload=token.split('.')[1]
-    payload += '=' * (-len(payload) % 4)
+    token=response.get("token") or response.get("access_token")
+    if not isinstance(token,str) or token.count(".") < 2:
+        raise ValueError
+    payload=token.split(".")[1]
+    payload += "=" * (-len(payload) % 4)
     decoded=json.loads(base64.urlsafe_b64decode(payload.encode()).decode())
     actions=[]
-    for entry in decoded.get('access', []):
-        if entry.get('type') == 'repository' and entry.get('name') == repo:
-            actions.extend(entry.get('actions', []))
+    for entry in decoded.get("access",[]):
+        if entry.get("type") == "repository" and entry.get("name") == repo:
+            actions.extend(entry.get("actions",[]))
     if not actions:
-        raise ValueError('no repository actions found in registry token')
-    print(','.join(sorted(set(actions))))
+        raise ValueError
+    print(",".join(sorted(set(actions))))
 except Exception:
-    raise SystemExit(3)
-PY
+    raise SystemExit(3)' "${PACKAGE_REPOSITORY}"
 )" || fail "could not prove granted registry actions without mutation"
 
 case ",${granted_actions}," in
@@ -279,12 +272,13 @@ if docker inspect hermes-kali-mcp --format '{{.State.Status}}' 2>/dev/null | gre
 else
   docker compose -p hermes-kali-mcp -f "${KALI_COMPOSE}" up -d kali-mcp >/dev/null
   kali_started_by_harness=true
+  health=""
   for _ in $(seq 1 36); do
     health="$(docker inspect hermes-kali-mcp --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' 2>/dev/null || true)"
     [ "${health}" = healthy ] && break
     sleep 5
   done
-  [ "${health:-}" = healthy ] || fail "Kali MCP did not become healthy"
+  [ "${health}" = healthy ] || fail "Kali MCP did not become healthy"
   record "kali_runtime=STARTED_BY_HARNESS"
 fi
 
@@ -306,10 +300,11 @@ with socket.create_connection(('vampi',5000), timeout=5):
 c=http.client.HTTPConnection('vampi',5000,timeout=5)
 c.request('GET','/')
 r=c.getresponse()
-if r.status < 200 or r.status >= 500:
-    raise SystemExit(f'unexpected HTTP status {r.status}')
+status=r.status
 r.read(); c.close()
-print(f'KALI_PRIVATE_VAMPI_CONNECTIVITY_PASS dns={ip} http={r.status}')
+if status < 200 or status >= 500:
+    raise SystemExit(f'unexpected HTTP status {status}')
+print(f'KALI_PRIVATE_VAMPI_CONNECTIVITY_PASS dns={ip} http={status}')
 PY
 record "gate_h_kali_dns_tcp_http=PASS"
 
