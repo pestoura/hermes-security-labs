@@ -63,7 +63,7 @@ async def main() -> None:
                         "service": "http-post-form",
                         "username": "labuser",
                         "password": "labpass",
-                        "additional_args": "/login:user=^USER^&pass=^PASS^:F=invalid credentials -s 8080",
+                        "additional_args": "'/login:user=^USER^&pass=^PASS^:F=invalid credentials' -s 8080",
                     },
                 )
             )
