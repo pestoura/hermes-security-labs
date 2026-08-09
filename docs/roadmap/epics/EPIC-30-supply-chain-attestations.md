@@ -211,6 +211,30 @@ Current factual boundary:
 
 `AS_BUILT` and `FINAL` remain false.
 
+
+_Lifecycle unchanged: EPIC-30 is `IMPLEMENTING`; `AS_BUILT` and `FINAL` remain no. The record below states exactly what was merged and where the evidence lives, so that a future promotion decision is not made from memory or by association._
+### Exact evidence
+
+| Evidence | Value |
+| --- | --- |
+| Technical pull request | [#143](https://github.com/pestoura/hermes-security-labs/pull/143) |
+| Validated PR head | `b3092383ed487cced7885fd683a02e7c1fadbd9c` |
+| Integrated `main` merge commit | `6d21031af130ac00be311911bb94185134e2dd18` |
+| Pre-merge `validate` | success — run `31170650211` |
+| Pre-merge `security` | success — run `31170650159` |
+| Post-merge `main` `validate` | success — run `31170865032` |
+| Post-merge `main` `security` | success — run `31170865044` |
+
+The merge commit is an ancestor of `main`.
+
+### Evidence that is missing for promotion
+
+`AS_BUILT` is withheld because the epic's target state is not satisfied by repository-level contract integration alone:
+
+- SBOM generation, artefact signing/verification, provenance generation/verification, image scanning, publication and production revocation: NOT_RUN.
+
+`NO_RUNTIME_CHANGE`.
+
 ## 16. Document change log
 
 | Date | Version | Change |
