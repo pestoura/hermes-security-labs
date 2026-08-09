@@ -2,6 +2,8 @@ name: issue18-webgoat-egress
 
 on:
   push:
+    branches:
+      - main
     paths:
       - '.github/workflows/issue18-webgoat-egress.yml'
       - 'platform/environments/web-api/webgoat/**'

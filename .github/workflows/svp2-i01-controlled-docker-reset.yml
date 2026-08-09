@@ -2,6 +2,8 @@ name: svp2-i01-controlled-docker-reset
 
 on:
   push:
+    branches:
+      - main
     paths:
       - '.github/workflows/svp2-i01-controlled-docker-reset.yml'
       - 'platform/lab-registry-v2/**'
