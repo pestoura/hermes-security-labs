@@ -5,6 +5,8 @@ FROM ${BASE_IMAGE}
 ENV DEBIAN_FRONTEND=noninteractive
 ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
 
+COPY patches/mcp_kali_server_20260317_list_compat.py /tmp/mcp_kali_server_20260317_list_compat.py
+
 # No external APT repositories. No recommends. Cleanup afterwards.
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -18,6 +20,7 @@ RUN apt-get update && \
       hydra \
       john \
       wpscan \
+      enum4linux \
       enum4linux-ng \
       ffuf \
       wordlists \
@@ -29,12 +32,18 @@ RUN apt-get update && \
       procps \
       netcat-openbsd \
       ca-certificates && \
+    python3 /tmp/mcp_kali_server_20260317_list_compat.py && \
+    rm -f /tmp/mcp_kali_server_20260317_list_compat.py && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Verify persisted toolchain presence.
+# Verify persisted toolchain presence and the exact compatibility boundary.
 RUN command -v kali-server-mcp && \
     command -v mcp-server && \
+    command -v sqlmap && \
+    command -v hydra && \
+    command -v enum4linux && \
+    command -v enum4linux-ng && \
     kali-server-mcp -h >/dev/null 2>&1 && \
     mcp-server -h >/dev/null 2>&1 && \
     dpkg-query -W -f='${Package} ${Version}\n' mcp-kali-server

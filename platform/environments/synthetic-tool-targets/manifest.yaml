@@ -1,0 +1,40 @@
+id: synthetic-tool-targets
+name: Synthetic MCP Tool Targets
+description: Disposable isolated fixtures for controlled SQLMap, Hydra and Enum4linux functional validation.
+category: infrastructure
+runtime: docker
+driver: docker-compose
+risk: medium
+source: repository-owned-synthetic-fixtures
+version: "1.0"
+resources:
+  cpu: "2"
+  memory: 2Gi
+  disk: 4Gi
+networks:
+  - synthetic-tool-targets-internal
+egress: false
+targets:
+  - synthetic-web:8080
+  - synthetic-smb:445
+attacker: hermes-kali-mcp
+lifecycle:
+  - start
+  - status
+  - reset
+  - destroy
+reset: recreate disposable target containers
+cleanup: remove target containers and isolated Docker network
+evidence: sanitized MCP tool results and zero-residue receipt
+dependencies:
+  - docker
+  - kali-mcp
+supported_tools:
+  - sqlmap_scan
+  - hydra_attack
+  - enum4linux_scan
+limitations:
+  - Targets contain synthetic data and fixed lab credentials only.
+  - No host or LAN port is published.
+  - Kali may attach only to the isolated target network for the controlled validation window.
+status: CURRENT-LIMITED

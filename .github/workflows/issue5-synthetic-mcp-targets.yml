@@ -1,0 +1,121 @@
+name: issue5-synthetic-mcp-targets
+
+on:
+  push:
+    paths:
+      - '.github/workflows/issue5-synthetic-mcp-targets.yml'
+      - 'platform/environments/synthetic-tool-targets/**'
+      - 'kali-mcp/**'
+  pull_request:
+    paths:
+      - '.github/workflows/issue5-synthetic-mcp-targets.yml'
+      - 'platform/environments/synthetic-tool-targets/**'
+      - 'kali-mcp/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  synthetic-mcp-tools:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build controlled target and Kali images
+        run: |
+          set -euo pipefail
+          docker build -t hex0r/synthetic-web:ci platform/environments/synthetic-tool-targets/web
+          docker build -t hex0r/synthetic-smb:ci platform/environments/synthetic-tool-targets/smb
+          docker build -t hermes/kali-mcp:issue5 kali-mcp
+
+      - name: Start isolated synthetic lab
+        run: |
+          set -euo pipefail
+          docker network create --internal --label hex0r.controlled-ci=issue5 hex0r-issue5-net
+          docker run -d --name synthetic-web --network hex0r-issue5-net \
+            --read-only --cap-drop=ALL --security-opt no-new-privileges \
+            --pids-limit 64 --memory 128m --cpus 0.5 \
+            -e PYTHONDONTWRITEBYTECODE=1 hex0r/synthetic-web:ci
+          docker run -d --name synthetic-smb --network hex0r-issue5-net \
+            --security-opt no-new-privileges --pids-limit 128 --memory 256m --cpus 0.5 \
+            hex0r/synthetic-smb:ci
+          docker run -d --name synthetic-kali --network hex0r-issue5-net \
+            --read-only --cap-drop=ALL --security-opt no-new-privileges \
+            --pids-limit 100 --memory 1g --cpus 1.0 \
+            --tmpfs /run:size=64m,mode=0755 \
+            --tmpfs /tmp:size=512m,mode=1777 \
+            --tmpfs /root/.cache:size=128m,mode=0700 \
+            --tmpfs /root/.local:size=256m,mode=0700 \
+            --tmpfs /root/.config:size=64m,mode=0700 \
+            hermes/kali-mcp:issue5 \
+            kali-server-mcp --ip 127.0.0.1 --port 5000
+
+      - name: Wait for controlled fixtures
+        run: |
+          set -euo pipefail
+          for _ in $(seq 1 30); do
+            if docker exec synthetic-kali curl -fsS http://synthetic-web:8080/health >/dev/null && \
+               docker exec synthetic-kali nc -z synthetic-smb 445 && \
+               docker exec synthetic-kali curl -fsS http://127.0.0.1:5000/health >/dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs synthetic-web || true
+          docker logs synthetic-smb || true
+          docker logs synthetic-kali || true
+          exit 1
+
+      - name: Exercise SQLMap Hydra and Enum4linux through MCP
+        run: |
+          set -euo pipefail
+          docker exec -i synthetic-kali sh -c 'cat > /tmp/mcp_validate.py' < platform/environments/synthetic-tool-targets/mcp_validate.py
+          set +e
+          docker exec synthetic-kali python3 /tmp/mcp_validate.py > /tmp/issue5-diagnostic.txt 2>&1
+          rc=$?
+          set -e
+          if [ "$rc" -ne 0 ]; then
+            {
+              echo
+              echo '--- Kali API server log ---'
+              docker logs synthetic-kali 2>&1 || true
+              echo
+              echo '--- Installed MCP Kali package ---'
+              docker exec synthetic-kali dpkg-query -W -f='${Package} ${Version}\n' mcp-kali-server 2>&1 || true
+              echo '--- Tool paths ---'
+              docker exec synthetic-kali sh -c 'command -v sqlmap; command -v hydra; command -v enum4linux; command -v enum4linux-ng' 2>&1 || true
+            } >> /tmp/issue5-diagnostic.txt
+          fi
+          cat /tmp/issue5-diagnostic.txt
+          if [ "$rc" -ne 0 ]; then
+            exit "$rc"
+          fi
+          cp /tmp/issue5-diagnostic.txt /tmp/issue5-evidence.json
+          grep -F '"sqlmap_scan": "PASS_SYNTHETIC_MCP"' /tmp/issue5-evidence.json
+          grep -F '"hydra_attack": "PASS_SYNTHETIC_MCP"' /tmp/issue5-evidence.json
+          grep -F '"enum4linux_scan": "PASS_SYNTHETIC_MCP"' /tmp/issue5-evidence.json
+
+      - name: Upload MCP failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue5-mcp-diagnostic
+          path: /tmp/issue5-diagnostic.txt
+          if-no-files-found: warn
+          retention-days: 1
+
+      - name: Destroy controlled lab and prove zero residue
+        if: always()
+        run: |
+          set -euo pipefail
+          docker rm -f synthetic-kali synthetic-web synthetic-smb >/dev/null 2>&1 || true
+          docker network rm hex0r-issue5-net >/dev/null 2>&1 || true
+          if docker ps -a --filter name=synthetic- --format '{{.ID}}' | grep -q .; then
+            echo 'synthetic target container residue detected' >&2
+            exit 1
+          fi
+          if docker network ls --filter label=hex0r.controlled-ci=issue5 --format '{{.ID}}' | grep -q .; then
+            echo 'synthetic target network residue detected' >&2
+            exit 1
+          fi
