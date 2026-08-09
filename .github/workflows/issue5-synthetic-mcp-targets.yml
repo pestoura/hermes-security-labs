@@ -69,21 +69,29 @@ jobs:
 
       - name: Exercise SQLMap Hydra and Enum4linux through MCP
         run: |
-          set -euo pipefail
+          set -u
           docker cp platform/environments/synthetic-tool-targets/mcp_validate.py synthetic-kali:/tmp/mcp_validate.py
-          if ! output="$(docker exec synthetic-kali python /tmp/mcp_validate.py 2>&1)"; then
-            printf '%s\n' "$output"
-            diag=${output//'%'/'%25'}
-            diag=${diag//$'\r'/'%0D'}
-            diag=${diag//$'\n'/'%0A'}
-            echo "::error title=Issue5 MCP diagnostic::$diag"
-            docker logs synthetic-kali || true
-            exit 1
+          set +e
+          docker exec synthetic-kali python /tmp/mcp_validate.py > /tmp/issue5-diagnostic.txt 2>&1
+          rc=$?
+          set -e
+          cat /tmp/issue5-diagnostic.txt
+          if [ "$rc" -ne 0 ]; then
+            exit "$rc"
           fi
-          printf '%s\n' "$output" | tee /tmp/issue5-evidence.json
+          cp /tmp/issue5-diagnostic.txt /tmp/issue5-evidence.json
           grep -F '"sqlmap_scan": "PASS_SYNTHETIC_MCP"' /tmp/issue5-evidence.json
           grep -F '"hydra_attack": "PASS_SYNTHETIC_MCP"' /tmp/issue5-evidence.json
           grep -F '"enum4linux_scan": "PASS_SYNTHETIC_MCP"' /tmp/issue5-evidence.json
+
+      - name: Upload MCP failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue5-mcp-diagnostic
+          path: /tmp/issue5-diagnostic.txt
+          if-no-files-found: warn
+          retention-days: 1
 
       - name: Destroy controlled lab and prove zero residue
         if: always()
