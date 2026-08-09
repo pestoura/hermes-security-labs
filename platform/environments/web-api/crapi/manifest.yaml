@@ -41,7 +41,7 @@ supported_tools:
 limitations:
   - local validation only
   - all six official crAPI application images must resolve to tag 1.1.6-rc8 pinned by immutable repository digest in the effective Compose model
-  - start refuses effective 1.1.6, latest, main or develop references, and any effective image without an @sha256: digest, before pull
+  - "start refuses effective 1.1.6, latest, main or develop references, and any effective image without an @sha256: digest, before pull"
   - digest refresh is a deliberate reviewed change; postgres:14 is a rolling upstream tag frozen by its digest
   - optional chatbot and Chroma services are intentionally excluded from the baseline
   - only the web gateway joins the publication and Kali network
