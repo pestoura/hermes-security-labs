@@ -1,0 +1,12 @@
+schema_version: "1.0"
+policy_id: hexor.runner.outcome.custody
+state: DISABLED
+default: deny
+runtime_status: NOT_RUN
+execution_authority: none
+custody:
+  execution_manifest: required
+  evidence_plane_projection: required
+  include_payloads_in_projection: false
+  classification: sanitized
+  retention_policy_id: default-30d
