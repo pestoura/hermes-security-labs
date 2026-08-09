@@ -27,7 +27,7 @@ verdicts:
   hackthebox-api-lab: CATALOG-ONLY
   ios-pentest-lab: CATALOG-ONLY
   jenkins-insecure-pipeline: CATALOG-ONLY
-  juice-shop: DEGRADED
+  juice-shop: PASS
   k8s-etcd-security: CATALOG-ONLY
   k8s-hardening-lab: CATALOG-ONLY
   k8s-misconfig-playground: CATALOG-ONLY

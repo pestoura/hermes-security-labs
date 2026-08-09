@@ -24,7 +24,7 @@ services:
     networks:
       - juice-shop-lab
     ports:
-      - "127.0.0.1:3000:3000"
+      - "127.0.0.1:${JUICE_SHOP_HOST_PORT:-3000}:3000"
     restart: on-failure
     security_opt:
       - no-new-privileges:true
@@ -33,6 +33,7 @@ services:
       - juice-shop-ftp:/juice-shop/ftp
 networks:
   juice-shop-lab:
+    name: juice-shop-lab
     driver: bridge
 volumes:
   juice-shop-data:

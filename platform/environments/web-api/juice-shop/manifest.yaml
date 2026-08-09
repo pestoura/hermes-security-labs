@@ -21,6 +21,8 @@ lifecycle:
   - start
   - status
   - smoke
+  - connect-kali
+  - disconnect-kali
   - stop
   - reset
   - destroy

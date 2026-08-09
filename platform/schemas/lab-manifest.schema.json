@@ -42,7 +42,7 @@
       "type": "array",
       "items": {
         "type": "string",
-        "enum": ["create", "start", "status", "smoke", "stop", "reset", "destroy"]
+        "enum": ["create", "start", "status", "smoke", "connect-kali", "disconnect-kali", "stop", "reset", "destroy"]
       },
       "minItems": 1,
       "uniqueItems": true
