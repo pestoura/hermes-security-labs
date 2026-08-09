@@ -16,13 +16,18 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: issue18-webgoat-egress-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   isolated-localhost-publication:
     runs-on: ubuntu-24.04
+    timeout-minutes: 25
     env:
       COMPOSE: platform/environments/web-api/webgoat/compose.yaml
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Validate Compose topology
         run: docker compose -f "$COMPOSE" config --quiet
 
