@@ -1,0 +1,496 @@
+#!/usr/bin/env python3
+"""Target-bound LAB_ONLY Runner adapter for the first WebGoat L1 scenario.
+
+This module contains real read-only HTTP effect code, but it is deliberately
+not wired to production dispatch. Authority is resolved from ``authorization_ref``
+through an injected resolver. The default resolver denies every request, so the
+adapter cannot become executable merely by being imported or installed.
+
+Safety boundaries:
+- fixed target: ``webgoat-web`` -> ``http://webgoat:8080/WebGoat/``;
+- fixed capabilities: ``web.discovery.headers`` and ``web.discovery.tls``;
+- no raw URL/host/port/path input;
+- no shell, subprocess, scanner, redirect following, credentials or egress;
+- durable idempotency is required before any effect;
+- Runner Protocol v2 messages are validated before and after dispatch.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import http.client
+import json
+import re
+import uuid
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Protocol
+
+from runner_protocol_v2 import (
+    LedgerError,
+    SQLiteIdempotencyLedger,
+    request_fingerprint,
+    validate_semantics,
+)
+
+PROTOCOL_VERSION = "2.0.0"
+ADAPTER_ID = "webgoat-l1"
+TARGET_ID = "webgoat-web"
+TARGET_HOST = "webgoat"
+TARGET_PORT = 8080
+TARGET_PATH = "/WebGoat/"
+TARGET_SCHEME = "http"
+SUPPORTED_CAPABILITIES = frozenset(
+    {"web.discovery.headers", "web.discovery.tls"}
+)
+_SENSITIVE_HEADERS = frozenset(
+    {"authorization", "cookie", "proxy-authorization", "set-cookie"}
+)
+_SAFE_TEXT = re.compile(r"[^\x20-\x7e]")
+
+
+def _utc_now() -> str:
+    return (
+        datetime.now(timezone.utc)
+        .isoformat(timespec="milliseconds")
+        .replace("+00:00", "Z")
+    )
+
+
+@dataclass(frozen=True)
+class AuthorizationBinding:
+    """Verified authorization binding returned by a control-plane resolver."""
+
+    authorization_ref: str
+    target_id: str
+    capability_id: str
+    authorization_class: str = "LAB_ONLY"
+
+
+class AuthorizationResolver(Protocol):
+    """Runtime boundary for resolving a verified TB1 authorization reference."""
+
+    def resolve(self, authorization_ref: str) -> AuthorizationBinding | None:
+        ...
+
+
+class DenyAllAuthorizationResolver:
+    """Fail-closed default until a verified TB1 resolver is deployed."""
+
+    def resolve(self, authorization_ref: str) -> AuthorizationBinding | None:
+        del authorization_ref
+        return None
+
+
+@dataclass(frozen=True)
+class ProbeResponse:
+    status: int
+    headers: tuple[tuple[str, str], ...]
+
+
+class HttpProbe(Protocol):
+    def get(self, *, timeout_seconds: float) -> ProbeResponse:
+        ...
+
+
+class FixedWebGoatHttpProbe:
+    """Minimal stdlib HTTP probe confined to the committed WebGoat target."""
+
+    def get(self, *, timeout_seconds: float) -> ProbeResponse:
+        connection = http.client.HTTPConnection(
+            TARGET_HOST,
+            TARGET_PORT,
+            timeout=timeout_seconds,
+        )
+        try:
+            connection.request(
+                "GET",
+                TARGET_PATH,
+                headers={
+                    "User-Agent": "hex0r-webgoat-l1-runner/1.0",
+                    "Connection": "close",
+                },
+            )
+            response = connection.getresponse()
+            response.read(1)
+            return ProbeResponse(
+                status=int(response.status),
+                headers=tuple((str(k), str(v)) for k, v in response.getheaders()),
+            )
+        finally:
+            connection.close()
+
+
+def _sanitize_text(value: str, *, limit: int = 256) -> str:
+    return _SAFE_TEXT.sub("?", value)[:limit]
+
+
+def _safe_headers(headers: tuple[tuple[str, str], ...]) -> list[dict[str, str]]:
+    safe: list[dict[str, str]] = []
+    for name, value in headers:
+        normalized = name.strip().lower()
+        if not normalized or normalized in _SENSITIVE_HEADERS:
+            continue
+        safe.append(
+            {
+                "name": _sanitize_text(normalized, limit=128),
+                "value": _sanitize_text(value.strip()),
+            }
+        )
+    return sorted(safe, key=lambda item: (item["name"], item["value"]))
+
+
+def _evidence_ref(output: dict[str, Any]) -> dict[str, Any]:
+    payload = json.dumps(
+        output,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=True,
+    ).encode("utf-8")
+    digest = hashlib.sha256(payload).hexdigest()
+    evidence_id = str(
+        uuid.uuid5(uuid.NAMESPACE_URL, f"{ADAPTER_ID}:execution:{digest}")
+    )
+    return {
+        "evidence_id": evidence_id,
+        "kind": "execution",
+        "classification": "INTERNAL",
+        "sha256": digest,
+    }
+
+
+def _outcome(
+    request: dict[str, Any],
+    status: str,
+    *,
+    output: dict[str, Any] | None = None,
+    error: dict[str, Any] | None = None,
+    started_at: str | None = None,
+) -> dict[str, Any]:
+    started = started_at or _utc_now()
+    finished = _utc_now()
+    evidence_payload = output or {
+        "adapter_id": ADAPTER_ID,
+        "target_id": TARGET_ID,
+        "status": status,
+        "error_code": None if error is None else error["code"],
+    }
+    message: dict[str, Any] = {
+        "message_type": "runner.outcome",
+        "protocol_version": PROTOCOL_VERSION,
+        "correlation": request["correlation"],
+        "emitted_at": finished,
+        "status": status,
+        "started_at": started,
+        "finished_at": finished,
+        "evidence_refs": [_evidence_ref(evidence_payload)],
+    }
+    if output is not None:
+        message["output"] = output
+    if error is not None:
+        message["error"] = error
+    validate_semantics(message)
+    return message
+
+
+def _error(
+    code: str,
+    category: str,
+    message: str,
+    *,
+    retryable: bool = False,
+    safe_context: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    normalized: dict[str, Any] = {
+        "code": code,
+        "category": category,
+        "retryable": retryable,
+        "message": _sanitize_text(message, limit=256),
+    }
+    if safe_context:
+        normalized["safe_context"] = safe_context
+    return normalized
+
+
+class WebGoatL1RunnerAdapter:
+    """Durable, target-bound adapter for the first read-only WebGoat scenario."""
+
+    def __init__(
+        self,
+        *,
+        authorization_resolver: AuthorizationResolver | None = None,
+        probe: HttpProbe | None = None,
+        ledger: SQLiteIdempotencyLedger,
+    ) -> None:
+        self.authorization_resolver = (
+            authorization_resolver or DenyAllAuthorizationResolver()
+        )
+        self.probe = probe or FixedWebGoatHttpProbe()
+        self.ledger = ledger
+
+    def _authorize(
+        self, request: dict[str, Any], capability_id: str
+    ) -> dict[str, Any] | None:
+        binding = self.authorization_resolver.resolve(request["authorization_ref"])
+        if binding is None:
+            return _error(
+                "AUTHORIZATION_DENIED",
+                "authorization",
+                "TB1 authorization reference is not resolvable by a verified resolver",
+            )
+        if binding.authorization_ref != request["authorization_ref"]:
+            return _error(
+                "AUTHORIZATION_DENIED",
+                "authorization",
+                "Resolved authorization reference does not match the request",
+            )
+        if binding.authorization_class != "LAB_ONLY":
+            return _error(
+                "AUTHORIZATION_DENIED",
+                "authorization",
+                "WebGoat L1 adapter accepts LAB_ONLY authorization only",
+            )
+        if binding.target_id != TARGET_ID:
+            return _error(
+                "AUTHORIZATION_DENIED",
+                "authorization",
+                "Authorization target binding does not match webgoat-web",
+            )
+        if binding.capability_id != capability_id:
+            return _error(
+                "AUTHORIZATION_DENIED",
+                "authorization",
+                "Authorization capability binding does not match the requested effect",
+            )
+        return None
+
+    @staticmethod
+    def _validate_input(
+        capability_id: str, payload: dict[str, Any]
+    ) -> dict[str, Any] | None:
+        if not isinstance(payload, dict):
+            return _error(
+                "INVALID_REQUEST",
+                "validation",
+                "Operation input must be an object",
+            )
+        if capability_id == "web.discovery.headers":
+            unknown = set(payload) - {"follow_redirects"}
+            if unknown:
+                return _error(
+                    "INVALID_REQUEST",
+                    "validation",
+                    "Header discovery input contains unsupported fields",
+                )
+            if payload.get("follow_redirects", False) is not False:
+                return _error(
+                    "INVALID_REQUEST",
+                    "validation",
+                    "Redirect following is disabled for the first LAB_ONLY adapter",
+                )
+            return None
+        if capability_id == "web.discovery.tls":
+            if payload:
+                return _error(
+                    "INVALID_REQUEST",
+                    "validation",
+                    "TLS discovery accepts no operation input",
+                )
+            return None
+        return _error(
+            "UNSUPPORTED_CAPABILITY",
+            "compatibility",
+            "Capability is not exposed by the WebGoat L1 adapter",
+        )
+
+    def _perform(
+        self,
+        capability_id: str,
+        *,
+        hard_timeout_ms: int,
+    ) -> dict[str, Any]:
+        timeout_seconds = min(max(hard_timeout_ms / 1000.0, 0.1), 10.0)
+        response = self.probe.get(timeout_seconds=timeout_seconds)
+
+        common: dict[str, Any] = {
+            "adapter_id": ADAPTER_ID,
+            "target_id": TARGET_ID,
+            "environment_id": "webgoat",
+            "capability_id": capability_id,
+            "http_status": response.status,
+        }
+        if capability_id == "web.discovery.headers":
+            common["headers"] = _safe_headers(response.headers)
+            common["redirects_followed"] = False
+            return common
+        common.update(
+            {
+                "scheme": TARGET_SCHEME,
+                "tls_enabled": False,
+                "plaintext_transport": True,
+                "assessment": "PLAINTEXT_HTTP",
+            }
+        )
+        return common
+
+    def dispatch(self, request: dict[str, Any]) -> dict[str, Any]:
+        """Validate, authorize, atomically claim, perform and persist one effect."""
+        validate_semantics(request)
+        if request["message_type"] != "runner.step.request":
+            raise ValueError("dispatch requires runner.step.request")
+
+        capability_id = request["operation"]["capability_id"]
+        if capability_id not in SUPPORTED_CAPABILITIES:
+            return {
+                "messages": [
+                    _outcome(
+                        request,
+                        "REFUSED",
+                        error=_error(
+                            "UNSUPPORTED_CAPABILITY",
+                            "compatibility",
+                            "Capability is not exposed by the WebGoat L1 adapter",
+                        ),
+                    )
+                ]
+            }
+
+        input_error = self._validate_input(
+            capability_id, request["operation"]["input"]
+        )
+        if input_error is not None:
+            return {"messages": [_outcome(request, "REFUSED", error=input_error)]}
+
+        authorization_error = self._authorize(request, capability_id)
+        if authorization_error is not None:
+            return {
+                "messages": [
+                    _outcome(request, "REFUSED", error=authorization_error)
+                ]
+            }
+
+        key = request["idempotency_key"]
+        fingerprint = request_fingerprint(request)
+        try:
+            decision = self.ledger.claim(key, fingerprint)
+        except LedgerError:
+            return {
+                "messages": [
+                    _outcome(
+                        request,
+                        "ERROR",
+                        error=_error(
+                            "RUNNER_UNAVAILABLE",
+                            "dependency",
+                            "Durable idempotency ledger is unavailable",
+                            retryable=True,
+                        ),
+                    )
+                ]
+            }
+
+        if decision.classification == "IDEMPOTENCY_CONFLICT":
+            return {
+                "messages": [
+                    _outcome(
+                        request,
+                        "REFUSED",
+                        error=_error(
+                            "IDEMPOTENCY_CONFLICT",
+                            "conflict",
+                            "Idempotency key identifies a different effect",
+                        ),
+                    )
+                ]
+            }
+        if decision.classification == "REPLAY_SAME":
+            assert decision.record is not None and decision.record.outcome is not None
+            return {"messages": [decision.record.outcome]}
+        if decision.classification == "IN_PROGRESS":
+            return {
+                "messages": [
+                    _outcome(
+                        request,
+                        "ERROR",
+                        error=_error(
+                            "RUNNER_UNAVAILABLE",
+                            "dependency",
+                            "Identical effect is already in progress",
+                            retryable=True,
+                        ),
+                    )
+                ]
+            }
+
+        started_at = _utc_now()
+        try:
+            output = self._perform(
+                capability_id,
+                hard_timeout_ms=request["timeout_budget"]["hard_timeout_ms"],
+            )
+            outcome = _outcome(
+                request,
+                "PASS",
+                output=output,
+                started_at=started_at,
+            )
+        except (OSError, http.client.HTTPException, TimeoutError) as exc:
+            outcome = _outcome(
+                request,
+                "ERROR",
+                error=_error(
+                    "TRANSIENT_DEPENDENCY",
+                    "dependency",
+                    "Bounded WebGoat HTTP probe failed",
+                    retryable=True,
+                    safe_context={"exception_type": type(exc).__name__},
+                ),
+                started_at=started_at,
+            )
+        except Exception as exc:
+            outcome = _outcome(
+                request,
+                "ERROR",
+                error=_error(
+                    "EXECUTION_FAILED",
+                    "execution",
+                    "WebGoat L1 effect failed safely",
+                    safe_context={"exception_type": type(exc).__name__},
+                ),
+                started_at=started_at,
+            )
+
+        try:
+            completion = self.ledger.complete(key, fingerprint, outcome)
+        except LedgerError:
+            return {
+                "messages": [
+                    _outcome(
+                        request,
+                        "ERROR",
+                        error=_error(
+                            "EVIDENCE_MISSING",
+                            "evidence",
+                            "Terminal outcome could not be durably recorded",
+                        ),
+                        started_at=started_at,
+                    )
+                ]
+            }
+        assert completion.record is not None and completion.record.outcome is not None
+        return {"messages": [completion.record.outcome]}
+
+
+def build_adapter(
+    *,
+    ledger_path: str | Path,
+    authorization_resolver: AuthorizationResolver | None = None,
+    probe: HttpProbe | None = None,
+) -> WebGoatL1RunnerAdapter:
+    """Build the adapter with the required durable idempotency boundary."""
+    return WebGoatL1RunnerAdapter(
+        authorization_resolver=authorization_resolver,
+        probe=probe,
+        ledger=SQLiteIdempotencyLedger(ledger_path),
+    )
