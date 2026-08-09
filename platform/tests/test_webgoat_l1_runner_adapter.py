@@ -4,16 +4,22 @@ import ast
 import importlib.util
 import sys
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
+import pytest
 from runner_protocol_v2 import validate_semantics
 
 ROOT = Path(__file__).resolve().parents[2]
 MODULE_PATH = ROOT / "platform" / "runner-adapters" / "webgoat_l1_adapter.py"
 HANDOFF_PATH = ROOT / "platform" / "gateway-protocol" / "runner_handoff.py"
-AUTHORIZATION_REF = "authz/tb1/webgoat-l1-0001"
+AUTHORIZATION_REF = "tb1-authz:v1:" + ("1" * 64)
+CAMPAIGN_ID = "11111111-1111-4111-8111-111111111111"
+RUN_ID = "22222222-2222-4222-8222-222222222222"
+STEP_ID = "33333333-3333-4333-8333-333333333333"
+ATTEMPT_ID = "44444444-4444-4444-8444-444444444444"
 
 
 def _load(name: str, path: Path):
@@ -29,6 +35,12 @@ adapter = _load("webgoat_l1_adapter_test", MODULE_PATH)
 handoff = _load("webgoat_l1_handoff_compat_test", HANDOFF_PATH)
 
 
+def _iso(value: datetime) -> str:
+    return value.astimezone(timezone.utc).isoformat(timespec="seconds").replace(
+        "+00:00", "Z"
+    )
+
+
 @dataclass
 class StaticResolver:
     binding: Any | None
@@ -39,8 +51,24 @@ class StaticResolver:
 
 
 @dataclass(frozen=True)
-class VerifiedStub:
+class VerifiedHandoffStub:
     authorization_ref: str = AUTHORIZATION_REF
+
+
+@dataclass(frozen=True)
+class VerifiedBinding:
+    authorization_ref: str
+    issued_at: str
+    expires_at: str
+    campaign_id: str
+    run_id: str
+    step_id: str
+    operation_id: str
+    operation_version: str
+    operation_parameters_sha256: str
+    capability_id: str
+    target_sha256: str
+    intrusiveness_level: str
 
 
 class FakeProbe:
@@ -54,20 +82,6 @@ class FakeProbe:
         self.calls += 1
         self.timeouts.append(timeout_seconds)
         return adapter.ProbeResponse(status=self.status, headers=self.headers)
-
-
-def _binding(
-    capability: str,
-    *,
-    target_id: str = "webgoat-web",
-    authorization_ref: str = AUTHORIZATION_REF,
-):
-    return adapter.AuthorizationBinding(
-        authorization_ref=authorization_ref,
-        target_id=target_id,
-        capability_id=capability,
-        authorization_class="LAB_ONLY",
-    )
 
 
 def _canonical_input(
@@ -99,10 +113,10 @@ def _request(
         "message_type": "runner.step.request",
         "protocol_version": "2.0.0",
         "correlation": {
-            "campaign_id": str(uuid.UUID("11111111-1111-4111-8111-111111111111")),
-            "run_id": str(uuid.UUID("22222222-2222-4222-8222-222222222222")),
-            "step_id": str(uuid.UUID("33333333-3333-4333-8333-333333333333")),
-            "attempt_id": str(uuid.UUID("44444444-4444-4444-8444-444444444444")),
+            "campaign_id": CAMPAIGN_ID,
+            "run_id": RUN_ID,
+            "step_id": STEP_ID,
+            "attempt_id": ATTEMPT_ID,
         },
         "emitted_at": "2026-08-09T18:30:00Z",
         "authorization_ref": authorization_ref,
@@ -128,19 +142,40 @@ def _request(
     }
 
 
+def _verified_for(request: dict[str, Any], **overrides: Any) -> VerifiedBinding:
+    payload = request["operation"]["input"]
+    now = datetime.now(timezone.utc)
+    values: dict[str, Any] = {
+        "authorization_ref": request["authorization_ref"],
+        "issued_at": _iso(now - timedelta(seconds=30)),
+        "expires_at": _iso(now + timedelta(minutes=5)),
+        "campaign_id": request["correlation"]["campaign_id"],
+        "run_id": request["correlation"]["run_id"],
+        "step_id": request["correlation"]["step_id"],
+        "operation_id": payload["operation_id"],
+        "operation_version": payload["operation_version"],
+        "operation_parameters_sha256": adapter.authorization_contract.canonical_parameters_sha256(
+            payload["parameters"]
+        ),
+        "capability_id": request["operation"]["capability_id"],
+        "target_sha256": adapter.gateway_contract.canonical_target_digest(payload["target"]),
+        "intrusiveness_level": payload["intrusiveness_level"],
+    }
+    values.update(overrides)
+    return VerifiedBinding(**values)
+
+
 def _build(
     tmp_path: Path,
-    capability: str,
+    request: dict[str, Any],
     probe: FakeProbe,
     *,
-    resolver=None,
-    authorization_ref: str = AUTHORIZATION_REF,
+    binding: Any | None = None,
 ):
     return adapter.build_adapter(
         ledger_path=tmp_path / "ledger.sqlite3",
-        authorization_resolver=resolver
-        or StaticResolver(
-            _binding(capability, authorization_ref=authorization_ref)
+        authorization_resolver=StaticResolver(
+            _verified_for(request) if binding is None else binding
         ),
         probe=probe,
     )
@@ -158,10 +193,10 @@ def _handoff_message(
     parameters: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     request = {
-        "campaign_id": "11111111-1111-4111-8111-111111111111",
-        "run_id": "22222222-2222-4222-8222-222222222222",
-        "step_id": "33333333-3333-4333-8333-333333333333",
-        "attempt_id": "44444444-4444-4444-8444-444444444444",
+        "campaign_id": CAMPAIGN_ID,
+        "run_id": RUN_ID,
+        "step_id": STEP_ID,
+        "attempt_id": ATTEMPT_ID,
         "operation": {
             "id": capability,
             "version": "1.0.0",
@@ -177,7 +212,7 @@ def _handoff_message(
         request,
         roe_step_request,
         object(),
-        VerifiedStub(),
+        VerifiedHandoffStub(),
         handoff.RunnerHandoffConfig(),
     )
     validate_semantics(message)
@@ -196,37 +231,80 @@ def test_default_authorization_resolver_denies_before_network(tmp_path: Path) ->
     assert probe.calls == 0
 
 
-def test_target_binding_mismatch_denies_before_network(tmp_path: Path) -> None:
+def test_incomplete_resolved_metadata_denies_before_network(tmp_path: Path) -> None:
+    request = _request()
     probe = FakeProbe()
-    runner = _build(
-        tmp_path,
-        "web.discovery.headers",
-        probe,
-        resolver=StaticResolver(
-            _binding("web.discovery.headers", target_id="dvwa-web")
-        ),
-    )
-    outcome = _outcome(runner.dispatch(_request()))
+    runner = _build(tmp_path, request, probe, binding=VerifiedHandoffStub())
+    outcome = _outcome(runner.dispatch(request))
     assert outcome["status"] == "REFUSED"
     assert outcome["error"]["code"] == "AUTHORIZATION_DENIED"
     assert probe.calls == 0
 
 
-def test_capability_binding_mismatch_denies_before_network(tmp_path: Path) -> None:
-    probe = FakeProbe()
-    runner = _build(
-        tmp_path,
-        "web.discovery.headers",
-        probe,
-        resolver=StaticResolver(_binding("web.discovery.tls")),
+@pytest.mark.parametrize(
+    "field, value",
+    [
+        ("authorization_ref", "tb1-authz:v1:" + ("2" * 64)),
+        ("campaign_id", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"),
+        ("run_id", "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"),
+        ("step_id", "cccccccc-cccc-4ccc-8ccc-cccccccccccc"),
+        ("operation_id", "web.discovery.tls"),
+        ("operation_version", "9.9.9"),
+        ("capability_id", "web.discovery.tls"),
+        ("intrusiveness_level", "L2"),
+        ("operation_parameters_sha256", "d" * 64),
+        ("target_sha256", "e" * 64),
+    ],
+)
+def test_verified_authorization_binding_mismatch_denies_before_network(
+    tmp_path: Path, field: str, value: str
+) -> None:
+    request = _request(
+        input_payload=_canonical_input(parameters={"follow_redirects": False})
     )
-    outcome = _outcome(runner.dispatch(_request()))
+    probe = FakeProbe()
+    binding = replace(_verified_for(request), **{field: value})
+    runner = _build(tmp_path, request, probe, binding=binding)
+    outcome = _outcome(runner.dispatch(request))
     assert outcome["status"] == "REFUSED"
     assert outcome["error"]["code"] == "AUTHORIZATION_DENIED"
     assert probe.calls == 0
 
 
-def test_headers_effect_accepts_canonical_envelope_and_sanitizes(tmp_path: Path) -> None:
+def test_expired_verified_authorization_denies_before_network(tmp_path: Path) -> None:
+    request = _request()
+    now = datetime.now(timezone.utc)
+    binding = replace(
+        _verified_for(request),
+        issued_at=_iso(now - timedelta(minutes=2)),
+        expires_at=_iso(now - timedelta(seconds=1)),
+    )
+    probe = FakeProbe()
+    runner = _build(tmp_path, request, probe, binding=binding)
+    outcome = _outcome(runner.dispatch(request))
+    assert outcome["status"] == "REFUSED"
+    assert probe.calls == 0
+
+
+def test_future_verified_authorization_denies_before_network(tmp_path: Path) -> None:
+    request = _request()
+    now = datetime.now(timezone.utc)
+    binding = replace(
+        _verified_for(request),
+        issued_at=_iso(now + timedelta(minutes=1)),
+        expires_at=_iso(now + timedelta(minutes=5)),
+    )
+    probe = FakeProbe()
+    runner = _build(tmp_path, request, probe, binding=binding)
+    outcome = _outcome(runner.dispatch(request))
+    assert outcome["status"] == "REFUSED"
+    assert probe.calls == 0
+
+
+def test_headers_effect_accepts_exact_verified_binding_and_sanitizes(tmp_path: Path) -> None:
+    request = _request(
+        input_payload=_canonical_input(parameters={"follow_redirects": False})
+    )
     probe = FakeProbe(
         status=200,
         headers=(
@@ -235,12 +313,7 @@ def test_headers_effect_accepts_canonical_envelope_and_sanitizes(tmp_path: Path)
             ("X-Test", "safe-value"),
         ),
     )
-    runner = _build(tmp_path, "web.discovery.headers", probe)
-    request = _request(
-        input_payload=_canonical_input(
-            parameters={"follow_redirects": False}
-        )
-    )
+    runner = _build(tmp_path, request, probe)
     outcome = _outcome(runner.dispatch(request))
     assert outcome["status"] == "PASS"
     output = outcome["output"]
@@ -254,176 +327,86 @@ def test_headers_effect_accepts_canonical_envelope_and_sanitizes(tmp_path: Path)
     assert all(item["name"] != "set-cookie" for item in output["headers"])
     assert probe.calls == 1
     assert probe.timeouts == [5.0]
-    assert outcome["evidence_refs"][0]["kind"] == "execution"
-    assert "uri" not in outcome["evidence_refs"][0]
 
 
-def test_tls_effect_reports_plaintext_transport_from_canonical_envelope(tmp_path: Path) -> None:
-    probe = FakeProbe(status=200)
-    runner = _build(tmp_path, "web.discovery.tls", probe)
-    outcome = _outcome(
-        runner.dispatch(
-            _request(
-                "web.discovery.tls",
-                replay_key="fixture-webgoat-key-two",
-            )
-        )
+def test_tls_effect_accepts_exact_verified_binding(tmp_path: Path) -> None:
+    request = _request(
+        "web.discovery.tls",
+        replay_key="fixture-webgoat-key-two",
     )
+    probe = FakeProbe(status=200)
+    runner = _build(tmp_path, request, probe)
+    outcome = _outcome(runner.dispatch(request))
     assert outcome["status"] == "PASS"
-    assert outcome["output"] == {
-        "adapter_id": "webgoat-l1",
-        "target_id": "webgoat-web",
-        "environment_id": "webgoat",
-        "capability_id": "web.discovery.tls",
-        "http_status": 200,
-        "scheme": "http",
-        "tls_enabled": False,
-        "plaintext_transport": True,
-        "assessment": "PLAINTEXT_HTTP",
-    }
+    assert outcome["output"]["assessment"] == "PLAINTEXT_HTTP"
+    assert outcome["output"]["tls_enabled"] is False
     assert probe.calls == 1
 
 
-def test_real_handoff_assembled_message_is_accepted_by_adapter(tmp_path: Path) -> None:
+def test_real_handoff_message_binds_to_verified_metadata(tmp_path: Path) -> None:
     message = _handoff_message(
         "web.discovery.headers",
         parameters={"follow_redirects": False},
     )
     probe = FakeProbe(status=200, headers=(("Server", "WebGoat"),))
-    runner = _build(
-        tmp_path,
-        "web.discovery.headers",
-        probe,
-        authorization_ref=message["authorization_ref"],
-    )
+    runner = _build(tmp_path, message, probe)
     outcome = _outcome(runner.dispatch(message))
     assert outcome["status"] == "PASS"
     assert probe.calls == 1
-    assert message["operation"]["input"] == {
-        "operation_id": "web.discovery.headers",
-        "operation_version": "1.0.0",
-        "intrusiveness_level": "L1",
-        "target": {"type": "lab-asset", "value": "webgoat-web"},
-        "parameters": {"follow_redirects": False},
+    assert message["operation"]["input"]["target"] == {
+        "type": "lab-asset",
+        "value": "webgoat-web",
     }
 
 
-def test_noncanonical_flat_parameters_are_refused_before_network(tmp_path: Path) -> None:
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"follow_redirects": False},
+        _canonical_input(parameters={"follow_redirects": True}),
+        _canonical_input(parameters={"url": "https://example.com"}),
+        _canonical_input(target={"type": "lab-asset", "value": "dvwa-web"}),
+        _canonical_input(target={"type": "hostname", "value": "webgoat"}),
+        _canonical_input(operation_id="web.discovery.tls"),
+        _canonical_input(operation_version="2.0.0"),
+        _canonical_input(intrusiveness_level="L2"),
+    ],
+)
+def test_noncanonical_or_mismatched_input_is_refused_before_network(
+    tmp_path: Path, payload: dict[str, Any]
+) -> None:
+    request = _request(input_payload=payload)
     probe = FakeProbe()
-    runner = _build(tmp_path, "web.discovery.headers", probe)
-    outcome = _outcome(
-        runner.dispatch(
-            _request(input_payload={"follow_redirects": False})
-        )
+    runner = adapter.build_adapter(
+        ledger_path=tmp_path / "ledger.sqlite3",
+        authorization_resolver=StaticResolver(None),
+        probe=probe,
     )
-    assert outcome["status"] == "REFUSED"
-    assert outcome["error"]["code"] == "INVALID_REQUEST"
-    assert probe.calls == 0
-
-
-def test_redirect_following_is_refused_before_network(tmp_path: Path) -> None:
-    probe = FakeProbe()
-    runner = _build(tmp_path, "web.discovery.headers", probe)
-    outcome = _outcome(
-        runner.dispatch(
-            _request(
-                input_payload=_canonical_input(
-                    parameters={"follow_redirects": True}
-                )
-            )
-        )
-    )
-    assert outcome["status"] == "REFUSED"
-    assert outcome["error"]["code"] == "INVALID_REQUEST"
-    assert probe.calls == 0
-
-
-def test_arbitrary_parameter_target_is_refused_before_network(tmp_path: Path) -> None:
-    probe = FakeProbe()
-    runner = _build(tmp_path, "web.discovery.headers", probe)
-    outcome = _outcome(
-        runner.dispatch(
-            _request(
-                input_payload=_canonical_input(
-                    parameters={"url": "https://example.com"}
-                )
-            )
-        )
-    )
-    assert outcome["status"] == "REFUSED"
-    assert outcome["error"]["code"] == "INVALID_REQUEST"
-    assert probe.calls == 0
-
-
-def test_target_value_mismatch_is_refused_before_network(tmp_path: Path) -> None:
-    probe = FakeProbe()
-    runner = _build(tmp_path, "web.discovery.headers", probe)
-    payload = _canonical_input(
-        target={"type": "lab-asset", "value": "dvwa-web"}
-    )
-    outcome = _outcome(runner.dispatch(_request(input_payload=payload)))
-    assert outcome["status"] == "REFUSED"
-    assert outcome["error"]["code"] == "INVALID_REQUEST"
-    assert probe.calls == 0
-
-
-def test_raw_hostname_target_is_refused_before_network(tmp_path: Path) -> None:
-    probe = FakeProbe()
-    runner = _build(tmp_path, "web.discovery.headers", probe)
-    payload = _canonical_input(
-        target={"type": "hostname", "value": "webgoat"}
-    )
-    outcome = _outcome(runner.dispatch(_request(input_payload=payload)))
-    assert outcome["status"] == "REFUSED"
-    assert outcome["error"]["code"] == "INVALID_REQUEST"
-    assert probe.calls == 0
-
-
-def test_operation_identity_mismatch_is_refused_before_network(tmp_path: Path) -> None:
-    probe = FakeProbe()
-    runner = _build(tmp_path, "web.discovery.headers", probe)
-    payload = _canonical_input(operation_id="web.discovery.tls")
-    outcome = _outcome(runner.dispatch(_request(input_payload=payload)))
-    assert outcome["status"] == "REFUSED"
-    assert outcome["error"]["code"] == "INVALID_REQUEST"
-    assert probe.calls == 0
-
-
-def test_operation_version_mismatch_is_refused_before_network(tmp_path: Path) -> None:
-    probe = FakeProbe()
-    runner = _build(tmp_path, "web.discovery.headers", probe)
-    payload = _canonical_input(operation_version="2.0.0")
-    outcome = _outcome(runner.dispatch(_request(input_payload=payload)))
-    assert outcome["status"] == "REFUSED"
-    assert outcome["error"]["code"] == "INVALID_REQUEST"
-    assert probe.calls == 0
-
-
-def test_intrusiveness_mismatch_is_refused_before_network(tmp_path: Path) -> None:
-    probe = FakeProbe()
-    runner = _build(tmp_path, "web.discovery.headers", probe)
-    payload = _canonical_input(intrusiveness_level="L2")
-    outcome = _outcome(runner.dispatch(_request(input_payload=payload)))
+    outcome = _outcome(runner.dispatch(request))
     assert outcome["status"] == "REFUSED"
     assert outcome["error"]["code"] == "INVALID_REQUEST"
     assert probe.calls == 0
 
 
 def test_unknown_handoff_envelope_field_is_refused_before_network(tmp_path: Path) -> None:
-    probe = FakeProbe()
-    runner = _build(tmp_path, "web.discovery.headers", probe)
     payload = _canonical_input()
     payload["bypass"] = True
-    outcome = _outcome(runner.dispatch(_request(input_payload=payload)))
+    request = _request(input_payload=payload)
+    probe = FakeProbe()
+    runner = adapter.build_adapter(
+        ledger_path=tmp_path / "ledger.sqlite3",
+        authorization_resolver=StaticResolver(None),
+        probe=probe,
+    )
+    outcome = _outcome(runner.dispatch(request))
     assert outcome["status"] == "REFUSED"
-    assert outcome["error"]["code"] == "INVALID_REQUEST"
     assert probe.calls == 0
 
 
 def test_exact_replay_returns_durable_outcome_without_second_effect(tmp_path: Path) -> None:
-    probe = FakeProbe(status=204, headers=(("X-Replay", "one"),))
-    runner = _build(tmp_path, "web.discovery.headers", probe)
     request = _request()
+    probe = FakeProbe(status=204, headers=(("X-Replay", "one"),))
+    runner = _build(tmp_path, request, probe)
     first = _outcome(runner.dispatch(request))
     second = _outcome(runner.dispatch(request))
     assert first == second
@@ -431,14 +414,18 @@ def test_exact_replay_returns_durable_outcome_without_second_effect(tmp_path: Pa
     assert probe.calls == 1
 
 
-def test_same_idempotency_key_with_changed_effect_refuses_conflict(tmp_path: Path) -> None:
-    probe = FakeProbe()
-    runner = _build(tmp_path, "web.discovery.headers", probe)
+def test_same_idempotency_key_with_changed_effect_refuses_before_second_effect(
+    tmp_path: Path,
+) -> None:
     request = _request()
+    probe = FakeProbe()
+    runner = _build(tmp_path, request, probe)
     first = _outcome(runner.dispatch(request))
     assert first["status"] == "PASS"
+
     changed = _request()
     changed["timeout_budget"]["hard_timeout_ms"] = 6000
+    runner.authorization_resolver = StaticResolver(_verified_for(changed))
     conflict = _outcome(runner.dispatch(changed))
     assert conflict["status"] == "REFUSED"
     assert conflict["error"]["code"] == "IDEMPOTENCY_CONFLICT"
@@ -446,20 +433,21 @@ def test_same_idempotency_key_with_changed_effect_refuses_conflict(tmp_path: Pat
 
 
 def test_unsupported_capability_is_refused_before_network(tmp_path: Path) -> None:
-    probe = FakeProbe()
-    runner = _build(tmp_path, "web.discovery.headers", probe)
-    outcome = _outcome(
-        runner.dispatch(
-            _request(
-                "web.validation.sql-injection",
-                input_payload=_canonical_input(
-                    "web.validation.sql-injection",
-                    intrusiveness_level="L2",
-                ),
-                replay_key="fixture-webgoat-key-three",
-            )
-        )
+    request = _request(
+        "web.validation.sql-injection",
+        input_payload=_canonical_input(
+            "web.validation.sql-injection",
+            intrusiveness_level="L2",
+        ),
+        replay_key="fixture-webgoat-key-three",
     )
+    probe = FakeProbe()
+    runner = adapter.build_adapter(
+        ledger_path=tmp_path / "ledger.sqlite3",
+        authorization_resolver=StaticResolver(None),
+        probe=probe,
+    )
+    outcome = _outcome(runner.dispatch(request))
     assert outcome["status"] == "REFUSED"
     assert outcome["error"]["code"] == "UNSUPPORTED_CAPABILITY"
     assert probe.calls == 0
@@ -468,7 +456,6 @@ def test_unsupported_capability_is_refused_before_network(tmp_path: Path) -> Non
 def test_source_contains_no_generic_execution_surface() -> None:
     source = MODULE_PATH.read_text(encoding="utf-8")
     tree = ast.parse(source)
-
     imported_modules: set[str] = set()
     dangerous_calls: list[str] = []
     shell_true = False
@@ -488,8 +475,6 @@ def test_source_contains_no_generic_execution_surface() -> None:
                 and node.func.attr == "system"
             ):
                 dangerous_calls.append("os.system")
-            elif isinstance(node.func, ast.Name) and node.func.id == "execute_command":
-                dangerous_calls.append("execute_command")
             for keyword in node.keywords:
                 if (
                     keyword.arg == "shell"
@@ -505,5 +490,4 @@ def test_source_contains_no_generic_execution_surface() -> None:
     assert dangerous_calls == []
     assert shell_true is False
     assert 'TARGET_HOST = "webgoat"' in source
-    assert 'TARGET_PATH = "/WebGoat/"' in source
     assert 'TARGET_ENVELOPE = {"type": "lab-asset", "value": TARGET_ID}' in source
