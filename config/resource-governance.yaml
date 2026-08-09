@@ -1,0 +1,53 @@
+schema_version: "1.0"
+policy_id: hsl-resource-governance-disk-hygiene
+description: >
+  Deterministic Lane I resource governance primitives: host-capacity preflight,
+  safe repository-only cleanup planner, and concurrency policy validation.
+  Read-only status and planning only. No host cleanup, no container pruning,
+  no scheduler implementation.
+
+capacity:
+  thresholds:
+    disk_root: {warn_pct: 80, critical_pct: 90}
+    tmp: {warn_pct: 80, critical_pct: 90}
+    memory: {warn_pct: 80, critical_pct: 90}
+    swap: {warn_pct: 50, critical_pct: 85}
+  container_budget: {max: 24, warn_pct: 80}
+  # Host paths probed by the live preflight. Read-only; no mutation.
+  scan_paths:
+    - {path: "/", label: "root"}
+    - {path: "/tmp", label: "tmp"}
+    - {path: "~/hermes-security-labs", label: "repo_home"}
+
+cleanup:
+  # ONLY HSL-owned roots may ever be considered. Anything outside these is
+  # refused as unknown_path. max_age_days gates staleness.
+  allowlist_roots:
+    - {root: ".tmp-hsl", category: "artifact", max_age_days: 7}
+    - {root: "artifacts", category: "artifact", max_age_days: 30}
+    - {root: "evidence", category: "evidence", max_age_days: 14, require_unreferenced: true}
+    - {root: ".pytest_cache", category: "cache", max_age_days: 1}
+    - {root: "__pycache__", category: "cache", max_age_days: 1, recursive: true}
+  # Structural guarantee: these operations are never performed by this lane.
+  forbidden_operations:
+    - "docker system prune"
+
+refuse_rules:
+  - unknown_path
+  - symlink_escape
+  - active_worktree
+  - current_evidence
+  - insufficient_proof
+
+concurrency:
+  default_budget: {max_parallel: 1, policy: "fail_closed"}
+  rules:
+    - {name: "ci-pr-scanner-ephemeral", host_class: "ci", environment: "pr", target_class: "ephemeral", tool_class: "scanner", max_parallel: 2, policy: "cap"}
+    - {name: "local-dev-builder-persistent", host_class: "local", environment: "dev", target_class: "persistent", tool_class: "builder", max_parallel: 4, policy: "cap"}
+    - {name: "prod-scanner-locked", host_class: "prod", environment: "prod", target_class: "persistent", tool_class: "scanner", max_parallel: 1, policy: "refuse"}
+  # Unknown dimensions fail closed by default.
+  fallback:
+    unknown_host_class: refuse
+    unknown_environment: refuse
+    unknown_target_class: refuse
+    unknown_tool_class: refuse
