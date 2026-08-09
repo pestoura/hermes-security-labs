@@ -6,7 +6,7 @@ Runner Protocol v2 is the canonical contract between an execution gateway and a 
 
 - Owner: `EPIC-05` / delivery umbrella `SVP2-B-02`.
 - Protocol version: `2.0.0`.
-- Current implementation state: contract, repository-local SDK, vendor-neutral conformance kit, durable transactional idempotency ledger and POSIX process supervisor are available; API-family in-memory and durable candidates pass synthetic conformance, while fixed-worker API, DevSecOps and AI/MCP supervised candidates are `AS_BUILT` with `PASS_SYNTHETIC_PROCESS`; production execution remains unimplemented for every family, and the calibrated AI/MCP runtime remains disconnected from Runner Protocol.
+- Current implementation state: contract, repository-local SDK, vendor-neutral conformance kit, durable transactional idempotency ledger and POSIX process supervisor are available; API-family in-memory and durable candidates pass synthetic conformance, while fixed-worker API, DevSecOps and AI/MCP supervised candidates are `AS_BUILT` with `PASS_SYNTHETIC_PROCESS`; production execution remains unimplemented for every family, and the calibrated AI/MCP runtime is connected to Runner Protocol by contract projection only (`CONTRACT_PROJECTION_ONLY`), with no execution integration.
 - Hermes remains the authorization authority. A valid protocol message cannot create, extend or replace authorization.
 - Unknown versions, invalid messages, missing correlation or missing evidence fail closed.
 
@@ -211,6 +211,23 @@ handlers, providers, agents, memory/RAG adapters and campaigns.
 Its compatibility state is `PASS_SYNTHETIC_PROCESS` for fixed synthetic process evidence only.
 Sandboxing, production authorization, MCP provider integration, real AI/MCP capability execution
 and Evidence Plane integration remain `NOT_RUN`; promotion remains blocked.
+
+### AI/MCP runtime contract projection
+
+Separately from the supervised candidate, the calibrated AI/MCP runtime is now *addressable
+and validatable* through a pure contract projection at
+[`security/packs/ai-mcp/src/ai_mcp_runbooks/runner_protocol_projection.py`](../../security/packs/ai-mcp/src/ai_mcp_runbooks/runner_protocol_projection.py),
+documented in
+[`security/packs/ai-mcp/docs/runner-protocol-runtime-projection.md`](../../security/packs/ai-mcp/docs/runner-protocol-runtime-projection.md).
+It translates a validated `runner.step.request` carrying the capability
+`ai-mcp.runtime.handler-invoke` into an authorised pack `ExecutionRequest`, and a sanitised
+`ExecutionResult` into a validated `runner.outcome` whose evidence reference is a digest only.
+
+The projection executes nothing. It imports no dispatch, execution or adapter module, creates
+no subprocess and opens no socket; `validate_compatibility_matrix()` parses its AST to enforce
+that mechanically. Its compatibility state is `CONTRACT_PROJECTION_ONLY` with
+`execution_integration: NOT_RUN`; the AI/MCP family remains `conformance_only` and blocked from
+promotion.
 
 ## Conformance kit
 
