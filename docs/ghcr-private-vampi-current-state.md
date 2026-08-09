@@ -137,7 +137,7 @@ X-OAuth-Scopes = read:packages
 
 In `strict` scope mode (the default and the only production-acceptable mode) the set must be exactly `read:packages`; any additional scope causes failure.
 
-An explicit `--scope-mode dev` exists for DEV runs only. It requires an approval reference and the presence of `read:packages`, tolerates additional scopes, and records:
+An explicit `--scope-mode dev` exists for DEV runs only. It requires an approval reference and package-read authority. GitHub does not list `read:packages` when a broader parent scope is granted, so `write:packages` or `delete:packages` are accepted in DEV as implying read. Additional scopes are tolerated, and the run records:
 
 ```text
 scope_posture=DEGRADED_ACCEPTED_FOR_DEV

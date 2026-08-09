@@ -268,7 +268,10 @@ if mode == "strict":
         raise SystemExit(1)
     print("PASS_EXACT")
 else:
-    if "read:packages" not in scopes:
+    # GitHub does not list `read:packages` when a broader parent scope is
+    # granted; `write:packages` and `delete:packages` both imply read.
+    implying = {"read:packages", "write:packages", "delete:packages"}
+    if not (scopes & implying):
         raise SystemExit(1)
     if scopes == required:
         print("PASS_EXACT")
