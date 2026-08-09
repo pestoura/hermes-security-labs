@@ -1,0 +1,20 @@
+schema_version: 1
+env_id: dvwa
+liveness:
+  - id: lifecycle-status
+    kind: lifecycle_status
+    timeout_seconds: 20
+    description: Allowlisted lifecycle status for the canonical DVWA environment.
+readiness:
+  - id: tcp-dvwa
+    kind: tcp_connect
+    host: 127.0.0.1
+    port: 4280
+    timeout_seconds: 5
+    description: Canonical loopback DVWA publication accepts connections.
+  - id: http-dvwa-login
+    kind: http_get
+    url: http://127.0.0.1:4280/login.php
+    expect_status: 200
+    timeout_seconds: 5
+    description: Fail-closed HTTP readiness for the canonical DVWA login page.
