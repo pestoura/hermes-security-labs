@@ -59,6 +59,7 @@ services:
         limits:
           cpus: "0.5"
           memory: 256M
+          pids: 100
     networks:
       - hermes-kali-egress
     security_opt:
