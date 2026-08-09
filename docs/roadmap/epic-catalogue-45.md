@@ -1,8 +1,11 @@
 # Epic catalogue — 45 concept epics for Security Validation Platform v2
 
-> **Status: MIXED LIFECYCLE.** EPIC-01 and EPIC-02 are `FINAL` under completed umbrella
-> `SVP2-A-01`; the remaining concept epics retain their declared lifecycle state. This
-> catalogue records both implemented foundation contracts and the remaining design intent.
+> **Status: MIXED LIFECYCLE.** `EPIC-01`, `EPIC-02` and `EPIC-15` are `FINAL`; five concept
+> epics are `AS_BUILT`; the remaining concept epics are `IMPLEMENTING` or `INTENT`. All 21
+> delivery umbrellas are `completed`, which is a delivery status and not a lifecycle claim
+> over the concept epics they cover. The authoritative per-epic state is section 7 and the
+> registry
+> [`roadmap/epics/security-validation-platform-v2-concepts.yaml`](../../roadmap/epics/security-validation-platform-v2-concepts.yaml).
 > The delivery backlog remains the 21 umbrella epics in
 > [`roadmap/epics/security-validation-platform-v2.yaml`](../../roadmap/epics/security-validation-platform-v2.yaml).
 
@@ -138,8 +141,80 @@ epics, and they must not be turned into new epic numbers.
 See the split Mermaid diagrams in the
 [intent document](../architecture/security-validation-platform-v2-intent.md#9-mapping-45--21).
 
-## 7. Related documents
+## 7. Lifecycle state register
 
+Delivery status and concept-epic lifecycle state are **different** dimensions and are
+reconciled here, not smoothed over. All 21 delivery umbrellas are `completed`; only
+eight concept epics have reached `AS_BUILT` or `FINAL`. A `completed` umbrella therefore
+records that its declared delivery acceptance criteria were met with gated evidence, and
+never implies that every concept epic it covers is `FINAL`. Promotion to `AS_BUILT` or
+`FINAL` requires section 15 of the concept epic document to be populated with evidence, as
+required by the
+[documentation lifecycle contract](../architecture/architecture-documentation-lifecycle.md).
+
+| Lifecycle state | Concept epics |
+| --- | --- |
+| `FINAL` | 3 |
+| `AS_BUILT` | 5 |
+| `IMPLEMENTING` | 29 |
+| `INTENT` | 8 |
+| **Total** | **45** |
+
+| ID | Concept lifecycle | Umbrella | Umbrella delivery status |
+| --- | --- | --- | --- |
+| [`EPIC-01`](epics/EPIC-01-architecture-and-canonical-contracts.md) | `FINAL` | `SVP2-A-01` (#76) | `completed` |
+| [`EPIC-02`](epics/EPIC-02-single-source-of-truth-for-runtime.md) | `FINAL` | `SVP2-A-01` (#76) | `completed` |
+| [`EPIC-03`](epics/EPIC-03-typed-kali-mcp.md) | `IMPLEMENTING` | `SVP2-B-01` (#79) | `completed` |
+| [`EPIC-04`](epics/EPIC-04-transactional-lifecycle-and-isolation.md) | `IMPLEMENTING` | `SVP2-B-03` (#81) | `completed` |
+| [`EPIC-05`](epics/EPIC-05-runner-protocol-v2.md) | `AS_BUILT` | `SVP2-B-02` (#80) | `completed` |
+| [`EPIC-06`](epics/EPIC-06-kali-image-factory.md) | `IMPLEMENTING` | `SVP2-C-01` (#82) | `completed` |
+| [`EPIC-07`](epics/EPIC-07-capability-registry.md) | `IMPLEMENTING` | `SVP2-C-02` (#83) | `completed` |
+| [`EPIC-08`](epics/EPIC-08-network-and-egress-policy.md) | `IMPLEMENTING` | `SVP2-B-03` (#81) | `completed` |
+| [`EPIC-09`](epics/EPIC-09-exploitation-safety.md) | `AS_BUILT` | `SVP2-A-02` (#77) | `completed` |
+| [`EPIC-10`](epics/EPIC-10-evidence-plane.md) | `IMPLEMENTING` | `SVP2-D-01` (#84) | `completed` |
+| [`EPIC-11`](epics/EPIC-11-technical-observability.md) | `IMPLEMENTING` | `SVP2-D-02` (#85) | `completed` |
+| [`EPIC-12`](epics/EPIC-12-redaction-and-data-classification.md) | `IMPLEMENTING` | `SVP2-D-01` (#84) | `completed` |
+| [`EPIC-13`](epics/EPIC-13-reliability-and-chaos-testing.md) | `IMPLEMENTING` | `SVP2-D-02` (#85) | `completed` |
+| [`EPIC-14`](epics/EPIC-14-real-operations-and-maintenance.md) | `INTENT` | `SVP2-D-02` (#85) | `completed` |
+| [`EPIC-15`](epics/EPIC-15-backlog-and-documentation-quality.md) | `FINAL` | `SVP2-A-03` (#78) | `completed` |
+| [`EPIC-16`](epics/EPIC-16-kubernetes-runtime.md) | `INTENT` | `SVP2-L-01` (#96) | `completed` |
+| [`EPIC-17`](epics/EPIC-17-identity-and-active-directory-runtime.md) | `INTENT` | `SVP2-L-01` (#96) | `completed` |
+| [`EPIC-18`](epics/EPIC-18-cloud-runtime.md) | `INTENT` | `SVP2-L-01` (#96) | `completed` |
+| [`EPIC-19`](epics/EPIC-19-mobile-runtime.md) | `INTENT` | `SVP2-L-01` (#96) | `completed` |
+| [`EPIC-20`](epics/EPIC-20-iot-ot-and-external-hardware.md) | `INTENT` | `SVP2-L-01` (#96) | `completed` |
+| [`EPIC-21`](epics/EPIC-21-framework-crosswalk-and-canonical-methodology.md) | `AS_BUILT` | `SVP2-E-01` (#86) | `completed` |
+| [`EPIC-22`](epics/EPIC-22-threat-informed-security-validation.md) | `IMPLEMENTING` | `SVP2-F-01` (#88) | `completed` |
+| [`EPIC-23`](epics/EPIC-23-attack-graph-and-attack-flow.md) | `IMPLEMENTING` | `SVP2-F-01` (#88) | `completed` |
+| [`EPIC-24`](epics/EPIC-24-purple-team-and-detection-validation.md) | `IMPLEMENTING` | `SVP2-F-02` (#89) | `completed` |
+| [`EPIC-25`](epics/EPIC-25-continuous-security-validation.md) | `INTENT` | `SVP2-H-01` (#91) | `completed` |
+| [`EPIC-26`](epics/EPIC-26-interoperable-playbooks-and-results.md) | `IMPLEMENTING` | `SVP2-J-02` (#94) | `completed` |
+| [`EPIC-27`](epics/EPIC-27-risk-intelligence-and-contextual-prioritization.md) | `AS_BUILT` | `SVP2-J-01` (#93) | `completed` |
+| [`EPIC-28`](epics/EPIC-28-rules-of-engagement-as-code.md) | `IMPLEMENTING` | `SVP2-A-02` (#77) | `completed` |
+| [`EPIC-29`](epics/EPIC-29-ai-and-agentic-security.md) | `INTENT` | `SVP2-L-01` (#96) | `completed` |
+| [`EPIC-30`](epics/EPIC-30-supply-chain-attestations.md) | `IMPLEMENTING` | `SVP2-C-02` (#83) | `completed` |
+| [`EPIC-31`](epics/EPIC-31-opentelemetry-end-to-end.md) | `IMPLEMENTING` | `SVP2-D-02` (#85) | `completed` |
+| [`EPIC-32`](epics/EPIC-32-resilience-validation-and-tlpt.md) | `IMPLEMENTING` | `SVP2-F-02` (#89) | `completed` |
+| [`EPIC-33`](epics/EPIC-33-finding-and-remediation-lifecycle.md) | `AS_BUILT` | `SVP2-J-01` (#93) | `completed` |
+| [`EPIC-34`](epics/EPIC-34-maturity-benchmarking-and-scientific-quality.md) | `IMPLEMENTING` | `SVP2-D-02` (#85) | `completed` |
+| [`EPIC-35`](epics/EPIC-35-sdk-plugins-and-runtime-certification.md) | `IMPLEMENTING` | `SVP2-K-01` (#95) | `completed` |
+| [`EPIC-36`](epics/EPIC-36-security-knowledge-fabric.md) | `IMPLEMENTING` | `SVP2-E-01` (#86) | `completed` |
+| [`EPIC-37`](epics/EPIC-37-vulnerability-intelligence-synchronization.md) | `IMPLEMENTING` | `SVP2-E-01` (#86) | `completed` |
+| [`EPIC-38`](epics/EPIC-38-cwe-capec-attack-semantic-chain.md) | `IMPLEMENTING` | `SVP2-E-01` (#86) | `completed` |
+| [`EPIC-39`](epics/EPIC-39-attack-synchronization-service.md) | `IMPLEMENTING` | `SVP2-E-01` (#86) | `completed` |
+| [`EPIC-40`](epics/EPIC-40-nist-control-knowledge-layer.md) | `IMPLEMENTING` | `SVP2-E-02` (#87) | `completed` |
+| [`EPIC-41`](epics/EPIC-41-vulnerability-specific-test-synthesis.md) | `IMPLEMENTING` | `SVP2-G-01` (#90) | `completed` |
+| [`EPIC-42`](epics/EPIC-42-exploit-and-validation-provider-registry.md) | `IMPLEMENTING` | `SVP2-G-01` (#90) | `completed` |
+| [`EPIC-43`](epics/EPIC-43-knowledge-driven-campaign-planner.md) | `IMPLEMENTING` | `SVP2-E-02` (#87) | `completed` |
+| [`EPIC-44`](epics/EPIC-44-knowledge-quality-and-conflict-resolution.md) | `IMPLEMENTING` | `SVP2-E-02` (#87) | `completed` |
+| [`EPIC-45`](epics/EPIC-45-operational-query-and-discovery.md) | `IMPLEMENTING` | `SVP2-E-02` (#87) | `completed` |
+
+Reconciliation rule: this table is generated from the concept registry and the delivery
+backlog. If either source changes, this section must change in the same pull request;
+`roadmap/tests/test_concept_catalogue.py` enforces the agreement mechanically.
+
+## 8. Related documents
+
+- [Lane B cross-cutting reconciliation](lane-b-cross-cutting-reconciliation.md)
 - [Platform v2 intent](../architecture/security-validation-platform-v2-intent.md)
 - [Architecture documentation lifecycle](../architecture/architecture-documentation-lifecycle.md)
 - [Roadmap SVP v2](security-validation-platform-v2.md)
