@@ -1,6 +1,7 @@
-source "$(dirname "$0")/env.sh"
 #!/usr/bin/env bash
 set -euo pipefail
+# shellcheck source=kali-mcp/scripts/env.sh
+source "$(dirname "${BASH_SOURCE[0]}")/env.sh"
 
 if [ $# -ne 1 ]; then
   echo "Usage: $0 <operation>" >&2
