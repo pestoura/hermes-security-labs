@@ -1,6 +1,8 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://hex0r.local/schemas/lab-manifest.json",
   "title": "Hermes Security Labs environment manifest",
+  "description": "Canonical environment contract. Catalogue entries describe intent only. Manifests that declare execution_class 'executable' MUST carry the full fail-closed environment contract: schema_version, authorization_state, network (ingress scope + egress default deny), resource limits, liveness, readiness, reset strategy, persistence and lifecycle.",
   "type": "object",
   "required": [
     "id",
@@ -12,6 +14,16 @@
     "lifecycle"
   ],
   "properties": {
+    "schema_version": {
+      "type": "string",
+      "enum": ["1.1"],
+      "description": "Environment contract version. Required for executable manifests."
+    },
+    "execution_class": {
+      "type": "string",
+      "enum": ["executable", "catalog-only"],
+      "description": "Fail-closed discriminator. Absent means catalog-only: no runtime guarantees are claimed."
+    },
     "id": {
       "type": "string",
       "pattern": "^[a-z0-9][a-z0-9-]*$"
@@ -23,11 +35,156 @@
       "type": "string",
       "enum": ["docker", "kubernetes", "virtual-machine", "cloud", "emulator"]
     },
+    "backend": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Concrete execution backend (docker-compose, kind, ...). Required for executable manifests."
+    },
     "driver": {"type": "string"},
     "risk": {"type": "string"},
     "source": {"type": "string"},
     "version": {"type": ["string", "number"]},
-    "resources": {"type": "object"},
+    "authorization_state": {
+      "type": "string",
+      "enum": [
+        "LAB_ONLY",
+        "AUTHORIZED_TEST_TARGET",
+        "UNVERIFIED",
+        "BLOCKED",
+        "EXTERNAL"
+      ],
+      "description": "Fail-closed authorization. Anything other than LAB_ONLY or AUTHORIZED_TEST_TARGET must be treated as not runnable."
+    },
+    "resources": {
+      "type": "object",
+      "description": "Declared resource limits.",
+      "properties": {
+        "cpus": {"type": ["string", "number"]},
+        "cpu": {"type": ["string", "number"]},
+        "memory": {"type": ["string", "number"]},
+        "disk": {"type": ["string", "number"]},
+        "max_concurrent": {"type": "integer", "minimum": 0}
+      }
+    },
+    "network": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ingress", "egress"],
+      "properties": {
+        "ingress": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["scope", "bindings"],
+          "properties": {
+            "scope": {
+              "type": "string",
+              "enum": ["none", "loopback", "lab-internal", "host", "lan"]
+            },
+            "bindings": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["service", "host", "container_port"],
+                "properties": {
+                  "service": {"type": "string", "minLength": 1},
+                  "host": {"type": "string", "minLength": 1},
+                  "host_port": {"type": ["string", "integer"]},
+                  "container_port": {"type": "integer", "minimum": 1, "maximum": 65535}
+                }
+              }
+            },
+            "internal_networks": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {"type": "string", "minLength": 1}
+            }
+          }
+        },
+        "egress": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["default", "enforced", "allowlist"],
+          "properties": {
+            "default": {"const": "deny"},
+            "enforced": {"type": "boolean"},
+            "profile": {
+              "type": "string",
+              "enum": ["isolated", "publication-bridge", "proxy-mediated"]
+            },
+            "allowlist": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {"type": "string", "minLength": 1}
+            },
+            "residual_risk": {"type": "string", "minLength": 1}
+          },
+          "allOf": [
+            {
+              "if": {"properties": {"enforced": {"const": false}}, "required": ["enforced"]},
+              "then": {"required": ["residual_risk"]}
+            }
+          ]
+        }
+      }
+    },
+    "liveness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "interval_seconds"],
+      "properties": {
+        "source": {
+          "type": "string",
+          "enum": ["compose-healthcheck", "kubernetes-probe", "script", "none"]
+        },
+        "interval_seconds": {"type": "integer", "minimum": 1},
+        "retries": {"type": "integer", "minimum": 1},
+        "command": {"type": "string", "minLength": 1}
+      }
+    },
+    "readiness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["probe", "timeout_seconds", "success_criteria"],
+      "properties": {
+        "probe": {"type": "string", "minLength": 1},
+        "timeout_seconds": {"type": "integer", "minimum": 1},
+        "success_criteria": {"type": "string", "minLength": 1}
+      }
+    },
+    "reset_strategy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "destroys_state"],
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["script", "recreate", "redeploy", "not-supported"]
+        },
+        "command": {"type": "string", "minLength": 1},
+        "destroys_state": {"type": "boolean"},
+        "description": {"type": "string", "minLength": 1}
+      }
+    },
+    "persistence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["persistent_volumes", "evidence"],
+      "properties": {
+        "persistent_volumes": {"type": "boolean"},
+        "evidence": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["path", "retention_days"],
+          "properties": {
+            "path": {"type": "string", "minLength": 1},
+            "retention_days": {"type": "integer", "minimum": 0},
+            "sanitized": {"type": "boolean"}
+          }
+        }
+      }
+    },
     "networks": {
       "type": "array",
       "items": {"type": "string"}
@@ -75,5 +232,38 @@
       ]
     }
   },
+  "allOf": [
+    {
+      "if": {
+        "properties": {"execution_class": {"const": "executable"}},
+        "required": ["execution_class"]
+      },
+      "then": {
+        "required": [
+          "schema_version",
+          "execution_class",
+          "id",
+          "backend",
+          "authorization_state",
+          "network",
+          "resources",
+          "liveness",
+          "readiness",
+          "reset_strategy",
+          "persistence",
+          "lifecycle",
+          "status"
+        ],
+        "properties": {
+          "resources": {
+            "anyOf": [
+              {"required": ["cpus", "memory"]},
+              {"required": ["cpu", "memory"]}
+            ]
+          }
+        }
+      }
+    }
+  ],
   "additionalProperties": true
 }

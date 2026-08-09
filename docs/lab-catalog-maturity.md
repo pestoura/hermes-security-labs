@@ -82,6 +82,29 @@ segunda continua a ser trabalho de aceitação com execução.
 Ambientes `catalog-only` não entram nesta fila enquanto não trouxerem
 `compose.yaml` e scripts de ciclo de vida para o repositório.
 
+## Contrato de ambiente (executáveis vs catálogo)
+
+`platform/schemas/lab-manifest.schema.json` distingue duas populações através de
+`execution_class`:
+
+- `executable`: labs com runtime real no repositório (`manifest.yaml` + `compose.yaml`
+  ou fixture kind). Têm de declarar `schema_version: "1.1"`, `backend`,
+  `authorization_state`, `network` (ingress com `scope`/`bindings` e egress
+  `default: deny` com allowlist ou perfil), `resources`, `liveness`, `readiness`
+  (`probe`, `timeout_seconds`, `success_criteria`), `reset_strategy`, `persistence`
+  (retenção de evidência) e `lifecycle`. Falta de qualquer um destes campos é erro de
+  validação: fail-closed, sem defaults implícitos.
+- `catalog-only` (ou ausente): entradas YAML planas que declaram intenção. Não são
+  validadas contra o contrato executável e não podem ser tratadas como executáveis.
+
+`authorization_state` aceita `LAB_ONLY`, `AUTHORIZED_TEST_TARGET`, `UNVERIFIED`,
+`BLOCKED` e `EXTERNAL`; apenas os dois primeiros são consideradas execução autorizada.
+Quando `network.egress.enforced` é `false` (bridge de publicação com saída possível),
+`residual_risk` é obrigatório.
+
+Validar com `python3 platform/scripts/labctl.py validate`; o contrato negativo está
+coberto por `platform/tests/test_environment_contract.py`.
+
 ## Adicionar um lab novo
 
 1. Criar `platform/environments/<categoria>/<lab>/manifest.yaml` conforme

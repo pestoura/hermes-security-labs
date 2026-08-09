@@ -1,3 +1,36 @@
+schema_version: '1.1'
+execution_class: executable
+authorization_state: LAB_ONLY
+backend: kind
+network:
+  ingress:
+    scope: lab-internal
+    bindings: []
+    internal_networks:
+    - dedicated-kind-network
+  egress:
+    default: deny
+    enforced: true
+    profile: isolated
+    allowlist: []
+liveness:
+  source: kubernetes-probe
+  interval_seconds: 10
+  retries: 12
+readiness:
+  probe: kubectl --context kind-<cluster> get nodes and kubectl auth can-i on the synthetic namespace
+  timeout_seconds: 300
+  success_criteria: single node reports Ready and the synthetic namespace RBAC fixture is present
+reset_strategy:
+  mode: recreate
+  destroys_state: true
+  description: delete and recreate the synthetic namespace fixture
+persistence:
+  persistent_volumes: false
+  evidence:
+    path: ${EVIDENCE_DIR:-.runtime/evidence/kind-rbac-synthetic}
+    retention_days: 30
+    sanitized: true
 id: kind-rbac-synthetic
 name: Kind Synthetic RBAC Lab
 description: Disposable single-node kind cluster containing a bounded namespace-only RBAC misconfiguration for lifecycle validation.
@@ -6,34 +39,34 @@ runtime: kubernetes
 driver: kind
 risk: medium
 source: repository-owned-synthetic-fixture
-version: "1.0"
+version: '1.0'
 resources:
-  cpu: "2"
+  cpu: '2'
   memory: 4Gi
   disk: 8Gi
   max_concurrent: 1
 networks:
-  - dedicated-kind-network
+- dedicated-kind-network
 egress: false
 targets:
-  - kubernetes-api
+- kubernetes-api
 attacker: kali-temporary-attachment
 lifecycle:
-  - create
-  - start
-  - status
-  - smoke
-  - stop
-  - reset
-  - destroy
+- create
+- start
+- status
+- smoke
+- stop
+- reset
+- destroy
 reset: delete and recreate the synthetic namespace fixture
 cleanup: delete kind cluster, dedicated kubeconfig and project Docker network
 evidence: cluster identity, RBAC can-i result, reset receipt and zero-residue receipt
 dependencies:
-  - kubernetes
-  - kind
+- kubernetes
+- kind
 limitations:
-  - The vulnerability is restricted to a synthetic namespace and synthetic secret.
-  - No host Kubernetes installation is permitted.
-  - No cloud cluster or customer asset is used.
+- The vulnerability is restricted to a synthetic namespace and synthetic secret.
+- No host Kubernetes installation is permitted.
+- No cloud cluster or customer asset is used.
 status: CURRENT-LIMITED

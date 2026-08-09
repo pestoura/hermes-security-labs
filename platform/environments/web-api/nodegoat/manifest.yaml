@@ -1,3 +1,41 @@
+schema_version: '1.1'
+execution_class: executable
+authorization_state: LAB_ONLY
+backend: docker-compose
+network:
+  ingress:
+    scope: loopback
+    bindings:
+    - service: nodegoat
+      host: 127.0.0.1
+      host_port: ${NODEGOAT_HOST_PORT:-4000}
+      container_port: 4000
+    internal_networks:
+    - nodegoat-db
+  egress:
+    default: deny
+    enforced: false
+    profile: publication-bridge
+    allowlist: []
+    residual_risk: publication bridge network permits outbound traffic from the published service
+liveness:
+  source: compose-healthcheck
+  interval_seconds: 10
+  retries: 24
+readiness:
+  probe: http://127.0.0.1:${NODEGOAT_HOST_PORT:-4000}/
+  timeout_seconds: 240
+  success_criteria: HTTP status below 500 and both compose services healthy
+reset_strategy:
+  mode: script
+  command: ./scripts/reset.sh
+  destroys_state: true
+persistence:
+  persistent_volumes: true
+  evidence:
+    path: ${EVIDENCE_DIR:-.runtime/evidence/nodegoat}
+    retention_days: 30
+    sanitized: true
 id: nodegoat
 name: OWASP NodeGoat
 description: Deliberately vulnerable Node.js application for authorised security training.
@@ -12,34 +50,34 @@ resources:
   memory: 1Gi
   disk: 2G
 networks:
-  - nodegoat-lab
-  - nodegoat-db
+- nodegoat-lab
+- nodegoat-db
 egress: true
 targets:
-  - http://nodegoat:4000/
+- http://nodegoat:4000/
 attacker: kali-mcp
 lifecycle:
-  - start
-  - status
-  - smoke
-  - stop
-  - reset
-  - destroy
+- start
+- status
+- smoke
+- stop
+- reset
+- destroy
 reset: ./scripts/reset.sh
 cleanup: ./scripts/destroy.sh
 evidence: ${EVIDENCE_DIR:-.runtime/evidence/nodegoat}
 dependencies:
-  - docker
-  - mongo-4.4.29
+- docker
+- mongo-4.4.29
 supported_tools:
-  - execute_command
-  - nikto_scan
-  - gobuster_scan
+- execute_command
+- nikto_scan
+- gobuster_scan
 limitations:
-  - local validation only
-  - application image is consumed from GHCR by immutable OCI index digest
-  - application image preserves upstream commit c5cb68a7084e4ae7dcc60e6a98768720a81841e8 and the accepted Node.js 12 compatibility boundary
-  - MongoDB uses the fixed 4.4.29 dependency tag and remains unexposed on an internal network
-  - runtime egress remains possible through the publication network
-  - no exploitation, brute force, denial of service, external or LAN targets during lifecycle acceptance
+- local validation only
+- application image is consumed from GHCR by immutable OCI index digest
+- application image preserves upstream commit c5cb68a7084e4ae7dcc60e6a98768720a81841e8 and the accepted Node.js 12 compatibility boundary
+- MongoDB uses the fixed 4.4.29 dependency tag and remains unexposed on an internal network
+- runtime egress remains possible through the publication network
+- no exploitation, brute force, denial of service, external or LAN targets during lifecycle acceptance
 status: CURRENT

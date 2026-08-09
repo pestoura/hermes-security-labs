@@ -1,3 +1,39 @@
+schema_version: '1.1'
+execution_class: executable
+authorization_state: LAB_ONLY
+backend: docker-compose
+network:
+  ingress:
+    scope: loopback
+    bindings:
+    - service: pygoat
+      host: 127.0.0.1
+      host_port: ${PYGOAT_HOST_PORT:-8000}
+      container_port: 8000
+  egress:
+    default: deny
+    enforced: false
+    profile: publication-bridge
+    allowlist: []
+    residual_risk: publication bridge network permits outbound traffic from the published service
+liveness:
+  source: compose-healthcheck
+  interval_seconds: 10
+  retries: 24
+readiness:
+  probe: http://127.0.0.1:${PYGOAT_HOST_PORT:-8000}/
+  timeout_seconds: 240
+  success_criteria: Django index responds and the compose service reports healthy
+reset_strategy:
+  mode: script
+  command: ./scripts/reset.sh
+  destroys_state: true
+persistence:
+  persistent_volumes: false
+  evidence:
+    path: ${EVIDENCE_DIR:-.runtime/evidence/pygoat}
+    retention_days: 30
+    sanitized: true
 id: pygoat
 name: PyGoat
 description: Deliberately vulnerable Django application consumed from an immutable GHCR OCI index.
@@ -12,35 +48,35 @@ resources:
   memory: 1Gi
   disk: 2G
 networks:
-  - pygoat-lab
+- pygoat-lab
 egress: true
 targets:
-  - http://pygoat:8000/
+- http://pygoat:8000/
 attacker: kali-mcp
 lifecycle:
-  - start
-  - status
-  - smoke
-  - stop
-  - reset
-  - destroy
+- start
+- status
+- smoke
+- stop
+- reset
+- destroy
 reset: ./scripts/reset.sh
 cleanup: ./scripts/destroy.sh
 evidence: ${EVIDENCE_DIR:-.runtime/evidence/pygoat}
 dependencies:
-  - docker
+- docker
 supported_tools:
-  - execute_command
-  - nikto_scan
-  - gobuster_scan
+- execute_command
+- nikto_scan
+- gobuster_scan
 limitations:
-  - local validation only
-  - application image is consumed from GHCR by immutable OCI index digest
-  - application source and challenges remain pinned to upstream commit 19d17cc8874861142b330636d068bbde54e86b85
-  - accepted recipe pygoat-python310-compat-v2 preserves the Python 3.10 compatibility boundary and SQLite database model
-  - psycopg2-binary 2.9.9, transitive psycopg2 2.9.12 and PyYAML 6.0.2 are retained for runtime compatibility
-  - effective Django ALLOWED_HOSTS is restricted to the authorised Hermes host list
-  - host publication is restricted to 127.0.0.1
-  - runtime egress is permitted through the lab network
-  - no exploitation, brute force, denial of service, external or LAN targets during acceptance
+- local validation only
+- application image is consumed from GHCR by immutable OCI index digest
+- application source and challenges remain pinned to upstream commit 19d17cc8874861142b330636d068bbde54e86b85
+- accepted recipe pygoat-python310-compat-v2 preserves the Python 3.10 compatibility boundary and SQLite database model
+- psycopg2-binary 2.9.9, transitive psycopg2 2.9.12 and PyYAML 6.0.2 are retained for runtime compatibility
+- effective Django ALLOWED_HOSTS is restricted to the authorised Hermes host list
+- host publication is restricted to 127.0.0.1
+- runtime egress is permitted through the lab network
+- no exploitation, brute force, denial of service, external or LAN targets during acceptance
 status: CURRENT-LIMITED
