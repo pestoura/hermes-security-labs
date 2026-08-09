@@ -71,7 +71,16 @@ jobs:
         run: |
           set -euo pipefail
           docker cp platform/environments/synthetic-tool-targets/mcp_validate.py synthetic-kali:/tmp/mcp_validate.py
-          docker exec synthetic-kali python /tmp/mcp_validate.py | tee /tmp/issue5-evidence.json
+          if ! output="$(docker exec synthetic-kali python /tmp/mcp_validate.py 2>&1)"; then
+            printf '%s\n' "$output"
+            diag=${output//'%'/'%25'}
+            diag=${diag//$'\r'/'%0D'}
+            diag=${diag//$'\n'/'%0A'}
+            echo "::error title=Issue5 MCP diagnostic::$diag"
+            docker logs synthetic-kali || true
+            exit 1
+          fi
+          printf '%s\n' "$output" | tee /tmp/issue5-evidence.json
           grep -F '"sqlmap_scan": "PASS_SYNTHETIC_MCP"' /tmp/issue5-evidence.json
           grep -F '"hydra_attack": "PASS_SYNTHETIC_MCP"' /tmp/issue5-evidence.json
           grep -F '"enum4linux_scan": "PASS_SYNTHETIC_MCP"' /tmp/issue5-evidence.json
