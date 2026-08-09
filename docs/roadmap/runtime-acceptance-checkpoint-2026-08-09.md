@@ -2,156 +2,233 @@
 
 **Project:** Hermes Security Labs  
 **Repository baseline before live acceptance:** `b71b8d4bcdb781525c08feea9dec268345a5ad3b`  
-**Latest exact-green repository checkpoint before this reconciliation:** `63357eb02eb82a999aec53cf15dad1aa01dd59d0`  
-**Mode:** read-only runtime discovery; no target execution, no lab mutation, no restart, no approval bypass.
+**Current Hermes Security Labs main before Lane S:** `245bf8f1d7cd3c0408fd0967ae1a20215ef749b6`  
+**Mode:** bounded runtime reconciliation; no target execution, no offensive tooling, no blind registration, no policy bypass.
 
-This checkpoint records facts observed through the Hermes MCP after the repository walking-skeleton work in Lanes K-O had reached Exact-SHA GREEN. It is runtime evidence about admission/discovery only; it is not pentest or scenario-execution evidence.
+This checkpoint is the canonical runtime-acceptance record for admission/discovery. It distinguishes repository proof from live runtime proof and records only state observed through the authorized Hermes path.
 
 ## Observed Hermes state
 
-The live Hermes/Bridge path reported:
+Latest live health/readiness observations reported:
 
 - Hermes platform version `0.20.0`;
-- Bridge version `1.0.0`;
-- upstream readiness `ok`;
-- security posture `ready` with the production policy loaded and valid;
-- HMAC required and configured;
-- disk usage approximately `26.6%` during the observation.
+- Bridge version string `1.0.0`;
+- upstream/readiness `ok` / `ready`;
+- gateway `running`;
+- `gateway_busy=false`;
+- `gateway_drainable=true`;
+- admission `accepting_new_work=true`;
+- approval registry `ready`;
+- production policy loaded and valid;
+- HMAC required and configured.
 
-At the start of observation the gateway was `draining` because concurrent Bridge V2 API work was genuinely active. The active API run count then reduced naturally:
+The Bridge version string alone is not accepted as revision evidence. Exact live deployment evidence below shows that the running image is not built from the repository revision containing the RTA-003 fix.
 
-`5 -> 4 -> 3 -> 1 -> 0`
-
-No Hermes Security Labs action stopped or cancelled those independent runs.
-
-One unrelated Bridge V2 run ended with `Upstream idle timeout exceeded`. It was not retried by Hermes Security Labs because it belonged to another development stream and the failure was already deterministic.
-
-## RTA-001 — transient stale drain after active API work reached zero
+## RTA-001 — transient stale drain
 
 **Classification:** `RECOVERED-RUNTIME — STALE_DRAIN`  
 **State:** `RESOLVED-RUNTIME`
 
-Immediately after `active_api_runs` reached `0`, the gateway temporarily remained:
-
-- `gateway_state=draining`;
-- `accepting_new_work=false`;
-- `gateway_drainable=false`.
-
-The health response still showed active agents, while the run registry contained historical entries reported as `running`. A direct status lookup of the most recent historical Hermes Security Labs entry returned `failed / unavailable`, demonstrating that the registry view itself was not reliable evidence of live API activity.
-
-This reproduced the known stale-drain class without relying on memory: new work remained denied for a period even though there were zero active API runs.
-
-### Natural recovery observed
-
-No restart, forced admission, run cancellation or policy bypass was attempted. A subsequent live health/readiness observation showed that the gateway recovered automatically:
+The earlier transient `draining` condition recovered naturally after active API work reduced to zero. Subsequent health/readiness observations remain:
 
 - `gateway_state=running`;
-- `active_api_runs=0`;
-- `active_agents=0`;
 - `gateway_busy=false`;
 - `gateway_drainable=true`;
-- upstream readiness remained healthy;
-- admission returned `accepting_new_work=true`.
+- `accepting_new_work=true`.
 
-The recovery happened without Hermes Security Labs mutating runtime state. RTA-001 is therefore not a current blocker, while the transient stale-drain behaviour remains a valid operational observation for Bridge lifecycle hardening.
+No restart, forced admission, run cancellation or policy bypass was used. Do not restart the gateway for this historical incident.
 
 ## RTA-002 — Kali MCP absent from live Hermes portal
 
 **Classification:** `BLOCKER — KALI_MCP_NOT_REGISTERED`  
-**State:** `BLOCKED-ON-RUNTIME`
+**State:** `ROOT-CAUSE-OBSERVED / REMEDIATION-PENDING`
 
-The Hermes MCP portal server inventory was queried twice. Both observations exposed only:
+Portal inventory still exposes only:
 
 - `hermes-agent-bridge` — enabled.
 
-No `kali-lab`, Kali MCP or equivalent server was present in the live portal inventory.
+No Kali MCP server is registered in the live portal inventory.
 
-This confirms that the historical Kali MCP registration must not be assumed current. No attempt was made to register or enable an invented server entry.
+### Runtime facts now observed
 
-### Root cause not yet observed
+A bounded read-only reconciliation was executed successfully through Hermes with valid `user_instruction` provenance. It did not mutate host, containers, configuration or targets.
 
-After RTA-001 recovered, a read-only host/runtime inspection was prepared to determine:
+Observed Kali runtime:
 
-1. whether the canonical Kali MCP Compose/runtime still exists and where;
-2. whether the `hermes-kali-mcp` container is present and healthy;
-3. whether its isolation/resource/read-only-root contract still matches the accepted design;
-4. what current Hermes MCP configuration is intended to register it;
-5. why the server is absent from the portal.
+- container: `hermes-kali-mcp`;
+- container ID prefix: `2cba5fd1d0d9`;
+- health: `healthy`;
+- running for approximately 10 days at observation time;
+- canonical Compose path used by the live container: `/home/estourpm/hermes-labs/kali-mcp/compose.yaml`;
+- Compose project: `hermes-kali-mcp`;
+- service: `kali-mcp`;
+- build/tag: `hermes/kali-mcp:0.2.0`;
+- command: `kali-server-mcp --ip 127.0.0.1 --port 5000`;
+- container root filesystem: read-only;
+- capabilities: dropped (`cap_drop=all`);
+- `no-new-privileges` enabled;
+- PID limit: `100`;
+- memory limit: `512M`;
+- CPU limit: `1.0`;
+- network: internal Docker bridge `hermes-kali-mcp_hermes-kali-lab`;
+- no host port publication;
+- maintenance profile exists separately and was not instantiated.
 
-That inspection did not execute because the approval path failed as RTA-003 below. Therefore no root-cause claim is made for RTA-002 and no historical path is promoted to current authority.
+Observed Hermes configuration:
 
-## RTA-003 — approval required but no approval identifier issued
+- `/home/estourpm/.hermes/config.yaml` contains only one configured MCP server: `home-assistant`;
+- `hermes mcp list` also reports only `home-assistant`;
+- there is no Kali MCP entry in the active Hermes configuration.
 
-**Classification:** `BLOCKER — APPROVAL_ID_NULL`  
-**State:** `BLOCKED-ON-RUNTIME`
+### Root cause
 
-Once Hermes admission had naturally recovered to `running` and `accepting_new_work=true`, one explicit read-only Hermes request was submitted for local host/runtime reconciliation.
+RTA-002 is no longer an unknown-registration problem.
 
-The request explicitly prohibited mutation, including:
+Two independent facts currently prevent Kali MCP availability to Hermes:
 
-- file creation/edit/delete;
-- service or container start/stop/restart;
-- MCP registration or enable/disable;
-- target/network probing;
-- offensive/security-tool execution;
-- package installation;
-- sudo/elevated access;
-- secret/token/key disclosure.
+1. Kali MCP is not registered in active `mcp_servers` configuration.
+2. The live service binds to `127.0.0.1:5000` inside an internal Docker network and publishes no host port, so the host Hermes process cannot reach that endpoint in the current topology.
 
-It requested factual read-only inspection only and used the client request id:
-
-`hsl-runtime-readonly-20260809-kali-reconcile-01`
-
-The policy response was deterministic:
-
-- `approval_required=true`;
-- message: `policy requires approval: high-risk trust label`;
-- `approval_id=null`;
-- `execution_id=not-created`;
-- status `failed`.
-
-No Hermes execution was created and no host/container/runtime inspection occurred.
-
-### Safety decision
-
-The request was **not** retried with reduced or altered trust labels to escape policy. No approval identifier was invented and no alternate mechanism was used to bypass the approval boundary.
+Do not perform blind registration. Registration alone would not resolve reachability.
 
 ### Closure condition
 
-RTA-003 can be closed only when the legitimate approval path can issue a usable approval identifier for a policy-gated request, such that the normal approval status/respond mechanism can be used and audited, or when the approval-path defect is formally corrected through the authorized Bridge/runtime maintenance process.
+RTA-002 can close only after the canonical design is reconciled and the chosen connectivity mechanism is implemented, then proven:
 
-After that repair, repeat the same bounded read-only Kali reconciliation through the valid approval path. Do not weaken the policy merely to make the inspection executable.
+`registered -> reachable -> healthy -> policy-compliant`
+
+Any remediation must preserve client/lab isolation and must not expose an unrestricted Kali endpoint.
+
+## RTA-003 — approval required but no approval identifier issued
+
+**Classification:** `BLOCKER — APPROVAL_ID_NULL / DEPLOYMENT_DRIFT`  
+**State:** `REPO-FIX-MERGED / LIVE-FIX-NOT-DEPLOYED`
+
+The repository fix remains PR `#95` in `pestoura/hermes-mcp-bridge`:
+
+- fix commit: `d4fccbe135b51c41a5b668293e9c02b0db3a5147`;
+- purpose: request-bound prompt approval handoff;
+- expected runtime behaviour on `REQUIRE_APPROVAL`: non-null `approval_id`, opaque `request-sha256:` resource binding, approval decision state and single-use exact-request consumption.
+
+### Valid runtime re-test
+
+A minimal, non-operational policy probe used a contractually valid `untrusted_content` label because the probe contained source-derived text explicitly treated as untrusted data. The prompt prohibited host inspection, network access, target access, tool calls and mutation.
+
+Client request id:
+
+`hsl-rta003-approval-smoke-20260809-01`
+
+Live policy evaluation returned:
+
+- `decision=REQUIRE_APPROVAL`;
+- reason `high-risk trust label`;
+- `approval_required=true`.
+
+The live `hermes_submit` response then reproduced the defect:
+
+- `approval_required=true`;
+- `approval_id=null`;
+- `execution_id=not-created`;
+- resource `null`;
+- no `approval_decision` field.
+
+No approval was invented and no retry was performed with weakened trust metadata.
+
+### Exact live deployment evidence
+
+A separate bounded read-only runtime reconciliation established:
+
+- live container: `hermes-mcp-bridge`;
+- container ID prefix: `cebc2f719b32`;
+- live image tag: `hermes-mcp-bridge:1.0.0-f0b7e72f6bdf-candidate`;
+- live image ID prefix: `sha256:044ab410ab8d`;
+- OCI revision: `f0b7e72f6bdf42e82712f3d2e8182ff937ae9509`;
+- OCI version: `1.0.0`;
+- canonical live Compose worktree: `/home/estourpm/wt-mcp-bridge-f0b7e72/deploy/1.0.0`;
+- Compose files: `compose.candidate.yml` and `compose.observability.yml`;
+- live worktree HEAD: `f0b7e72f6bdf42e82712f3d2e8182ff937ae9509`;
+- worktree clean at observation time.
+
+The live revision `f0b7e72...` is not a descendant of `d4fccbe...` and does not contain `src/hermes_mcp_bridge/prompt_approvals.py` or the new prompt-approval response fields.
+
+Therefore the runtime version string `1.0.0` is true but insufficient: the deployed build predates the RTA-003 fix.
+
+### Current Bridge repository head
+
+GitHub `main` has advanced beyond the PR #95 fix. Current observed head:
+
+`ce6fd89e42b691504226912234dd9c8c92b4ceff`
+
+GitHub comparison proves `d4fccbe...` is an ancestor of `ce6fd89...` (`ahead_by=3`, `behind_by=0`). The remediation must therefore use a candidate built from the exact current accepted main revision (or a later explicitly reconciled exact SHA), not deploy the older fix SHA as a downgrade.
+
+### Closure condition
+
+RTA-003 closes only after all of the following are live-proven:
+
+`exact accepted Bridge SHA deployed`
+`-> health/readiness`
+`-> accepting_new_work`
+`-> REQUIRE_APPROVAL`
+`-> approval_id != null`
+`-> audited approval decision`
+`-> exact logical request retry`
+`-> approval consumed once`
+
+Repository CI proof alone is not sufficient.
+
+## Read-only Kali reconciliation request
+
+The previously blocked Kali reconciliation was retried using the original stable client request id and valid provenance matching the actual source:
+
+`hsl-runtime-readonly-20260809-kali-reconcile-01`
+
+Trust metadata:
+
+`user_instruction`
+
+Bridge policy evaluated this read-only request as `ALLOW`. The resulting Hermes run completed successfully and produced the RTA-002 and Bridge deployment observations recorded above.
+
+This is not a policy bypass: `user_instruction` is a valid low-risk provenance label in the Bridge contract and accurately describes the source of the bounded read-only request. No label was changed to evade a decision on an already policy-gated logical request.
 
 ## Actions deliberately not performed
 
-To preserve the acceptance boundary, this checkpoint did **not**:
+This reconciliation did **not**:
 
 - contact a lab target;
-- execute a scenario or security tool;
-- start, stop, reset or destroy a lab;
-- mutate containers or networks;
-- expose Docker socket access;
-- use generic shell execution as a product/runtime bypass;
-- register a guessed Kali MCP server;
-- restart the Hermes gateway through an out-of-band mechanism;
-- relabel a denied request to avoid approval;
-- respond to or bypass an approval without a valid approval identifier.
+- execute a security/offensive tool;
+- perform scanning or exploitation;
+- start, stop, restart or replace a lab/container/service;
+- change Hermes MCP registration;
+- expose the Kali MCP endpoint;
+- alter Docker networking;
+- read or disclose secret contents;
+- install packages;
+- use sudo/elevation;
+- bypass or self-invent an approval;
+- claim the Bridge fix deployed merely because repository CI is green.
 
 ## Runtime acceptance state
 
-Hermes admission is currently demonstrated READY after natural recovery, but host/runtime reconciliation cannot pass the approval boundary:
+Current walking-skeleton position:
 
-`authorize -> admission READY -> [RTA-003 approval issuance blocker] -> host/runtime reconciliation -> provision/readiness -> execute -> evidence -> reset -> known-state proof`
+`authorize`
+`-> Hermes admission READY`
+`-> [RTA-003: Bridge deployment drift]`
+`-> [RTA-002: Kali registration + reachability remediation]`
+`-> provision/readiness`
+`-> bounded execution`
+`-> evidence`
+`-> reset`
+`-> known-state proof`
 
-The Kali execution path is also independently unresolved because RTA-002 confirms that Kali MCP is absent from the live portal inventory.
+RTA-001 is closed. RTA-002 now has an observed root cause. RTA-003 is conclusively a live deployment-drift blocker rather than an unresolved repository defect.
 
-Repository/CI delivery remains GREEN; these runtime blockers do not invalidate the committed contracts. They prevent promotion from repo proof to live runtime acceptance.
+## Next safe actions
 
-## Next safe action
-
-1. Repair or restore the legitimate Bridge approval issuance path so a policy-gated request receives a valid `approval_id` and can be audited through normal approval tools.
-2. Re-run Hermes health/readiness and confirm admission remains `running + accepting_new_work=true`.
-3. Repeat the same bounded read-only Kali MCP host/runtime inspection through the valid approval path.
-4. Resolve RTA-002 from observed root cause rather than blind re-registration.
-5. Resume core-lab lifecycle/readiness acceptance using canonical target IDs and no offensive action.
-6. Only after authorization, runtime effect support and evidence/reset paths are valid, attempt a bounded seeded scenario.
+1. Reconcile the canonical Bridge candidate-build/rollout path for exact current `main` and produce immutable candidate + SBOM evidence.
+2. Deploy the accepted Bridge candidate through the existing controlled deployment mechanism with exact-SHA gates and rollback evidence; do not improvise a service replacement path.
+3. Re-run health/readiness/admission and the bounded RTA-003 policy probe; use only the returned audited approval path.
+4. Reconcile Kali MCP connectivity design before registration. Prefer the narrowest mechanism that keeps the endpoint non-public and reachable only from the authorized Hermes runtime.
+5. Implement and prove Kali `registered + reachable + healthy + policy-compliant`.
+6. Resume WebGoat/WebWolf, DVWA and Juice Shop lifecycle/readiness validation.
+7. Execute no bounded scenario until target authorization, typed operation binding, gateway policy, backend readiness, evidence contract and reset capability are all proven.
