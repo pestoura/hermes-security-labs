@@ -74,7 +74,7 @@ jobs:
             exit 1
           fi
 
-          if ! grep -Eiq 'unauthorized|denied|insufficient[_ -]?scope|permission' "$err"; then
+          if ! grep -Eiq 'unauthorized|denied|forbidden|insufficient[_ -]?scope|permission|(^|[^0-9])403([^0-9]|$)' "$err"; then
             echo "FAIL: private-digest inspection failed for a reason other than access denial" >&2
             sed -E 's/[[:cntrl:]]//g' "$err" | head -n 20 >&2
             exit 1
