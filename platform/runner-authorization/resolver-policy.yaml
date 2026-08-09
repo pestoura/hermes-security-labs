@@ -1,0 +1,12 @@
+schema_version: "1.0"
+policy_id: hexor.runner.authorization.resolver
+state: DISABLED
+default: deny
+runtime_status: NOT_RUN
+execution_authority: none
+verification_source: platform/authorization-contract/authorization_receipt.py
+trust_store_path: NOT_CONFIGURED
+cache:
+  mode: memory-only
+  max_entries: 256
+  persistence: none
