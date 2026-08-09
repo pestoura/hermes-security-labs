@@ -36,7 +36,7 @@ adapters:
       fixed_endpoint: http://webgoat:8080/WebGoat/
       redirects: forbidden
       arbitrary_target_input: forbidden
-      generic_execution: forbidden
+      generic_execution: false
     evidence:
       structured_outcome: implemented
       external_persistence: NOT_IMPLEMENTED
