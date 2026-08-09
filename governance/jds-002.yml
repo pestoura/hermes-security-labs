@@ -1,0 +1,38 @@
+apiVersion: engineering.jarvas/v1
+kind: ReleaseMaintenanceProfile
+standard: JDS-002
+mode: ACTIVE
+platform:
+  repository: pestoura/jarvas-engineering-platform
+  ref: 15b112042886747216f6291656e354e92f64090b
+
+product:
+  name: hermes-security-labs
+  acceptedReleaseMutable: false
+  executionAuthority: HERMES_ONLY
+  genericExecutionAllowed: false
+
+currentState:
+  repositoryHeadAtAdoption: 9cfa7ec69a078b316351c4202f066f8fa2d79f90
+  runnerRepositoryState: GREEN_REPO_CANDIDATE
+  runnerResolverState: DISABLED_NOT_RUN
+  runnerTransportState: DISABLED_NOT_RUN
+  runnerRoutingState: DISABLED_NOT_RUN
+  liveWebGoatEffectState: NOT_RUN
+  evidencePlanePersistenceState: NOT_IMPLEMENTED_NOT_RUN
+
+rules:
+  functionalChangeAfterCandidateEvidenceRequiresNewCandidateIdentity: true
+  acceptedReleaseChangeRequiresNewReleaseIdentity: true
+  repositoryAcceptanceImpliesExecutionAuthority: false
+  repositoryAcceptanceImpliesLiveTargetEffect: false
+  targetEffectRequiresVerifiedAuthorization: true
+  targetEffectRequiresExactTargetCapabilityBinding: true
+  targetEffectRequiresEvidenceCustody: true
+  targetEffectRequiresResetKnownStateEvidence: true
+  mergeImpliesRuntimePromotion: false
+  deferNonBlockingImprovementAllowed: true
+
+paths:
+  changes: changes
+  validation: validation
