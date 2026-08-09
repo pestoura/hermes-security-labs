@@ -17,7 +17,7 @@ verdicts:
   crapi: DEGRADED
   damn-vulnerable-llm-agent: CATALOG-ONLY
   damn-vulnerable-sca: CATALOG-ONLY
-  dvapi: DEGRADED
+  dvapi: PASS
   dvwa: PASS
   firewall-hardening: CATALOG-ONLY
   gcp-iam-triage: CATALOG-ONLY
@@ -42,7 +42,7 @@ verdicts:
   model-extraction-lab: CATALOG-ONLY
   network-emulation-future-hardware: CATALOG-ONLY
   network-pivot-lab: CATALOG-ONLY
-  nodegoat: DEGRADED
+  nodegoat: PASS
   owasp-juice-shop: CATALOG-ONLY
   plc-hacking-lab: CATALOG-ONLY
   prompt-injection-lab: CATALOG-ONLY
@@ -56,7 +56,7 @@ verdicts:
   tool-poisoning-lab: CATALOG-ONLY
   vampi: PASS
   vulnerable-mcp-servers: CATALOG-ONLY
-  webgoat: DEGRADED
+  webgoat: PASS
   windows-server-hardening: CATALOG-ONLY
   wrongsecrets: PASS
   zigbee-lab: CATALOG-ONLY
