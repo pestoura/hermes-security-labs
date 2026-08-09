@@ -14,7 +14,8 @@ The connectivity authority is `kali-mcp/config/mcp-connectivity.example.yaml` in
 ## Active rules
 
 - Prefer the canonical zero-listener STDIO transport:
-  `docker exec -i hermes-kali-mcp kali-server-mcp`.
+  `docker exec -i hermes-kali-mcp mcp-server`.
+- Keep the two container roles distinct: `kali-server-mcp` is the long-running HTTP backend on container loopback; `mcp-server` is the FastMCP STDIO wrapper Hermes executes and it proxies to that local backend.
 - Do not publish or register the container-local `127.0.0.1:5000` HTTP listener as the normal Hermes transport. It is a disabled fallback in the canonical connectivity profile.
 - Do not use `tools.include: []`: in the current Hermes MCP configuration semantics, an empty include list means no include filter and therefore exposes all discovered tools when the server is enabled.
 - Do not enable all discovered Kali tools by default.
@@ -40,7 +41,7 @@ mcp_servers:
       - exec
       - -i
       - hermes-kali-mcp
-      - kali-server-mcp
+      - mcp-server
     enabled: false
     connect_timeout: 30
     tools:
