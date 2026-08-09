@@ -23,21 +23,34 @@ para uma **Threat-Informed Continuous Security Validation Platform**:
 O objetivo final é responder de forma repetível e auditável a: *este controlo previne,
 deteta ou falha perante este comportamento adversário, neste ativo, hoje?*
 
-## 2. Estado atual (base de partida)
+## 2. Estado atual — reconciliado em 2026-08-09
 
-| Domínio | Estado |
+O estado abaixo distingue explicitamente **prova de repositório/CI** de **aceitação live no
+Hermes**. O detalhe operacional está em
+[`current-walking-skeleton-status.md`](current-walking-skeleton-status.md).
+
+| Domínio | Estado atual |
 | --- | --- |
 | Runbooks | 370 validados pelo catálogo (`api=150`, `devsecops=120`, `ai-mcp=100`, warnings=0) |
-| Execução | Kali MCP com superfície de comando genérica |
-| Laboratórios | Ambientes Docker Web/API, DevSecOps e AI/MCP catalogados |
-| Deployment | `deployment/` com deploy, verify, drift-check e rollback tri-estado |
-| Supply chain | Adoção GHCR iniciada por ambiente, com proveniência |
-| Evidência | Produzida por campanha, sem plano de evidência unificado versionado |
-| Conhecimento | Sem grafo de conhecimento; mapeamentos framework implícitos |
+| Execução tipada | Scenario Registry, Semantic Tool Registry e Operation Registry canónicos; boundary de autorização por `target_id`; Scenario Plan Composer determinístico e inerte. Apenas `system.health.read` está `READY` no bridge semântico controlado; os restantes efeitos tipados seeded estão `PRESENT` e ainda não implementados/aceites em runtime. |
+| Targets/autorização | Target Registry fail-closed e deny-before-dispatch demonstrados em repo/CI. Reachability nunca é autoridade de execução. |
+| Laboratórios/readiness | Ambientes Docker catalogados; adapters declarativos para WebGoat/WebWolf, DVWA e Juice Shop. A aceitação live destes adapters continua `BLOCKED-ON-RUNTIME`. |
+| Backends | Docker `SUPPORTED/READY`; Kubernetes, VM, Cloud e Remote Isolated `DEFINED/NOT_READY`, sem drivers executáveis e com fail-closed obrigatório. |
+| Evidência | Evidence Plane v2 existente; cenários seeded têm contrato estruturado de correlação (`campaign/run/step/attempt`), classificação e `sha256`. A produção de evidência live por cenário continua `BLOCKED-ON-RUNTIME`. |
+| CI/JDS | Gate estática agregada compõe scenario/tool, Evidence Plane, Target Registry, backend matrix, Scenario Plans e source-of-truth antes do job Docker/runtime mais caro. |
+| Deployment | `deployment/` mantém deploy, verify, drift-check e rollback tri-estado; comparação contra o host Hermes real continua `BLOCKED-ON-RUNTIME`. |
+| Supply chain | GHCR com proveniência; issue #53 permanece aberta para o boundary privado estrito com credencial classic exatamente `read:packages`. A exceção DEV não relaxa produção. |
+| Runtime Hermes/Kali | Aceitação end-to-end ainda não concluída. Requer re-discovery live de Hermes/Kali, isolamento, lifecycle, readiness, execução bounded, Evidence Plane e reset/known-state proof. |
+| Conhecimento | Sem grafo de conhecimento; mapeamentos framework continuam uma capacidade posterior. |
 
-Limitações estruturais que este roadmap resolve: execução não tipada, ausência de
-registo de capacidades, evidência não normalizada, mapeamento de frameworks manual e
-inexistência de validação informada por ameaça.
+Baseline de engenharia mais recente desta reconciliação: Lane N / PR #297,
+`da22a93f5f90938ba677cf185208af477bbab04c`, validado com Exact-SHA GREEN. Isto é
+**prova de repo/CI**, não prova de execução live no Hermes.
+
+As limitações estruturais prioritárias deixaram de ser apenas “falta de contratos”. O próximo
+valor JDS é fechar o walking skeleton live sem quebrar autorização, isolamento e custódia de
+evidência. Os efeitos tipados ainda não implementados, os itens Kali funcionais e o reset
+end-to-end devem permanecer `BLOCKED-ON-RUNTIME` até observação autorizada.
 
 ## 3. Princípios
 
@@ -221,6 +234,7 @@ segredos; e o comportamento em falha é fail-safe.
 
 ## 13. Documentos relacionados
 
+- [Current walking-skeleton status](current-walking-skeleton-status.md)
 - [Platform v2 intent (45 concept epics)](../architecture/security-validation-platform-v2-intent.md)
 - [Epic catalogue — 45 concept epics e mapping 45→21](epic-catalogue-45.md)
 - [Architecture documentation lifecycle](../architecture/architecture-documentation-lifecycle.md)
