@@ -1,0 +1,35 @@
+name: Release governance
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-governance-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  jds-002:
+    name: JDS-002 change / validation records
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.12"
+
+      - name: Validate release maintenance records
+        uses: pestoura/jarvas-engineering-platform/.github/actions/release-governance@15b112042886747216f6291656e354e92f64090b
+        with:
+          change-dir: changes
+          campaign-dir: validation
