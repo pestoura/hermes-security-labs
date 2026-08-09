@@ -58,16 +58,19 @@ def test_profile_prefers_stdio_docker_exec_transport() -> None:
     assert "stdio_docker_exec" in transports
     assert transports["stdio_docker_exec"]["enabled"] is True
     assert transports["stdio_docker_exec"]["host_exposure"] == "none"
-    assert transports["stdio_docker_exec"]["command"][:3] == [
+    assert transports["stdio_docker_exec"]["command"] == [
         "docker",
         "exec",
         "-i",
+        "hermes-kali-mcp",
+        "kali-server-mcp",
     ]
 
 
-def test_loopback_http_transport_is_loopback_only() -> None:
+def test_loopback_http_transport_is_disabled_and_loopback_only() -> None:
     transports = _profile()["transports"]
     loopback = transports["loopback_http"]
+    assert loopback["enabled"] is False
     assert loopback["host_publish"].startswith("127.0.0.1:")
     assert loopback["bind"] == "127.0.0.1"
 
