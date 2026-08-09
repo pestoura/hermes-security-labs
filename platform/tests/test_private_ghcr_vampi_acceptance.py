@@ -61,6 +61,12 @@ def test_dev_scope_mode_accepts_additional_scopes_but_requires_read_packages() -
     assert _eval_scope("repo, write:org", "dev")[0] != 0
 
 
+def test_dev_scope_mode_accepts_parent_scopes_that_imply_package_read() -> None:
+    assert _eval_scope("repo, write:packages", "dev") == (0, "PASS_DEGRADED")
+    assert _eval_scope("repo, delete:packages", "dev") == (0, "PASS_DEGRADED")
+    assert _eval_scope("repo, write:packages", "strict")[0] != 0
+
+
 def test_invalid_scope_mode_is_rejected_before_token_read() -> None:
     result = subprocess.run(
         [
@@ -119,8 +125,16 @@ def test_harness_never_uses_mutating_registry_commands_or_token_arguments() -> N
     assert "--publisher-visibility <temporary-public|private>" in source
     assert "--package-private-confirmed" in source
     assert "--package-access-confirmed" in source
-    assert "write:packages" not in source
-    assert "delete:packages" not in source
+    assert "write:packages" not in source.replace(
+        '    implying = {"read:packages", "write:packages", "delete:packages"}\n', ""
+    ).replace(
+        "    # granted; `write:packages` and `delete:packages` both imply read.\n", ""
+    )
+    assert "delete:packages" not in source.replace(
+        '    implying = {"read:packages", "write:packages", "delete:packages"}\n', ""
+    ).replace(
+        "    # granted; `write:packages` and `delete:packages` both imply read.\n", ""
+    )
     assert "pull,push" not in source
     assert "scope=repository:" not in source
     assert "docker push" not in lowered
