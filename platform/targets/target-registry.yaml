@@ -1,0 +1,325 @@
+# Canonical target registry for Hermes Security Labs.
+#
+# Contract:
+#   * target_id is the ONLY execution authority. A raw URL, hostname or IP
+#     address never authorizes execution by itself.
+#   * Offensive execution eligibility resolves TRUE only for authorization_state
+#     LAB_ONLY or AUTHORIZED_TEST_TARGET. Every other state, and any unknown,
+#     missing or ambiguous value, fails closed.
+#   * Only internal (lab network) or loopback identities are represented. No
+#     public or externally routable target is registered here.
+#
+# Populated exclusively from committed manifests/compose files of the executable
+# Docker laboratories. Health is UNKNOWN by design: this registry is static and
+# never observes runtime.
+schema_version: "1.0"
+contract:
+  canonical_authority: target_id
+  fail_closed: true
+  offensive_execution_states:
+    - LAB_ONLY
+    - AUTHORIZED_TEST_TARGET
+
+targets:
+  - target_id: juice-shop-web
+    environment_id: juice-shop
+    kind: application
+    description: OWASP Juice Shop web application (single service).
+    identity:
+      hostname: juice-shop
+      port: 3000
+      protocol: tcp
+      scheme: http
+      path: /
+      network: juice-shop-lab
+      reachability: lab-internal
+    authorization_state: LAB_ONLY
+    lifecycle: PROVISIONED
+    health: UNKNOWN
+    scope:
+      allowed_operations:
+        - discovery
+        - service_enumeration
+        - web_content_discovery
+        - web_vulnerability_scan
+        - manual_exploitation
+      denied_operations:
+        - egress-dependent testing
+      notes: Manifest declares egress false; keep all traffic on juice-shop-lab.
+    evidence:
+      source: repository-manifest
+      manifest_path: platform/environments/web-api/juice-shop/manifest.yaml
+      compose_path: platform/environments/web-api/juice-shop/compose.yaml
+
+  - target_id: webgoat-web
+    environment_id: webgoat
+    kind: application
+    description: WebGoat training application.
+    identity:
+      hostname: webgoat
+      port: 8080
+      protocol: tcp
+      scheme: http
+      path: /WebGoat/
+      network: webgoat-lab
+      reachability: lab-internal
+    authorization_state: LAB_ONLY
+    lifecycle: PROVISIONED
+    health: UNKNOWN
+    scope:
+      allowed_operations:
+        - discovery
+        - service_enumeration
+        - web_content_discovery
+        - web_vulnerability_scan
+        - manual_exploitation
+    evidence:
+      source: repository-manifest
+      manifest_path: platform/environments/web-api/webgoat/manifest.yaml
+      compose_path: platform/environments/web-api/webgoat/compose.yaml
+
+  - target_id: webgoat-webwolf
+    environment_id: webgoat
+    kind: application
+    description: WebWolf companion interface published by the WebGoat lab.
+    identity:
+      hostname: webgoat
+      port: 9090
+      protocol: tcp
+      scheme: http
+      path: /login
+      network: webgoat-lab
+      reachability: lab-internal
+    authorization_state: LAB_ONLY
+    lifecycle: PROVISIONED
+    health: UNKNOWN
+    scope:
+      allowed_operations:
+        - discovery
+        - service_enumeration
+        - web_content_discovery
+        - authenticated_review
+    evidence:
+      source: repository-manifest
+      manifest_path: platform/environments/web-api/webgoat/manifest.yaml
+      compose_path: platform/environments/web-api/webgoat/compose.yaml
+
+  - target_id: dvwa-web
+    environment_id: dvwa
+    kind: application
+    description: Damn Vulnerable Web Application front end.
+    identity:
+      hostname: dvwa
+      port: 80
+      protocol: tcp
+      scheme: http
+      path: /login.php
+      network: dvwa-lab
+      reachability: lab-internal
+    authorization_state: LAB_ONLY
+    lifecycle: PROVISIONED
+    health: UNKNOWN
+    scope:
+      allowed_operations:
+        - discovery
+        - service_enumeration
+        - web_content_discovery
+        - web_vulnerability_scan
+        - manual_exploitation
+        - authenticated_review
+    evidence:
+      source: repository-manifest
+      manifest_path: platform/environments/web-api/dvwa/manifest.yaml
+      compose_path: platform/environments/web-api/dvwa/compose.yaml
+
+  - target_id: dvapi-api
+    environment_id: dvapi
+    kind: application
+    description: Damn Vulnerable API service.
+    identity:
+      hostname: dvapi
+      port: 3000
+      protocol: tcp
+      scheme: http
+      path: /
+      network: dvapi-lab
+      reachability: lab-internal
+    authorization_state: LAB_ONLY
+    lifecycle: PROVISIONED
+    health: UNKNOWN
+    scope:
+      allowed_operations:
+        - discovery
+        - service_enumeration
+        - api_schema_probe
+        - web_vulnerability_scan
+        - manual_exploitation
+    evidence:
+      source: repository-manifest
+      manifest_path: platform/environments/web-api/dvapi/manifest.yaml
+      compose_path: platform/environments/web-api/dvapi/compose.yaml
+
+  - target_id: vampi-api
+    environment_id: vampi
+    kind: application
+    description: VAmPI vulnerable API service.
+    identity:
+      hostname: vampi
+      port: 5000
+      protocol: tcp
+      scheme: http
+      path: /
+      network: vampi-lab
+      reachability: lab-internal
+    authorization_state: LAB_ONLY
+    lifecycle: PROVISIONED
+    health: UNKNOWN
+    scope:
+      allowed_operations:
+        - discovery
+        - service_enumeration
+        - api_schema_probe
+        - web_vulnerability_scan
+        - manual_exploitation
+    evidence:
+      source: repository-manifest
+      manifest_path: platform/environments/web-api/vampi/manifest.yaml
+      compose_path: platform/environments/web-api/vampi/compose.yaml
+
+  - target_id: nodegoat-web
+    environment_id: nodegoat
+    kind: application
+    description: OWASP NodeGoat web application.
+    identity:
+      hostname: nodegoat
+      port: 4000
+      protocol: tcp
+      scheme: http
+      path: /
+      network: nodegoat-lab
+      reachability: lab-internal
+    authorization_state: LAB_ONLY
+    lifecycle: PROVISIONED
+    health: UNKNOWN
+    scope:
+      allowed_operations:
+        - discovery
+        - service_enumeration
+        - web_content_discovery
+        - web_vulnerability_scan
+        - manual_exploitation
+    evidence:
+      source: repository-manifest
+      manifest_path: platform/environments/web-api/nodegoat/manifest.yaml
+      compose_path: platform/environments/web-api/nodegoat/compose.yaml
+
+  - target_id: pygoat-web
+    environment_id: pygoat
+    kind: application
+    description: PyGoat web application (manifest status CURRENT-LIMITED).
+    identity:
+      hostname: pygoat
+      port: 8000
+      protocol: tcp
+      scheme: http
+      path: /
+      network: pygoat-lab
+      reachability: lab-internal
+    authorization_state: LAB_ONLY
+    lifecycle: PROVISIONED
+    health: UNKNOWN
+    scope:
+      allowed_operations:
+        - discovery
+        - service_enumeration
+        - web_content_discovery
+        - web_vulnerability_scan
+      notes: Environment manifest is CURRENT-LIMITED; exploitation coverage is partial.
+    evidence:
+      source: repository-manifest
+      manifest_path: platform/environments/web-api/pygoat/manifest.yaml
+      compose_path: platform/environments/web-api/pygoat/compose.yaml
+
+  - target_id: graphql-vulnerable-lab-api
+    environment_id: graphql-vulnerable-lab
+    kind: application
+    description: Damn Vulnerable GraphQL Application endpoint.
+    identity:
+      hostname: graphql-vulnerable-lab
+      port: 5013
+      protocol: tcp
+      scheme: graphql
+      path: /
+      network: graphql-vulnerable-lab
+      reachability: lab-internal
+    authorization_state: LAB_ONLY
+    lifecycle: PROVISIONED
+    health: UNKNOWN
+    scope:
+      allowed_operations:
+        - discovery
+        - service_enumeration
+        - api_schema_probe
+        - manual_exploitation
+    evidence:
+      source: repository-manifest
+      manifest_path: platform/environments/web-api/graphql-vulnerable-lab/manifest.yaml
+      compose_path: platform/environments/web-api/graphql-vulnerable-lab/compose.yaml
+
+  - target_id: crapi-web
+    environment_id: crapi
+    kind: application
+    description: crAPI storefront exposed on the lab network (manifest status CURRENT-LIMITED).
+    identity:
+      hostname: crapi
+      port: 80
+      protocol: tcp
+      scheme: http
+      path: /
+      network: crapi-lab
+      reachability: lab-internal
+    authorization_state: LAB_ONLY
+    lifecycle: PROVISIONED
+    health: UNKNOWN
+    scope:
+      allowed_operations:
+        - discovery
+        - service_enumeration
+        - web_content_discovery
+        - api_schema_probe
+        - manual_exploitation
+      notes: Only the crapi-lab alias is a target; crapi-core services are internal dependencies.
+    evidence:
+      source: repository-manifest
+      manifest_path: platform/environments/web-api/crapi/manifest.yaml
+      compose_path: platform/environments/web-api/crapi/compose.yaml
+
+  - target_id: wrongsecrets-app
+    environment_id: wrongsecrets
+    kind: application
+    description: OWASP WrongSecrets secrets-management challenge application.
+    identity:
+      hostname: wrongsecrets
+      port: 8080
+      protocol: tcp
+      scheme: http
+      path: /
+      network: wrongsecrets-internal
+      reachability: lab-internal
+    authorization_state: LAB_ONLY
+    lifecycle: PROVISIONED
+    health: UNKNOWN
+    scope:
+      allowed_operations:
+        - discovery
+        - service_enumeration
+        - web_content_discovery
+        - supply_chain_review
+        - manual_exploitation
+      denied_operations:
+        - egress-dependent testing
+      notes: Manifest declares egress false; the vault-less image is used.
+    evidence:
+      source: repository-manifest
+      manifest_path: platform/environments/devsecops/wrongsecrets/manifest.yaml
+      compose_path: platform/environments/devsecops/wrongsecrets/compose.yaml
