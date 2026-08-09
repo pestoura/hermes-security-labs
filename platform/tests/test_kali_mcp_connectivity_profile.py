@@ -15,6 +15,7 @@ import yaml
 ROOT = Path(__file__).resolve().parents[2]
 PROFILE = ROOT / "kali-mcp" / "config" / "mcp-connectivity.example.yaml"
 COMPOSE = ROOT / "kali-mcp" / "compose.yaml"
+SKILL = ROOT / "skills" / "kali-mcp-lab" / "SKILL.md"
 
 
 def _profile() -> dict:
@@ -79,3 +80,23 @@ def test_canonical_compose_command_is_loopback_only() -> None:
     assert "0.0.0.0" not in command
     # No host port publication on the kali-mcp service.
     assert not service.get("ports")
+
+
+def test_skill_uses_connectivity_profile_as_authority() -> None:
+    text = SKILL.read_text(encoding="utf-8")
+    assert "kali-mcp/config/mcp-connectivity.example.yaml" in text
+    assert "docker exec -i hermes-kali-mcp kali-server-mcp" in text
+    assert "Use exclusively `@url:" not in text
+    assert "Do not use `tools.include`." not in text
+    assert "Keep all 12 Kali MCP tools available." not in text
+
+
+def test_skill_registration_is_fail_closed_before_tool_enablement() -> None:
+    text = SKILL.read_text(encoding="utf-8")
+    assert "enabled: false" in text
+    assert "__hermes_rta002_no_tool__" in text
+    assert "resources: false" in text
+    assert "prompts: false" in text
+    assert "Do not use `tools.include: []`" in text
+    assert "exact literal tool names" in text
+    assert "Do not enable all discovered Kali tools by default" in text
