@@ -1,3 +1,41 @@
+schema_version: '1.1'
+execution_class: executable
+authorization_state: LAB_ONLY
+backend: docker-compose
+network:
+  ingress:
+    scope: loopback
+    bindings:
+    - service: dvapi
+      host: 127.0.0.1
+      host_port: ${DVAPI_HOST_PORT:-3000}
+      container_port: 3000
+    internal_networks:
+    - dvapi-db
+  egress:
+    default: deny
+    enforced: false
+    profile: publication-bridge
+    allowlist: []
+    residual_risk: publication bridge network permits outbound traffic from the published service
+liveness:
+  source: compose-healthcheck
+  interval_seconds: 10
+  retries: 24
+readiness:
+  probe: http://127.0.0.1:${DVAPI_HOST_PORT:-3000}/
+  timeout_seconds: 240
+  success_criteria: HTTP status below 500 and both compose services healthy
+reset_strategy:
+  mode: script
+  command: ./scripts/reset.sh
+  destroys_state: true
+persistence:
+  persistent_volumes: true
+  evidence:
+    path: ${EVIDENCE_DIR:-.runtime/evidence/dvapi}
+    retention_days: 30
+    sanitized: true
 id: dvapi
 name: DVAPI
 description: Deliberately vulnerable Node.js API backed by isolated MongoDB.
@@ -12,33 +50,33 @@ resources:
   memory: 1Gi
   disk: 2G
 networks:
-  - dvapi-lab
-  - dvapi-db
+- dvapi-lab
+- dvapi-db
 egress: true
 targets:
-  - http://dvapi:3000/
+- http://dvapi:3000/
 attacker: kali-mcp
 lifecycle:
-  - start
-  - status
-  - smoke
-  - stop
-  - reset
-  - destroy
+- start
+- status
+- smoke
+- stop
+- reset
+- destroy
 reset: ./scripts/reset.sh
 cleanup: ./scripts/destroy.sh
 evidence: ${EVIDENCE_DIR:-.runtime/evidence/dvapi}
 dependencies:
-  - docker
-  - mongo-4.4.29
+- docker
+- mongo-4.4.29
 supported_tools:
-  - execute_command
-  - nikto_scan
-  - gobuster_scan
+- execute_command
+- nikto_scan
+- gobuster_scan
 limitations:
-  - local validation only
-  - application runtime image is pinned to an immutable GHCR digest built from the declared upstream commit and reviewed Node.js 20 recipe
-  - MongoDB remains the separately pinned official image and is unexposed on an internal network
-  - runtime egress remains possible through the publication network
-  - no exploitation, destructive API operations, brute force, denial of service, external or LAN targets during lifecycle acceptance
+- local validation only
+- application runtime image is pinned to an immutable GHCR digest built from the declared upstream commit and reviewed Node.js 20 recipe
+- MongoDB remains the separately pinned official image and is unexposed on an internal network
+- runtime egress remains possible through the publication network
+- no exploitation, destructive API operations, brute force, denial of service, external or LAN targets during lifecycle acceptance
 status: CURRENT

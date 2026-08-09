@@ -1,3 +1,39 @@
+schema_version: '1.1'
+execution_class: executable
+authorization_state: LAB_ONLY
+backend: docker-compose
+network:
+  ingress:
+    scope: loopback
+    bindings:
+    - service: graphql-vulnerable-lab
+      host: 127.0.0.1
+      host_port: ${GRAPHQL_LAB_HOST_PORT:-5013}
+      container_port: 5013
+  egress:
+    default: deny
+    enforced: false
+    profile: publication-bridge
+    allowlist: []
+    residual_risk: publication bridge network permits outbound traffic from the published service
+liveness:
+  source: compose-healthcheck
+  interval_seconds: 10
+  retries: 18
+readiness:
+  probe: http://127.0.0.1:${GRAPHQL_LAB_HOST_PORT:-5013}/
+  timeout_seconds: 180
+  success_criteria: DVGA index responds and the compose service reports healthy
+reset_strategy:
+  mode: script
+  command: ./scripts/reset.sh
+  destroys_state: true
+persistence:
+  persistent_volumes: false
+  evidence:
+    path: ${EVIDENCE_DIR:-.runtime/evidence/graphql-vulnerable-lab}
+    retention_days: 30
+    sanitized: true
 id: graphql-vulnerable-lab
 name: Damn Vulnerable GraphQL Application
 description: Intentionally vulnerable GraphQL application consumed from an immutable GHCR OCI index.
@@ -12,36 +48,36 @@ resources:
   memory: 768Mi
   disk: 1G
 networks:
-  - graphql-vulnerable-lab
+- graphql-vulnerable-lab
 egress: true
 targets:
-  - http://graphql-vulnerable-lab:5013/
+- http://graphql-vulnerable-lab:5013/
 attacker: kali-mcp
 lifecycle:
-  - start
-  - status
-  - smoke
-  - stop
-  - reset
-  - destroy
+- start
+- status
+- smoke
+- stop
+- reset
+- destroy
 reset: ./scripts/reset.sh
 cleanup: ./scripts/destroy.sh
 evidence: ${EVIDENCE_DIR:-.runtime/evidence/graphql-vulnerable-lab}
 dependencies:
-  - docker
+- docker
 supported_tools:
-  - execute_command
-  - nikto_scan
-  - gobuster_scan
+- execute_command
+- nikto_scan
+- gobuster_scan
 limitations:
-  - local validation only
-  - runtime image is pinned to the accepted immutable GHCR OCI index digest
-  - application source remains pinned to upstream commit a961308c02d1fb462b192681c336b0739e432da7
-  - Flask-Sockets is pinned to commit 513caf69a053a53c35110a389c9b0d83b2a9d99b by the accepted publication recipe
-  - accepted runtime preserves DVGA 2.2.0, Python 3.10, SQLite and the non-root dvga user
-  - wheel 0.46.3 versus packaging 22.0 is a recorded non-blocking build-tool compatibility observation present in both compared images
-  - host publication is restricted to 127.0.0.1
-  - runtime egress remains possible through the publication network
-  - no denial-of-service, command execution, SSRF, injection or exploitation scenarios during lifecycle acceptance
-  - no external or LAN targets
+- local validation only
+- runtime image is pinned to the accepted immutable GHCR OCI index digest
+- application source remains pinned to upstream commit a961308c02d1fb462b192681c336b0739e432da7
+- Flask-Sockets is pinned to commit 513caf69a053a53c35110a389c9b0d83b2a9d99b by the accepted publication recipe
+- accepted runtime preserves DVGA 2.2.0, Python 3.10, SQLite and the non-root dvga user
+- wheel 0.46.3 versus packaging 22.0 is a recorded non-blocking build-tool compatibility observation present in both compared images
+- host publication is restricted to 127.0.0.1
+- runtime egress remains possible through the publication network
+- no denial-of-service, command execution, SSRF, injection or exploitation scenarios during lifecycle acceptance
+- no external or LAN targets
 status: CURRENT

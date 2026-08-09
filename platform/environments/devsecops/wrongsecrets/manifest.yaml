@@ -1,3 +1,40 @@
+schema_version: '1.1'
+execution_class: executable
+authorization_state: LAB_ONLY
+backend: docker-compose
+network:
+  ingress:
+    scope: loopback
+    bindings:
+    - service: wrongsecrets-proxy
+      host: 127.0.0.1
+      host_port: ${WRONGSECRETS_HOST_PORT:-8082}
+      container_port: 8080
+    internal_networks:
+    - wrongsecrets-internal
+  egress:
+    default: deny
+    enforced: true
+    profile: proxy-mediated
+    allowlist: []
+liveness:
+  source: compose-healthcheck
+  interval_seconds: 10
+  retries: 5
+readiness:
+  probe: http://127.0.0.1:${WRONGSECRETS_HOST_PORT:-8082}/
+  timeout_seconds: 180
+  success_criteria: WrongSecrets answers through the publication proxy and both services report healthy
+reset_strategy:
+  mode: script
+  command: ./scripts/reset.sh
+  destroys_state: true
+persistence:
+  persistent_volumes: false
+  evidence:
+    path: ${EVIDENCE_DIR:-.runtime/evidence/wrongsecrets}
+    retention_days: 30
+    sanitized: true
 id: wrongsecrets
 name: OWASP WrongSecrets
 description: OWASP WrongSecrets laboratory for secrets management challenges
@@ -12,29 +49,29 @@ resources:
   memory: 768m
   disk: 2G
 networks:
-  - wrongsecrets-internal
+- wrongsecrets-internal
 egress: false
 targets:
-  - http://wrongsecrets:8080/
+- http://wrongsecrets:8080/
 attacker: kali-mcp
 lifecycle:
-  - start
-  - status
-  - smoke
-  - stop
-  - reset
-  - destroy
-reset: "./scripts/reset.sh"
-cleanup: "./scripts/destroy.sh"
+- start
+- status
+- smoke
+- stop
+- reset
+- destroy
+reset: ./scripts/reset.sh
+cleanup: ./scripts/destroy.sh
 evidence: ${EVIDENCE_DIR:-.runtime/evidence/wrongsecrets}
 status: CURRENT
 limitations:
-  - Docker/no-vault profile only
-  - AWS, Azure, GCP, Kubernetes, Vault and Google Drive excluded
-  - MCP accessible only through isolated network
-  - Proxy publication without secrets
-  - Target without egress
-  - Challenge values are synthetic
-  - Single heavy lab active at a time
+- Docker/no-vault profile only
+- AWS, Azure, GCP, Kubernetes, Vault and Google Drive excluded
+- MCP accessible only through isolated network
+- Proxy publication without secrets
+- Target without egress
+- Challenge values are synthetic
+- Single heavy lab active at a time
 supported_tools:
-  - execute_command
+- execute_command

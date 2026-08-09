@@ -1,3 +1,39 @@
+schema_version: '1.1'
+execution_class: executable
+authorization_state: LAB_ONLY
+backend: docker-compose
+network:
+  ingress:
+    scope: loopback
+    bindings:
+    - service: vampi
+      host: 127.0.0.1
+      host_port: ${VAMPI_HOST_PORT:-5000}
+      container_port: 5000
+  egress:
+    default: deny
+    enforced: false
+    profile: publication-bridge
+    allowlist: []
+    residual_risk: publication bridge network permits outbound traffic from the published service
+liveness:
+  source: compose-healthcheck
+  interval_seconds: 10
+  retries: 18
+readiness:
+  probe: http://127.0.0.1:${VAMPI_HOST_PORT:-5000}/
+  timeout_seconds: 180
+  success_criteria: VAmPI index responds and the compose service reports healthy
+reset_strategy:
+  mode: script
+  command: ./scripts/reset.sh
+  destroys_state: true
+persistence:
+  persistent_volumes: false
+  evidence:
+    path: ${EVIDENCE_DIR:-.runtime/evidence/vampi}
+    retention_days: 30
+    sanitized: true
 id: vampi
 name: VAmPI Vulnerable API
 description: Vulnerable Flask API based on OpenAPI 3 for authorised API security testing.
@@ -12,32 +48,32 @@ resources:
   memory: 512Mi
   disk: 1G
 networks:
-  - vampi-lab
+- vampi-lab
 egress: true
 targets:
-  - http://vampi:5000/
-  - http://vampi:5000/ui/
+- http://vampi:5000/
+- http://vampi:5000/ui/
 attacker: kali-mcp
 lifecycle:
-  - start
-  - status
-  - smoke
-  - stop
-  - reset
-  - destroy
+- start
+- status
+- smoke
+- stop
+- reset
+- destroy
 reset: ./scripts/reset.sh
 cleanup: ./scripts/destroy.sh
 evidence: ${EVIDENCE_DIR:-.runtime/evidence/vampi}
 dependencies:
-  - docker
+- docker
 supported_tools:
-  - execute_command
-  - nikto_scan
-  - gobuster_scan
+- execute_command
+- nikto_scan
+- gobuster_scan
 limitations:
-  - local validation only
-  - runtime image is pinned to an immutable GHCR digest built from the declared upstream commit
-  - runtime egress remains possible through the non-internal publication network
-  - no external or LAN targets
-  - no exploitation, denial of service or destructive API operations during lifecycle acceptance
+- local validation only
+- runtime image is pinned to an immutable GHCR digest built from the declared upstream commit
+- runtime egress remains possible through the non-internal publication network
+- no external or LAN targets
+- no exploitation, denial of service or destructive API operations during lifecycle acceptance
 status: CURRENT

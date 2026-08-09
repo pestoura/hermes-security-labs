@@ -1,3 +1,44 @@
+schema_version: '1.1'
+execution_class: executable
+authorization_state: LAB_ONLY
+backend: docker-compose
+network:
+  ingress:
+    scope: loopback
+    bindings:
+    - service: webgoat-proxy
+      host: 127.0.0.1
+      host_port: ${WEBGOAT_HOST_PORT:-8080}
+      container_port: 8080
+    - service: webgoat-proxy
+      host: 127.0.0.1
+      host_port: ${WEBWOLF_HOST_PORT:-9090}
+      container_port: 9090
+    internal_networks:
+    - webgoat-lab
+  egress:
+    default: deny
+    enforced: true
+    profile: proxy-mediated
+    allowlist: []
+liveness:
+  source: compose-healthcheck
+  interval_seconds: 15
+  retries: 12
+readiness:
+  probe: http://127.0.0.1:${WEBGOAT_HOST_PORT:-8080}/WebGoat/
+  timeout_seconds: 300
+  success_criteria: WebGoat and WebWolf endpoints answer through the publication proxy and both services report healthy
+reset_strategy:
+  mode: script
+  command: ./scripts/reset.sh
+  destroys_state: true
+persistence:
+  persistent_volumes: false
+  evidence:
+    path: ${EVIDENCE_DIR:-.runtime/evidence/webgoat}
+    retention_days: 30
+    sanitized: true
 id: webgoat
 name: OWASP WebGoat and WebWolf
 description: OWASP WebGoat and WebWolf local vulnerable web lab.
@@ -6,45 +47,45 @@ runtime: docker
 driver: docker-compose
 risk: low
 source: webgoat
-version: "sha256:2775102b8186df1656f8a69cfb7a6bf6c77b43a25fa0accd6d44e6ae04c8d3b7"
+version: sha256:2775102b8186df1656f8a69cfb7a6bf6c77b43a25fa0accd6d44e6ae04c8d3b7
 resources:
   cpus: 2.0
   memory: 2Gi
   disk: 2G
 networks:
-  - webgoat-lab
-  - webgoat-publish
+- webgoat-lab
+- webgoat-publish
 egress: false
 targets:
-  - http://webgoat:8080/WebGoat/
-  - http://webgoat:9090/login
+- http://webgoat:8080/WebGoat/
+- http://webgoat:9090/login
 attacker: kali-mcp
 lifecycle:
-  - start
-  - status
-  - smoke
-  - stop
-  - reset
-  - destroy
-reset: "./scripts/reset.sh"
-cleanup: "./scripts/destroy.sh"
+- start
+- status
+- smoke
+- stop
+- reset
+- destroy
+reset: ./scripts/reset.sh
+cleanup: ./scripts/destroy.sh
 evidence: ${EVIDENCE_DIR:-.runtime/evidence/webgoat}
 dependencies:
-  - docker
+- docker
 supported_tools:
-  - execute_command
-  - nikto_scan
-  - gobuster_scan
+- execute_command
+- nikto_scan
+- gobuster_scan
 limitations:
-  - local validation only
-  - no external targets
-  - no LAN exposure; host publication is restricted to 127.0.0.1 through a fixed forwarding proxy
-  - the WebGoat workload is attached only to the internal webgoat-lab network
-  - the minimal proxy is the only service attached to webgoat-publish and forwards only ports 8080 and 9090 to WebGoat
-  - Kali attaches temporarily to webgoat-lab only during controlled validation
-  - dedicated nmap_scan returns HTTP 500 in current Kali MCP
-  - Nmap TCP connect validated through MCP execute_command
-  - dirb_scan unavailable in current Kali image
-  - server_health not validated directly
-  - host port override supported via WEBGOAT_HOST_PORT and WEBWOLF_HOST_PORT
+- local validation only
+- no external targets
+- no LAN exposure; host publication is restricted to 127.0.0.1 through a fixed forwarding proxy
+- the WebGoat workload is attached only to the internal webgoat-lab network
+- the minimal proxy is the only service attached to webgoat-publish and forwards only ports 8080 and 9090 to WebGoat
+- Kali attaches temporarily to webgoat-lab only during controlled validation
+- dedicated nmap_scan returns HTTP 500 in current Kali MCP
+- Nmap TCP connect validated through MCP execute_command
+- dirb_scan unavailable in current Kali image
+- server_health not validated directly
+- host port override supported via WEBGOAT_HOST_PORT and WEBWOLF_HOST_PORT
 status: CURRENT

@@ -1,3 +1,41 @@
+schema_version: '1.1'
+execution_class: executable
+authorization_state: LAB_ONLY
+backend: docker-compose
+network:
+  ingress:
+    scope: loopback
+    bindings:
+    - service: crapi-web
+      host: 127.0.0.1
+      host_port: ${CRAPI_HOST_PORT:-8888}
+      container_port: 80
+    internal_networks:
+    - crapi-core
+  egress:
+    default: deny
+    enforced: false
+    profile: publication-bridge
+    allowlist: []
+    residual_risk: publication bridge network permits outbound traffic from the published service
+liveness:
+  source: compose-healthcheck
+  interval_seconds: 15
+  retries: 20
+readiness:
+  probe: http://127.0.0.1:${CRAPI_HOST_PORT:-8888}/health
+  timeout_seconds: 600
+  success_criteria: gateway health endpoint answers and every compose service reports healthy
+reset_strategy:
+  mode: script
+  command: ./scripts/reset.sh
+  destroys_state: true
+persistence:
+  persistent_volumes: true
+  evidence:
+    path: ${EVIDENCE_DIR:-.runtime/evidence/crapi}
+    retention_days: 30
+    sanitized: true
 id: crapi
 name: OWASP crAPI
 description: Completely Ridiculous API, a deliberately vulnerable microservice API platform.
@@ -12,40 +50,40 @@ resources:
   memory: 3Gi
   disk: 6G
 networks:
-  - crapi-lab
-  - crapi-core
+- crapi-lab
+- crapi-core
 egress: true
 targets:
-  - http://crapi:80/
-  - http://crapi:80/health
+- http://crapi:80/
+- http://crapi:80/health
 attacker: kali-mcp
 lifecycle:
-  - start
-  - status
-  - smoke
-  - stop
-  - reset
-  - destroy
+- start
+- status
+- smoke
+- stop
+- reset
+- destroy
 reset: ./scripts/reset.sh
 cleanup: ./scripts/destroy.sh
 evidence: ${EVIDENCE_DIR:-.runtime/evidence/crapi}
 dependencies:
-  - docker
-  - crapi-1.1.6-rc8-images
-  - postgres-14
-  - mongo-4.4.29
+- docker
+- crapi-1.1.6-rc8-images
+- postgres-14
+- mongo-4.4.29
 supported_tools:
-  - execute_command
-  - nikto_scan
-  - gobuster_scan
+- execute_command
+- nikto_scan
+- gobuster_scan
 limitations:
-  - local validation only
-  - all six official crAPI application images must resolve to tag 1.1.6-rc8 pinned by immutable repository digest in the effective Compose model
-  - "start refuses effective 1.1.6, latest, main or develop references, and any effective image without an @sha256: digest, before pull"
-  - digest refresh is a deliberate reviewed change; postgres:14 is a rolling upstream tag frozen by its digest
-  - optional chatbot and Chroma services are intentionally excluded from the baseline
-  - only the web gateway joins the publication and Kali network
-  - PostgreSQL, MongoDB, MailHog, gateway and backend services remain on an internal network without host publication
-  - runtime egress remains possible through the web publication network
-  - no exploitation, account abuse, brute force, denial of service, external or LAN targets during lifecycle acceptance
+- local validation only
+- all six official crAPI application images must resolve to tag 1.1.6-rc8 pinned by immutable repository digest in the effective Compose model
+- 'start refuses effective 1.1.6, latest, main or develop references, and any effective image without an @sha256: digest, before pull'
+- digest refresh is a deliberate reviewed change; postgres:14 is a rolling upstream tag frozen by its digest
+- optional chatbot and Chroma services are intentionally excluded from the baseline
+- only the web gateway joins the publication and Kali network
+- PostgreSQL, MongoDB, MailHog, gateway and backend services remain on an internal network without host publication
+- runtime egress remains possible through the web publication network
+- no exploitation, account abuse, brute force, denial of service, external or LAN targets during lifecycle acceptance
 status: CURRENT-LIMITED

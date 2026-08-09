@@ -38,6 +38,30 @@ DEFAULT_STATUSES = {
     "EXTERNAL-HARDWARE",
     "PLANNED",
 }
+CONTRACT_SCHEMA_VERSION = "1.1"
+EXECUTABLE_REQUIRED_FIELDS = (
+    "schema_version",
+    "id",
+    "backend",
+    "authorization_state",
+    "network",
+    "resources",
+    "liveness",
+    "readiness",
+    "reset_strategy",
+    "persistence",
+    "lifecycle",
+    "status",
+)
+AUTHORIZATION_STATES = {
+    "LAB_ONLY",
+    "AUTHORIZED_TEST_TARGET",
+    "UNVERIFIED",
+    "BLOCKED",
+    "EXTERNAL",
+}
+RUNNABLE_AUTHORIZATION_STATES = {"LAB_ONLY", "AUTHORIZED_TEST_TARGET"}
+INGRESS_SCOPES = {"none", "loopback", "lab-internal", "host", "lan"}
 
 
 @dataclass(frozen=True)
@@ -223,12 +247,88 @@ def cmd_status(args: argparse.Namespace) -> int:
     return 0
 
 
+def contract_errors(manifest: Manifest) -> list[str]:
+    """Fail-closed environment contract checks for executable manifests.
+
+    Catalogue entries (``execution_class`` absent or ``catalog-only``) declare intent
+    only and are not held to the executable contract. Anything that claims to be
+    executable must carry the full contract; a missing or partial block is an error,
+    never a silent pass.
+    """
+
+    data = manifest.data
+    execution_class = data.get("execution_class")
+    if execution_class in (None, "catalog-only"):
+        return []
+    if execution_class != "executable":
+        return [
+            f"{manifest.relative_path}: unsupported execution_class "
+            f"'{execution_class}' (expected 'executable' or 'catalog-only')"
+        ]
+
+    errors: list[str] = []
+    for field in EXECUTABLE_REQUIRED_FIELDS:
+        if field not in data:
+            errors.append(f"{manifest.relative_path}: executable manifest missing {field}")
+
+    if data.get("schema_version") not in (None, CONTRACT_SCHEMA_VERSION):
+        errors.append(
+            f"{manifest.relative_path}: unsupported schema_version "
+            f"'{data.get('schema_version')}' (expected '{CONTRACT_SCHEMA_VERSION}')"
+        )
+
+    authorization_state = data.get("authorization_state")
+    if authorization_state is not None and authorization_state not in AUTHORIZATION_STATES:
+        errors.append(
+            f"{manifest.relative_path}: unsupported authorization_state '{authorization_state}'"
+        )
+
+    network = data.get("network")
+    if isinstance(network, dict):
+        ingress = network.get("ingress")
+        if not isinstance(ingress, dict) or "scope" not in ingress or "bindings" not in ingress:
+            errors.append(f"{manifest.relative_path}: network.ingress must declare scope and bindings")
+        elif ingress.get("scope") not in INGRESS_SCOPES:
+            errors.append(
+                f"{manifest.relative_path}: unsupported network.ingress.scope "
+                f"'{ingress.get('scope')}'"
+            )
+        egress = network.get("egress")
+        if not isinstance(egress, dict):
+            errors.append(f"{manifest.relative_path}: network.egress must be an object")
+        else:
+            if egress.get("default") != "deny":
+                errors.append(f"{manifest.relative_path}: network.egress.default must be 'deny'")
+            if not isinstance(egress.get("allowlist"), list):
+                errors.append(f"{manifest.relative_path}: network.egress.allowlist must be an array")
+            if egress.get("enforced") is False and not egress.get("residual_risk"):
+                errors.append(
+                    f"{manifest.relative_path}: unenforced egress must declare residual_risk"
+                )
+    elif "network" in data:
+        errors.append(f"{manifest.relative_path}: network must be an object")
+
+    readiness = data.get("readiness")
+    if isinstance(readiness, dict):
+        for field in ("probe", "timeout_seconds", "success_criteria"):
+            if not readiness.get(field):
+                errors.append(f"{manifest.relative_path}: readiness.{field} is required")
+    elif "readiness" in data:
+        errors.append(f"{manifest.relative_path}: readiness must be an object")
+
+    return errors
+
+
 def cmd_validate(_: argparse.Namespace) -> int:
     manifests, errors = discover_manifests()
     runtimes, statuses = registry_constraints()
 
+    executable = 0
     for manifest in manifests:
         data = manifest.data
+        if data.get("execution_class") == "executable":
+            executable += 1
+        errors.extend(contract_errors(manifest))
         runtime = str(data.get("runtime", ""))
         status = str(data.get("status", ""))
         if runtime not in runtimes:
@@ -248,7 +348,10 @@ def cmd_validate(_: argparse.Namespace) -> int:
             print(f"FAIL\t{error}")
         return 1
 
-    print(f"OK\t{len(manifests)} manifests validated")
+    print(
+        f"OK\t{len(manifests)} manifests validated "
+        f"({executable} executable, {len(manifests) - executable} catalog-only)"
+    )
     return 0
 
 

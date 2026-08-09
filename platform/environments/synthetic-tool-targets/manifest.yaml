@@ -1,3 +1,36 @@
+schema_version: '1.1'
+execution_class: executable
+authorization_state: LAB_ONLY
+backend: docker-compose
+network:
+  ingress:
+    scope: lab-internal
+    bindings: []
+    internal_networks:
+    - synthetic-tool-targets-internal
+  egress:
+    default: deny
+    enforced: true
+    profile: isolated
+    allowlist: []
+liveness:
+  source: script
+  interval_seconds: 10
+  retries: 12
+readiness:
+  probe: TCP connect to synthetic-web:8080 and synthetic-smb:445 from the isolated network
+  timeout_seconds: 120
+  success_criteria: both synthetic target ports accept connections inside the isolated network
+reset_strategy:
+  mode: recreate
+  destroys_state: true
+  description: recreate disposable target containers
+persistence:
+  persistent_volumes: false
+  evidence:
+    path: ${EVIDENCE_DIR:-.runtime/evidence/synthetic-tool-targets}
+    retention_days: 30
+    sanitized: true
 id: synthetic-tool-targets
 name: Synthetic MCP Tool Targets
 description: Disposable isolated fixtures for controlled SQLMap, Hydra and Enum4linux functional validation.
@@ -6,35 +39,35 @@ runtime: docker
 driver: docker-compose
 risk: medium
 source: repository-owned-synthetic-fixtures
-version: "1.0"
+version: '1.0'
 resources:
-  cpu: "2"
+  cpu: '2'
   memory: 2Gi
   disk: 4Gi
 networks:
-  - synthetic-tool-targets-internal
+- synthetic-tool-targets-internal
 egress: false
 targets:
-  - synthetic-web:8080
-  - synthetic-smb:445
+- synthetic-web:8080
+- synthetic-smb:445
 attacker: hermes-kali-mcp
 lifecycle:
-  - start
-  - status
-  - reset
-  - destroy
+- start
+- status
+- reset
+- destroy
 reset: recreate disposable target containers
 cleanup: remove target containers and isolated Docker network
 evidence: sanitized MCP tool results and zero-residue receipt
 dependencies:
-  - docker
-  - kali-mcp
+- docker
+- kali-mcp
 supported_tools:
-  - sqlmap_scan
-  - hydra_attack
-  - enum4linux_scan
+- sqlmap_scan
+- hydra_attack
+- enum4linux_scan
 limitations:
-  - Targets contain synthetic data and fixed lab credentials only.
-  - No host or LAN port is published.
-  - Kali may attach only to the isolated target network for the controlled validation window.
+- Targets contain synthetic data and fixed lab credentials only.
+- No host or LAN port is published.
+- Kali may attach only to the isolated target network for the controlled validation window.
 status: CURRENT-LIMITED

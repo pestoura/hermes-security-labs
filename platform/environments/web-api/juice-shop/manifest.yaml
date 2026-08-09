@@ -1,3 +1,39 @@
+schema_version: '1.1'
+execution_class: executable
+authorization_state: LAB_ONLY
+backend: docker-compose
+network:
+  ingress:
+    scope: loopback
+    bindings:
+    - service: juice-shop
+      host: 127.0.0.1
+      host_port: 3000
+      container_port: 3000
+  egress:
+    default: deny
+    enforced: false
+    profile: publication-bridge
+    allowlist: []
+    residual_risk: publication bridge network permits outbound traffic from the published service
+liveness:
+  source: compose-healthcheck
+  interval_seconds: 10
+  retries: 12
+readiness:
+  probe: http://127.0.0.1:3000/
+  timeout_seconds: 120
+  success_criteria: HTTP status below 500 and the compose service reports healthy
+reset_strategy:
+  mode: script
+  command: ./scripts/reset.sh
+  destroys_state: true
+persistence:
+  persistent_volumes: false
+  evidence:
+    path: ${EVIDENCE_DIR:-.runtime/evidence/juice-shop}
+    retention_days: 30
+    sanitized: true
 id: juice-shop
 name: OWASP Juice Shop
 description: OWASP Juice Shop web lab.
@@ -6,40 +42,40 @@ runtime: docker
 driver: docker-compose
 risk: low
 source: juice-shop
-version: "sha256:e68144772ebaaca0ec117b38d44903af92416793230288ef7c5437fc4f26850a"
+version: sha256:e68144772ebaaca0ec117b38d44903af92416793230288ef7c5437fc4f26850a
 resources:
   cpus: 1.0
   memory: 512M
   disk: 2G
 networks:
-  - juice-shop-lab
+- juice-shop-lab
 egress: false
 targets:
-  - juice-shop
+- juice-shop
 attacker: kali-mcp
 lifecycle:
-  - start
-  - status
-  - smoke
-  - stop
-  - reset
-  - destroy
-reset: "./scripts/reset.sh"
-cleanup: "./scripts/destroy.sh"
+- start
+- status
+- smoke
+- stop
+- reset
+- destroy
+reset: ./scripts/reset.sh
+cleanup: ./scripts/destroy.sh
 evidence: ${EVIDENCE_DIR:-.runtime/evidence/juice-shop}
 dependencies:
-  - docker
+- docker
 supported_tools:
-  - execute_command
-  - nikto_scan
-  - gobuster_scan
+- execute_command
+- nikto_scan
+- gobuster_scan
 limitations:
-  - local validation only
-  - no external targets
-  - no SQLMap, Hydra, Metasploit
-  - dedicated nmap_scan returns HTTP 500 in current Kali MCP
-  - Nmap TCP connect validated through MCP execute_command
-  - dirb_scan unavailable in current Kali image
-  - server_health not validated in this lifecycle run
-  - Kali MCP tools accessed through Hermes STDIO
+- local validation only
+- no external targets
+- no SQLMap, Hydra, Metasploit
+- dedicated nmap_scan returns HTTP 500 in current Kali MCP
+- Nmap TCP connect validated through MCP execute_command
+- dirb_scan unavailable in current Kali image
+- server_health not validated in this lifecycle run
+- Kali MCP tools accessed through Hermes STDIO
 status: CURRENT
