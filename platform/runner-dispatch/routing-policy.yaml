@@ -1,0 +1,7 @@
+schema_version: "1.0"
+policy_id: hexor.runner.dispatch.routing
+state: DISABLED
+default: deny
+runtime_status: NOT_RUN
+execution_authority: none
+bindings: []
