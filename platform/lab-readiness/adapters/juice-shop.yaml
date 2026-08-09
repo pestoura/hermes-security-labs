@@ -1,0 +1,20 @@
+schema_version: 1
+env_id: juice-shop
+liveness:
+  - id: lifecycle-status
+    kind: lifecycle_status
+    timeout_seconds: 20
+    description: Allowlisted lifecycle status for the canonical Juice Shop environment.
+readiness:
+  - id: tcp-juice-shop
+    kind: tcp_connect
+    host: 127.0.0.1
+    port: 3000
+    timeout_seconds: 5
+    description: Canonical loopback Juice Shop publication accepts connections.
+  - id: http-juice-shop
+    kind: http_get
+    url: http://127.0.0.1:3000/
+    expect_status: 200
+    timeout_seconds: 5
+    description: Fail-closed HTTP readiness for the canonical Juice Shop root endpoint.

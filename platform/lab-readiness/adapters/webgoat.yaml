@@ -1,0 +1,32 @@
+schema_version: 1
+env_id: webgoat
+liveness:
+  - id: lifecycle-status
+    kind: lifecycle_status
+    timeout_seconds: 20
+    description: Allowlisted lifecycle status for the canonical WebGoat environment.
+readiness:
+  - id: tcp-webgoat
+    kind: tcp_connect
+    host: 127.0.0.1
+    port: 8080
+    timeout_seconds: 5
+    description: Canonical loopback WebGoat publication accepts connections.
+  - id: http-webgoat
+    kind: http_get
+    url: http://127.0.0.1:8080/WebGoat/
+    expect_status: 200
+    timeout_seconds: 5
+    description: Fail-closed HTTP readiness for the canonical WebGoat publication.
+  - id: tcp-webwolf
+    kind: tcp_connect
+    host: 127.0.0.1
+    port: 9090
+    timeout_seconds: 5
+    description: Canonical loopback WebWolf publication accepts connections.
+  - id: http-webwolf
+    kind: http_get
+    url: http://127.0.0.1:9090/login
+    expect_status: 200
+    timeout_seconds: 5
+    description: Fail-closed HTTP readiness for the canonical WebWolf login endpoint.
