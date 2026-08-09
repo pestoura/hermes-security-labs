@@ -24,6 +24,7 @@ def test_private_ghcr_acceptance_plan_is_non_secret_and_non_mutating() -> None:
     assert "Gate G:" in result.stdout
     assert "Gate H:" in result.stdout
     assert PRIVATE_DIGEST in result.stdout
+    assert "temporary-public or private" in result.stdout
     assert "Versioned Compose mutation: none" in result.stdout
     assert "Package mutation: none" in result.stdout
 
@@ -38,7 +39,7 @@ def test_acceptance_fails_before_token_read_without_manual_gates() -> None:
         check=False,
     )
     assert result.returncode != 0
-    assert "publisher private visibility confirmation is required before credential handling" in result.stdout
+    assert "publisher visibility must be explicitly confirmed" in result.stdout
 
 
 def test_harness_never_uses_mutating_registry_commands_or_token_arguments() -> None:
@@ -46,8 +47,14 @@ def test_harness_never_uses_mutating_registry_commands_or_token_arguments() -> N
     lowered = source.lower()
     assert "--password-stdin" in source
     assert "read:packages" in source
-    assert "write:packages" in source
-    assert "delete:packages" in source
+    assert "X-OAuth-Scopes" in source
+    assert "--publisher-visibility <temporary-public|private>" in source
+    assert "--package-private-confirmed" in source
+    assert "--package-access-confirmed" in source
+    assert "write:packages" not in source
+    assert "delete:packages" not in source
+    assert "pull,push" not in source
+    assert "scope=repository:" not in source
     assert "docker push" not in lowered
     assert "manifest push" not in lowered
     assert "docker buildx build --push" not in lowered
@@ -57,6 +64,7 @@ def test_harness_never_uses_mutating_registry_commands_or_token_arguments() -> N
     assert "export ghcr_pat" not in lowered
     assert "credential_source=stdin" in source
     assert "credential_value_recorded=false" in source
+    assert "gate_g_registry_mutation_attempted=false" in source
     assert PRIVATE_DIGEST in source
 
 
