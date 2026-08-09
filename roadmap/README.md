@@ -7,6 +7,7 @@ Backlog versionado da **Security Validation Platform v2**.
 | Caminho | Conteúdo |
 | --- | --- |
 | [`../docs/roadmap/security-validation-platform-v2.md`](../docs/roadmap/security-validation-platform-v2.md) | Visão, princípios, fases, riscos, Definition of Ready/Done e releases |
+| [`../docs/roadmap/current-walking-skeleton-status.md`](../docs/roadmap/current-walking-skeleton-status.md) | Estado reconciliado do walking skeleton, separando prova repo/CI de aceitação live Hermes/runtime |
 | [`governance.yaml`](governance.yaml) | Taxonomia verificável, DoR/DoD, funções críticas, objetivos de resiliência e releases |
 | [`epics/security-validation-platform-v2.yaml`](epics/security-validation-platform-v2.yaml) | Backlog machine-readable das 21 umbrella epics |
 | [`epics/security-validation-platform-v2-concepts.yaml`](epics/security-validation-platform-v2-concepts.yaml) | Catálogo machine-readable das 45 concept epics |
