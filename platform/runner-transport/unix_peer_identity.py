@@ -1,0 +1,262 @@
+#!/usr/bin/env python3
+"""Fail-closed local Runner transport identity using Linux ``SO_PEERCRED``.
+
+This module authenticates a peer connection. It does not authorize a pentest
+operation, parse Runner payload authority, dispatch an adapter or create a TB1
+receipt. The only identity input is the kernel-reported peer credential tuple
+from an already accepted AF_UNIX socket.
+
+The committed policy is DISABLED and deny-all. Runtime enablement requires an
+explicit socket path and exact UID/GID-to-principal mappings.
+"""
+
+from __future__ import annotations
+
+import argparse
+import re
+import socket
+import struct
+import sys
+from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
+
+import yaml
+
+POLICY_PATH = Path(__file__).resolve().parent / "transport-policy.yaml"
+PRINCIPAL_RE = re.compile(r"^[a-z0-9][a-z0-9._:-]{2,127}$")
+PURPOSE = "runner-dispatch"
+
+
+class TransportIdentityError(ValueError):
+    """Stable fail-closed transport identity error."""
+
+    def __init__(self, code: str, message: str) -> None:
+        super().__init__(message)
+        self.code = code
+
+
+@dataclass(frozen=True)
+class KernelPeerCredentials:
+    pid: int
+    uid: int
+    gid: int
+
+
+@dataclass(frozen=True)
+class AuthenticatedPeer:
+    """Identity derived from the accepted transport, not the Runner message."""
+
+    principal_id: str
+    purpose: str
+    transport: str
+    peer_pid: int
+    peer_uid: int
+    peer_gid: int
+    evidence_source: str
+
+    def as_safe_dict(self) -> dict[str, Any]:
+        return {
+            "principal_id": self.principal_id,
+            "purpose": self.purpose,
+            "transport": self.transport,
+            "peer_uid": self.peer_uid,
+            "peer_gid": self.peer_gid,
+            "evidence_source": self.evidence_source,
+        }
+
+
+def load_policy(path: Path | str = POLICY_PATH) -> dict[str, Any]:
+    policy_path = Path(path)
+    try:
+        document = yaml.safe_load(policy_path.read_text(encoding="utf-8"))
+    except OSError as exc:
+        raise TransportIdentityError("POLICY_UNREADABLE", str(exc)) from exc
+    except yaml.YAMLError as exc:
+        raise TransportIdentityError("POLICY_INVALID", str(exc)) from exc
+    if not isinstance(document, dict):
+        raise TransportIdentityError("POLICY_INVALID", "policy must be a mapping")
+    problems = validate_policy(document)
+    if problems:
+        raise TransportIdentityError("POLICY_INVALID", "; ".join(problems))
+    return document
+
+
+def validate_policy(document: Any) -> list[str]:
+    if not isinstance(document, Mapping):
+        return ["transport policy must be an object"]
+
+    problems: list[str] = []
+    if document.get("schema_version") != "1.0":
+        problems.append("schema_version must be '1.0'")
+    if document.get("policy_id") != "hexor.runner.transport.identity":
+        problems.append("policy_id must be hexor.runner.transport.identity")
+    if document.get("state") not in {"DISABLED", "ENABLED"}:
+        problems.append("state must be DISABLED or ENABLED")
+    if document.get("default") != "deny":
+        problems.append("default must be deny")
+    if document.get("execution_authority") != "none":
+        problems.append("transport identity must never claim execution authority")
+    if document.get("runtime_status") != "NOT_RUN":
+        problems.append("runtime_status must remain NOT_RUN before live acceptance")
+
+    modes = document.get("modes")
+    if not isinstance(modes, Mapping):
+        return problems + ["modes must be an object"]
+
+    unix_peer = modes.get("unix-peer")
+    if not isinstance(unix_peer, Mapping):
+        return problems + ["modes.unix-peer must be an object"]
+    if unix_peer.get("status") != "CANDIDATE":
+        problems.append("unix-peer status must remain CANDIDATE")
+    if unix_peer.get("identity_source") != "linux-so-peercred":
+        problems.append("unix-peer identity_source must be linux-so-peercred")
+
+    socket_path = unix_peer.get("socket_path")
+    allowed = unix_peer.get("allowed_peers")
+    if not isinstance(allowed, list):
+        problems.append("unix-peer allowed_peers must be an array")
+        allowed = []
+
+    state = document.get("state")
+    if state == "DISABLED":
+        if socket_path != "NOT_CONFIGURED":
+            problems.append("disabled policy socket_path must be NOT_CONFIGURED")
+        if allowed:
+            problems.append("disabled policy must not retain allowed peers")
+    elif state == "ENABLED":
+        if not isinstance(socket_path, str) or not socket_path.startswith("/"):
+            problems.append("enabled unix-peer socket_path must be absolute")
+        if not allowed:
+            problems.append("enabled unix-peer policy requires at least one exact peer mapping")
+
+    seen_principals: set[str] = set()
+    seen_credentials: set[tuple[int, int]] = set()
+    for position, peer in enumerate(allowed):
+        label = f"allowed_peers[{position}]"
+        if not isinstance(peer, Mapping):
+            problems.append(f"{label}: peer must be an object")
+            continue
+        if set(peer) != {"principal_id", "uid", "gid", "purpose"}:
+            problems.append(f"{label}: exact fields principal_id, uid, gid, purpose are required")
+            continue
+        principal_id = peer.get("principal_id")
+        uid = peer.get("uid")
+        gid = peer.get("gid")
+        purpose = peer.get("purpose")
+        if not isinstance(principal_id, str) or PRINCIPAL_RE.fullmatch(principal_id) is None:
+            problems.append(f"{label}: principal_id is invalid")
+        elif principal_id in seen_principals:
+            problems.append(f"{label}: duplicate principal_id")
+        else:
+            seen_principals.add(principal_id)
+        if isinstance(uid, bool) or not isinstance(uid, int) or uid < 0:
+            problems.append(f"{label}: uid must be a non-negative integer")
+        if isinstance(gid, bool) or not isinstance(gid, int) or gid < 0:
+            problems.append(f"{label}: gid must be a non-negative integer")
+        if isinstance(uid, int) and not isinstance(uid, bool) and isinstance(gid, int) and not isinstance(gid, bool):
+            credentials = (uid, gid)
+            if credentials in seen_credentials:
+                problems.append(f"{label}: duplicate UID/GID mapping")
+            seen_credentials.add(credentials)
+        if purpose != PURPOSE:
+            problems.append(f"{label}: purpose must be {PURPOSE}")
+
+    mtls = modes.get("mtls")
+    if not isinstance(mtls, Mapping):
+        problems.append("modes.mtls must be an object")
+    else:
+        if mtls.get("status") != "FUTURE":
+            problems.append("mTLS transport must remain FUTURE in this lane")
+        if mtls.get("identity_source") != "x509-client-certificate":
+            problems.append("mTLS identity_source must be x509-client-certificate")
+        if mtls.get("trust_store") != "NOT_CONFIGURED":
+            problems.append("mTLS trust_store must remain NOT_CONFIGURED")
+    return problems
+
+
+def read_kernel_peer_credentials(peer_socket: socket.socket) -> KernelPeerCredentials:
+    """Read PID/UID/GID directly from the Linux kernel for an AF_UNIX peer."""
+
+    if peer_socket.family != socket.AF_UNIX:
+        raise TransportIdentityError("TRANSPORT_NOT_UNIX", "peer socket is not AF_UNIX")
+    if not hasattr(socket, "SO_PEERCRED"):
+        raise TransportIdentityError(
+            "SO_PEERCRED_UNAVAILABLE",
+            "platform does not expose Linux SO_PEERCRED",
+        )
+    try:
+        raw = peer_socket.getsockopt(
+            socket.SOL_SOCKET,
+            socket.SO_PEERCRED,
+            struct.calcsize("3i"),
+        )
+        pid, uid, gid = struct.unpack("3i", raw)
+    except OSError as exc:
+        raise TransportIdentityError("PEER_CREDENTIAL_READ_FAILED", str(exc)) from exc
+    if pid <= 0 or uid < 0 or gid < 0:
+        raise TransportIdentityError(
+            "PEER_CREDENTIAL_INVALID",
+            "kernel returned invalid peer credentials",
+        )
+    return KernelPeerCredentials(pid=pid, uid=uid, gid=gid)
+
+
+def authenticate_unix_peer(
+    peer_socket: socket.socket,
+    policy: Mapping[str, Any],
+) -> AuthenticatedPeer:
+    """Authenticate one accepted Unix peer using exact kernel UID/GID mapping."""
+
+    problems = validate_policy(policy)
+    if problems:
+        raise TransportIdentityError("POLICY_INVALID", "; ".join(problems))
+    if policy.get("state") != "ENABLED":
+        raise TransportIdentityError("TRANSPORT_DISABLED", "transport policy is disabled")
+
+    credentials = read_kernel_peer_credentials(peer_socket)
+    unix_peer = policy["modes"]["unix-peer"]
+    matches = [
+        peer
+        for peer in unix_peer["allowed_peers"]
+        if peer["uid"] == credentials.uid and peer["gid"] == credentials.gid
+    ]
+    if not matches:
+        raise TransportIdentityError(
+            "PEER_NOT_AUTHORIZED",
+            "kernel peer UID/GID is not allowlisted",
+        )
+    if len(matches) != 1:
+        raise TransportIdentityError(
+            "PEER_IDENTITY_AMBIGUOUS",
+            "kernel peer UID/GID resolves to multiple principals",
+        )
+    peer = matches[0]
+    return AuthenticatedPeer(
+        principal_id=peer["principal_id"],
+        purpose=peer["purpose"],
+        transport="unix-peer",
+        peer_pid=credentials.pid,
+        peer_uid=credentials.uid,
+        peer_gid=credentials.gid,
+        evidence_source="kernel-so-peercred",
+    )
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--policy", default=str(POLICY_PATH))
+    parser.add_argument("command", choices=("validate",))
+    args = parser.parse_args(list(argv) if argv is not None else None)
+    try:
+        load_policy(args.policy)
+    except TransportIdentityError as exc:
+        print(f"FAIL {exc.code}: {exc}", file=sys.stderr)
+        return 1
+    print("OK runner transport identity policy is fail-closed")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
