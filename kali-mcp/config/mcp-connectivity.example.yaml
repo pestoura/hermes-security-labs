@@ -7,6 +7,11 @@
 # Hard rule: the MCP server is never published on 0.0.0.0 / :: / '*'.
 # Two transports are defined; the STDIO/docker-exec transport is preferred
 # because it creates zero network listeners.
+#
+# The container has two distinct roles that must not be conflated:
+# - `kali-server-mcp` is the long-running HTTP backend on container loopback;
+# - `mcp-server` is the FastMCP STDIO wrapper used by Hermes and proxies to that
+#   container-local backend.
 
 schema_version: "1.0"
 profile: hermes-kali-mcp-connectivity
@@ -17,8 +22,9 @@ forbidden_binds:
   - "*"
 
 transports:
-  # Preferred: no network listener at all. Hermes speaks MCP over the
-  # container's STDIO via `docker exec`. No port, no host publish.
+  # Preferred: no network listener at all on the host. Hermes speaks MCP over
+  # the container's STDIO via `docker exec`; the wrapper talks only to the
+  # already-running container-local HTTP backend.
   stdio_docker_exec:
     enabled: true
     host_exposure: none
@@ -27,7 +33,7 @@ transports:
       - exec
       - -i
       - hermes-kali-mcp
-      - kali-server-mcp
+      - mcp-server
 
   # Fallback: HTTP transport when a socket is required. Bound to loopback
   # inside the container (--ip 127.0.0.1) and published only to loopback on
@@ -46,7 +52,7 @@ registration:
   transport_ref: stdio_docker_exec
   scope: local
   notes: >
-    Register the STDIO/docker-exec or loopback_http transport only. The Kali
-    MCP server stays on an internal Docker network; the host never exposes it
-    beyond 127.0.0.1. No automatic deletion or live ~/.hermes mutation is
-    performed by this repository.
+    Register the STDIO/docker-exec wrapper or loopback_http transport only. The
+    Kali HTTP backend remains on an internal container loopback endpoint; the
+    host never exposes it beyond 127.0.0.1. No automatic deletion or live
+    ~/.hermes mutation is performed by this repository.
