@@ -239,6 +239,26 @@ def _binding_allows(
     return False
 
 
+def _logical_correlation_matches(
+    actual: Any,
+    expected: Mapping[str, Any],
+) -> bool:
+    """Match the logical step identity while preserving original attempt custody.
+
+    Runner idempotency deliberately excludes ``attempt_id``. A replay may therefore
+    return the terminal outcome from the attempt that originally performed the effect.
+    Campaign/run/step must remain identical; both attempt identifiers must still be
+    non-empty strings validated by Runner Protocol.
+    """
+
+    if not isinstance(actual, Mapping):
+        return False
+    for field in ("campaign_id", "run_id", "step_id"):
+        if actual.get(field) != expected.get(field):
+            return False
+    return isinstance(actual.get("attempt_id"), str) and bool(actual.get("attempt_id"))
+
+
 def _validate_adapter_result(
     result: Any,
     *,
@@ -257,10 +277,10 @@ def _validate_adapter_result(
             validate_semantics(message)
         except ProtocolValidationError as exc:
             raise DispatchRouterError("ADAPTER_RESULT_INVALID", str(exc)) from exc
-        if message.get("correlation") != correlation:
+        if not _logical_correlation_matches(message.get("correlation"), correlation):
             raise DispatchRouterError(
                 "ADAPTER_CORRELATION_MISMATCH",
-                "adapter message correlation differs from request",
+                "adapter message logical correlation differs from request",
             )
         validated.append(message)
     if validated[-1].get("message_type") != "runner.outcome":
