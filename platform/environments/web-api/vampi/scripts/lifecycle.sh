@@ -3,6 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ENV_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+REPO_ROOT="$(git -C "${ENV_DIR}" rev-parse --show-toplevel)"
 PROJECT_NAME="vampi"
 PRIMARY_SERVICE="vampi"
 NETWORK_NAME="vampi-lab"
@@ -10,6 +11,32 @@ KALI_CONTAINER="hermes-kali-mcp"
 HOST_PORT="${VAMPI_HOST_PORT:-5000}"
 TARGET_PATH="/"
 COMPOSE=(docker compose -p "${PROJECT_NAME}" -f "${ENV_DIR}/compose.yaml")
+
+if [ -n "${VAMPI_COMPOSE_OVERRIDE:-}" ]; then
+  override_real="$(python3 - "${VAMPI_COMPOSE_OVERRIDE}" <<'PY'
+from pathlib import Path
+import sys
+print(Path(sys.argv[1]).resolve(strict=True))
+PY
+)"
+  runtime_real="$(python3 - "${REPO_ROOT}/.runtime" <<'PY'
+from pathlib import Path
+import sys
+print(Path(sys.argv[1]).resolve(strict=False))
+PY
+)"
+  case "${override_real}" in
+    "${runtime_real}"/*) ;;
+    *)
+      echo "[compose-override] Refusing override outside ${runtime_real}" >&2
+      exit 1
+      ;;
+  esac
+  [ -f "${override_real}" ] || { echo "[compose-override] Override is not a regular file" >&2; exit 1; }
+  [ ! -L "${override_real}" ] || { echo "[compose-override] Symlink overrides are forbidden" >&2; exit 1; }
+  COMPOSE+=(-f "${override_real}")
+  echo "[compose-override] Using runtime-only override under .runtime/"
+fi
 
 container_id() {
   "${COMPOSE[@]}" ps -q "${PRIMARY_SERVICE}" 2>/dev/null
