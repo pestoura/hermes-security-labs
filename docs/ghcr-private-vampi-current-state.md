@@ -135,7 +135,17 @@ For the real Hermes credential, Gate G is fail-closed on the classic PAT metadat
 X-OAuth-Scopes = read:packages
 ```
 
-The set must be exactly `read:packages`. Any additional scope causes failure. No upload, tag mutation, manifest PUT, blob upload or delete is performed to prove the absence of write/delete authority.
+In `strict` scope mode (the default and the only production-acceptable mode) the set must be exactly `read:packages`; any additional scope causes failure.
+
+An explicit `--scope-mode dev` exists for DEV runs only. It requires an approval reference and the presence of `read:packages`, tolerates additional scopes, and records:
+
+```text
+scope_posture=DEGRADED_ACCEPTED_FOR_DEV
+least_privilege_claimed=false
+production_closure_blocked_until_read_packages_only=true
+```
+
+In DEV mode Gate G asserts only authority sufficiency plus `gate_g_registry_mutation_attempted=false`; it does not assert least privilege. In both modes no upload, tag mutation, manifest PUT, blob upload or delete is performed.
 
 ## Current hard blocker
 
