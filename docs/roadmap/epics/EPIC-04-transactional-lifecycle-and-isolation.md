@@ -269,6 +269,30 @@ Current factual boundary:
 
 `AS_BUILT` and `FINAL` remain false.
 
+
+_Lifecycle unchanged: EPIC-04 is `IMPLEMENTING`; `AS_BUILT` and `FINAL` remain no. The record below states exactly what was merged and where the evidence lives, so that a future promotion decision is not made from memory or by association._
+### Exact evidence
+
+| Evidence | Value |
+| --- | --- |
+| Technical pull request | [#139](https://github.com/pestoura/hermes-security-labs/pull/139) |
+| Validated PR head | `eabe1b53a070ca8d52a5043a782bd12bf40f9212` |
+| Integrated `main` merge commit | `591552d652fbff82d81f750535799380e9c643a9` |
+| Pre-merge `validate` | success — run `31135387897` |
+| Pre-merge `security` | success — run `31135387916` |
+| Post-merge `main` `validate` | success — run `31135492132` |
+| Post-merge `main` `security` | success — run `31135492162` |
+
+The merge commit is an ancestor of `main`.
+
+### Evidence that is missing for promotion
+
+`AS_BUILT` is withheld because the epic's target state is not satisfied by repository-level contract integration alone:
+
+- Docker lifecycle integration, real residue observation, snapshots/rollback execution and periodic orphan detection: NOT_RUN / NOT_IMPLEMENTED.
+
+`NO_RUNTIME_CHANGE`.
+
 ## 16. Document change log
 
 | Date | Version | Change |

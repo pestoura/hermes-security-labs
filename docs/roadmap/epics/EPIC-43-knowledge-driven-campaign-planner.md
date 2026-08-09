@@ -179,12 +179,57 @@ Future evidence required:
 
 > Reserved for validated operational delivery.
 
-_Not final. Repository-level deterministic proposal derivation exists, but production planning, live context integration and runtime authorization/dispatch remain incomplete/NOT_RUN._
+_Lifecycle unchanged: EPIC-43 is `IMPLEMENTING`; `AS_BUILT` and `FINAL` remain no._
+
+### What is actually built and merged
+
+- deterministic plan derivation from a canonical planning context, independent of candidate
+  input order;
+- explicit selection and exclusion rationale for every candidate;
+- content-addressed planning-context, candidate and plan identities recomputed from
+  canonical content, so post-creation tampering fails closed;
+- deterministic plan diffing restricted to proposals from the same campaign;
+- fixed non-executable semantics: `PROPOSAL_ONLY`, `executable=false`,
+  `authorization_effect=NONE`, `requires_fresh_authorization=true`,
+  `CONTROL_PLANE_ONLY`.
+
+Canonical implementation: `platform/knowledge-api/campaign_planner.py` with
+`campaign-planning-context.schema.json`, `campaign-plan-candidate.schema.json`,
+`campaign-plan.schema.json` and `campaign-plan-diff.schema.json`. Dedicated tests:
+`platform/tests/test_campaign_planner.py`.
+
+### Exact evidence
+
+| Evidence | Value |
+| --- | --- |
+| Technical pull request | [#194](https://github.com/pestoura/hermes-security-labs/pull/194) |
+| Validated PR head | `697b64ca5a4916d0fca99b96e16092e294002e46` |
+| Integrated `main` merge commit | `52b355b61a3d273b8d6d934ab270157dc0a34c48` |
+| Pre-merge `validate` | success — run `31232994583` |
+| Pre-merge `security` | success — run `31232994632` |
+| Post-merge `main` `validate` | success — run `31233069182` |
+| Post-merge `main` `security` | success — run `31233069181` |
+
+The merge commit is an ancestor of `main`.
+
+### Evidence that is missing for promotion
+
+The repository-level acceptance criteria in section 11 are covered, but the epic is a
+*planner*, and no planning has ever run against live state:
+
+- production planner service: `NOT_IMPLEMENTED`;
+- live asset/threat discovery and context integration: `NOT_RUN`;
+- verification that a supplied RoE contract is currently active: `NOT_IMPLEMENTED`;
+- runtime capability-registry lookup, dispatch and runner integration:
+  `NOT_IMPLEMENTED` / `NOT_RUN`.
+
+`NO_RUNTIME_CHANGE`.
 
 ## 16. Document change log
 
 | Date | Version | Change |
 | --- | --- | --- |
+| 2026-08-09 | 1.3.0 | Populated section 15 with the exact merged evidence and the explicit list of evidence still missing for promotion; lifecycle unchanged at `IMPLEMENTING`. |
 | 2026-08-06 | 1.0.0 | Initial intent document created from the concept epic catalogue. |
 | 2026-08-07 | 1.1.0 | Reconciled lifecycle to IMPLEMENTING against PR #148. |
 | 2026-08-08 | 1.2.0 | Reconciled PR #194 deterministic derivation, filtering, tamper resistance and plan-diff evidence while preserving production/runtime non-claims. |

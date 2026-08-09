@@ -185,12 +185,59 @@ Future evidence required:
 
 > Reserved for validated operational delivery.
 
-_Not final. Repository-level operational query/access/result semantics exist, but production serving, persistence, identity/RBAC and evidence/finding index integration remain incomplete/NOT_RUN._
+_Lifecycle unchanged: EPIC-45 is `IMPLEMENTING`; `AS_BUILT` and `FINAL` remain no._
+
+### What is actually built and merged
+
+- canonical operational question catalogue and content-addressed access, query, index and
+  result contracts;
+- deterministic fail-closed access filtering for asset, campaign, unscoped knowledge and
+  required index kinds, including denial when the policy does not authorize every required
+  index kind;
+- exact index and evidence-id scope carried on every result;
+- fixed sanitization and non-claims: `sanitization_state = SANITIZED_METADATA_ONLY`,
+  `raw_evidence_exposed=false`, `read_only=true`, `assurance_effect=NONE`,
+  `compliance_effect=NONE`, `execution_authority=NONE`;
+- empty or negative results never imply `PASS`.
+
+Canonical implementation: `platform/knowledge-api/operational_query.py` with
+`operational-query-access-policy.schema.json`, `operational-query-index.schema.json`,
+`operational-query-request.schema.json` and `operational-query-result.schema.json`.
+Dedicated tests: `platform/tests/test_operational_query.py` and
+`platform/tests/test_operational_query_hardening.py`.
+
+### Exact evidence
+
+| Evidence | Value |
+| --- | --- |
+| Technical pull request | [#196](https://github.com/pestoura/hermes-security-labs/pull/196) |
+| Validated PR head | `e2991e4500c14d1526c2c22f7c005974a9b29844` |
+| Integrated `main` merge commit | `54da73138b3de098e7911852616ffdc5f26d0005` |
+| Pre-merge `validate` | success — run `31233653405` |
+| Pre-merge `security` | success — run `31233653404` |
+| Post-merge `main` `validate` | success — run `31233734241` |
+| Post-merge `main` `security` | success — run `31233734226` |
+
+The merge commit is an ancestor of `main`.
+
+### Evidence that is missing for promotion
+
+The epic's target state is *operational query and discovery*; nothing is served:
+
+- HTTP API or query server: `NOT_IMPLEMENTED`;
+- persistent database/graph query engine: `NOT_IMPLEMENTED`;
+- production sanitized evidence and finding index ingestion: `NOT_RUN`;
+- upstream identity/RBAC policy source and production authorization service for query
+  access: `NOT_IMPLEMENTED` / `NOT_RUN`;
+- production temporal ingestion: `NOT_RUN`.
+
+`NO_RUNTIME_CHANGE`.
 
 ## 16. Document change log
 
 | Date | Version | Change |
 | --- | --- | --- |
+| 2026-08-09 | 1.3.0 | Populated section 15 with the exact merged evidence and the explicit list of evidence still missing for promotion; lifecycle unchanged at `IMPLEMENTING`. |
 | 2026-08-06 | 1.0.0 | Initial intent document created from the concept epic catalogue. |
 | 2026-08-07 | 1.1.0 | Reconciled lifecycle to IMPLEMENTING against PR #148. |
 | 2026-08-08 | 1.2.0 | Reconciled PR #196 canonical questions, access filtering, sanitized indexes, exact result scope and fail-closed negative-query semantics. |

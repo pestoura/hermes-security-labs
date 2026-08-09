@@ -235,6 +235,30 @@ Current state:
 
 `AS_BUILT` for the complete concept remains false and `FINAL` remains false.
 
+
+_Lifecycle unchanged: EPIC-12 is `IMPLEMENTING`; `AS_BUILT` and `FINAL` remain no. The record below states exactly what was merged and where the evidence lives, so that a future promotion decision is not made from memory or by association._
+### Exact evidence
+
+| Evidence | Value |
+| --- | --- |
+| Technical pull request | [#141](https://github.com/pestoura/hermes-security-labs/pull/141) |
+| Validated PR head | `00d174672da10e58aa4f2d87e5770e5627f05ebf` |
+| Integrated `main` merge commit | `4ff6e51f8f0ecd258c1f0bca888b77005f4ecdf8` |
+| Pre-merge `validate` | success — run `31170817757` |
+| Pre-merge `security` | success — run `31170817768` |
+| Post-merge `main` `validate` | success — run `31171061241` |
+| Post-merge `main` `security` | success — run `31171061289` |
+
+The merge commit is an ancestor of `main`.
+
+### Evidence that is missing for promotion
+
+`AS_BUILT` is withheld because the epic's target state is not satisfied by repository-level contract integration alone:
+
+- production redaction, persistence/publication enforcement, telemetry/report coverage and publication review: NOT_IMPLEMENTED / NOT_RUN.
+
+`NO_RUNTIME_CHANGE`.
+
 ## 16. Document change log
 
 | Date | Version | Change |

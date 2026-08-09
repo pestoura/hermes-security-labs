@@ -145,6 +145,36 @@ The current contract deliberately refines the first criterion: only `evidenced` 
 
 _Not final. Persistent graph storage, Attack Flow export and production path validation remain NOT_IMPLEMENTED/NOT_RUN._
 
+
+_Lifecycle unchanged: EPIC-23 is `IMPLEMENTING`; `AS_BUILT` and `FINAL` remain no. The record below states exactly what was merged and where the evidence lives, so that a future promotion decision is not made from memory or by association._
+
+### What is actually built and merged
+
+- typed attack-graph nodes, explicit hypothetical/evidenced edge semantics with evidence binding, and deterministic repository-only path/centrality analysis from PR #150 are integrated in main;
+- Attack Flow transport, graph store and production path finding remain NOT_IMPLEMENTED / NOT_RUN.
+
+### Exact evidence
+
+| Evidence | Value |
+| --- | --- |
+| Technical pull request | [#150](https://github.com/pestoura/hermes-security-labs/pull/150) |
+| Validated PR head | `7285c98a877dad21c7f0d74bec76f834c780d07f` |
+| Integrated `main` merge commit | `f865bc9e2ff86684262c4eab45af0bc2e2f8a3c5` |
+| Pre-merge `validate` | success — run `31173409373` |
+| Pre-merge `security` | success — run `31173409095` |
+| Post-merge `main` `validate` | success — run `31173980236` |
+| Post-merge `main` `security` | success — run `31173980463` |
+
+The merge commit is an ancestor of `main`.
+
+### Evidence that is missing for promotion
+
+`AS_BUILT` is withheld because the epic's target state is not satisfied by repository-level contract integration alone:
+
+- Attack Flow transport, graph store and production path finding, credential use and lateral movement: NOT_IMPLEMENTED / NOT_RUN.
+
+`NO_RUNTIME_CHANGE`.
+
 ## 16. Document change log
 
 | Date | Version | Change |

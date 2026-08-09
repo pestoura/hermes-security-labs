@@ -183,6 +183,30 @@ Not final. Repository contracts and verification logic are being implemented, bu
 
 `AS_BUILT` and `FINAL` remain false until deployed runtime evidence and umbrella acceptance criteria are satisfied.
 
+
+_Lifecycle unchanged: EPIC-28 is `IMPLEMENTING`; `AS_BUILT` and `FINAL` remain no. The record below states exactly what was merged and where the evidence lives, so that a future promotion decision is not made from memory or by association._
+### Exact evidence
+
+| Evidence | Value |
+| --- | --- |
+| Technical pull request | [#161](https://github.com/pestoura/hermes-security-labs/pull/161) |
+| Validated PR head | `c64047b6eeb308b52f0cfb46563ba91a274678e5` |
+| Integrated `main` merge commit | `316f70e7c2d319e9f5a97e47c34e58042d284974` |
+| Pre-merge `validate` | success — run `31183133643` |
+| Pre-merge `security` | success — run `31183131710` |
+| Post-merge `main` `validate` | success — run `31183572511` |
+| Post-merge `main` `security` | success — run `31183570442` |
+
+The merge commit is an ancestor of `main`.
+
+### Evidence that is missing for promotion
+
+`AS_BUILT` is withheld because the epic's target state is not satisfied by repository-level contract integration alone:
+
+- Hermes operational TB1 receipt issuance, deployed gateway enforcement and production execution: NOT_IMPLEMENTED / NOT_RUN.
+
+`NO_RUNTIME_CHANGE`.
+
 ## 16. Document change log
 
 | Date | Version | Change |

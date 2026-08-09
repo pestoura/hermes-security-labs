@@ -286,6 +286,31 @@ Current factual boundary:
 
 `AS_BUILT` and `FINAL` remain false.
 
+
+_Lifecycle unchanged: EPIC-03 is `IMPLEMENTING`; `AS_BUILT` and `FINAL` remain no. The record below states exactly what was merged and where the evidence lives, so that a future promotion decision is not made from memory or by association._
+### Exact evidence
+
+| Evidence | Value |
+| --- | --- |
+| Technical pull request | [#164](https://github.com/pestoura/hermes-security-labs/pull/164) |
+| Validated PR head | `53b0495ed86383f3e9e1132b868c67936a92b9d3` |
+| Integrated `main` merge commit | `90b3bb3a99ac5b859528c2587b3347b3571bc154` |
+| Pre-merge `validate` | success — run `31202197202` |
+| Pre-merge `security` | success — run `31202198038` |
+| Post-merge `main` `validate` | success — run `31202695801` |
+| Post-merge `main` `security` | success — run `31202694101` |
+
+The merge commit is an ancestor of `main`.
+
+### Evidence that is missing for promotion
+
+`AS_BUILT` is withheld because the epic's target state is not satisfied by repository-level contract integration alone:
+
+- deployed gateway enforcement, Kali MCP handler integration and Hermes operational receipt issuance: NOT_IMPLEMENTED / NOT_RUN;
+- production execution and runtime dispatch: NOT_RUN.
+
+`NO_RUNTIME_CHANGE`.
+
 ## 16. Document change log
 
 | Date | Version | Change |

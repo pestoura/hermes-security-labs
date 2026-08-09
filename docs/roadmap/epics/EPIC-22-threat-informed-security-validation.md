@@ -135,6 +135,36 @@ The first criterion is represented at contract level. Source/date provenance cur
 
 _Not final. Profile provenance decision, full planning integration and real emulation evidence remain incomplete/NOT_RUN._
 
+
+_Lifecycle unchanged: EPIC-22 is `IMPLEMENTING`; `AS_BUILT` and `FINAL` remain no. The record below states exactly what was merged and where the evidence lives, so that a future promotion decision is not made from memory or by association._
+
+### What is actually built and merged
+
+- critical-function and frozen-knowledge-snapshot threat profiles plus non-executable adversary-emulation planning from PR #150 are integrated in main;
+- dedicated profile source/date provenance, full asset/threat planning integration and real adversary emulation remain NOT_RUN.
+
+### Exact evidence
+
+| Evidence | Value |
+| --- | --- |
+| Technical pull request | [#150](https://github.com/pestoura/hermes-security-labs/pull/150) |
+| Validated PR head | `7285c98a877dad21c7f0d74bec76f834c780d07f` |
+| Integrated `main` merge commit | `f865bc9e2ff86684262c4eab45af0bc2e2f8a3c5` |
+| Pre-merge `validate` | success — run `31173409373` |
+| Pre-merge `security` | success — run `31173409095` |
+| Post-merge `main` `validate` | success — run `31173980236` |
+| Post-merge `main` `security` | success — run `31173980463` |
+
+The merge commit is an ancestor of `main`.
+
+### Evidence that is missing for promotion
+
+`AS_BUILT` is withheld because the epic's target state is not satisfied by repository-level contract integration alone:
+
+- dedicated profile source/date provenance, full asset/threat planning integration and real adversary emulation: NOT_RUN.
+
+`NO_RUNTIME_CHANGE`.
+
 ## 16. Document change log
 
 | Date | Version | Change |
