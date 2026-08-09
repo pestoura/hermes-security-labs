@@ -2,6 +2,8 @@ name: issue10-kind-runtime
 
 on:
   push:
+    branches:
+      - main
     paths:
       - '.github/workflows/issue10-kind-runtime.yml'
       - 'platform/environments/kubernetes/kind-rbac-synthetic/**'
