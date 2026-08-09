@@ -136,6 +136,36 @@ The current contract satisfies the fail-safe intent through `NOT_OBSERVED` and e
 
 _Not final. Live defensive telemetry integration and real Purple Team execution remain NOT_IMPLEMENTED/NOT_RUN._
 
+
+_Lifecycle unchanged: EPIC-24 is `IMPLEMENTING`; `AS_BUILT` and `FINAL` remain no. The record below states exactly what was merged and where the evidence lives, so that a future promotion decision is not made from memory or by association._
+
+### What is actually built and merged
+
+- five explicit Purple Team outcome states, evidence-required prevention/detection semantics, D3FEND references and non-negative time-to-detect/contain metrics from PR #153 are integrated in main;
+- defensive telemetry/SIEM/EDR integration, containment actions and adversary emulation remain NOT_IMPLEMENTED / NOT_RUN.
+
+### Exact evidence
+
+| Evidence | Value |
+| --- | --- |
+| Technical pull request | [#153](https://github.com/pestoura/hermes-security-labs/pull/153) |
+| Validated PR head | `647896148f0f811fee724f198e986e380c4ce767` |
+| Integrated `main` merge commit | `483db2543c4a1ee9bbfb1fcb6e440ad9e00f19e2` |
+| Pre-merge `validate` | success — run `31174234402` |
+| Pre-merge `security` | success — run `31174234764` |
+| Post-merge `main` `validate` | success — run `31174804664` |
+| Post-merge `main` `security` | success — run `31174805423` |
+
+The merge commit is an ancestor of `main`.
+
+### Evidence that is missing for promotion
+
+`AS_BUILT` is withheld because the epic's target state is not satisfied by repository-level contract integration alone:
+
+- defensive telemetry/SIEM/EDR integration, containment actions and adversary emulation: NOT_IMPLEMENTED / NOT_RUN.
+
+`NO_RUNTIME_CHANGE`.
+
 ## 16. Document change log
 
 | Date | Version | Change |
