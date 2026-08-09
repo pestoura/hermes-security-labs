@@ -1,7 +1,8 @@
 # Baseline known issues — reconciled 2026-08-09
 
 This file reconciles the operational baseline imported on 2026-07-30 with the
-repository state demonstrated on `main` through Lane N.
+repository state demonstrated on `main` through Lane N and the later runtime
+reconciliation lanes.
 
 It is deliberately conservative: repository and CI evidence never substitutes
 for live Hermes/Kali/runtime acceptance.
@@ -18,15 +19,33 @@ for live Hermes/Kali/runtime acceptance.
 
 ## Reconciled imported baseline
 
-### 1. SKILL.md — MCP URL format
+### 1. Kali MCP connectivity and registration contract
 
-**Status: `RESOLVED-REPO`**
+**Status: `RESOLVED-REPO / BLOCKED-ON-RUNTIME-ACCEPTANCE`**
 
-`skills/kali-mcp-lab/SKILL.md` now requires exclusively
-`@url:` with `http://127.0.0.1:5000` and explicitly rejects the bare and HTTPS
-variants that caused the original ambiguity.
+The earlier repository guidance that treated `@url:http://127.0.0.1:5000` as the
+normal Hermes registration path is superseded. It conflicted with the canonical
+connectivity profile and with the actual container topology observed during
+runtime reconciliation.
 
-No live Kali MCP registration is claimed by this repository-only correction.
+Repository authority is now consistent:
+
+- `kali-mcp/config/mcp-connectivity.example.yaml` prefers zero-listener STDIO via
+  `docker exec -i hermes-kali-mcp kali-server-mcp`;
+- the container-local loopback HTTP listener remains non-published and is not the
+  normal host Hermes transport;
+- `skills/kali-mcp-lab/SKILL.md` references that same authority instead of
+  defining a competing URL contract;
+- registration must start disabled with an explicit non-matching sentinel
+  include, because current Hermes semantics treat `tools.include: []` as no
+  include filter rather than deny-all;
+- discovered tools are enabled only as an exact literal accepted subset after
+  discovery/policy review; resources and prompts remain disabled unless
+  separately needed and accepted.
+
+This resolves the repository contradiction only. Live closure still requires
+bounded proof of the two-stage STDIO registration path and the final
+`registered -> reachable -> healthy -> policy-compliant` state.
 
 ### 2. Juice Shop healthcheck depends on wget
 
