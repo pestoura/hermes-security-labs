@@ -1,8 +1,8 @@
 # Hermes Security Labs — current walking-skeleton status
 
 **Reconciled:** 2026-08-09  
-**Exact-green repository baseline before live acceptance:**
-`b71b8d4bcdb781525c08feea9dec268345a5ad3b` (Lane O / PR #298)
+**Latest exact-green repository baseline before this update:**
+`63357eb02eb82a999aec53cf15dad1aa01dd59d0` (Lane P / PR #299)
 
 This document is the concise status view for the currently demonstrated
 walking skeleton. It distinguishes repository/CI proof from live Hermes runtime
@@ -16,6 +16,10 @@ proof. It does not replace the canonical registries, policies or roadmap.
   component and the required shipped repository capabilities exist.
 - `PRESENT-NOT-IMPLEMENTED` — the typed contract exists, but the controlled
   effect is not implemented/accepted.
+- `READY-RUNTIME` — the specific live runtime condition was observed healthy;
+  this does not imply later stages are accepted.
+- `RESOLVED-RUNTIME` — a previously observed runtime blocker was subsequently
+  observed cleared without inference.
 - `BLOCKED-ON-RUNTIME` — closure requires an authorized live Hermes/lab/tool
   observation and cannot be inferred from CI.
 - `BLOCKED-ON-CREDENTIAL` — a least-privilege credential or external permission
@@ -31,8 +35,9 @@ Target delivery path:
 
 | Stage | Repository/CI state | Live runtime state | Canonical source |
 | --- | --- | --- | --- |
-| Authorize | `GREEN-REPO` — target registry and deny-before-dispatch boundary | requires live authorized target/window | `platform/targets/` |
-| Provision | `READY-REPO` for Docker backend | `BLOCKED-ON-RUNTIME` before admission: RTA-001 stale drain | `platform/backends/backend-registry.yaml` |
+| Authorize | `GREEN-REPO` — target registry and deny-before-dispatch boundary | policy gate is active; approval issuance currently blocked by RTA-003 for gated host inspection | `platform/targets/` + Hermes policy |
+| Admission | repository-independent live gate | `READY-RUNTIME` — gateway recovered naturally to `running`, `active_api_runs=0`, `active_agents=0`, `accepting_new_work=true` | Hermes health/readiness |
+| Provision | `READY-REPO` for Docker backend | host/runtime reconciliation cannot proceed through policy because RTA-003 returns no approval ID | `platform/backends/backend-registry.yaml` |
 | Readiness | `GREEN-REPO` manifests + adapters; core adapters added for WebGoat/WebWolf, DVWA and Juice Shop | `BLOCKED-ON-RUNTIME` | `platform/lab-readiness/` |
 | Plan scenario | `GREEN-REPO` deterministic inert Scenario Plan Composer | not an execution claim | `platform/scenario-registry/scenario_plan.py` |
 | Execute bounded scenario | typed operations/tools/scenarios are registered; only gateway health is currently `READY` in the semantic tool bridge | `BLOCKED-ON-RUNTIME`; non-health controlled effects remain `PRESENT-NOT-IMPLEMENTED` | `platform/scenario-registry/tool-registry.yaml` |
@@ -42,22 +47,25 @@ Target delivery path:
 
 ## Live runtime acceptance checkpoint
 
-The first live acceptance pass after Lane O is recorded in
+The live acceptance pass is recorded in
 [`runtime-acceptance-checkpoint-2026-08-09.md`](runtime-acceptance-checkpoint-2026-08-09.md).
 
-It established two independent runtime blockers without executing any target or
-mutating a lab:
+Current runtime state from that pass:
 
-- **RTA-001 — `STALE_DRAIN`:** active API work naturally reduced from five runs
-  to zero, but the Hermes gateway remained `draining`, admission remained closed
-  and `gateway_drainable=false`. No restart or admission bypass was attempted.
-- **RTA-002 — `KALI_MCP_NOT_REGISTERED`:** two portal inventory observations
-  exposed only `hermes-agent-bridge`; no Kali MCP server was registered/live in
-  the portal inventory.
-
-The historical `waiting_for_approval + approval_id=null` condition remains a
-known risk but was `NOT_RUN` in this pass because RTA-001 blocked new admission
-first.
+- **RTA-001 — `STALE_DRAIN`: `RESOLVED-RUNTIME`.** Active API work naturally
+  reduced from five runs to zero and the gateway briefly remained `draining`;
+  without restart, cancellation or forced admission it later returned to
+  `gateway_state=running`, `active_agents=0`, `gateway_drainable=true` and
+  `accepting_new_work=true`. This remains an operational lifecycle observation,
+  but it is not a current blocker.
+- **RTA-002 — `KALI_MCP_NOT_REGISTERED`: `BLOCKED-ON-RUNTIME`.** Two portal
+  inventory observations exposed only `hermes-agent-bridge`; no Kali MCP server
+  was registered/live in the portal inventory. Root cause remains unobserved.
+- **RTA-003 — `APPROVAL_ID_NULL`: `BLOCKED-ON-RUNTIME`.** After admission was
+  READY, the bounded read-only Kali reconciliation request was policy-gated with
+  `approval_required=true`, but returned `approval_id=null` and
+  `execution_id=not-created`. The request was not relabelled or retried to evade
+  policy, and no inspection/mutation occurred.
 
 ## Seeded scenario status
 
@@ -88,12 +96,13 @@ No non-Docker backend is promoted merely because its type exists in the model.
 
 These are runtime dependencies, not generic product backlog:
 
-1. **Recover RTA-001 safely** — return Hermes admission to
-   `gateway_state=running` and `accepting_new_work=true` through an authorized
-   operational path, without interrupting unrelated work.
-2. **Reconcile RTA-002** — after admission recovers, inspect the live Kali MCP
-   host/container/configuration read-only before proposing any registration
-   repair; historical paths are not authority.
+1. **Repair RTA-003 legitimately** — a policy-gated Hermes request must receive a
+   valid `approval_id` and be handled through the normal audited approval
+   status/respond path. Do not weaken policy or alter request labels to bypass
+   the gate.
+2. **Reconcile RTA-002 after approval works** — repeat the same bounded read-only
+   Kali MCP host/container/configuration inspection through a valid approval;
+   historical paths are not authority and blind registration is prohibited.
 3. **Core lab acceptance** — Juice Shop and WebGoat/DVWA lifecycle/readiness must
    be observed in the live isolated environment using canonical target IDs.
 4. **Kali tool functional acceptance** — WPScan writable state, Gobuster, Dirb,
@@ -112,15 +121,19 @@ Production/strict consumption must retain a classic GitHub credential with
 exactly `read:packages`; a broader DEV exception is not production acceptance.
 This dependency does not block unrelated repository-only engineering.
 
-## Known approval-path blocker
+## Active approval-path blocker
 
-A historical Hermes upstream failure mode can return:
+RTA-003 has now been reproduced live. The bounded read-only Hermes request was
+rejected with:
 
-`waiting_for_approval` with `approval_id = null`
+- `approval_required=true`;
+- `approval_id=null`;
+- `execution_id=not-created`.
 
-If reproduced during runtime acceptance, classify it as a real runtime blocker.
-Do not invent an approval identifier, bypass policy or force execution. Preserve
-state and continue only with independent safe work.
+This is a real fail-closed blocker. Do not invent an approval identifier, change
+trust labels to escape the policy decision, bypass policy or force execution.
+The approval issuance path must be repaired through its authorized Bridge/runtime
+maintenance process before the Kali root-cause inspection can continue.
 
 ## Engineering checkpoints
 
@@ -131,6 +144,7 @@ state and continue only with independent safe work.
 | M | #296 | `2a10282780bcf5f333baf074feae614303f50abf` | structured scenario Evidence Plane contract |
 | N | #297 | `da22a93f5f90938ba677cf185208af477bbab04c` | aggregate static JDS gate before runtime CI |
 | O | #298 | `b71b8d4bcdb781525c08feea9dec268345a5ad3b` | baseline/roadmap reconciliation with repo/runtime proof separation |
+| P | #299 | `63357eb02eb82a999aec53cf15dad1aa01dd59d0` | first live runtime checkpoint and durable blocker evidence |
 
 Each engineering lane was merged only after its PR gates were green and the
 resulting main commit was revalidated at the exact SHA.
@@ -161,6 +175,6 @@ queue rather than an ambiguous backlog.
 
 **State:** `DECISION`.
 
-**Next action:** recover RTA-001 through an authorized operational path; then
-reconcile the live Kali MCP state read-only before any registration or lab
-mutation. Do not bypass admission or approval policy.
+**Next action:** repair the legitimate approval issuance path for RTA-003. Once a
+valid approval ID can be issued and audited, repeat the exact bounded read-only
+Kali reconciliation to determine RTA-002 root cause. No approval or policy bypass.
