@@ -3,7 +3,7 @@ kind: ChangeRecord
 id: CHG-HSL-001
 product: hermes-security-labs
 classification: BUGFIX
-state: VALIDATING
+state: ACCEPTED
 disposition: FIX_NOW
 summary: Align the new JDS-002 release-governance workflow with mandatory Security Labs CI hygiene by pinning all external actions to immutable SHAs and declaring an event-trigger concurrency group.
 source:
@@ -19,9 +19,9 @@ branch: feat/jds-002-release-governance
 issue: null
 pr: 320
 validation:
-  targeted: NOT_RUN
-  regression: NOT_RUN
-  security: NOT_RUN
+  targeted: PASS
+  regression: PASS
+  security: PASS
   runtime: NOT_APPLICABLE
 promotion:
   commit: null
@@ -30,5 +30,5 @@ promotion:
 deferredTo: null
 timestamps:
   discoveredAt: '2026-08-09T21:19:30Z'
-  updatedAt: '2026-08-09T21:20:00Z'
+  updatedAt: '2026-08-09T21:23:50Z'
   closedAt: null
