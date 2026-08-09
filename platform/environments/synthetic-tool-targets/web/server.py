@@ -20,13 +20,11 @@ def database() -> sqlite3.Connection:
 class Handler(BaseHTTPRequestHandler):
     server_version = "Hex0rSynthetic/1.0"
 
-    def _reply(self, status: int, body: str, *, location: str | None = None) -> None:
+    def _reply(self, status: int, body: str) -> None:
         data = body.encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "text/plain; charset=utf-8")
         self.send_header("Content-Length", str(len(data)))
-        if location:
-            self.send_header("Location", location)
         self.end_headers()
         self.wfile.write(data)
 
@@ -54,7 +52,10 @@ class Handler(BaseHTTPRequestHandler):
         length = int(self.headers.get("Content-Length", "0"))
         values = parse_qs(self.rfile.read(length).decode("utf-8"))
         if values.get("user", [""])[0] == USER and values.get("pass", [""])[0] == PASSWORD:
-            self._reply(302, "ok\n", location="/welcome")
+            # Keep the success control deliberately simple. Hydra uses the absence of the
+            # fixed failure marker below as its positive control; redirects introduce
+            # unrelated HTTP-follow behaviour into what should be a deterministic fixture.
+            self._reply(200, "authenticated labuser\n")
         else:
             self._reply(200, "invalid credentials\n")
 
