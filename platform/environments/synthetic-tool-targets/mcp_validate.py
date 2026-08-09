@@ -28,6 +28,15 @@ def _payload(result: Any) -> dict[str, Any]:
     raise RuntimeError("MCP tool did not return a mapping payload")
 
 
+def _diagnostic_payload(payload: dict[str, Any]) -> str:
+    allowed = {
+        key: payload.get(key)
+        for key in ("success", "return_code", "returncode", "stdout", "stderr", "command")
+        if key in payload
+    }
+    return json.dumps(allowed, sort_keys=True)
+
+
 async def main() -> None:
     server = StdioServerParameters(
         command="mcp-server",
@@ -53,7 +62,10 @@ async def main() -> None:
             )
             sql_text = (str(sqlmap.get("stdout", "")) + str(sqlmap.get("stderr", ""))).lower()
             if not sqlmap.get("success") or "inject" not in sql_text:
-                raise RuntimeError("sqlmap MCP control did not demonstrate synthetic injection")
+                raise RuntimeError(
+                    "sqlmap MCP control did not demonstrate synthetic injection: "
+                    + _diagnostic_payload(sqlmap)
+                )
 
             hydra = _payload(
                 await session.call_tool(
@@ -69,7 +81,10 @@ async def main() -> None:
             )
             hydra_text = (str(hydra.get("stdout", "")) + str(hydra.get("stderr", ""))).lower()
             if not hydra.get("success") or "labuser" not in hydra_text or "labpass" not in hydra_text:
-                raise RuntimeError("hydra MCP control did not recover the fixed synthetic credential")
+                raise RuntimeError(
+                    "hydra MCP control did not recover the fixed synthetic credential: "
+                    + _diagnostic_payload(hydra)
+                )
 
             enum4linux = _payload(
                 await session.call_tool(
@@ -80,7 +95,10 @@ async def main() -> None:
             enum_text = (str(enum4linux.get("stdout", "")) + str(enum4linux.get("stderr", ""))).lower()
             if not enum4linux.get("success") or not ({"controlled", "workgroup"} & set(enum_text.replace("[", " ").replace("]", " ").split())):
                 if "controlled" not in enum_text and "workgroup" not in enum_text:
-                    raise RuntimeError("enum4linux MCP control did not enumerate the synthetic Samba fixture")
+                    raise RuntimeError(
+                        "enum4linux MCP control did not enumerate the synthetic Samba fixture: "
+                        + _diagnostic_payload(enum4linux)
+                    )
 
             print(
                 json.dumps(
