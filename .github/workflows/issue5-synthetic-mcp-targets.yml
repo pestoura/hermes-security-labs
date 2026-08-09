@@ -75,6 +75,18 @@ jobs:
           docker exec synthetic-kali python3 /tmp/mcp_validate.py > /tmp/issue5-diagnostic.txt 2>&1
           rc=$?
           set -e
+          if [ "$rc" -ne 0 ]; then
+            {
+              echo
+              echo '--- Kali API server log ---'
+              docker logs synthetic-kali 2>&1 || true
+              echo
+              echo '--- Installed MCP Kali package ---'
+              docker exec synthetic-kali dpkg-query -W -f='${Package} ${Version}\n' mcp-kali-server 2>&1 || true
+              echo '--- Tool paths ---'
+              docker exec synthetic-kali sh -c 'command -v sqlmap; command -v hydra; command -v enum4linux; command -v enum4linux-ng' 2>&1 || true
+            } >> /tmp/issue5-diagnostic.txt
+          fi
           cat /tmp/issue5-diagnostic.txt
           if [ "$rc" -ne 0 ]; then
             exit "$rc"
