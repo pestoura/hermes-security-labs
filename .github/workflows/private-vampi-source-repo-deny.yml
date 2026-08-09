@@ -1,0 +1,101 @@
+name: Private VAmPI source-repo access deny
+
+on:
+  push:
+    branches:
+      - main
+      - 'lane/**'
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: read
+
+env:
+  IMAGE_REF: ghcr.io/pestoura/hermes-private-vampi@sha256:b1b66324a2d35cfe55e3edcd81f9f3c012907c71367df37f83d9ef63b500b3d3
+
+jobs:
+  source-repo-deny:
+    name: Prove public source repository has no private package read access
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Set up isolated Docker configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker_dir="${RUNNER_TEMP}/hermes-source-repo-deny-docker"
+          mkdir -p "$docker_dir"
+          chmod 700 "$docker_dir"
+          printf '{"auths":{}}\n' > "${docker_dir}/config.json"
+          chmod 600 "${docker_dir}/config.json"
+          echo "DOCKER_CONFIG=${docker_dir}" >> "$GITHUB_ENV"
+
+      - name: Prove GHCR is reachable
+        shell: bash
+        run: |
+          set -euo pipefail
+          status="$(curl --silent --show-error --output /tmp/ghcr-v2-body --write-out '%{http_code}' https://ghcr.io/v2/ || true)"
+          if [[ "$status" != "401" ]]; then
+            echo "Expected GHCR registry challenge HTTP 401, got ${status:-transport-error}" >&2
+            exit 1
+          fi
+
+      - name: Authenticate with this repository GITHUB_TOKEN
+        shell: bash
+        env:
+          GHCR_REPOSITORY_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$GHCR_REPOSITORY_TOKEN" | docker login ghcr.io --username "${GITHUB_ACTOR}" --password-stdin >/dev/null
+          unset GHCR_REPOSITORY_TOKEN
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5
+        with:
+          driver: docker-container
+
+      - name: Prove exact private digest is denied to source repository token
+        shell: bash
+        run: |
+          set -euo pipefail
+          out="${RUNNER_TEMP}/source-repo-inspect.out"
+          err="${RUNNER_TEMP}/source-repo-inspect.err"
+
+          set +e
+          docker buildx imagetools inspect "$IMAGE_REF" >"$out" 2>"$err"
+          rc=$?
+          set -e
+
+          if [[ "$rc" -eq 0 ]]; then
+            echo "FAIL: public source repository GITHUB_TOKEN can read the private VAmPI digest" >&2
+            exit 1
+          fi
+
+          if ! grep -Eiq 'unauthorized|denied|forbidden|insufficient[_ -]?scope|permission|(^|[^0-9])403([^0-9]|$)' "$err"; then
+            echo "FAIL: private-digest inspection failed for a reason other than access denial" >&2
+            sed -E 's/[[:cntrl:]]//g' "$err" | head -n 20 >&2
+            exit 1
+          fi
+
+          {
+            echo '### Private VAmPI source-repository deny gate'
+            echo
+            echo "- Exact digest: \`$IMAGE_REF\`"
+            echo '- Credential: ephemeral `GITHUB_TOKEN` from `pestoura/hermes-security-labs`'
+            echo '- Requested workflow permission: `packages: read`'
+            echo '- GHCR authentication: `PASS`'
+            echo '- Exact private-digest read: `DENIED`'
+            echo '- Package/runtime mutation: `none`'
+            echo '- Long-lived credential used: `none`'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Remove isolated Docker configuration
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker logout ghcr.io >/dev/null 2>&1 || true
+          rm -rf "${RUNNER_TEMP}/hermes-source-repo-deny-docker"
