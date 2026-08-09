@@ -116,6 +116,21 @@ mechanical part of this contract: document count, identifier uniqueness, mandato
 status values, mapping validity, dependency validity and link resolution. Semantic quality
 remains a human review responsibility.
 
+Promotion itself is gated separately and fail-closed by
+`roadmap/tests/test_lifecycle_evidence_gate.py`:
+
+- every concept epic must declare a known lifecycle state;
+- an `AS_BUILT` or `FINAL` epic must cite at least one exact 40-character commit SHA **and**
+  at least one CI run identifier in section 15, satisfying section 6 mechanically;
+- an `AS_BUILT` or `FINAL` epic must declare the reached states in its section 2 table;
+- an `INTENT` or `IMPLEMENTING` epic must never declare `AS_BUILT` or `FINAL` reached;
+- section 15 must not contain credential-shaped material.
+
+The gate proves that cited evidence exists and is exact. It deliberately does not judge
+whether that evidence satisfies the acceptance criteria in section 11: promotion by
+association, by umbrella closure or by indirect coverage remains prohibited and remains a
+human review decision.
+
 ## 9. Related documents
 
 - [Platform v2 intent](security-validation-platform-v2-intent.md)
