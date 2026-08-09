@@ -9,6 +9,8 @@ adapter cannot become executable merely by being imported or installed.
 Safety boundaries:
 - fixed target: ``webgoat-web`` -> ``http://webgoat:8080/WebGoat/``;
 - fixed capabilities: ``web.discovery.headers`` and ``web.discovery.tls``;
+- consumes only the canonical gateway -> Runner Protocol v2 operation envelope;
+- target envelope is fixed to ``lab-asset:webgoat-web``;
 - no raw URL/host/port/path input;
 - no shell, subprocess, scanner, redirect following, credentials or egress;
 - durable idempotency is required before any effect;
@@ -41,6 +43,18 @@ TARGET_HOST = "webgoat"
 TARGET_PORT = 8080
 TARGET_PATH = "/WebGoat/"
 TARGET_SCHEME = "http"
+TARGET_ENVELOPE = {"type": "lab-asset", "value": TARGET_ID}
+EXPECTED_OPERATION_VERSION = "1.0.0"
+EXPECTED_INTRUSIVENESS = "L1"
+CANONICAL_INPUT_KEYS = frozenset(
+    {
+        "operation_id",
+        "operation_version",
+        "intrusiveness_level",
+        "target",
+        "parameters",
+    }
+)
 SUPPORTED_CAPABILITIES = frozenset(
     {"web.discovery.headers", "web.discovery.tls"}
 )
@@ -273,17 +287,55 @@ class WebGoatL1RunnerAdapter:
             return _error(
                 "INVALID_REQUEST",
                 "validation",
-                "Operation input must be an object",
+                "Operation input must be the canonical gateway handoff object",
+            )
+        if set(payload) != CANONICAL_INPUT_KEYS:
+            return _error(
+                "INVALID_REQUEST",
+                "validation",
+                "Operation input does not match the canonical gateway handoff envelope",
+            )
+        if payload.get("operation_id") != capability_id:
+            return _error(
+                "INVALID_REQUEST",
+                "validation",
+                "Operation identity does not match the requested capability",
+            )
+        if payload.get("operation_version") != EXPECTED_OPERATION_VERSION:
+            return _error(
+                "INVALID_REQUEST",
+                "validation",
+                "Operation version is not accepted by the WebGoat L1 adapter",
+            )
+        if payload.get("intrusiveness_level") != EXPECTED_INTRUSIVENESS:
+            return _error(
+                "INVALID_REQUEST",
+                "validation",
+                "Operation intrusiveness does not match the WebGoat L1 contract",
+            )
+        if payload.get("target") != TARGET_ENVELOPE:
+            return _error(
+                "INVALID_REQUEST",
+                "validation",
+                "Runner target envelope does not match lab-asset:webgoat-web",
+            )
+
+        parameters = payload.get("parameters")
+        if not isinstance(parameters, dict):
+            return _error(
+                "INVALID_REQUEST",
+                "validation",
+                "Operation parameters must be an object",
             )
         if capability_id == "web.discovery.headers":
-            unknown = set(payload) - {"follow_redirects"}
+            unknown = set(parameters) - {"follow_redirects"}
             if unknown:
                 return _error(
                     "INVALID_REQUEST",
                     "validation",
-                    "Header discovery input contains unsupported fields",
+                    "Header discovery parameters contain unsupported fields",
                 )
-            if payload.get("follow_redirects", False) is not False:
+            if parameters.get("follow_redirects", False) is not False:
                 return _error(
                     "INVALID_REQUEST",
                     "validation",
@@ -291,11 +343,11 @@ class WebGoatL1RunnerAdapter:
                 )
             return None
         if capability_id == "web.discovery.tls":
-            if payload:
+            if parameters:
                 return _error(
                     "INVALID_REQUEST",
                     "validation",
-                    "TLS discovery accepts no operation input",
+                    "TLS discovery accepts no operation parameters",
                 )
             return None
         return _error(
