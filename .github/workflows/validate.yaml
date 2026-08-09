@@ -122,6 +122,26 @@ jobs:
         run: python -m pytest -q deployment/tests -p no:cacheprovider
       - name: Validate deployment tracking CLI help
         run: python deployment/deployment_tracking.py --help >/dev/null
+      - name: Validate branch inventory CLI help
+        run: python deployment/branch_inventory.py report --help >/dev/null
+      - name: Produce a read-only remote branch inventory
+        run: |
+          set -euo pipefail
+          # A shallow CI checkout may not carry refs/remotes/origin/main.
+          if ! git rev-parse --verify --quiet origin/main >/dev/null; then
+            echo "BRANCH_INVENTORY_SKIPPED no origin/main in this checkout"
+            exit 0
+          fi
+          rc=0
+          python deployment/branch_inventory.py report \
+            --output /tmp/branch-inventory.json >/dev/null || rc=$?
+          # 0 = no candidates, 1 = prune candidates present. Both are valid
+          # states; only 2+ (UNKNOWN or usage) fails the gate.
+          if [ "$rc" -gt 1 ]; then
+            cat /tmp/branch-inventory.json || true
+            exit "$rc"
+          fi
+          python -c "import json;d=json.load(open('/tmp/branch-inventory.json'));print('BRANCH_INVENTORY_OK',d['counts'])"
       - name: Validate Kali MCP Compose
         run: docker compose -f kali-mcp/compose.yaml config --quiet
       - name: Validate Juice Shop Compose

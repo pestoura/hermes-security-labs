@@ -95,6 +95,45 @@ deployment/rollback.sh [--dry-run] [--target-dir=DIR]
 | 4 | precondition refused (dirty tree, divergence, no snapshot) |
 | 5 | another operation holds the deployment lock (wrappers only) |
 
+## Drift classification
+
+`verify` and `drift-check` also report a `drift_class` field. It explains *what
+kind* of divergence was found and never changes the status or the exit code.
+
+| `drift_class` | Meaning |
+| --- | --- |
+| `NONE` | no findings |
+| `TRACKING_METADATA_ONLY` | every finding is deployment metadata (currently `commit_mismatch`): the checkout moved on, the applied files still match the recorded inventory |
+| `CONTENT_DRIFT` | at least one finding touches applied configuration (modified, missing, extra, mode, runner or bindings) |
+| `UNKNOWN` | the state could not be evaluated |
+
+`TRACKING_METADATA_ONLY` is the expected result on a checkout that is newer
+than the last applied deployment. It is still `DRIFT_DETECTED` with exit code
+1 — the classification exists so that an operator can tell a stale local
+checkout from a tampered target without inspecting every finding by hand.
+
+Any finding type not explicitly listed as tracking metadata is treated as
+content drift. The taxonomy fails towards the stricter class.
+
+## Tracking metadata is not implementation state
+
+`.deployment.json`, the milestone counters and the roadmap catalogues describe
+*tracking*, not *implementation*. Three separate rules:
+
+- A `DRIFT_DETECTED` / `TRACKING_METADATA_ONLY` result does **not** mean a
+  feature is missing. It means the recorded deployment commit differs from the
+  checkout.
+- A GitHub milestone counter is **not** a work register. `SVP v2 Foundation`
+  reports `open_issues=2` (and `closed_issues=2`) while all four of its issues
+  (#76, #77, #78, #80) are closed and no open issue or pull request resolves
+  against it. This is a GitHub counter divergence; the authoritative answer
+  comes from listing the milestone's issues, not from the counter.
+- Delivery status of an umbrella epic never promotes the lifecycle of a concept
+  epic. See [Epic catalogue](roadmap/epic-catalogue-45.md).
+
+Repository branch accounting has the same failure mode and is documented in
+[Repository branch hygiene](repository-branch-hygiene.md).
+
 ## Detected drift
 
 Modified file, missing file, extra in-scope file, relevant permission change,

@@ -128,6 +128,34 @@ SECRET_KEY_HINTS = (
 )
 
 
+# Drift finding taxonomy.
+#
+# "content" findings prove the applied configuration itself diverged from the
+# recorded inventory: that is real drift and always requires action.
+#
+# "tracking_metadata" findings only prove that the recorded deployment metadata
+# no longer matches the checkout (typically a stale local checkout pointing at
+# an older commit). The applied files may still be byte-identical. This is
+# expected local drift, not evidence of an unimplemented or broken deployment.
+#
+# The distinction is reported, never used to downgrade the status: any finding
+# still yields DRIFT_DETECTED.
+TRACKING_METADATA_FINDINGS = frozenset({"commit_mismatch"})
+
+DRIFT_CLASS_NONE = "NONE"
+DRIFT_CLASS_TRACKING_METADATA = "TRACKING_METADATA_ONLY"
+DRIFT_CLASS_CONTENT = "CONTENT_DRIFT"
+
+
+def classify_findings(findings: list[dict[str, Any]]) -> str:
+    """Classify drift findings as none, tracking-metadata-only or content drift."""
+    if not findings:
+        return DRIFT_CLASS_NONE
+    if all(f.get("type") in TRACKING_METADATA_FINDINGS for f in findings):
+        return DRIFT_CLASS_TRACKING_METADATA
+    return DRIFT_CLASS_CONTENT
+
+
 class TrackingError(Exception):
     """Recoverable error with a stable exit code."""
 
@@ -577,6 +605,7 @@ def evaluate(target: Path, state_file: Path, repo: Path | None) -> dict[str, Any
             raise TrackingError("recorded commit is unknown to the repository", EXIT_UNKNOWN)
 
     result["status"] = "IN_SYNC" if not findings else "DRIFT_DETECTED"
+    result["drift_class"] = classify_findings(findings)
     return result
 
 
@@ -596,12 +625,22 @@ def cmd_drift(args: argparse.Namespace) -> int:
     try:
         report = evaluate(target, state_file, repo)
     except TrackingError as exc:
-        print(json.dumps({"status": "UNKNOWN", "reason": str(exc)}, indent=2, sort_keys=True))
+        print(
+            json.dumps(
+                {"status": "UNKNOWN", "drift_class": "UNKNOWN", "reason": str(exc)},
+                indent=2,
+                sort_keys=True,
+            )
+        )
         return EXIT_UNKNOWN
     except Exception as exc:  # never fail open
         print(
             json.dumps(
-                {"status": "UNKNOWN", "reason": f"unexpected error: {type(exc).__name__}"},
+                {
+                    "status": "UNKNOWN",
+                    "drift_class": "UNKNOWN",
+                    "reason": f"unexpected error: {type(exc).__name__}",
+                },
                 indent=2,
                 sort_keys=True,
             )
@@ -609,6 +648,7 @@ def cmd_drift(args: argparse.Namespace) -> int:
         return EXIT_UNKNOWN
     payload = {
         "status": report["status"],
+        "drift_class": report["drift_class"],
         "commit": report.get("commit"),
         "findings": report["findings"],
     }

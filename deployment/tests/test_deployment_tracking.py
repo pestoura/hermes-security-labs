@@ -203,6 +203,62 @@ def test_commit_mismatch_is_drift(deployed):
     assert any(f["type"] == "commit_mismatch" for f in report["findings"])
 
 
+def test_in_sync_has_no_drift_class(deployed):
+    repo, target, _ = deployed
+    _, report = drift(target, repo)
+    assert report["drift_class"] == dt.DRIFT_CLASS_NONE
+
+
+def test_stale_checkout_is_classified_as_tracking_metadata_only(deployed):
+    """A stale local checkout is expected drift, not a broken deployment."""
+    repo, target, _ = deployed
+    (repo / "config" / "packages.txt").write_text("nmap\ncurl\n", encoding="utf-8")
+    run_git(repo, "add", "-A")
+    run_git(repo, "commit", "-qm", "second")
+    rc, report = drift(target, repo)
+    assert rc == dt.EXIT_DRIFT
+    assert report["status"] == "DRIFT_DETECTED"
+    assert report["drift_class"] == dt.DRIFT_CLASS_TRACKING_METADATA
+    assert {f["type"] for f in report["findings"]} == {"commit_mismatch"}
+
+
+def test_content_drift_outranks_tracking_metadata(deployed):
+    repo, target, _ = deployed
+    (repo / "config" / "packages.txt").write_text("nmap\ncurl\n", encoding="utf-8")
+    run_git(repo, "add", "-A")
+    run_git(repo, "commit", "-qm", "second")
+    (target / "compose.yaml").write_text("services: {changed: 1}\n", encoding="utf-8")
+    rc, report = drift(target, repo)
+    assert rc == dt.EXIT_DRIFT
+    assert report["drift_class"] == dt.DRIFT_CLASS_CONTENT
+
+
+def test_tracking_metadata_class_never_downgrades_the_status(deployed):
+    """Classification is informational: it must not turn drift into IN_SYNC."""
+    repo, target, _ = deployed
+    (repo / "config" / "packages.txt").write_text("nmap\ncurl\n", encoding="utf-8")
+    run_git(repo, "add", "-A")
+    run_git(repo, "commit", "-qm", "second")
+    rc, report = drift(target, repo)
+    assert rc != dt.EXIT_OK
+    assert report["status"] != "IN_SYNC"
+
+
+def test_unknown_reports_unknown_drift_class(deployed):
+    repo, target, state_file = deployed
+    state_file.unlink()
+    _, report = drift(target, repo)
+    assert report["status"] == "UNKNOWN"
+    assert report["drift_class"] == "UNKNOWN"
+
+
+def test_classify_findings_is_pure_and_total():
+    assert dt.classify_findings([]) == dt.DRIFT_CLASS_NONE
+    assert dt.classify_findings([{"type": "commit_mismatch"}]) == dt.DRIFT_CLASS_TRACKING_METADATA
+    assert dt.classify_findings([{"type": "modified_file"}]) == dt.DRIFT_CLASS_CONTENT
+    assert dt.classify_findings([{"type": "unheard-of"}]) == dt.DRIFT_CLASS_CONTENT
+
+
 def test_outdated_runner_detected(deployed):
     repo, target, _ = deployed
     (target / dt.RUNNER_PATHS[0]).write_text("# stale runner\n", encoding="utf-8")

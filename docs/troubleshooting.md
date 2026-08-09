@@ -26,6 +26,66 @@ bash deployment/drift-check.sh
 Se o alvo está correto e o repositório é que divergiu, corrigir por PR. Nunca editar
 `.deployment.json` à mão.
 
+## DRIFT_DETECTED só com `commit_mismatch`
+
+**Sintoma.** `drift-check.sh` devolve exit 1 e o único finding é
+`commit_mismatch`. Um checkout local desatualizado produz exactamente isto.
+
+**Diagnóstico.**
+
+```bash
+bash deployment/drift-check.sh | head -40
+git log --oneline -1
+```
+
+O campo `drift_class` responde directamente:
+
+- `TRACKING_METADATA_ONLY` — o conteúdo aplicado continua a bater certo com o
+  inventário; só a metadata de deployment é que ficou para trás. É drift
+  esperado, não é defeito nem funcionalidade em falta.
+- `CONTENT_DRIFT` — há pelo menos um ficheiro aplicado divergente. Investigar.
+- `UNKNOWN` — não há prova suficiente. Nunca tratar como `IN_SYNC`.
+
+**Ação.** Em `TRACKING_METADATA_ONLY`, alinhar o checkout (`git fetch` +
+`git merge --ff-only origin/main`) e reaplicar quando for a altura própria. Não
+existe correção a fazer no código por causa deste resultado.
+
+## Milestone com contador de issues abertas errado
+
+**Sintoma.** `gh api repos/pestoura/hermes-security-labs/milestones` mostra
+`open_issues` diferente de zero num milestone cujas issues estão todas fechadas
+(caso conhecido: `SVP v2 Foundation`, `open_issues=2`, issues #76, #77, #78 e
+#80 todas fechadas).
+
+**Diagnóstico.**
+
+```bash
+gh issue list --milestone "SVP v2 Foundation" --state all --json number,state
+gh pr list --state all --search 'milestone:"SVP v2 Foundation"' --json number,state
+```
+
+**Ação.** Se a listagem não devolve nenhuma issue nem PR aberta, é divergência
+do contador do GitHub, não trabalho por fazer. A fonte de verdade é a listagem.
+Não abrir issues nem alterar o roadmap com base no contador.
+
+## Muitas branches remotas por apagar
+
+**Sintoma.** `git branch -r --no-merged origin/main` devolve uma contagem
+elevada.
+
+**Diagnóstico.**
+
+```bash
+git fetch --prune origin
+python3 deployment/branch_inventory.py report --output /tmp/branch-inventory.json
+```
+
+**Ação.** `--no-merged` é enganador com squash merges. Usar a classificação do
+inventário (`MERGED_REACHABLE`, `NO_UNIQUE_COMMITS`, `UNIQUE_COMMITS`,
+`UNKNOWN`) e tratar apenas as duas primeiras como candidatas. A eliminação é
+manual e autorizada à parte; ver
+[Repository branch hygiene](repository-branch-hygiene.md).
+
 ## Tool unavailable
 
 **Sintoma.** A descoberta MCP devolve menos de 12 ferramentas, ou uma ferramenta
