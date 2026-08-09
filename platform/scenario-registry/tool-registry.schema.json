@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hexor.local/schemas/tool-registry-1.0.0.json",
+  "title": "Hexor Tool Registry (Lane F)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "contract", "tools"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["registry_id", "forbidden_execution", "availability_states"],
+      "properties": {
+        "registry_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{2,127}$"},
+        "forbidden_execution": {"const": "generic_execution"},
+        "availability_states": {
+          "type": "array",
+          "items": {"enum": ["PRESENT", "READY", "DEGRADED", "FAILED", "UNSUPPORTED"]}
+        }
+      }
+    },
+    "tools": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/tool"}
+    }
+  },
+  "$defs": {
+    "tool": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tool_id",
+        "name",
+        "category",
+        "execution_backend",
+        "version_policy",
+        "availability",
+        "parallel_safe",
+        "target_types",
+        "risk",
+        "timeout",
+        "output_format",
+        "mapped_operation"
+      ],
+      "properties": {
+        "tool_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{2,127}$"},
+        "name": {"type": "string", "minLength": 1},
+        "category": {"type": "string", "minLength": 1},
+        "purpose": {"type": "string", "minLength": 1},
+        "execution_backend": {"type": "string", "minLength": 1},
+        "version_policy": {"type": "string", "minLength": 1},
+        "availability": {"enum": ["PRESENT", "READY", "DEGRADED", "FAILED", "UNSUPPORTED"]},
+        "availability_basis": {"type": "string", "minLength": 1},
+        "parallel_safe": {"type": "boolean"},
+        "target_types": {"type": "array", "items": {"type": "string"}},
+        "risk": {"enum": ["L0", "L1", "L2", "L3", "L4"]},
+        "timeout": {"type": "string", "pattern": "^[0-9]+[smh]$"},
+        "output_format": {"type": "string", "minLength": 1},
+        "evidence_parser": {"type": "string", "minLength": 1},
+        "health_check": {"type": "string", "minLength": 1},
+        "mapped_operation": {"type": "string", "pattern": "^(?:UNMAPPED|[a-z0-9][a-z0-9._-]{2,127})$"},
+        "scenario_refs": {"type": "array", "items": {"type": "string"}}
+      }
+    }
+  }
+}

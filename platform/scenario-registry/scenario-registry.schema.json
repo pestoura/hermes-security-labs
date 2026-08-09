@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hexor.local/schemas/scenario-registry-1.0.0.json",
+  "title": "Hexor Scenario Registry (Lane F)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "contract", "scenarios"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["registry_id", "canonical_authority", "fail_closed", "forbidden_fields"],
+      "properties": {
+        "registry_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{2,127}$"},
+        "canonical_authority": {"const": "target_id"},
+        "fail_closed": {"const": true},
+        "forbidden_fields": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "scenarios": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/scenario"}
+    }
+  },
+  "$defs": {
+    "scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scenario_id",
+        "title",
+        "environment_id",
+        "objective",
+        "required_authorization",
+        "semantic_operations",
+        "preconditions",
+        "steps",
+        "expected_signals",
+        "success_criteria",
+        "cleanup_reset",
+        "risk_intrusiveness",
+        "evidence_requirements"
+      ],
+      "properties": {
+        "scenario_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{2,127}$"},
+        "title": {"type": "string", "minLength": 1},
+        "environment_id": {"type": "string", "minLength": 1},
+        "lab_id": {"type": "string", "minLength": 1},
+        "objective": {"type": "string", "minLength": 1},
+        "required_authorization": {"$ref": "#/$defs/authorization"},
+        "semantic_operations": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{2,127}$"}
+        },
+        "preconditions": {"type": "array", "items": {"type": "string"}},
+        "steps": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/step"}},
+        "expected_signals": {"type": "array", "items": {"type": "string"}},
+        "success_criteria": {"type": "array", "items": {"type": "string"}},
+        "cleanup_reset": {"type": "array", "items": {"type": "string"}},
+        "risk_intrusiveness": {"enum": ["L0", "L1", "L2", "L3", "L4"]},
+        "evidence_requirements": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "authorization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["class", "target_id", "binding_placeholder"],
+      "properties": {
+        "class": {"enum": ["LAB_ONLY", "AUTHORIZED_TEST_TARGET"]},
+        "target_id": {"type": "string", "minLength": 1},
+        "binding_placeholder": {"type": "string", "minLength": 1}
+      }
+    },
+    "step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["description"],
+      "properties": {
+        "operation": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{2,127}$"},
+        "runbook_ref": {"type": "string", "minLength": 1},
+        "description": {"type": "string", "minLength": 1},
+        "parameters": {"type": "object"}
+      }
+    }
+  }
+}
