@@ -1,0 +1,62 @@
+# Recorded maturity verdicts for platform/environments.
+# Regenerate intentionally: any change here is a deliberate maturity decision.
+# Verify with: python3 platform/scripts/lab_audit.py baseline-check
+version: 1
+verdicts:
+  ad-cs-pki-lab: CATALOG-ONLY
+  ad-forest-lab: CATALOG-ONLY
+  agentic-supply-chain-lab: CATALOG-ONLY
+  android-pentest-lab: CATALOG-ONLY
+  aws-misconfig-lab: CATALOG-ONLY
+  azure-ad-lab: CATALOG-ONLY
+  bicepgoat: CATALOG-ONLY
+  cdkgoat: CATALOG-ONLY
+  cfngoat: CATALOG-ONLY
+  cicd-goat: CATALOG-ONLY
+  cloudtrail-intel: CATALOG-ONLY
+  crapi: DEGRADED
+  damn-vulnerable-llm-agent: CATALOG-ONLY
+  damn-vulnerable-sca: CATALOG-ONLY
+  dvapi: DEGRADED
+  dvwa: PASS
+  firewall-hardening: CATALOG-ONLY
+  gcp-iam-triage: CATALOG-ONLY
+  gitlab-ci-hardening: CATALOG-ONLY
+  goad-mini-future: CATALOG-ONLY
+  graphql-vulnerable-lab: PASS
+  hackthebox-api-lab: CATALOG-ONLY
+  ios-pentest-lab: CATALOG-ONLY
+  jenkins-insecure-pipeline: CATALOG-ONLY
+  juice-shop: DEGRADED
+  k8s-etcd-security: CATALOG-ONLY
+  k8s-hardening-lab: CATALOG-ONLY
+  k8s-misconfig-playground: CATALOG-ONLY
+  k8s-rook-ceph: CATALOG-ONLY
+  kerberos-delegation-lab: CATALOG-ONLY
+  kind-rbac-synthetic: CATALOG-ONLY
+  linux-priv-esc: CATALOG-ONLY
+  llmforge: CATALOG-ONLY
+  mcp-agent-abuse: CATALOG-ONLY
+  metasploitable-vm-pilot: CATALOG-ONLY
+  mobile-api-abuse: CATALOG-ONLY
+  model-extraction-lab: CATALOG-ONLY
+  network-emulation-future-hardware: CATALOG-ONLY
+  network-pivot-lab: CATALOG-ONLY
+  nodegoat: DEGRADED
+  owasp-juice-shop: CATALOG-ONLY
+  plc-hacking-lab: CATALOG-ONLY
+  prompt-injection-lab: CATALOG-ONLY
+  promptme: CATALOG-ONLY
+  pygoat: PASS
+  rag-poisoning-lab: CATALOG-ONLY
+  sast-dast-pipeline: CATALOG-ONLY
+  scada-ics-lab: CATALOG-ONLY
+  synthetic-tool-targets: CATALOG-ONLY
+  terragoat: CATALOG-ONLY
+  tool-poisoning-lab: CATALOG-ONLY
+  vampi: PASS
+  vulnerable-mcp-servers: CATALOG-ONLY
+  webgoat: DEGRADED
+  windows-server-hardening: CATALOG-ONLY
+  wrongsecrets: PASS
+  zigbee-lab: CATALOG-ONLY

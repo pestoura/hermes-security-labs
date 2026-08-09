@@ -12,6 +12,7 @@ mantidos em Git e são a fonte de verdade. Issues do GitHub são uma vista de tr
 | Perceber como o sistema funciona | [Architecture](architecture.md) |
 | Pôr o repositório a validar localmente | [Getting started](getting-started.md) |
 | Operar laboratórios e deployment | [Operator guide](operator-guide.md) |
+| Saber se um laboratório é reprodutível | [Lab catalog maturity](lab-catalog-maturity.md) |
 | Contribuir com runbooks, labs ou runners | [Contributor guide](contributor-guide.md) |
 | Resolver uma falha | [Troubleshooting](troubleshooting.md) |
 | Perceber limites de segurança | [Security model](security-model.md) |
@@ -30,6 +31,7 @@ mantidos em Git e são a fonte de verdade. Issues do GitHub são uma vista de tr
 - [Architecture](architecture.md)
 - [Getting started / tutorial](getting-started.md)
 - [Operator guide](operator-guide.md)
+- [Lab catalog maturity](lab-catalog-maturity.md)
 - [Contributor guide](contributor-guide.md)
 - [Troubleshooting](troubleshooting.md)
 - [Security model](security-model.md)
