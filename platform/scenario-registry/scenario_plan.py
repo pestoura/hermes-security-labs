@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Deterministic fail-closed dry-run Scenario Plan Composer (Lane K).
+"""Deterministic fail-closed dry-run Scenario Plan Composer (Lane K/M).
 
 The composer only resolves committed contracts and produces a JSON-serializable
 plan. It never executes subprocesses, Docker, network requests, tools, scans, or
@@ -8,7 +8,7 @@ runtime mutations.
 Composition path:
 scenario -> environment -> target authorization -> semantic operations
 -> tool/operation registry -> backend -> BackendPlan -> lifecycle/readiness
--> evidence expectations -> reset/cleanup proof expectations
+-> structured evidence expectations -> reset/cleanup proof expectations
 """
 
 from __future__ import annotations
@@ -28,6 +28,7 @@ ROOT = HERE.parents[1]
 
 SCENARIO_REGISTRY = HERE / "scenario-registry.yaml"
 TOOL_REGISTRY = HERE / "tool-registry.yaml"
+EVIDENCE_CONTRACT_MODULE = HERE / "evidence_contract.py"
 OPERATION_REGISTRY = ROOT / "platform" / "gateway-protocol" / "operation-registry.yaml"
 TARGET_REGISTRY_MODULE = ROOT / "platform" / "targets" / "target_registry.py"
 BACKEND_MODULE = ROOT / "platform" / "scripts" / "lab_backends.py"
@@ -267,11 +268,17 @@ def _validate_evidence(
     scenario: Mapping[str, Any],
     manifest: Mapping[str, Any],
 ) -> dict[str, Any]:
-    requirements = _non_empty_list(
+    requirements = _mapping(
         scenario.get("evidence_requirements"),
         "MISSING_EVIDENCE_CONTRACT",
-        "scenario evidence requirements are missing",
+        "structured scenario evidence requirements are missing",
     )
+    evidence_contract = _load_module("lane_m_evidence_contract", EVIDENCE_CONTRACT_MODULE)
+    try:
+        normalized = evidence_contract.validate_contract(requirements)
+    except Exception as exc:  # noqa: BLE001 - normalize policy/contract violations
+        raise PlanFailure("MISSING_EVIDENCE_CONTRACT", str(exc)) from exc
+
     persistence = _mapping(
         manifest.get("persistence"),
         "MISSING_EVIDENCE_CONTRACT",
@@ -297,8 +304,8 @@ def _validate_evidence(
             "retention_days": retention,
             "sanitized": True,
         },
-        "scenario_requirements": [str(item) for item in requirements],
-        "structure_state": "FREE_TEXT_REQUIREMENTS",
+        "scenario_contract": normalized,
+        "structure_state": "STRUCTURED_EVIDENCE_CONTRACT",
     }
 
 
@@ -408,11 +415,15 @@ def compose_scenario_plan(
                 }
             )
 
-            matching_tools = [
-                tool
-                for tool in tools.get("tools", [])
-                if isinstance(tool, Mapping) and tool.get("mapped_operation") == operation_id
-            ] if isinstance(tools.get("tools"), list) else []
+            matching_tools = (
+                [
+                    tool
+                    for tool in tools.get("tools", [])
+                    if isinstance(tool, Mapping) and tool.get("mapped_operation") == operation_id
+                ]
+                if isinstance(tools.get("tools"), list)
+                else []
+            )
             if not matching_tools:
                 raise PlanFailure(
                     "MISSING_TOOL_REFERENCE",
@@ -447,7 +458,11 @@ def compose_scenario_plan(
             binding = backend_module.resolve_backend(manifest, registry=backend_registry)
         except Exception as exc:  # noqa: BLE001
             text = str(exc)
-            if "BACKEND_NOT_SUPPORTED" in text or "BACKEND_NOT_READY" in text or "BACKEND_UNKNOWN" in text:
+            if (
+                "BACKEND_NOT_SUPPORTED" in text
+                or "BACKEND_NOT_READY" in text
+                or "BACKEND_UNKNOWN" in text
+            ):
                 raise PlanFailure("UNSUPPORTED_BACKEND", text) from exc
             raise PlanFailure("REGISTRY_INVALID", f"backend resolution failed: {text}") from exc
 
