@@ -27,6 +27,74 @@ def test_private_ghcr_acceptance_plan_is_non_secret_and_non_mutating() -> None:
     assert "temporary-public or private" in result.stdout
     assert "Versioned Compose mutation: none" in result.stdout
     assert "Package mutation: none" in result.stdout
+    assert "strict (default) requires exactly read:packages" in result.stdout
+    assert "DEGRADED_ACCEPTED_FOR_DEV" in result.stdout
+
+
+def _extract_scope_snippet() -> str:
+    source = HARNESS.read_text()
+    start = source.index('scope_result="$(python3 - "${scopes}" "${scope_mode}" <<\'PY\'')
+    body = source[start:]
+    body = body[body.index("\n") + 1 :]
+    return body[: body.index("\nPY\n")]
+
+
+def _eval_scope(scopes: str, mode: str) -> tuple[int, str]:
+    result = subprocess.run(
+        ["python3", "-c", _extract_scope_snippet(), scopes, mode],
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    return result.returncode, result.stdout.strip()
+
+
+def test_strict_scope_mode_requires_exactly_read_packages() -> None:
+    assert _eval_scope("read:packages", "strict") == (0, "PASS_EXACT")
+    assert _eval_scope("read:packages, repo", "strict")[0] != 0
+    assert _eval_scope("repo", "strict")[0] != 0
+
+
+def test_dev_scope_mode_accepts_additional_scopes_but_requires_read_packages() -> None:
+    assert _eval_scope("read:packages", "dev") == (0, "PASS_EXACT")
+    assert _eval_scope("repo, write:org, read:packages", "dev") == (0, "PASS_DEGRADED")
+    assert _eval_scope("repo, write:org", "dev")[0] != 0
+
+
+def test_invalid_scope_mode_is_rejected_before_token_read() -> None:
+    result = subprocess.run(
+        [
+            "bash",
+            str(HARNESS),
+            "accept",
+            "--scope-mode",
+            "loose",
+            "--username",
+            "example",
+            "--approval-ref",
+            "approval-test",
+            "--publisher-visibility",
+            "private",
+            "--package-private-confirmed",
+            "--package-access-confirmed",
+        ],
+        cwd=ROOT,
+        input="must-not-be-consumed\n",
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    assert result.returncode != 0
+    assert "scope mode must be strict or dev" in result.stdout
+
+
+def test_dev_mode_records_degraded_posture_without_least_privilege_claim() -> None:
+    source = HARNESS.read_text()
+    assert "scope_posture=DEGRADED_ACCEPTED_FOR_DEV" in source
+    assert "least_privilege_claimed=false" in source
+    assert "production_closure_blocked_until_read_packages_only=true" in source
+    assert "PASS_AUTHORITY_SUFFICIENT_NO_MUTATION_ATTEMPTED" in source
+    assert 'scope_mode="strict"' in source
 
 
 def test_acceptance_fails_before_token_read_without_manual_gates() -> None:
