@@ -158,17 +158,36 @@ escalar. Não simular sucesso.
 `.runtime/phase2/<id>/compose.yaml` a partir do catálogo; esse ficheiro é derivado e
 descartável.
 
-> Os wrappers `platform/scripts/lab-start.sh`, `lab-stop.sh`, `lab-reset.sh` e
-> `lab-destroy.sh` **não** provisionam nada. São stubs e recusam-se a correr,
-> apontando para a interface real. Os wrappers read-only `lab-list.sh`,
-> `lab-status.sh`, `lab-validate.sh` e `lab-plan.sh` funcionam e delegam em
-> `labctl.py`.
+Os wrappers `platform/scripts/lab-{start,stop,reset,destroy,smoke,connect-kali,disconnect-kali}.sh`
+são a interface genérica canónica. Não provisionam nada por si: delegam num
+dispatcher fail-closed (`platform/scripts/lab_lifecycle.py`) que só executa um
+par de ambiente/ação quando o manifest declara a ação em `lifecycle:` **e** existe
+um script enviado (`scripts/lifecycle.sh` unificado ou `scripts/<ação>.sh` discreto)
+dentro do diretório do ambiente. Tudo o resto é `UNSUPPORTED` e não toca em runtime.
+
+```bash
+# pronto-a-correr: portas parametrizáveis, --dry-run seguro, --yes para destructive
+./platform/scripts/lab-start.sh dvapi
+./platform/scripts/lab-status.sh dvapi          # catálogo (ver secção 4)
+python3 platform/scripts/lab_lifecycle.py support dvapi   # readiness gate SUPPORTED/UNSUPPORTED
+./platform/scripts/lab-smoke.sh dvapi
+./platform/scripts/lab-connect-kali.sh dvapi
+./platform/scripts/lab-disconnect-kali.sh dvapi
+./platform/scripts/lab-stop.sh dvapi
+./platform/scripts/lab-reset.sh dvapi --yes
+./platform/scripts/lab-destroy.sh dvapi --yes
+```
+
+> Os wrappers read-only `lab-list.sh`, `lab-status.sh`, `lab-validate.sh` e
+> `lab-plan.sh` continuam a delegar em `labctl.py` (catálogo). O `lab-status.sh`
+> mostra o estado do catálogo; para o estado runtime do laboratório usa-se
+> `lab_lifecycle.py run <id> status` (ou `bash <env>/scripts/lifecycle.sh status`).
 
 Descoberta:
 
 ```bash
 ./platform/scripts/lab-list.sh --runtime docker
-./platform/scripts/lab-status.sh vampi
+python3 platform/scripts/lab_lifecycle.py support      # matriz completa SUPPORTED/UNSUPPORTED
 python3 platform/scripts/lab_audit.py audit --runtime-managed
 ```
 

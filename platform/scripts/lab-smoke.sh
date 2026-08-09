@@ -13,4 +13,4 @@ if [ "$#" -lt 1 ]; then
 fi
 ENV_ID="$1"
 shift
-exec python3 "${SCRIPT_DIR}/lab_lifecycle.py" run "${ENV_ID}" start "$@"
+exec python3 "${SCRIPT_DIR}/lab_lifecycle.py" run "${ENV_ID}" smoke "$@"

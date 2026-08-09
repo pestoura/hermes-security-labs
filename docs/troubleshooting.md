@@ -24,16 +24,25 @@ MCP local; DVAPI publica `3000`, a mesma que o Juice Shop.
 `WRONGSECRETS_HOST_PORT`, `CRAPI_HOST_PORT`. O Juice Shop publica `127.0.0.1:3000`
 fixo, sem variável: nesse caso é o outro laboratório que muda de porta.
 
-## `lab-start.sh` não arranca nada
+## `lab-start.sh` recusa o ambiente ou a ação
 
-**Sintoma.** `./platform/scripts/lab-start.sh <id>` sai com código `2` e não cria
-containers.
+**Sintoma.** `./platform/scripts/lab-start.sh <id>` sai com `UNSUPPORTED`
+(código `2`) e não cria containers, ou com `REFUSED` para ações destrutivas sem `--yes`.
 
-**Causa.** Esperado. Os wrappers `lab-{start,stop,reset,destroy}.sh` são
-`NOT_IMPLEMENTED`; não existe wrapper genérico de provisionamento.
+**Causa.** Esperado e fail-closed. O dispatcher só executa um par ambiente/ação
+quando o manifest declara a ação em `lifecycle:` **e** existe um script enviado
+(`scripts/lifecycle.sh` ou `scripts/<ação>.sh`) dentro do diretório do ambiente.
+Ambientes só-catálogo ou ações não declaradas são `UNSUPPORTED`.
 
-**Ação.** Usar a interface real do ambiente, tabelada na
-[matriz de comandos de lifecycle](quickstart.md#7-matriz-de-comandos-de-lifecycle).
+**Ação.** Confirmar o readiness gate antes de correr:
+
+```bash
+python3 platform/scripts/lab_lifecycle.py support <id>
+```
+
+Se a ação aparecer como `UNSUPPORTED`, usar a interface real do ambiente, tabelada
+na [matriz de comandos de lifecycle](quickstart.md#7-matriz-de-comandos-de-lifecycle),
+ou adicionar a ação ao `lifecycle:` do manifest e o script correspondente por PR.
 
 ## Runner missing ou hash mismatch
 

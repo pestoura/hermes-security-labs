@@ -1,14 +1,16 @@
 #!/usr/bin/env bash
-# Not implemented. There is no generic reset wrapper in this repository.
-# Use the real lifecycle interface for the environment:
-#   lifecycle.sh unified : platform/environments/<category>/<id>/scripts/lifecycle.sh reset
-#   discrete scripts     : platform/environments/web-api/<id>/scripts/reset.sh
-#   Phase 2 catalog      : platform/scripts/phase2-compose-lab.sh <id> reset
-# Matrix: docs/quickstart.md#7-matriz-de-comandos-de-lifecycle
+# Canonical wrapper: delegates to the fail-closed lifecycle dispatcher.
+# It provisions nothing by itself and refuses any environment/action pair that
+# is not explicitly SUPPORTED by a shipped script.
+#   readiness gate : platform/scripts/lab_lifecycle.py support [<env-id>]
+#   matrix         : docs/quickstart.md#7-matriz-de-comandos-de-lifecycle
 set -euo pipefail
-cat >&2 <<'EOF'
-lab-reset.sh is NOT_IMPLEMENTED and changes no runtime state.
-Use the per-environment lifecycle interface documented in
-docs/quickstart.md (section 7, lifecycle command matrix).
-EOF
-exit 2
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ "$#" -lt 1 ]; then
+  echo "Usage: $0 <env-id> [--dry-run] [--yes]" >&2
+  echo "Supported environments: python3 ${SCRIPT_DIR}/lab_lifecycle.py support" >&2
+  exit 2
+fi
+ENV_ID="$1"
+shift
+exec python3 "${SCRIPT_DIR}/lab_lifecycle.py" run "${ENV_ID}" reset "$@"

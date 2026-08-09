@@ -293,6 +293,43 @@ def cmd_plan(args: argparse.Namespace) -> int:
     return 0
 
 
+def _load_lifecycle_module():
+    """Import the fail-closed lifecycle dispatcher without importing it at module load."""
+    import importlib.util
+
+    path = PLATFORM_DIR / "scripts" / "lab_lifecycle.py"
+    spec = importlib.util.spec_from_file_location("lab_lifecycle", path)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def cmd_support(args: argparse.Namespace) -> int:
+    """Readiness gate: SUPPORTED/UNSUPPORTED per environment and action (no runtime)."""
+    lifecycle = _load_lifecycle_module()
+    argv = ["support"]
+    if args.env_id:
+        argv.append(args.env_id)
+    if args.json:
+        argv.append("--json")
+    return int(lifecycle.main(argv))
+
+
+def cmd_lifecycle(args: argparse.Namespace) -> int:
+    """Dispatch one allowlisted lifecycle action through the fail-closed dispatcher."""
+    lifecycle = _load_lifecycle_module()
+    argv = ["run", args.env_id, args.action]
+    if args.dry_run:
+        argv.append("--dry-run")
+    if args.yes:
+        argv.append("--yes")
+    if args.timeout is not None:
+        argv.extend(["--timeout", str(args.timeout)])
+    return int(lifecycle.main(argv))
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -313,6 +350,28 @@ def build_parser() -> argparse.ArgumentParser:
     plan_parser = subparsers.add_parser("plan", help="show phased rollout plan")
     plan_parser.add_argument("--phase")
     plan_parser.set_defaults(func=cmd_plan)
+
+    support_parser = subparsers.add_parser(
+        "support",
+        help="readiness gate: SUPPORTED/UNSUPPORTED per environment and action",
+    )
+    support_parser.add_argument("env_id", nargs="?")
+    support_parser.add_argument("--json", action="store_true")
+    support_parser.set_defaults(func=cmd_support)
+
+    lifecycle_parser = subparsers.add_parser(
+        "lifecycle",
+        help="dispatch one allowlisted lifecycle action via the fail-closed dispatcher",
+    )
+    lifecycle_parser.add_argument("env_id")
+    lifecycle_parser.add_argument(
+        "action",
+        choices=("start", "status", "smoke", "connect-kali", "disconnect-kali", "stop", "reset", "destroy"),
+    )
+    lifecycle_parser.add_argument("--dry-run", action="store_true")
+    lifecycle_parser.add_argument("--yes", action="store_true")
+    lifecycle_parser.add_argument("--timeout", type=int)
+    lifecycle_parser.set_defaults(func=cmd_lifecycle)
 
     return parser
 
