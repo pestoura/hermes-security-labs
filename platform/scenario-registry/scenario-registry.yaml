@@ -14,16 +14,17 @@ contract:
     - run
     - generic_execution
 
-# Canonical scenario registry (Lane F, Wave 1).
+# Canonical scenario registry (Lane F, Wave 1; structured evidence promoted in Lane M).
 #
 # Contract:
 #   * target_id is the ONLY execution authority (inherited from the target registry).
-#   * Every scenario binds to a typed gateway semantic operation and, where useful,
-#     to a committed runbook reference. No arbitrary command/shell/generic_execution
+#   * Every scenario binds to typed gateway semantic operations and, where useful,
+#     to committed runbook references. No arbitrary command/shell/generic_execution
 #     entry is permitted anywhere in this document.
-#   * Scenarios are seeded only where the lab, the target authorization class and the
-#     typed operation already exist in the repository. This is a small, supported set;
-#     it is not an exhaustive catalogue.
+#   * Evidence requirements are declarative and validated against Evidence Plane policy;
+#     they do not create, persist, export or claim runtime evidence.
+#   * Scenarios are seeded only where the lab, target authorization class and typed
+#     operation already exist in the repository. This is a small supported set.
 
 scenarios:
   - scenario_id: webgoat-tls-transport-review
@@ -65,9 +66,29 @@ scenarios:
       - "No lab mutation; no reset required."
     risk_intrusiveness: L1
     evidence_requirements:
-      - "Gateway request/response correlation ids (campaign/run/step/attempt)."
-      - "Per-operation structured output (JSON)."
-      - "target_id binding to webgoat-web."
+      contract_version: "1.0"
+      evidence_plane_schema_version: "2.0"
+      correlation:
+        required_ids:
+          - campaign_id
+          - run_id
+          - step_id
+          - attempt_id
+      integrity:
+        digest: sha256
+      expected:
+        - evidence_type: execution_manifest
+          classification: restricted
+          media_type: application/json
+          required: true
+        - evidence_type: execution_summary
+          classification: summary
+          media_type: application/json
+          required: true
+        - evidence_type: structured_result
+          classification: raw
+          media_type: application/json
+          required: true
 
   - scenario_id: dvwa-sql-injection-screening
     title: DVWA deterministic SQL-injection screening (synthetic-only)
@@ -102,8 +123,29 @@ scenarios:
       - "Synthetic-only; no lab state change."
     risk_intrusiveness: L2
     evidence_requirements:
-      - "Validation case id bound to operation parameters."
-      - "Structured result JSON with correlation ids."
+      contract_version: "1.0"
+      evidence_plane_schema_version: "2.0"
+      correlation:
+        required_ids:
+          - campaign_id
+          - run_id
+          - step_id
+          - attempt_id
+      integrity:
+        digest: sha256
+      expected:
+        - evidence_type: execution_manifest
+          classification: restricted
+          media_type: application/json
+          required: true
+        - evidence_type: execution_summary
+          classification: summary
+          media_type: application/json
+          required: true
+        - evidence_type: structured_result
+          classification: raw
+          media_type: application/json
+          required: true
 
   - scenario_id: juice-shop-lab-lifecycle-stop
     title: Controlled stop/reset of Juice Shop lab
@@ -142,5 +184,26 @@ scenarios:
       - "Lab remains stopped; reset attestation archived."
     risk_intrusiveness: L2
     evidence_requirements:
-      - "Stop reason_code bound to operation parameters."
-      - "Zero-residue reset attestation."
+      contract_version: "1.0"
+      evidence_plane_schema_version: "2.0"
+      correlation:
+        required_ids:
+          - campaign_id
+          - run_id
+          - step_id
+          - attempt_id
+      integrity:
+        digest: sha256
+      expected:
+        - evidence_type: execution_manifest
+          classification: restricted
+          media_type: application/json
+          required: true
+        - evidence_type: execution_summary
+          classification: summary
+          media_type: application/json
+          required: true
+        - evidence_type: reset_attestation
+          classification: raw
+          media_type: application/json
+          required: true
