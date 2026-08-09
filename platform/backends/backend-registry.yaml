@@ -1,0 +1,133 @@
+---
+# Canonical backend registry for Hermes Security Labs (Lane H).
+#
+# This file is DECLARATIVE and fail-closed. It states, per backend type, what the
+# repository can actually execute today and what is only modelled. It never claims
+# a capability that is not backed by a shipped script/compose file on this repo.
+#
+# support_state:
+#   SUPPORTED   - an adapter exists in platform/scripts/lab_backends.py and the
+#                 operations below resolve to real, shipped lifecycle scripts.
+#   DEFINED     - the backend type is modelled (identity, capability requirements)
+#                 but there is NO adapter: every operation fails closed.
+#   UNSUPPORTED - explicitly out of scope; manifests may not select it.
+#
+# readiness:
+#   READY       - support_state SUPPORTED and every required capability is met by
+#                 the shipped repository content.
+#   NOT_READY   - the backend is modelled but its capability requirements are not
+#                 satisfied here (missing adapter, missing provisioning, missing
+#                 authorized runtime). Resolving it must fail closed.
+schema_version: 1
+
+operations:
+  - provision
+  - status
+  - reset
+  - destroy
+
+backends:
+  DOCKER:
+    support_state: SUPPORTED
+    readiness: READY
+    manifest_aliases: [docker-compose, docker_compose, docker]
+    adapter: docker_compose
+    description: >-
+      Docker Compose backend. Provision/status/reset/destroy map onto the
+      lifecycle actions already shipped by each environment directory
+      (scripts/lifecycle.sh or scripts/<action>.sh) and dispatched by
+      platform/scripts/lab_lifecycle.py. No arbitrary shell is introduced.
+    operations:
+      provision: start
+      status: status
+      reset: reset
+      destroy: destroy
+    required_capabilities:
+      - compose_file_present
+      - lifecycle_scripts_present
+      - loopback_only_ingress
+    capability_evidence:
+      compose_file_present: platform/environments/**/compose.yaml
+      lifecycle_scripts_present: platform/environments/**/scripts/
+      loopback_only_ingress: platform/schemas/lab-manifest.schema.json (network.ingress.scope)
+
+  KUBERNETES:
+    support_state: DEFINED
+    readiness: NOT_READY
+    manifest_aliases: [kind, kubernetes, k8s]
+    adapter: null
+    description: >-
+      Kubernetes/kind backend. A synthetic RBAC environment manifest exists
+      (platform/environments/kubernetes/kind-rbac-synthetic) but no shipped
+      lifecycle scripts and no adapter: every operation fails closed.
+    operations: {}
+    required_capabilities:
+      - cluster_provisioner
+      - namespace_isolation_policy
+      - kubeconfig_scoped_credential
+      - lifecycle_scripts_present
+    missing_capabilities:
+      - cluster_provisioner
+      - kubeconfig_scoped_credential
+      - lifecycle_scripts_present
+
+  VM:
+    support_state: DEFINED
+    readiness: NOT_READY
+    manifest_aliases: [vm, virtual-machine, libvirt, qemu, vagrant]
+    adapter: null
+    description: >-
+      Virtual machine backend. Modelled only; see platform/virtualization-decision.md.
+      No hypervisor access, no image supply chain and no adapter in this repository.
+    operations: {}
+    required_capabilities:
+      - hypervisor_access
+      - vm_image_supply_chain
+      - snapshot_reset_support
+      - network_isolation_policy
+    missing_capabilities:
+      - hypervisor_access
+      - vm_image_supply_chain
+      - snapshot_reset_support
+
+  CLOUD:
+    support_state: DEFINED
+    readiness: NOT_READY
+    manifest_aliases: [cloud, aws, azure, gcp]
+    adapter: null
+    description: >-
+      Cloud backend. Cloud environment entries in the catalog are catalog-only
+      metadata. No credentials, no tenant, no billing boundary and no adapter:
+      operations fail closed by design.
+    operations: {}
+    required_capabilities:
+      - authorized_tenant
+      - scoped_cloud_credential
+      - cost_and_blast_radius_boundary
+      - teardown_attestation
+    missing_capabilities:
+      - authorized_tenant
+      - scoped_cloud_credential
+      - cost_and_blast_radius_boundary
+      - teardown_attestation
+
+  REMOTE_ISOLATED:
+    support_state: DEFINED
+    readiness: NOT_READY
+    manifest_aliases: [remote-isolated, remote_isolated]
+    adapter: null
+    description: >-
+      Remote isolated execution host. Modelled for future lanes. Requires an
+      authorized remote host, a transport contract and an evidence path back to
+      the local evidence plane. None of those exist here.
+    operations: {}
+    required_capabilities:
+      - authorized_remote_host
+      - transport_contract
+      - remote_evidence_channel
+      - remote_teardown_attestation
+    missing_capabilities:
+      - authorized_remote_host
+      - transport_contract
+      - remote_evidence_channel
+      - remote_teardown_attestation
