@@ -3,149 +3,180 @@
 Date: 2026-08-09
 Tracking issue: `#53`
 
-This document reconciles the implementation state of the private GHCR VAmPI pilot with evidence that was produced after `docs/ghcr-private-readonly-transition.md` was originally written. It does not grant new authority and does not replace the security gates in that specification.
+This document reconciles the current implementation state of the private GHCR VAmPI pilot. It distinguishes controlled CI evidence from real Hermes-host runtime acceptance and does not promote either to production evidence.
 
 ## Current decision
 
 ```text
-PRIVATE_VAMPI_PUBLISHED_MANUAL_ACCESS_LIST_CONFIRMATION_IS_ONLY_PRE_CREDENTIAL_GATE
+PRIVATE_VAMPI_PUBLISHED_PACKAGE_BOUNDARY_CONFIRMED_RUNTIME_ACCEPTANCE_BLOCKED_ON_EXACT_READ_PACKAGES_PAT
 ```
 
-The private publisher and first private VAmPI publication are no longer future work. They already exist and were executed through an owner-triggered, manually gated workflow.
+The private VAmPI package already exists and its accepted OCI index digest is immutable. The remaining implementation boundary is the real Hermes-host acceptance with a PAT classic exposing exactly `read:packages`, followed by the separate versioned Compose migration and final rollback/deployment reconciliation.
 
-No new package, token, package permission, Compose reference or Hermes runtime change is authorized by this reconciliation.
+## Current repository and package state
 
-## Confirmed implementation
-
-### Private publisher
-
-Repository:
+Publisher repository:
 
 ```text
 pestoura/hermes-private-registry-publisher
 ```
 
-Confirmed properties:
-
-- repository exists;
-- repository visibility is `private`;
-- publication workflow is `.github/workflows/publish-private-vampi.yml`;
-- workflow is manually dispatched;
-- workflow requires `publish=true`;
-- workflow uses a GitHub-hosted runner;
-- workflow publisher authentication uses that repository's ephemeral `GITHUB_TOKEN`;
-- workflow permissions are limited to `contents: read` and `packages: write`;
-- no Hermes deployment is performed.
-
-Publisher commit used for the accepted publication:
+Current publisher visibility:
 
 ```text
-1ce1b1c72c20cf9267fbdc460f40fcfe1d310d08
+public
 ```
 
-### Controlled private publication
+This repository visibility is a temporary, owner-authorized implementation exception so GitHub-hosted Actions can remain usable while private-repository Actions are affected by the account billing/spending constraint. It is not evidence that the GHCR package is public and it is not the final state required by issue `#53`.
 
-Owner-triggered workflow run:
+Final issue closure requires the publisher repository to return to:
 
 ```text
-30680647184
+private
 ```
 
-The run completed successfully with `publish=true`.
-
-Published identity:
+Private package identity:
 
 ```text
 ghcr.io/pestoura/hermes-private-vampi
 ```
 
-Recorded OCI evidence:
-
-| Evidence | Digest / state |
-|---|---|
-| OCI index | `sha256:b1b66324a2d35cfe55e3edcd81f9f3c012907c71367df37f83d9ef63b500b3d3` |
-| `linux/amd64` application manifest | `sha256:1e208a27f3e02c04cc81b1331d6bd5f18a9a42e60e11aa18b7ece8ded741c499` |
-| attestation manifest | `sha256:e0f7c71cad1cf2b06e6d8a0f5c4d18b34c7667555d3e32a6b60f3fcd2d3ab14e` |
-| provenance | BuildKit `mode=max` |
-| SBOM | generated |
-| package visibility | recorded as `private` in prior owner evidence |
-| anonymous access | denial recorded as confirmed in prior owner evidence |
-| Hermes runtime mutation | none |
-| Hermes credential provisioning | none |
-
-Immutable publication tags recorded by the workflow:
+Accepted private OCI index digest:
 
 ```text
-upstream-f16052d
-publisher-1ce1b1c72c20cf9267fbdc460f40fcfe1d310d08
+sha256:b1b66324a2d35cfe55e3edcd81f9f3c012907c71367df37f83d9ef63b500b3d3
 ```
 
-The accepted public rollback remains:
+Accepted public rollback image:
 
 ```text
 ghcr.io/pestoura/hermes-vampi@sha256:e7b2760d586ed2b4b15a689823a07816e32308bca293f9e8c08830c7b36c7229
 ```
 
+Package settings that cannot be enumerated through the current GitHub integration remain owner-confirmed rather than API-verified:
+
+- `hermes-private-vampi` remains `private`;
+- `pestoura/hermes-private-registry-publisher` is the intended authorized repository;
+- `pestoura/hermes-security-labs` has no package access;
+- no additional intentional repository access is present.
+
+The source-repository deny gate independently proves that the `GITHUB_TOKEN` from `pestoura/hermes-security-labs` receives `403 Forbidden` when attempting to consume the private digest.
+
+## Controlled CI evidence
+
+Publisher main accepted SHA:
+
+```text
+27399211c11c4571650f7c777bc7dc428ddb7dde
+```
+
+Controlled CI evidence at that state:
+
+| Control | State |
+|---|---|
+| anonymous private-package denial | `PASS` |
+| private consumer preflight with publisher `GITHUB_TOKEN` | `PASS` |
+| Kali MCP private VAmPI lifecycle parity | `PASS` |
+| private → public rollback proof | `PASS` |
+| workflow authority auto-audit | `PASS` |
+
+The publisher consumer workflows use only `contents: read` and `packages: read`, do not execute on pull-request-controlled input, and contain no package mutation path.
+
+This evidence is classified as:
+
+```text
+CONTROLLED_CI_PREFLIGHT_ONLY
+CONTROLLED_CI_ROLLBACK_PROOF_ONLY
+```
+
+It is not `HERMES_RUNTIME_ACCEPTED`.
+
 ## Gate reconciliation
 
 | Gate | State | Evidence / constraint |
 |---|---|---|
-| A — documentation/source | `PASS` | private-publisher architecture and public rollback model are documented |
-| B — private publisher readiness | `PASS` | private publisher exists and its GitHub-hosted workflow executed successfully |
-| C — package namespace readiness | `PASS_HISTORICAL` | first publication completed under the new parallel private identity without mutating the accepted public package |
-| D — private publication | `PASS` | run `30680647184`; exact OCI index/application/attestation digests recorded |
-| E — anonymous denial | `PASS_RECORDED` | prior owner evidence records anonymous access denial as confirmed |
-| Package repository-access acceptance | `BLOCKED_MANUAL_CONFIRMATION` | current integration cannot obtain the complete Packages repository-access list |
-| F — authenticated read-only Hermes access | `NOT_RUN` | blocked until repository-access confirmation and separately authorized `read:packages` credential provisioning |
-| G — safe negative control | `NOT_RUN` | requires the read-only credential after Gate F prerequisites |
-| H — private-digest lifecycle parity | `NOT_RUN` | requires authenticated exact-digest pull on Hermes |
-| I — versioned Compose migration | `NOT_RUN` | requires H PASS and a separately reviewed/authorized migration |
-| rollback demonstration | `NOT_RUN` | follows accepted private runtime migration |
+| A — documentation/source | `PASS` | private-publisher architecture and public rollback model documented |
+| B — private publisher readiness | `PASS_IMPLEMENTATION_STATE` | publisher exists and accepted package was published; repository is temporarily public by explicit owner exception |
+| C — package namespace readiness | `PASS_HISTORICAL` | parallel private identity exists without mutating the accepted public package |
+| D — private publication | `PASS` | exact accepted OCI index digest recorded |
+| E — anonymous denial | `PASS` | controlled publisher CI repeatedly confirms anonymous denial |
+| Package repository-access acceptance | `OWNER_CONFIRMED` | granular package settings cannot be enumerated by current integration; source-repo deny independently passes |
+| F — authenticated read-only Hermes access | `BLOCKED_CREDENTIAL` | no dedicated PAT classic exposing exactly `read:packages` is present in the Hermes secret store |
+| G — read-only authority proof | `BLOCKED_CREDENTIAL` | requires the same exact-scope PAT; proof is non-mutating and based on classic PAT scope introspection |
+| H — private-digest lifecycle parity on real Hermes | `BLOCKED_CREDENTIAL` | Docker/Compose/Kali host prerequisites pass; exact private pull still requires the dedicated PAT |
+| I — versioned Compose migration | `NOT_RUN` | requires F/G/H PASS first |
+| real post-migration acceptance | `NOT_RUN` | requires Compose migration and exact-SHA repository validation |
+| real rollback demonstration | `NOT_RUN` | follows accepted private runtime migration |
+| final publisher-private boundary | `NOT_RUN` | required before issue closure |
 
-`PASS_HISTORICAL` means the precondition was satisfied by the already completed owner-controlled publication sequence. It is not an instruction to repeat publication.
+`PASS_HISTORICAL` records a completed predecessor step and is not an instruction to republish.
+
+## Hermes host preflight
+
+A read-only preflight on the real Hermes host confirmed:
+
+- Docker Engine and Docker Compose are available;
+- the Kali MCP container is already running and healthy;
+- the versioned VAmPI Compose reference still points to the accepted public rollback digest, as expected before migration;
+- the private VAmPI image is not already present locally, as expected before authenticated pull;
+- no dedicated GHCR PAT classic reference with exactly `read:packages` exists in the checked Hermes/Jarvas secret stores;
+- the existing GitHub CLI credential exposes `write:packages` and `delete:packages` and is therefore explicitly unsuitable for Gate F/G;
+- a pre-existing global Docker `ghcr.io` auth entry exists but is not an accepted evidence source and must not be allowed to mask the isolated credential test.
+
+The acceptance harness uses an isolated `DOCKER_CONFIG`, reads the dedicated PAT only through stdin, and removes the isolated credential material during cleanup.
+
+## Gate G evidence model
+
+GHCR may return an opaque bearer token. The implementation therefore does not attempt to decode the registry bearer token and does not request `pull,push` authority as a negative-control technique.
+
+For the real Hermes credential, Gate G is fail-closed on the classic PAT metadata exposed by GitHub:
+
+```text
+X-OAuth-Scopes = read:packages
+```
+
+The set must be exactly `read:packages`. Any additional scope causes failure. No upload, tag mutation, manifest PUT, blob upload or delete is performed to prove the absence of write/delete authority.
 
 ## Current hard blocker
 
-Before any Hermes registry credential is created or installed, manually inspect the GitHub Package settings for `hermes-private-vampi` and record that:
-
-1. `pestoura/hermes-private-registry-publisher` is the intended linked/authorized repository;
-2. `pestoura/hermes-security-labs` has no package Actions/read/write/admin access;
-3. no other unapproved repository, user or team has access;
-4. package visibility remains exactly `private`.
-
-The current GitHub integration receives:
+The remaining external blocker is credential provisioning:
 
 ```text
-403 Resource not accessible by integration
+PAT classic
+scope: read:packages only
 ```
 
-when querying the Packages REST resource required to enumerate these settings. Therefore the access list cannot be truthfully inferred from repository visibility, workflow success or the package name.
+The token must not be committed, posted to GitHub, copied into issue evidence, supplied in command arguments, stored in Compose, or placed in normal shell history. It must be installed through the approved secret store / isolated stdin flow.
 
-## Post-confirmation continuation
+The current broader GitHub CLI credential must not be reused.
 
-Once the manual package-access confirmation is recorded, resume automatically in this order:
+## Automatic continuation after credential provisioning
 
-1. separately authorize creation/provisioning of a PAT classic limited to `read:packages`;
-2. store it outside Git through the approved isolated Docker credential model;
-3. validate authenticated metadata inspection and pull by exact OCI index digest;
-4. run the non-destructive negative control proving absence of write/delete authority;
-5. validate VAmPI lifecycle using a temporary ignored override;
-6. prove isolated Kali connectivity and zero unrelated drift;
-7. open and validate a separate Compose migration PR;
-8. merge only after its explicit owner gate;
-9. run post-merge acceptance;
-10. demonstrate rollback to the accepted public digest;
-11. update deployment tracking and close `#53` only when all completion criteria are satisfied.
+Once the exact-scope PAT exists in the approved secret store, continue without reopening completed decisions:
+
+1. run `deployment/private-ghcr-vampi-acceptance.sh accept` on the real Hermes host using the dedicated credential through stdin;
+2. require Gate F exact authenticated private-digest pull `PASS`;
+3. require Gate G exact `read:packages` authority proof `PASS` with no registry mutation;
+4. require Gate H real VAmPI lifecycle and Kali connectivity `PASS`, clean Git state and zero residue;
+5. create a separate, minimal Compose PR changing only VAmPI to the accepted private package/digest plus strictly required deployment metadata;
+6. run repository CI and merge only after GREEN/PASS;
+7. validate the exact merged `main` SHA;
+8. rerun real Hermes post-migration acceptance;
+9. demonstrate real rollback to the accepted public digest and restore the accepted private state if it remains the target state;
+10. update deployment tracking without recording the credential value;
+11. return `pestoura/hermes-private-registry-publisher` to `private`;
+12. revalidate publisher/package/source-repository access boundaries;
+13. close `#53` only after all runtime, rollback, tracking, credential-cleanup and final-boundary evidence is present;
+14. reconcile the final backlog and record `PROJECT DELIVERY COMPLETE` only if no safe technical work remains.
 
 ## Security boundary
 
-This reconciliation intentionally does not:
+This reconciliation does not:
 
-- create or rotate a PAT;
-- modify GitHub Package permissions or visibility;
-- republish the image;
-- expose package credentials;
-- modify Compose;
-- pull the private image on Hermes;
-- contact customer or external targets;
-- relax any Human-in-the-Loop or explicit owner authorization gate.
+- create or reveal a PAT;
+- broaden credential scope;
+- modify package visibility or permissions;
+- republish or retag the package;
+- modify versioned Compose;
+- claim that controlled CI is real Hermes runtime acceptance;
+- claim production deployment.
