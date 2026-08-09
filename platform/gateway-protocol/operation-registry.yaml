@@ -7,6 +7,7 @@ profiles:
     generic_execution: false
     operations:
     - system.health.read
+    - kali.mcp.health.read
     - runtime.inventory.read
     - web.discovery.headers
     - web.discovery.tls
@@ -14,6 +15,7 @@ profiles:
     generic_execution: false
     operations:
     - system.health.read
+    - kali.mcp.health.read
     - runtime.inventory.read
     - web.discovery.headers
     - web.discovery.tls
@@ -26,6 +28,17 @@ operations:
   intrusiveness_level: L0
   required_capabilities:
   - system.health.read
+  parameters_schema:
+    type: object
+    additionalProperties: false
+  side_effect: none
+  production_status: NOT_RUN
+- id: kali.mcp.health.read
+  version: 1.0.0
+  handler_ref: candidate.kali.mcp.health.read
+  intrusiveness_level: L0
+  required_capabilities:
+  - kali.mcp.health.read
   parameters_schema:
     type: object
     additionalProperties: false
