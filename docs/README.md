@@ -13,6 +13,8 @@ mantidos em Git e são a fonte de verdade. Issues do GitHub são uma vista de tr
 | Ir do clone ao lab destruído em 8 passos | [Quickstart](quickstart.md) |
 | Pôr o repositório a validar localmente | [Getting started](getting-started.md) |
 | Operar laboratórios e deployment | [Operator guide](operator-guide.md) |
+| Distinguir drift local esperado de drift real | [Deployment tracking e drift](deployment-tracking.md) |
+| Saber que branches remotas já estão integradas | [Repository branch hygiene](repository-branch-hygiene.md) |
 | Saber se um laboratório é reprodutível | [Lab catalog maturity](lab-catalog-maturity.md) |
 | Contribuir com runbooks, labs ou runners | [Contributor guide](contributor-guide.md) |
 | Resolver uma falha | [Troubleshooting](troubleshooting.md) |
@@ -61,6 +63,7 @@ mantidos em Git e são a fonte de verdade. Issues do GitHub são uma vista de tr
 ### Operação e supply chain
 
 - [Deployment tracking e drift](deployment-tracking.md)
+- [Repository branch hygiene](repository-branch-hygiene.md)
 - [GHCR container registry](ghcr-container-registry.md)
 - [GHCR private read-only transition](ghcr-private-readonly-transition.md)
 - Rollouts GHCR: [VAmPI](ghcr-vampi-pilot.md) · [DVAPI](ghcr-dvapi-rollout.md) ·
