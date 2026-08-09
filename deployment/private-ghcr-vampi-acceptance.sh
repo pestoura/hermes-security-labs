@@ -6,23 +6,26 @@ VAMPI_LIFECYCLE="${REPO_ROOT}/platform/environments/web-api/vampi/scripts/lifecy
 KALI_COMPOSE="${REPO_ROOT}/kali-mcp/compose.yaml"
 PRIVATE_IMAGE="ghcr.io/pestoura/hermes-private-vampi@sha256:b1b66324a2d35cfe55e3edcd81f9f3c012907c71367df37f83d9ef63b500b3d3"
 PUBLIC_ROLLBACK_IMAGE="ghcr.io/pestoura/hermes-vampi@sha256:e7b2760d586ed2b4b15a689823a07816e32308bca293f9e8c08830c7b36c7229"
-PACKAGE_REPOSITORY="pestoura/hermes-private-vampi"
 RUNTIME_ROOT="${REPO_ROOT}/.runtime/issue53-private-vampi"
 EVIDENCE_ROOT="${REPO_ROOT}/.runtime/evidence/issue53-private-vampi"
 
 mode="${1:-plan}"
 shift || true
+
 username=""
 approval_ref=""
-publisher_private_confirmed=false
+publisher_visibility=""
+package_private_confirmed=false
 package_access_confirmed=false
 prove_public_rollback=false
 
 auth_dir=""
 run_dir=""
 override_file=""
+rollback_override=""
 kali_started_by_harness=false
 private_lab_started=false
+rollback_lab_started=false
 
 usage() {
   cat <<'EOF'
@@ -31,13 +34,18 @@ Usage:
   deployment/private-ghcr-vampi-acceptance.sh accept \
     --username <github-user> \
     --approval-ref <non-secret-reference> \
-    --publisher-private-confirmed \
+    --publisher-visibility <temporary-public|private> \
+    --package-private-confirmed \
     --package-access-confirmed \
     [--prove-public-rollback]
 
+Compatibility:
+  --publisher-private-confirmed is accepted as an alias for
+  --publisher-visibility private.
+
 For `accept`, provide the PAT classic as a single line on stdin. The token must
 have exactly `read:packages`. Never place it in command arguments, environment
-variables, Git, evidence, issue comments, or shell tracing.
+variables, Git, evidence, issue comments, screenshots, or shell tracing.
 EOF
 }
 
@@ -56,17 +64,32 @@ fail() {
 cleanup() {
   local rc=$?
   set +e
+
   if [ "${private_lab_started}" = true ] && [ -n "${override_file}" ] && [ -f "${override_file}" ]; then
-    DOCKER_CONFIG="${auth_dir:-${DOCKER_CONFIG:-}}" VAMPI_COMPOSE_OVERRIDE="${override_file}" "${VAMPI_LIFECYCLE}" destroy >/dev/null 2>&1 || true
+    DOCKER_CONFIG="${auth_dir:-${DOCKER_CONFIG:-}}" \
+      VAMPI_COMPOSE_OVERRIDE="${override_file}" \
+      "${VAMPI_LIFECYCLE}" destroy >/dev/null 2>&1 || true
   fi
+
+  if [ "${rollback_lab_started}" = true ] && [ -n "${rollback_override}" ] && [ -f "${rollback_override}" ]; then
+    DOCKER_CONFIG="${auth_dir:-${DOCKER_CONFIG:-}}" \
+      VAMPI_COMPOSE_OVERRIDE="${rollback_override}" \
+      "${VAMPI_LIFECYCLE}" destroy >/dev/null 2>&1 || true
+  fi
+
   if [ "${kali_started_by_harness}" = true ]; then
     docker compose -p hermes-kali-mcp -f "${KALI_COMPOSE}" down --remove-orphans >/dev/null 2>&1 || true
   fi
+
+  [ -n "${override_file}" ] && rm -f "${override_file}" 2>/dev/null || true
+  [ -n "${rollback_override}" ] && rm -f "${rollback_override}" 2>/dev/null || true
+
   if [ -n "${auth_dir}" ] && [ -d "${auth_dir}" ]; then
     rm -rf "${auth_dir}"
   fi
-  unset GHCR_PAT 2>/dev/null || true
-  exit "$rc"
+
+  unset GHCR_PAT DOCKER_CONFIG VAMPI_COMPOSE_OVERRIDE 2>/dev/null || true
+  exit "${rc}"
 }
 trap cleanup EXIT INT TERM
 
@@ -74,12 +97,14 @@ case "${mode}" in
   plan)
     cat <<EOF
 ISSUE53_PRIVATE_GHCR_ACCEPTANCE_PLAN
-Gate F: verify exact PAT scope, login via stdin, pull exact private digest.
-Gate G: request pull,push registry scope without uploading content; require push to be absent.
+Gate F: verify exact PAT classic scope, login via stdin, pull exact private digest.
+Gate G: prove authority from GitHub X-OAuth-Scopes = exactly read:packages; perform no registry mutation and do not request push authority.
 Gate H: create an ignored .runtime Compose override, run VAmPI lifecycle parity, connect Kali only to the active lab, then destroy twice.
 Private digest: ${PRIVATE_IMAGE}
 Public rollback digest: ${PUBLIC_ROLLBACK_IMAGE}
-Required manual gates before token read: publisher-private-confirmed + package-access-confirmed + approval-ref.
+Required manual gates before token read: publisher-visibility + package-private-confirmed + package-access-confirmed + approval-ref.
+Allowed publisher visibility during implementation: temporary-public or private.
+Final issue closure still requires publisher private.
 Versioned Compose mutation: none.
 Package mutation: none.
 EOF
@@ -108,8 +133,17 @@ while [ "$#" -gt 0 ]; do
       approval_ref="$2"
       shift 2
       ;;
+    --publisher-visibility)
+      [ "$#" -ge 2 ] || { usage >&2; exit 2; }
+      publisher_visibility="$2"
+      shift 2
+      ;;
     --publisher-private-confirmed)
-      publisher_private_confirmed=true
+      publisher_visibility="private"
+      shift
+      ;;
+    --package-private-confirmed)
+      package_private_confirmed=true
       shift
       ;;
     --package-access-confirmed)
@@ -128,7 +162,12 @@ while [ "$#" -gt 0 ]; do
   esac
 done
 
-[ "${publisher_private_confirmed}" = true ] || fail "publisher private visibility confirmation is required before credential handling"
+case "${publisher_visibility}" in
+  temporary-public|private) ;;
+  *) fail "publisher visibility must be explicitly confirmed as temporary-public or private" ;;
+esac
+
+[ "${package_private_confirmed}" = true ] || fail "manual private package visibility confirmation is required before credential handling"
 [ "${package_access_confirmed}" = true ] || fail "manual package repository-access confirmation is required before credential handling"
 [ -n "${approval_ref}" ] || fail "a non-secret approval reference is required"
 [[ "${approval_ref}" =~ ^[A-Za-z0-9._:/#-]+$ ]] || fail "approval reference contains unsupported characters"
@@ -156,7 +195,8 @@ chmod 600 "${run_dir}/acceptance.txt"
 
 record "decision=ISSUE53_PRIVATE_VAMPI_ACCEPTANCE"
 record "approval_ref=${approval_ref}"
-record "publisher_private_confirmed=true"
+record "publisher_visibility=${publisher_visibility}"
+record "package_private_confirmed=true"
 record "package_access_confirmed=true"
 record "private_image=${PRIVATE_IMAGE}"
 record "credential_source=stdin"
@@ -167,12 +207,14 @@ record "versioned_compose_mutation_performed=false"
 if [ -t 0 ]; then
   fail "PAT must be supplied non-interactively as a single line on stdin"
 fi
+
 IFS= read -r GHCR_PAT || true
 [ -n "${GHCR_PAT:-}" ] || fail "empty PAT received on stdin"
 
 netrc_file="${auth_dir}/netrc"
 headers_file="${auth_dir}/github-headers"
 umask 077
+
 printf 'machine api.github.com login %s password %s\n' "${username}" "${GHCR_PAT}" > "${netrc_file}"
 chmod 600 "${netrc_file}"
 
@@ -185,6 +227,7 @@ curl --fail --silent --show-error \
 scopes="$(python3 - "${headers_file}" <<'PY'
 from pathlib import Path
 import sys
+
 for line in Path(sys.argv[1]).read_text(errors="replace").splitlines():
     if line.lower().startswith("x-oauth-scopes:"):
         print(line.split(":", 1)[1].strip())
@@ -195,71 +238,43 @@ PY
 
 scope_result="$(python3 - "${scopes}" <<'PY'
 import sys
-scopes={item.strip() for item in sys.argv[1].split(',') if item.strip()}
-required={'read:packages'}
-forbidden={'write:packages','delete:packages','repo','workflow','admin:org'}
-if scopes != required or scopes & forbidden:
+
+scopes = {item.strip() for item in sys.argv[1].split(",") if item.strip()}
+required = {"read:packages"}
+if scopes != required:
     raise SystemExit(1)
-print('PASS')
+print("PASS")
 PY
-)" || fail "PAT must have exactly read:packages and no additional scopes"
+)" || fail "PAT classic must expose exactly read:packages and no additional scopes"
+
 [ "${scope_result}" = PASS ] || fail "PAT scope verification failed"
 record "gate_f_pat_scope=PASS_EXACT_READ_PACKAGES"
+record "gate_g_credential_authority=PASS_EXACT_READ_PACKAGES_NO_WRITE_DELETE"
+record "gate_g_registry_mutation_attempted=false"
 
-printf 'machine ghcr.io login %s password %s\n' "${username}" "${GHCR_PAT}" > "${netrc_file}"
-chmod 600 "${netrc_file}"
+printf '%s' "${GHCR_PAT}" | \
+  DOCKER_CONFIG="${auth_dir}" \
+  docker login ghcr.io --username "${username}" --password-stdin >/dev/null ||
+  fail "GHCR read-only login failed"
 
-granted_actions="$(
-  curl --fail --silent --show-error \
-    --netrc-file "${netrc_file}" \
-    --get \
-    --data-urlencode 'service=ghcr.io' \
-    --data-urlencode "scope=repository:${PACKAGE_REPOSITORY}:pull,push" \
-    https://ghcr.io/token |
-  python3 -c 'import base64,json,sys
-repo=sys.argv[1]
-try:
-    response=json.load(sys.stdin)
-    token=response.get("token") or response.get("access_token")
-    if not isinstance(token,str) or token.count(".") < 2:
-        raise ValueError
-    payload=token.split(".")[1]
-    payload += "=" * (-len(payload) % 4)
-    decoded=json.loads(base64.urlsafe_b64decode(payload.encode()).decode())
-    actions=[]
-    for entry in decoded.get("access",[]):
-        if entry.get("type") == "repository" and entry.get("name") == repo:
-            actions.extend(entry.get("actions",[]))
-    if not actions:
-        raise ValueError
-    print(",".join(sorted(set(actions))))
-except Exception:
-    raise SystemExit(3)' "${PACKAGE_REPOSITORY}"
-)" || fail "could not prove granted registry actions without mutation"
-
-case ",${granted_actions}," in
-  *,push,*) fail "read-only credential unexpectedly received push authority" ;;
-esac
-case ",${granted_actions}," in
-  *,pull,*) ;;
-  *) fail "read-only credential did not receive pull authority" ;;
-esac
-record "gate_g_registry_actions=PASS_PULL_WITHOUT_PUSH"
-
-printf '%s' "${GHCR_PAT}" | DOCKER_CONFIG="${auth_dir}" docker login ghcr.io --username "${username}" --password-stdin >/dev/null || fail "GHCR read-only login failed"
 unset GHCR_PAT
 rm -f "${netrc_file}" "${headers_file}"
 
-DOCKER_CONFIG="${auth_dir}" docker pull "${PRIVATE_IMAGE}" >/dev/null || fail "exact private digest pull failed"
+DOCKER_CONFIG="${auth_dir}" docker pull "${PRIVATE_IMAGE}" >/dev/null ||
+  fail "exact private digest pull failed"
+
 private_image_id="$(DOCKER_CONFIG="${auth_dir}" docker image inspect "${PRIVATE_IMAGE}" --format '{{.Id}}')"
 repo_digests="$(DOCKER_CONFIG="${auth_dir}" docker image inspect "${PRIVATE_IMAGE}" --format '{{join .RepoDigests " "}}')"
-[[ "${repo_digests}" == *"sha256:b1b66324a2d35cfe55e3edcd81f9f3c012907c71367df37f83d9ef63b500b3d3"* ]] || fail "pulled image is not bound to the accepted private digest"
+[[ "${repo_digests}" == *"sha256:b1b66324a2d35cfe55e3edcd81f9f3c012907c71367df37f83d9ef63b500b3d3"* ]] ||
+  fail "pulled image is not bound to the accepted private digest"
+
 record "gate_f_exact_digest_pull=PASS"
 record "private_image_id=${private_image_id}"
 
 mkdir -p "${RUNTIME_ROOT}"
 chmod 700 "${RUNTIME_ROOT}"
 override_file="${RUNTIME_ROOT}/compose.private-vampi.${timestamp}.yaml"
+
 cat > "${override_file}" <<EOF
 services:
   vampi:
@@ -293,19 +308,26 @@ private_lab_started=true
 "${VAMPI_LIFECYCLE}" connect-kali
 
 docker exec -i hermes-kali-mcp python3 - <<'PY'
-import http.client, socket
-ip=socket.gethostbyname('vampi')
-with socket.create_connection(('vampi',5000), timeout=5):
+import http.client
+import socket
+
+ip = socket.gethostbyname("vampi")
+with socket.create_connection(("vampi", 5000), timeout=5):
     pass
-c=http.client.HTTPConnection('vampi',5000,timeout=5)
-c.request('GET','/')
-r=c.getresponse()
-status=r.status
-r.read(); c.close()
+
+connection = http.client.HTTPConnection("vampi", 5000, timeout=5)
+connection.request("GET", "/")
+response = connection.getresponse()
+status = response.status
+response.read()
+connection.close()
+
 if status < 200 or status >= 500:
-    raise SystemExit(f'unexpected HTTP status {status}')
-print(f'KALI_PRIVATE_VAMPI_CONNECTIVITY_PASS dns={ip} http={status}')
+    raise SystemExit(f"unexpected HTTP status {status}")
+
+print(f"KALI_PRIVATE_VAMPI_CONNECTIVITY_PASS dns={ip} http={status}")
 PY
+
 record "gate_h_kali_dns_tcp_http=PASS"
 
 "${VAMPI_LIFECYCLE}" disconnect-kali
@@ -318,21 +340,52 @@ record "gate_h_kali_dns_tcp_http=PASS"
 "${VAMPI_LIFECYCLE}" destroy
 private_lab_started=false
 "${VAMPI_LIFECYCLE}" destroy
+
 record "gate_h_private_lifecycle=PASS"
 
 if [ "${prove_public_rollback}" = true ]; then
   rollback_override="${RUNTIME_ROOT}/compose.public-rollback.${timestamp}.yaml"
+
   cat > "${rollback_override}" <<EOF
 services:
   vampi:
     image: ${PUBLIC_ROLLBACK_IMAGE}
 EOF
   chmod 600 "${rollback_override}"
+
   VAMPI_COMPOSE_OVERRIDE="${rollback_override}" "${VAMPI_LIFECYCLE}" start
+  rollback_lab_started=true
   VAMPI_COMPOSE_OVERRIDE="${rollback_override}" "${VAMPI_LIFECYCLE}" smoke
+  VAMPI_COMPOSE_OVERRIDE="${rollback_override}" "${VAMPI_LIFECYCLE}" connect-kali
+
+  docker exec -i hermes-kali-mcp python3 - <<'PY'
+import http.client
+import socket
+
+socket.gethostbyname("vampi")
+with socket.create_connection(("vampi", 5000), timeout=5):
+    pass
+
+connection = http.client.HTTPConnection("vampi", 5000, timeout=5)
+connection.request("GET", "/")
+response = connection.getresponse()
+status = response.status
+response.read()
+connection.close()
+
+if status < 200 or status >= 500:
+    raise SystemExit(f"unexpected rollback HTTP status {status}")
+
+print(f"KALI_PUBLIC_VAMPI_ROLLBACK_CONNECTIVITY_PASS http={status}")
+PY
+
+  VAMPI_COMPOSE_OVERRIDE="${rollback_override}" "${VAMPI_LIFECYCLE}" disconnect-kali
   VAMPI_COMPOSE_OVERRIDE="${rollback_override}" "${VAMPI_LIFECYCLE}" destroy
+  rollback_lab_started=false
   VAMPI_COMPOSE_OVERRIDE="${rollback_override}" "${VAMPI_LIFECYCLE}" destroy
   rm -f "${rollback_override}"
+  rollback_override=""
+
   record "public_rollback_control=PASS"
 fi
 
@@ -343,6 +396,7 @@ after_status="$(git -C "${REPO_ROOT}" status --porcelain --untracked-files=all)"
 [ "${after_status}" = "${baseline_status}" ] || fail "Git working tree changed during acceptance"
 ! docker network inspect vampi-lab >/dev/null 2>&1 || fail "VAmPI network residue remains"
 ! docker ps -a --format '{{.Names}}' | grep -qx 'vampi-vampi-1' || fail "VAmPI container residue remains"
+
 record "zero_residue=PASS"
 record "decision=READY_FOR_PRIVATE_VAMPI_COMPOSE_MIGRATION"
 record "final=PASS"
