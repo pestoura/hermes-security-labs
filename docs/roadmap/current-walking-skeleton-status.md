@@ -1,8 +1,8 @@
 # Hermes Security Labs — current walking-skeleton status
 
 **Reconciled:** 2026-08-09  
-**Latest exact-green Hermes Security Labs baseline before Lane R:**
-`0ee16ffc74e0053cfe9b9a734d9269049276bf1f` (Lane Q / PR #300)  
+**Lane R exact-green merge baseline:**
+`d0bfc2bd73f98c5f1644750804c89eae5102b31b` (Lane R / PR #301)  
 **Bridge approval remediation:** `pestoura/hermes-mcp-bridge` PR #95,
 main `d4fccbe135b51c41a5b668293e9c02b0db3a5147`, exact-main CI GREEN.
 
@@ -157,7 +157,7 @@ not block unrelated repository engineering.
 | O | #298 | `b71b8d4bcdb781525c08feea9dec268345a5ad3b` | repo/runtime proof reconciliation |
 | P | #299 | `63357eb02eb82a999aec53cf15dad1aa01dd59d0` | first live runtime checkpoint |
 | Q | #300 | `0ee16ffc74e0053cfe9b9a734d9269049276bf1f` | stale-drain recovery + approval blocker reconciliation |
-| R | pending merge | pending | Bridge approval remediation reconciliation; runtime proof intentionally remains pending |
+| R | #301 | `d0bfc2bd73f98c5f1644750804c89eae5102b31b` | Bridge approval remediation reconciliation; runtime proof intentionally remains pending |
 
 ## Decision record — repository repair is not runtime closure
 
