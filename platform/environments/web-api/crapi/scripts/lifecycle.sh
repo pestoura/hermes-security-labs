@@ -8,12 +8,12 @@ SERVICES=(postgresdb mongodb mailhog gateway crapi-identity crapi-community crap
 INTERNAL_SERVICES=(postgresdb mongodb mailhog gateway crapi-identity crapi-community crapi-workshop)
 VOLUMES=(crapi_crapi-postgres-data crapi_crapi-mongo-data)
 EXPECTED_CRAPI_IMAGES=(
-  crapi/crapi-identity:1.1.6-rc8
-  crapi/crapi-community:1.1.6-rc8
-  crapi/crapi-workshop:1.1.6-rc8
-  crapi/crapi-web:1.1.6-rc8
-  crapi/gateway-service:1.1.6-rc8
-  crapi/mailhog:1.1.6-rc8
+  crapi/crapi-identity:1.1.6-rc8@sha256:5152eaa8b25d8585068ec478c9a2ee886ce1658d8289fd047f83325737490f78
+  crapi/crapi-community:1.1.6-rc8@sha256:ff62181b9089df60379c1cecdcfceb0f54ea6d6c4d7c407bb2f5fd55208f2be0
+  crapi/crapi-workshop:1.1.6-rc8@sha256:b73a2e4aed1a62ba9c626214eca6b66289f2f5cced7169dbd791837edf263de6
+  crapi/crapi-web:1.1.6-rc8@sha256:6cbafa5085cc38199c5f16f71ad11579168e08ca25c22e9b89f55e423caa8746
+  crapi/gateway-service:1.1.6-rc8@sha256:111a996957c1e9f78fe401b4d9a16bb99e6d6a3aa836792382a52c9ecbd39c8c
+  crapi/mailhog:1.1.6-rc8@sha256:c3a74b1f63673996aec82f175ad4dd49cc3152637f68dc3dfc9f765e06c0f5e9
 )
 COMPOSE=(docker compose -p "${PROJECT_NAME}" -f "${ENV_DIR}/compose.yaml")
 id(){ "${COMPOSE[@]}" ps -q "$1" 2>/dev/null; }
@@ -31,6 +31,10 @@ verify_images(){
   done
   if grep -E '^crapi/.+:(1\.1\.6|latest|main|develop)$' <<<"${effective}"; then
     echo '[start] Refusing mutable or incorrect crAPI image reference'
+    return 1
+  fi
+  if grep -v '@sha256:' <<<"${effective}"; then
+    echo '[start] Refusing effective image reference without an immutable digest'
     return 1
   fi
 }

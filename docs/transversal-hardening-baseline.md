@@ -54,9 +54,13 @@ control here: it blocks raw-socket traffic generation from inside a laboratory.
 
 ### Tag-pinned images
 
-crAPI ships a multi-service release train under mutable `1.1.6-rc8` tags, plus
-`postgres:14`. These are the only remaining mutable image references; every
-other laboratory is digest-pinned. The exception set must only ever shrink.
+None. The exception set is empty and closed: every committed Compose service
+references an immutable `@sha256:` digest. The last remaining gap was the crAPI
+release train (`1.1.6-rc8`) plus `postgres:14` and `mongo:4.4.29`; all eight
+references are now digest-pinned against the digests resolved read-only from
+Docker Hub (see `platform/environments/web-api/crapi/README.md`).
+`platform/tests/test_compose_hardening_baseline.py` enforces both the universal
+digest rule and the emptiness of the exception set.
 
 ## Network segregation model
 
@@ -91,15 +95,13 @@ five GHCR publication workflows and is asserted against a named allowlist.
 These are recorded deliberately and are out of scope for a safe, independent
 change; several depend on republished images or on the private-GHCR transition.
 
-1. Digest-pin the eight remaining tag-pinned crAPI images (the `1.1.6-rc8`
-   release train plus `postgres:14`).
-2. Pin GitHub Actions to commit SHAs instead of floating major tags
+1. Pin GitHub Actions to commit SHAs instead of floating major tags
    (`actions/checkout@v4`, `actions/setup-python@v5`,
    `gitleaks/gitleaks-action@v2`).
-3. Run laboratory services as an explicit non-root `user:`; the
+2. Run laboratory services as an explicit non-root `user:`; the
    `platform/runtime-base` policy already mandates `uid >= 10000` for runners,
    but the laboratory Compose files do not yet set it.
-4. Reduce the writable-rootfs and partial-`cap_drop` exception sets by rebuilding
+3. Reduce the writable-rootfs and partial-`cap_drop` exception sets by rebuilding
    the affected upstream images.
-5. No SBOM or provenance attestation is produced for the project-built GHCR
+4. No SBOM or provenance attestation is produced for the project-built GHCR
    images; the DevSecOps pack models SBOM as runbook content only.

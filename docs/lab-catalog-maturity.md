@@ -63,8 +63,8 @@ efeito lateral.
 | vampi | PASS | — |
 | webgoat | PASS | — |
 | wrongsecrets | PASS | — |
+| crapi | PASS | — |
 | juice-shop | DEGRADED | porta de host fixa; sem scripts Kali |
-| crapi | DEGRADED | oito imagens sem digest |
 
 ## Fila de promoção a production-ready
 
@@ -73,12 +73,11 @@ do ciclo de vida num host autorizado. O auditor cobre a primeira metade; a
 segunda continua a ser trabalho de aceitação com execução.
 
 1. **Prontos para aceitação de runtime** — `dvwa`, `dvapi`, `vampi`,
-   `graphql-vulnerable-lab`, `nodegoat`, `webgoat`, `wrongsecrets`, `pygoat`.
-   Já cumprem o contrato declarativo; falta apenas registar a execução observada.
+   `graphql-vulnerable-lab`, `nodegoat`, `webgoat`, `wrongsecrets`, `pygoat`,
+   `crapi`. Já cumprem o contrato declarativo; falta apenas registar a execução
+   observada.
 2. **Uma correção pequena de distância** — `juice-shop`: parametrizar a porta de
    host e adicionar os scripts `connect-kali.sh` / `disconnect-kali.sh`.
-3. **Trabalho maior** — `crapi`: oito imagens upstream sem digest, com
-   dependência do ciclo de publicação de imagens.
 
 Ambientes `catalog-only` não entram nesta fila enquanto não trouxerem
 `compose.yaml` e scripts de ciclo de vida para o repositório.
