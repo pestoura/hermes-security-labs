@@ -12,7 +12,7 @@ from typing import Any
 
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ed25519
-from runner_protocol_v2 import validate_semantics
+from runner_protocol_v2 import request_fingerprint, validate_semantics
 
 ROOT = Path(__file__).resolve().parents[2]
 ADAPTER_PATH = ROOT / "platform" / "runner-adapters" / "webgoat_l1_adapter.py"
@@ -226,7 +226,7 @@ def test_signed_tb1_receipt_resolves_and_binds_exact_webgoat_effect(tmp_path: Pa
     assert probe.calls == 1
 
 
-def test_same_tb1_authorization_allows_new_attempt_for_exact_logical_retry(
+def test_same_tb1_authorization_exact_retry_replays_without_second_effect(
     tmp_path: Path,
 ) -> None:
     key = ed25519.Ed25519PrivateKey.generate()
@@ -250,8 +250,10 @@ def test_same_tb1_authorization_allows_new_attempt_for_exact_logical_retry(
         retry_roe,
         receipt["authorization_ref"],
     )
-    retry_message["idempotency_key"] = "fixture-logical-retry-key-two"
-    validate_semantics(retry_message)
+
+    assert first_message["idempotency_key"] == retry_message["idempotency_key"]
+    assert request_fingerprint(first_message) == request_fingerprint(retry_message)
+    assert first_message["correlation"]["attempt_id"] != retry_message["correlation"]["attempt_id"]
 
     probe = FakeProbe()
     runner = webgoat.build_adapter(
@@ -263,11 +265,8 @@ def test_same_tb1_authorization_allows_new_attempt_for_exact_logical_retry(
     first = runner.dispatch(first_message)["messages"][0]
     retry = runner.dispatch(retry_message)["messages"][0]
     assert first["status"] == "PASS"
-    assert retry["status"] == "PASS"
-    assert first_message["correlation"]["attempt_id"] != retry_message["correlation"]["attempt_id"]
-    assert first_message["correlation"]["run_id"] == retry_message["correlation"]["run_id"]
-    assert first_message["correlation"]["step_id"] == retry_message["correlation"]["step_id"]
-    assert probe.calls == 2
+    assert retry == first
+    assert probe.calls == 1
 
 
 def test_verified_receipt_cannot_authorize_different_runner_correlation(tmp_path: Path) -> None:
