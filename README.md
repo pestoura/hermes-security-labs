@@ -92,7 +92,15 @@ python3 platform/scripts/lab_audit.py audit --runtime-managed
 
 `lab-plan.sh` distingue ambientes já catalogados (`CATALOGUED`) de ambientes ainda por implementar (`PLANNED`).
 
-Não existe wrapper genérico de provisionamento: `lab-start.sh`, `lab-stop.sh`, `lab-reset.sh` e `lab-destroy.sh` são `NOT_IMPLEMENTED` e saem com código `2`. A interface real de lifecycle é por ambiente e está tabelada em [`docs/quickstart.md`](docs/quickstart.md#7-matriz-de-comandos-de-lifecycle).
+A interface genérica de lifecycle é um dispatcher fail-closed: os wrappers
+`platform/scripts/lab-{start,stop,reset,destroy,smoke,connect-kali,disconnect-kali}.sh`
+delegam em `platform/scripts/lab_lifecycle.py`, que só executa um par ambiente/ação
+quando o manifest o declara em `lifecycle:` e o script enviado existe. O readiness
+gate `python3 platform/scripts/lab_lifecycle.py support [<id>]` lista o que é
+`SUPPORTED`/`UNSUPPORTED` sem tocar em runtime. Os wrappers read-only
+`lab-list.sh`, `lab-status.sh`, `lab-validate.sh` e `lab-plan.sh` delegam em
+`labctl.py` (catálogo). A interface por ambiente está tabelada em
+[`docs/quickstart.md`](docs/quickstart.md#7-matriz-de-comandos-de-lifecycle).
 
 ## Catálogo de segurança
 
