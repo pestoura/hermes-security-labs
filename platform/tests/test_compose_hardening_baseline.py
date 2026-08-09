@@ -82,17 +82,9 @@ PARTIAL_CAP_DROP_EXCEPTIONS = {
 }
 
 # Images that are still tag-pinned instead of digest-pinned. Tracked as a
-# supply-chain gap; the set must only ever shrink.
-TAG_PINNED_IMAGE_EXCEPTIONS = {
-    "platform/environments/web-api/crapi/compose.yaml::crapi-identity",
-    "platform/environments/web-api/crapi/compose.yaml::crapi-community",
-    "platform/environments/web-api/crapi/compose.yaml::crapi-workshop",
-    "platform/environments/web-api/crapi/compose.yaml::crapi-web",
-    "platform/environments/web-api/crapi/compose.yaml::gateway",
-    "platform/environments/web-api/crapi/compose.yaml::mailhog",
-    "platform/environments/web-api/crapi/compose.yaml::postgresdb",
-    "platform/environments/web-api/crapi/compose.yaml::mongodb",
-}
+# supply-chain gap; the set must only ever shrink. It is now empty: every
+# committed Compose service references an immutable `@sha256:` digest.
+TAG_PINNED_IMAGE_EXCEPTIONS: set[str] = set()
 
 
 def _compose_files() -> list[Path]:
@@ -209,6 +201,21 @@ def test_images_are_digest_pinned_with_reviewed_exceptions() -> None:
         if "@sha256:" in image:
             continue
         assert ref in TAG_PINNED_IMAGE_EXCEPTIONS, f"{ref} uses a mutable image reference: {image}"
+
+
+def test_no_compose_service_uses_a_mutable_image_reference() -> None:
+    """The digest-pin exception set is closed: nothing may reopen it silently."""
+    assert TAG_PINNED_IMAGE_EXCEPTIONS == set(), (
+        "the tag-pinned exception set must stay empty: "
+        f"{sorted(TAG_PINNED_IMAGE_EXCEPTIONS)}"
+    )
+    for rel, name, service in _services():
+        image = service.get("image")
+        if image is None:
+            continue
+        assert "@sha256:" in image, (
+            f"{_ref(rel, name)} uses a mutable image reference: {image}"
+        )
 
 
 def test_exception_lists_contain_no_stale_entries() -> None:

@@ -14,7 +14,7 @@ verdicts:
   cfngoat: CATALOG-ONLY
   cicd-goat: CATALOG-ONLY
   cloudtrail-intel: CATALOG-ONLY
-  crapi: DEGRADED
+  crapi: PASS
   damn-vulnerable-llm-agent: CATALOG-ONLY
   damn-vulnerable-sca: CATALOG-ONLY
   dvapi: PASS
