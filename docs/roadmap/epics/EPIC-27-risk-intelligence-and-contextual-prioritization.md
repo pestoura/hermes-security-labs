@@ -158,9 +158,29 @@ available:
 
 `NO_RUNTIME_CHANGE`.
 
+### Evidence
+
+Exact integration evidence for the repository contract claimed above. Every row is an
+immutable reference; no credential material is recorded.
+
+| Evidence | Value |
+| --- | --- |
+| Technical pull request | [#155](https://github.com/pestoura/hermes-security-labs/pull/155) |
+| Validated PR head | `d7259008dd046f808f93ca3ea1d0ae12f5316a8a` |
+| Integrated `main` merge commit | `0210df3923d0931d23b89e4a006d5abc87c3cc04` |
+| Pre-merge `validate` | success — run `31174719470` |
+| Pre-merge `security` | success — run `31174718396` |
+| Post-merge `main` `validate` | success — run `31175033522` |
+| Post-merge `main` `security` | success — run `31175032268` |
+
+Repository test evidence: `roadmap/tests` and `platform/tests` execute on both gates above.
+The cited merge commit is an ancestor of `main`, so the evidence describes code that is
+actually present rather than proposed.
+
 ## 16. Document change log
 
 | Date | Version | Change |
 | --- | --- | --- |
+| 2026-08-09 | 1.2.0 | Recorded exact section 15 evidence for the PR #155 repository contract under the new lifecycle evidence gate; lifecycle unchanged at `AS_BUILT`, `FINAL=no`. |
 | 2026-08-07 | 1.1.0 | Reconciled PR #155 repository contract as `AS_BUILT`; recorded production non-claims and retained `FINAL=no`. |
 | 2026-08-06 | 1.0.0 | Initial intent document created from the concept epic catalogue. |
