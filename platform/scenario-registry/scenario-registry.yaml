@@ -1,0 +1,146 @@
+schema_version: "1.0"
+contract:
+  registry_id: hexor.scenarios.lane-f
+  canonical_authority: target_id
+  fail_closed: true
+  forbidden_fields:
+    - command
+    - shell
+    - cmd
+    - exec
+    - argv
+    - cwd
+    - script
+    - run
+    - generic_execution
+
+# Canonical scenario registry (Lane F, Wave 1).
+#
+# Contract:
+#   * target_id is the ONLY execution authority (inherited from the target registry).
+#   * Every scenario binds to a typed gateway semantic operation and, where useful,
+#     to a committed runbook reference. No arbitrary command/shell/generic_execution
+#     entry is permitted anywhere in this document.
+#   * Scenarios are seeded only where the lab, the target authorization class and the
+#     typed operation already exist in the repository. This is a small, supported set;
+#     it is not an exhaustive catalogue.
+
+scenarios:
+  - scenario_id: webgoat-tls-transport-review
+    title: WebGoat TLS/transport read-only review
+    environment_id: webgoat
+    lab_id: webgoat-lab
+    objective: >
+      Read-only transport posture review of the WebGoat lab endpoint using typed
+      discovery operations only. No exploitation, no egress.
+    required_authorization:
+      class: LAB_ONLY
+      target_id: webgoat-web
+      binding_placeholder: "${TARGET_ID}"
+    semantic_operations:
+      - system.health.read
+      - web.discovery.headers
+      - web.discovery.tls
+    preconditions:
+      - "webgoat-web target registered with authorization_state LAB_ONLY"
+      - "gateway normal profile admits L0/L1 operations"
+      - "no egress path; traffic confined to webgoat-lab"
+    steps:
+      - operation: system.health.read
+        description: "Liveness gate before discovery."
+      - operation: web.discovery.headers
+        runbook_ref: security/packs/api/runbooks/transport/api-trans-hsts-006.yaml
+        description: "Enumerate and assess HTTP response headers."
+      - operation: web.discovery.tls
+        runbook_ref: security/packs/api/runbooks/transport/api-trans-plaintext-http-001.yaml
+        description: "Assess TLS/plaintext transport posture."
+    expected_signals:
+      - "system.health.read -> PASS (health ok)"
+      - "web.discovery.headers -> PASS with header inventory"
+      - "web.discovery.tls -> PASS with transport assessment"
+    success_criteria:
+      - "All three operations admit under the normal profile."
+      - "Header and TLS findings recorded with target_id binding."
+    cleanup_reset:
+      - "No lab mutation; no reset required."
+    risk_intrusiveness: L1
+    evidence_requirements:
+      - "Gateway request/response correlation ids (campaign/run/step/attempt)."
+      - "Per-operation structured output (JSON)."
+      - "target_id binding to webgoat-web."
+
+  - scenario_id: dvwa-sql-injection-screening
+    title: DVWA deterministic SQL-injection screening (synthetic-only)
+    environment_id: dvwa
+    lab_id: dvwa-lab
+    objective: >
+      Deterministic, synthetic-only SQL-injection validation case against DVWA
+      using the typed validation operation. No live exploitation.
+    required_authorization:
+      class: LAB_ONLY
+      target_id: dvwa-web
+      binding_placeholder: "${TARGET_ID}"
+    semantic_operations:
+      - system.health.read
+      - web.validation.sql-injection
+    preconditions:
+      - "dvwa-web target registered with authorization_state LAB_ONLY"
+      - "web.validation.sql-injection declared in operation-registry (side_effect synthetic-only)"
+    steps:
+      - operation: system.health.read
+        description: "Liveness gate."
+      - operation: web.validation.sql-injection
+        description: "Run a synthetic SQL-injection validation case."
+        parameters:
+          validation_case_id: DVWA-SQLI-SYNTH-001
+    expected_signals:
+      - "system.health.read -> PASS"
+      - "web.validation.sql-injection -> PASS for synthetic case"
+    success_criteria:
+      - "Validation operation returns PASS with no live exploitation."
+    cleanup_reset:
+      - "Synthetic-only; no lab state change."
+    risk_intrusiveness: L2
+    evidence_requirements:
+      - "Validation case id bound to operation parameters."
+      - "Structured result JSON with correlation ids."
+
+  - scenario_id: juice-shop-lab-lifecycle-stop
+    title: Controlled stop/reset of Juice Shop lab
+    environment_id: juice-shop
+    lab_id: juice-shop-lab
+    objective: >
+      Controlled lifecycle stop and reset of the Juice Shop lab after an
+      assessment window, producing a zero-residue proof.
+    required_authorization:
+      class: LAB_ONLY
+      target_id: juice-shop-web
+      binding_placeholder: "${TARGET_ID}"
+    semantic_operations:
+      - system.health.read
+      - lab.lifecycle.stop
+    preconditions:
+      - "juice-shop-web target registered with authorization_state LAB_ONLY"
+      - "lab.lifecycle.stop declared with reason_code enum"
+      - "controlled reset CI available (platform/lab-registry-v2/controlled_reset_ci.py)"
+    steps:
+      - operation: system.health.read
+        description: "Pre-stop liveness confirmation."
+      - operation: lab.lifecycle.stop
+        description: "Stop the lab with an explicit reason code."
+        parameters:
+          reason_code: STOP_CONDITION
+      - runbook_ref: platform/lab-registry-v2/controlled_reset_ci.py
+        description: "Controlled reset producing zero-residue attestation."
+    expected_signals:
+      - "system.health.read -> PASS"
+      - "lab.lifecycle.stop -> accepted with reason_code STOP_CONDITION"
+      - "reset attestation emitted"
+    success_criteria:
+      - "Lab stopped and reset to zero residue."
+    cleanup_reset:
+      - "Lab remains stopped; reset attestation archived."
+    risk_intrusiveness: L2
+    evidence_requirements:
+      - "Stop reason_code bound to operation parameters."
+      - "Zero-residue reset attestation."

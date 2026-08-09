@@ -1,0 +1,166 @@
+schema_version: "1.0"
+contract:
+  registry_id: hexor.tools.lane-f
+  forbidden_execution: generic_execution
+  availability_states:
+    - PRESENT
+    - READY
+    - DEGRADED
+    - FAILED
+    - UNSUPPORTED
+
+# Canonical tool registry (Lane F, Wave 1).
+#
+# Each tool maps to exactly one typed gateway semantic operation
+# (operation-registry.yaml). Availability is set from repository evidence only:
+#
+#   * system.health.read -> READY
+#       platform/gateway-protocol/controlled_runtime_candidate.py executes the
+#       effect and returns execution_authority CONTROLLED_CI_ONLY.
+#   * every other typed operation -> PRESENT (declared in operation-registry.yaml,
+#       no live candidate effect; candidate returns CONTROLLED_EFFECT_NOT_IMPLEMENTED)
+#
+# No tool declares generic_execution, command, shell or arbitrary argv.
+# UNSUPPORTED is reserved for tools that have no typed operation mapping.
+
+tools:
+  - tool_id: gateway.system.health
+    name: Typed Gateway Health
+    category: gateway-core
+    purpose: "Liveness gate over the typed gateway; returns health ok."
+    execution_backend: "platform/gateway-protocol/controlled_runtime_candidate.py"
+    version_policy: "pinned to operation-registry v1.0.0"
+    availability: READY
+    availability_basis: "candidate executes system.health.read -> PASS (CONTROLLED_CI_ONLY)"
+    parallel_safe: true
+    target_types:
+      - gateway
+    risk: L0
+    timeout: 30s
+    output_format: json
+    evidence_parser: "gateway_execution_outcome.schema.json"
+    health_check: "system.health.read"
+    mapped_operation: system.health.read
+    scenario_refs:
+      - webgoat-tls-transport-review
+      - dvwa-sql-injection-screening
+      - juice-shop-lab-lifecycle-stop
+
+  - tool_id: gateway.web.discovery.headers
+    name: Typed Web Discovery (Headers)
+    category: web-discovery
+    purpose: "Read-only HTTP response header enumeration and assessment."
+    execution_backend: "platform/gateway-protocol/controlled_runtime_candidate.py"
+    version_policy: "pinned to operation-registry v1.0.0"
+    availability: PRESENT
+    availability_basis: "declared in operation-registry; candidate effect not implemented (CONTROLLED_EFFECT_NOT_IMPLEMENTED)"
+    parallel_safe: true
+    target_types:
+      - web-application
+    risk: L1
+    timeout: 60s
+    output_format: json
+    evidence_parser: "gateway_execution_outcome.schema.json"
+    health_check: "system.health.read"
+    mapped_operation: web.discovery.headers
+    scenario_refs:
+      - webgoat-tls-transport-review
+
+  - tool_id: gateway.web.discovery.tls
+    name: Typed Web Discovery (TLS/Transport)
+    category: web-discovery
+    purpose: "Read-only TLS/plaintext transport posture assessment."
+    execution_backend: "platform/gateway-protocol/controlled_runtime_candidate.py"
+    version_policy: "pinned to operation-registry v1.0.0"
+    availability: PRESENT
+    availability_basis: "declared in operation-registry; candidate effect not implemented (CONTROLLED_EFFECT_NOT_IMPLEMENTED)"
+    parallel_safe: true
+    target_types:
+      - web-application
+    risk: L1
+    timeout: 60s
+    output_format: json
+    evidence_parser: "gateway_execution_outcome.schema.json"
+    health_check: "system.health.read"
+    mapped_operation: web.discovery.tls
+    scenario_refs:
+      - webgoat-tls-transport-review
+
+  - tool_id: gateway.web.validation.sqli
+    name: Typed Web Validation (SQL Injection, synthetic)
+    category: web-validation
+    purpose: "Synthetic-only deterministic SQL-injection validation case."
+    execution_backend: "platform/gateway-protocol/controlled_runtime_candidate.py"
+    version_policy: "pinned to operation-registry v1.0.0"
+    availability: PRESENT
+    availability_basis: "declared in operation-registry; candidate effect not implemented (CONTROLLED_EFFECT_NOT_IMPLEMENTED); side_effect synthetic-only"
+    parallel_safe: false
+    target_types:
+      - web-application
+    risk: L2
+    timeout: 120s
+    output_format: json
+    evidence_parser: "gateway_execution_outcome.schema.json"
+    health_check: "system.health.read"
+    mapped_operation: web.validation.sql-injection
+    scenario_refs:
+      - dvwa-sql-injection-screening
+
+  - tool_id: gateway.lab.lifecycle.stop
+    name: Typed Lab Lifecycle Stop
+    category: lab-lifecycle
+    purpose: "Controlled lab stop/reset with reason code and zero-residue proof."
+    execution_backend: "platform/gateway-protocol/controlled_runtime_candidate.py"
+    version_policy: "pinned to operation-registry v1.0.0"
+    availability: PRESENT
+    availability_basis: "declared in operation-registry; candidate effect not implemented (CONTROLLED_EFFECT_NOT_IMPLEMENTED)"
+    parallel_safe: false
+    target_types:
+      - lab
+    risk: L2
+    timeout: 180s
+    output_format: json
+    evidence_parser: "gateway_execution_outcome.schema.json"
+    health_check: "system.health.read"
+    mapped_operation: lab.lifecycle.stop
+    scenario_refs:
+      - juice-shop-lab-lifecycle-stop
+
+  - tool_id: runtime.inventory.read
+    name: Runtime Inventory Read
+    category: gateway-core
+    purpose: "Read-only runtime inventory enumeration."
+    execution_backend: "platform/gateway-protocol/controlled_runtime_candidate.py"
+    version_policy: "pinned to operation-registry v1.0.0"
+    availability: PRESENT
+    availability_basis: "declared in operation-registry; candidate effect not implemented (CONTROLLED_EFFECT_NOT_IMPLEMENTED)"
+    parallel_safe: true
+    target_types:
+      - gateway
+      - lab
+    risk: L0
+    timeout: 30s
+    output_format: json
+    evidence_parser: "gateway_execution_outcome.schema.json"
+    health_check: "system.health.read"
+    mapped_operation: runtime.inventory.read
+    scenario_refs: []
+
+  - tool_id: kali-mcp.audit
+    name: Kali MCP Audit (read-only)
+    category: kali-mcp
+    purpose: "Read-only audit wrapper for the Kali MCP lab."
+    execution_backend: "kali-mcp/scripts/audit.sh"
+    version_policy: "image digest-pinned (see kali-mcp/Dockerfile)"
+    availability: DEGRADED
+    availability_basis: "kali-mcp present; not wired to a gateway typed operation in this lane (UNSUPPORTED mapping)"
+    parallel_safe: false
+    target_types:
+      - lab
+    risk: L1
+    timeout: 120s
+    output_format: json
+    evidence_parser: "kali-mcp result schema (out of scope)"
+    health_check: "kali-mcp/healthcheck.sh"
+    mapped_operation: UNMAPPED
+    scenario_refs: []
