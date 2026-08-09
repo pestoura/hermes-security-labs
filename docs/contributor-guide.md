@@ -106,8 +106,8 @@ python3 -m pytest -q roadmap/tests   -p no:cacheprovider
 python3 -m pytest -q security/tests  -p no:cacheprovider
 python3 -m pytest -q docs/tests      -p no:cacheprovider
 python3 -m pytest -q security/packs/<domain>/tests -p no:cacheprovider
-RUFF_CACHE_DIR=/tmp/ruff-cache python3 -m ruff check .
-find . -path ./.git -prune -o -name '*.sh' -print0 | xargs -0 -r -n1 bash -n
+make lint     # reproduz o gate do CI; `ruff check .` nu NÃO é o gate
+git ls-files '*.sh' | xargs -r -n1 bash -n
 git diff --check
 ```
 

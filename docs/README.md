@@ -10,6 +10,7 @@ mantidos em Git e são a fonte de verdade. Issues do GitHub são uma vista de tr
 | Perceber o que é o projeto | [Project overview](project-overview.md) |
 | Saber onde está cada coisa | [Repository tour](repository-tour.md) |
 | Perceber como o sistema funciona | [Architecture](architecture.md) |
+| Ir do clone ao lab destruído em 8 passos | [Quickstart](quickstart.md) |
 | Pôr o repositório a validar localmente | [Getting started](getting-started.md) |
 | Operar laboratórios e deployment | [Operator guide](operator-guide.md) |
 | Distinguir drift local esperado de drift real | [Deployment tracking e drift](deployment-tracking.md) |
@@ -32,6 +33,7 @@ mantidos em Git e são a fonte de verdade. Issues do GitHub são uma vista de tr
 - [Project overview](project-overview.md)
 - [Repository tour](repository-tour.md)
 - [Architecture](architecture.md)
+- [Quickstart — caminho canónico curto](quickstart.md)
 - [Getting started / tutorial](getting-started.md)
 - [Operator guide](operator-guide.md)
 - [Lab catalog maturity](lab-catalog-maturity.md)

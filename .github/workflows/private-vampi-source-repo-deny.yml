@@ -15,6 +15,10 @@ permissions:
 env:
   IMAGE_REF: ghcr.io/pestoura/hermes-private-vampi@sha256:b1b66324a2d35cfe55e3edcd81f9f3c012907c71367df37f83d9ef63b500b3d3
 
+concurrency:
+  group: private-vampi-source-repo-deny-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   source-repo-deny:
     name: Prove public source repository has no private package read access

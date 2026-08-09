@@ -3,6 +3,38 @@
 Sintomas frequentes, diagnóstico e ação. A regra transversal é: **ausência de prova
 nunca é resultado positivo**.
 
+## Porta de host já em uso
+
+**Sintoma.** `start` aborta com `Port <n> already in use`, ou o Compose falha a
+publicar o mapeamento.
+
+**Diagnóstico.**
+
+```bash
+ss -ltn | grep -w <porta>
+docker ps --format '{{.Names}}\t{{.Ports}}'
+```
+
+**Causas conhecidas.** VAmPI publica `5000` por omissão, a mesma porta do servidor
+MCP local; DVAPI publica `3000`, a mesma que o Juice Shop.
+
+**Ação.** Definir a variável de porta do ambiente em vez de editar o `compose.yaml`:
+`VAMPI_HOST_PORT`, `DVAPI_HOST_PORT`, `PYGOAT_HOST_PORT`, `NODEGOAT_HOST_PORT`,
+`GRAPHQL_LAB_HOST_PORT`, `DVWA_HOST_PORT`, `WEBGOAT_HOST_PORT`, `WEBWOLF_HOST_PORT`,
+`WRONGSECRETS_HOST_PORT`, `CRAPI_HOST_PORT`. O Juice Shop publica `127.0.0.1:3000`
+fixo, sem variável: nesse caso é o outro laboratório que muda de porta.
+
+## `lab-start.sh` não arranca nada
+
+**Sintoma.** `./platform/scripts/lab-start.sh <id>` sai com código `2` e não cria
+containers.
+
+**Causa.** Esperado. Os wrappers `lab-{start,stop,reset,destroy}.sh` são
+`NOT_IMPLEMENTED`; não existe wrapper genérico de provisionamento.
+
+**Ação.** Usar a interface real do ambiente, tabelada na
+[matriz de comandos de lifecycle](quickstart.md#7-matriz-de-comandos-de-lifecycle).
+
 ## Runner missing ou hash mismatch
 
 **Sintoma.** `verify.sh` ou `drift-check.sh` reporta runner desatualizado ou
