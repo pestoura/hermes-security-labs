@@ -187,12 +187,56 @@ Future operational evidence required before `AS_BUILT`:
 
 > Reserved. Populate when the delivery umbrella reaches completion. Must record what was actually built, evidence links, and every divergence from sections 6 to 11. No umbrella may be closed while this section is empty.
 
-_Not populated. EPIC-39 is IMPLEMENTING; AS_BUILT and FINAL remain no._
+_Lifecycle unchanged: EPIC-39 is `IMPLEMENTING`; `AS_BUILT` and `FINAL` remain no._
+
+### What is actually built and merged
+
+- strict supplied ATT&CK dataset and migration-report schemas;
+- deterministic dataset identity over provider, domain, version, publication timestamp,
+  locator and normalized technique content;
+- replacement validation with cycle refusal and strictly-newer same-domain preconditions;
+- deterministic added/removed/renamed/revoked/deprecated/replaced/object-id-change reporting;
+- source-dataset-bound mapping impact analysis with review-only and blocking findings;
+- `automatic_adoption = false` and `historical_rewrite = false`.
+
+Canonical implementation: `platform/knowledge-fabric/attack_sync.py` with
+`attack-dataset.schema.json` and `attack-migration-report.schema.json`. Dedicated tests:
+`platform/tests/test_attack_sync.py`.
+
+### Exact evidence
+
+| Evidence | Value |
+| --- | --- |
+| Technical pull request | [#188](https://github.com/pestoura/hermes-security-labs/pull/188) |
+| Validated PR head | `06fcaf2f7c1179fac59954581bdcff1b2b6e08ee` |
+| Integrated `main` merge commit | `a702fd70a7a6bc65653cfde270ca8de0b48a2460` |
+| Pre-merge `validate` | success — run `31229852214` |
+| Pre-merge `security` | success — run `31229852229` |
+| Post-merge `main` `validate` | success — run `31229951514` |
+| Post-merge `main` `security` | success — run `31229951534` |
+
+The merge commit is an ancestor of `main`.
+
+### Evidence that is missing for promotion
+
+The epic's target state is a *managed synchronization process*. Migration reporting exists;
+synchronization does not:
+
+- TAXII or equivalent external ATT&CK synchronization: `NOT_RUN`;
+- upstream source provenance/signature verification: `NOT_IMPLEMENTED` / `NOT_RUN`;
+- scheduled synchronization or release polling: `NOT_IMPLEMENTED`;
+- automatic ATT&CK version adoption: `NOT_IMPLEMENTED`;
+- production migration/adoption workflow and graph/planner consumption:
+  `NOT_IMPLEMENTED` / `NOT_RUN`;
+- supplied snapshots are not claimed authoritative or current.
+
+`NO_RUNTIME_CHANGE`.
 
 ## 16. Document change log
 
 | Date | Version | Change |
 | --- | --- | --- |
+| 2026-08-09 | 1.3.0 | Populated section 15 with the exact merged evidence for PR #188 and the explicit list of evidence still missing for promotion; lifecycle unchanged at `IMPLEMENTING`. |
 | 2026-08-06 | 1.0.0 | Initial intent document created from the concept epic catalogue. |
 | 2026-08-07 | 1.1.0 | Clarified that PR #146 does not implement ATT&CK synchronization; lifecycle remains INTENT. |
 | 2026-08-08 | 1.2.0 | Reconciled PR #188 supplied-snapshot ATT&CK migration contract to `IMPLEMENTING`; recorded exact pre/post-merge gates and preserved external-sync/adoption non-claims. |

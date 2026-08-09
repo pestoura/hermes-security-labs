@@ -199,12 +199,55 @@ Future operational evidence required before `AS_BUILT`:
 
 > Reserved. Populate when the delivery umbrella reaches completion. Must record what was actually built, evidence links, and every divergence from sections 6 to 11. No umbrella may be closed while this section is empty.
 
-_Not populated. EPIC-40 is IMPLEMENTING; AS_BUILT and FINAL remain no._
+_Lifecycle unchanged: EPIC-40 is `IMPLEMENTING`; `AS_BUILT` and `FINAL` remain no._
+
+### What is actually built and merged
+
+- strict supplied NIST control-catalogue schema with deterministic catalogue identity;
+- canonical control identifiers, objectives and typed control mappings;
+- conservative evidence projections where unmapped, unobserved and `NOT_RUN` never become
+  positive verdicts;
+- partial multi-mapping observation forced to review, and mappings for controls absent from
+  the selected catalogue fail closed;
+- fixed non-claims `compliance_verdict = NOT_EVALUATED` and `certification_claim = NONE`.
+
+Canonical implementation: `platform/knowledge-fabric/control_knowledge.py` with
+`control-catalogue.schema.json`, `control-mapping.schema.json` and
+`control-projection.schema.json`. Dedicated tests:
+`platform/tests/test_control_knowledge.py` and
+`platform/tests/test_control_knowledge_hardening.py`.
+
+### Exact evidence
+
+| Evidence | Value |
+| --- | --- |
+| Technical pull request | [#190](https://github.com/pestoura/hermes-security-labs/pull/190) |
+| Validated PR head | `670984fdd9e73ea2e388898f6bcbbc6c1c64ee44` |
+| Integrated `main` merge commit | `560cfa44c10d8a7de285a2e83e51c62df9ec7582` |
+| Pre-merge `validate` | success — run `31230900374` |
+| Pre-merge `security` | success — run `31230900392` |
+| Post-merge `main` `validate` | success — run `31230978273` |
+| Post-merge `main` `security` | success — run `31230978272` |
+
+The merge commit is an ancestor of `main`.
+
+### Evidence that is missing for promotion
+
+- external NIST catalogue acquisition: `NOT_RUN`;
+- authoritative/current source verification: `NOT_IMPLEMENTED` / `NOT_RUN`;
+- complete production NIST control population: `NOT_RUN`;
+- production graph persistence/query and planner/report consumers:
+  `NOT_IMPLEMENTED` / `NOT_RUN`;
+- formal control-effectiveness assessment workflow: `NOT_IMPLEMENTED` / `NOT_RUN`;
+- formal compliance/certification conclusion: not implemented and not claimed.
+
+`NO_RUNTIME_CHANGE`.
 
 ## 16. Document change log
 
 | Date | Version | Change |
 | --- | --- | --- |
+| 2026-08-09 | 1.3.0 | Populated section 15 with the exact merged evidence for PR #190 and the explicit list of evidence still missing for promotion; lifecycle unchanged at `IMPLEMENTING`. |
 | 2026-08-06 | 1.0.0 | Initial intent document created from the concept epic catalogue. |
 | 2026-08-07 | 1.1.0 | Clarified that PR #148 does not implement the NIST/control-specific layer; lifecycle remains INTENT. |
 | 2026-08-08 | 1.2.0 | Reconciled PR #190 repository-level control knowledge contract to `IMPLEMENTING`; recorded exact pre/post-merge gates and preserved assessment/compliance/source non-claims. |
