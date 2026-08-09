@@ -1,0 +1,104 @@
+name: issue18-webgoat-egress
+
+on:
+  push:
+    paths:
+      - '.github/workflows/issue18-webgoat-egress.yml'
+      - 'platform/environments/web-api/webgoat/**'
+      - 'platform/tests/test_webgoat_egress_proxy.py'
+  pull_request:
+    paths:
+      - '.github/workflows/issue18-webgoat-egress.yml'
+      - 'platform/environments/web-api/webgoat/**'
+      - 'platform/tests/test_webgoat_egress_proxy.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  isolated-localhost-publication:
+    runs-on: ubuntu-24.04
+    env:
+      COMPOSE: platform/environments/web-api/webgoat/compose.yaml
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate Compose topology
+        run: docker compose -f "$COMPOSE" config --quiet
+
+      - name: Start isolated WebGoat and fixed localhost proxy
+        run: |
+          set -euo pipefail
+          docker compose -f "$COMPOSE" up -d
+          for _ in $(seq 1 90); do
+            if curl -fsS --max-time 5 http://127.0.0.1:8080/WebGoat/ >/dev/null && \
+               curl -fsS --max-time 5 http://127.0.0.1:9090/login >/dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          docker compose -f "$COMPOSE" ps
+          docker compose -f "$COMPOSE" logs --tail 100
+          exit 1
+
+      - name: Prove workload outbound egress is unavailable
+        run: |
+          set -euo pipefail
+          webgoat_id=$(docker compose -f "$COMPOSE" ps -q webgoat)
+          test -n "$webgoat_id"
+          if docker exec "$webgoat_id" curl -fsS --connect-timeout 3 --max-time 5 https://example.com/ >/dev/null 2>&1; then
+            echo 'WebGoat unexpectedly has outbound Internet egress' >&2
+            exit 1
+          fi
+          networks=$(docker inspect "$webgoat_id" --format '{{json .NetworkSettings.Networks}}')
+          echo "$networks" | grep -F 'webgoat-lab'
+          if echo "$networks" | grep -Fq 'webgoat-publish'; then
+            echo 'WebGoat must not attach to publication network' >&2
+            exit 1
+          fi
+
+      - name: Validate temporary Kali attachment to private lab network
+        run: |
+          set -euo pipefail
+          docker build -t hermes/kali-mcp:issue18 kali-mcp
+          docker run -d --name hex0r-issue18-kali --network webgoat-lab \
+            --read-only --cap-drop=ALL --security-opt no-new-privileges \
+            --pids-limit 64 --memory 512m --cpus 0.5 \
+            --tmpfs /run:size=64m --tmpfs /tmp:size=128m \
+            --entrypoint /bin/sh hermes/kali-mcp:issue18 -c 'sleep 60'
+          docker exec hex0r-issue18-kali curl -fsS --max-time 10 http://webgoat:8080/WebGoat/ >/dev/null
+          docker exec hex0r-issue18-kali curl -fsS --max-time 10 http://webgoat:9090/login >/dev/null
+          docker rm -f hex0r-issue18-kali >/dev/null
+          if docker ps -a --filter name=hex0r-issue18-kali --format '{{.ID}}' | grep -q .; then
+            echo 'temporary Kali attachment residue detected' >&2
+            exit 1
+          fi
+
+      - name: Reset and verify localhost publication remains functional
+        run: |
+          set -euo pipefail
+          docker compose -f "$COMPOSE" down -v
+          docker compose -f "$COMPOSE" up -d
+          for _ in $(seq 1 90); do
+            if curl -fsS --max-time 5 http://127.0.0.1:8080/WebGoat/ >/dev/null && \
+               curl -fsS --max-time 5 http://127.0.0.1:9090/login >/dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          exit 1
+
+      - name: Destroy and prove project resource cleanup
+        if: always()
+        run: |
+          set -euo pipefail
+          docker rm -f hex0r-issue18-kali >/dev/null 2>&1 || true
+          docker compose -f "$COMPOSE" down -v --remove-orphans || true
+          if docker ps -a --filter label=com.docker.compose.project=webgoat --format '{{.ID}}' | grep -q .; then
+            echo 'WebGoat container residue detected' >&2
+            exit 1
+          fi
+          if docker network ls --format '{{.Name}}' | grep -Eq '^webgoat-(lab|publish)$'; then
+            echo 'WebGoat network residue detected' >&2
+            exit 1
+          fi
