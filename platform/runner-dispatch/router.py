@@ -8,6 +8,7 @@ It creates no authorization and performs no dynamic adapter imports.
 
 from __future__ import annotations
 
+import argparse
 import importlib.util
 import sys
 from collections.abc import Mapping, Sequence
@@ -289,7 +290,8 @@ def dispatch_from_unix_peer(
     try:
         peer = transport_identity.authenticate_unix_peer(peer_socket, transport_policy)
     except transport_identity.TransportIdentityError as exc:
-        raise DispatchRouterError(f"TRANSPORT_{exc.code}", str(exc)) from exc
+        code = exc.code if exc.code.startswith("TRANSPORT_") else f"TRANSPORT_{exc.code}"
+        raise DispatchRouterError(code, str(exc)) from exc
 
     findings = validate_routing_policy(routing_policy)
     if findings:
