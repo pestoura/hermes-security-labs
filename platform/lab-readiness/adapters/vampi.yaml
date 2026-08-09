@@ -1,0 +1,20 @@
+schema_version: 1
+env_id: vampi
+liveness:
+  - id: lifecycle-status
+    kind: lifecycle_status
+    timeout_seconds: 20
+    description: Shipped status action for the vampi compose project.
+readiness:
+  - id: tcp-api
+    kind: tcp_connect
+    host: 127.0.0.1
+    port: 5000
+    timeout_seconds: 5
+    description: Published loopback API port accepts connections.
+  - id: http-root
+    kind: http_get
+    url: http://127.0.0.1:5000/
+    expect_status: 200
+    timeout_seconds: 5
+    description: VAmPI root endpoint answers 200 (read-only GET, no API abuse).
