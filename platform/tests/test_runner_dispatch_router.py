@@ -7,6 +7,7 @@ import socket
 import sys
 import uuid
 from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -19,7 +20,11 @@ ROUTING_POLICY_PATH = ROOT / "platform" / "runner-dispatch" / "routing-policy.ya
 TRANSPORT_POLICY_PATH = ROOT / "platform" / "runner-transport" / "transport-policy.yaml"
 ADAPTER_REGISTRY_PATH = ROOT / "platform" / "runner-adapters" / "adapter-registry.yaml"
 WEBGOAT_ADAPTER_PATH = ROOT / "platform" / "runner-adapters" / "webgoat_l1_adapter.py"
-AUTHORIZATION_REF = "authz/tb1/router-fixture-0001"
+AUTHORIZATION_REF = "tb1-authz:v1:" + ("3" * 64)
+CAMPAIGN_ID = "11111111-1111-4111-8111-111111111111"
+RUN_ID = "22222222-2222-4222-8222-222222222222"
+STEP_ID = "33333333-3333-4333-8333-333333333333"
+ATTEMPT_ID = "44444444-4444-4444-8444-444444444444"
 
 
 def _load(name: str, path: Path):
@@ -35,6 +40,12 @@ router = _load("runner_dispatch_router_test", ROUTER_PATH)
 webgoat = _load("runner_dispatch_webgoat_adapter_test", WEBGOAT_ADAPTER_PATH)
 
 
+def _iso(value: datetime) -> str:
+    return value.astimezone(timezone.utc).isoformat(timespec="seconds").replace(
+        "+00:00", "Z"
+    )
+
+
 @dataclass
 class StaticResolver:
     binding: Any
@@ -42,6 +53,22 @@ class StaticResolver:
     def resolve(self, authorization_ref: str):
         assert authorization_ref == AUTHORIZATION_REF
         return self.binding
+
+
+@dataclass(frozen=True)
+class VerifiedBinding:
+    authorization_ref: str
+    issued_at: str
+    expires_at: str
+    campaign_id: str
+    run_id: str
+    step_id: str
+    operation_id: str
+    operation_version: str
+    operation_parameters_sha256: str
+    capability_id: str
+    target_sha256: str
+    intrusiveness_level: str
 
 
 class FakeProbe:
@@ -134,10 +161,10 @@ def _request(capability: str = "web.discovery.headers") -> dict[str, Any]:
         "message_type": "runner.step.request",
         "protocol_version": "2.0.0",
         "correlation": {
-            "campaign_id": str(uuid.UUID("11111111-1111-4111-8111-111111111111")),
-            "run_id": str(uuid.UUID("22222222-2222-4222-8222-222222222222")),
-            "step_id": str(uuid.UUID("33333333-3333-4333-8333-333333333333")),
-            "attempt_id": str(uuid.UUID("44444444-4444-4444-8444-444444444444")),
+            "campaign_id": CAMPAIGN_ID,
+            "run_id": RUN_ID,
+            "step_id": STEP_ID,
+            "attempt_id": ATTEMPT_ID,
         },
         "emitted_at": "2026-08-09T19:00:00Z",
         "authorization_ref": AUTHORIZATION_REF,
@@ -167,16 +194,31 @@ def _request(capability: str = "web.discovery.headers") -> dict[str, Any]:
     }
 
 
-def _real_adapter(tmp_path: Path, capability: str, probe: FakeProbe):
-    binding = webgoat.AuthorizationBinding(
-        authorization_ref=AUTHORIZATION_REF,
-        target_id="webgoat-web",
-        capability_id=capability,
-        authorization_class="LAB_ONLY",
+def _verified_for(request: dict[str, Any]) -> VerifiedBinding:
+    payload = request["operation"]["input"]
+    now = datetime.now(timezone.utc)
+    return VerifiedBinding(
+        authorization_ref=request["authorization_ref"],
+        issued_at=_iso(now - timedelta(seconds=30)),
+        expires_at=_iso(now + timedelta(minutes=5)),
+        campaign_id=request["correlation"]["campaign_id"],
+        run_id=request["correlation"]["run_id"],
+        step_id=request["correlation"]["step_id"],
+        operation_id=payload["operation_id"],
+        operation_version=payload["operation_version"],
+        operation_parameters_sha256=webgoat.authorization_contract.canonical_parameters_sha256(
+            payload["parameters"]
+        ),
+        capability_id=request["operation"]["capability_id"],
+        target_sha256=webgoat.gateway_contract.canonical_target_digest(payload["target"]),
+        intrusiveness_level=payload["intrusiveness_level"],
     )
+
+
+def _real_adapter(tmp_path: Path, request: dict[str, Any], probe: FakeProbe):
     return webgoat.build_adapter(
         ledger_path=tmp_path / "router-ledger.sqlite3",
-        authorization_resolver=StaticResolver(binding),
+        authorization_resolver=StaticResolver(_verified_for(request)),
         probe=probe,
     )
 
@@ -217,11 +259,12 @@ def test_committed_routing_policy_is_disabled_deny_all() -> None:
 def test_committed_transport_policy_and_adapter_registry_prevent_dispatch(
     tmp_path: Path,
 ) -> None:
+    request = _request()
     probe = FakeProbe()
-    adapter = _real_adapter(tmp_path, "web.discovery.headers", probe)
+    adapter = _real_adapter(tmp_path, request, probe)
     with pytest.raises(router.DispatchRouterError) as exc:
         _dispatch(
-            request=_request(),
+            request=request,
             adapter_registry=_adapter_registry(promoted=False),
             adapter=adapter,
         )
@@ -232,10 +275,11 @@ def test_committed_transport_policy_and_adapter_registry_prevent_dispatch(
 def test_authenticated_peer_routes_to_promoted_adapter_with_fake_effect(
     tmp_path: Path,
 ) -> None:
+    request = _request()
     probe = FakeProbe()
-    adapter = _real_adapter(tmp_path, "web.discovery.headers", probe)
+    adapter = _real_adapter(tmp_path, request, probe)
     result = _dispatch(
-        request=_request(),
+        request=request,
         adapter_registry=_adapter_registry(promoted=True),
         adapter=adapter,
     )
@@ -249,12 +293,13 @@ def test_authenticated_peer_routes_to_promoted_adapter_with_fake_effect(
 
 
 def test_disabled_transport_refuses_before_adapter(tmp_path: Path) -> None:
+    request = _request()
     probe = FakeProbe()
-    adapter = _real_adapter(tmp_path, "web.discovery.headers", probe)
+    adapter = _real_adapter(tmp_path, request, probe)
     disabled = yaml.safe_load(TRANSPORT_POLICY_PATH.read_text(encoding="utf-8"))
     with pytest.raises(router.DispatchRouterError) as exc:
         _dispatch(
-            request=_request(),
+            request=request,
             adapter_registry=_adapter_registry(promoted=True),
             adapter=adapter,
             transport_policy=disabled,
@@ -264,12 +309,13 @@ def test_disabled_transport_refuses_before_adapter(tmp_path: Path) -> None:
 
 
 def test_disabled_routing_policy_refuses_before_adapter(tmp_path: Path) -> None:
+    request = _request()
     probe = FakeProbe()
-    adapter = _real_adapter(tmp_path, "web.discovery.headers", probe)
+    adapter = _real_adapter(tmp_path, request, probe)
     disabled = yaml.safe_load(ROUTING_POLICY_PATH.read_text(encoding="utf-8"))
     with pytest.raises(router.DispatchRouterError) as exc:
         _dispatch(
-            request=_request(),
+            request=request,
             adapter_registry=_adapter_registry(promoted=True),
             adapter=adapter,
             routing_policy=disabled,
@@ -279,12 +325,13 @@ def test_disabled_routing_policy_refuses_before_adapter(tmp_path: Path) -> None:
 
 
 def test_missing_exact_binding_refuses_before_adapter(tmp_path: Path) -> None:
+    request = _request()
     probe = FakeProbe()
-    adapter = _real_adapter(tmp_path, "web.discovery.headers", probe)
+    adapter = _real_adapter(tmp_path, request, probe)
     policy = _routing_policy(capabilities=["web.discovery.tls"])
     with pytest.raises(router.DispatchRouterError) as exc:
         _dispatch(
-            request=_request(),
+            request=request,
             adapter_registry=_adapter_registry(promoted=True),
             adapter=adapter,
             routing_policy=policy,
@@ -294,9 +341,9 @@ def test_missing_exact_binding_refuses_before_adapter(tmp_path: Path) -> None:
 
 
 def test_unknown_capability_has_no_route(tmp_path: Path) -> None:
-    probe = FakeProbe()
-    adapter = _real_adapter(tmp_path, "web.discovery.headers", probe)
     request = _request("runtime.inventory.read")
+    probe = FakeProbe()
+    adapter = _real_adapter(tmp_path, request, probe)
     with pytest.raises(router.DispatchRouterError) as exc:
         _dispatch(
             request=request,
@@ -308,15 +355,16 @@ def test_unknown_capability_has_no_route(tmp_path: Path) -> None:
 
 
 def test_ambiguous_adapter_match_is_refused(tmp_path: Path) -> None:
+    request = _request()
     probe = FakeProbe()
-    adapter = _real_adapter(tmp_path, "web.discovery.headers", probe)
+    adapter = _real_adapter(tmp_path, request, probe)
     registry = _adapter_registry(promoted=True)
     duplicate = copy.deepcopy(registry["adapters"][0])
     duplicate["adapter_id"] = "webgoat-l1-copy"
     registry["adapters"].append(duplicate)
     with pytest.raises(router.DispatchRouterError) as exc:
         _dispatch(
-            request=_request(),
+            request=request,
             adapter_registry=registry,
             adapter=adapter,
         )
