@@ -1,0 +1,52 @@
+schemaVersion: jds.validation/v1
+kind: ValidationCampaign
+id: VAL-HSL-RUNNER-L1-LIVE-PROMOTION
+product: hermes-security-labs
+objective: Govern promotion of the current WebGoat L1 Runner repository chain into a first fully authorized, evidenced and resettable live target effect without treating repository acceptance as execution authority.
+state: BLOCKED
+candidate:
+  version: runner-webgoat-l1-repo-candidate
+  commit: 9cfa7ec69a078b316351c4202f066f8fa2d79f90
+  artifactDigest: null
+environment: Hermes Security Labs / WebGoat isolated lab runtime
+observations:
+  - id: OBS-RUNNER-REPO-CHAIN
+    required: true
+    result: PASS
+    status: RESOLVED
+    summary: The repository proves canonical TB1 verification, VerifiedAuthorizationResolver, gateway handoff, exact WebGoat adapter binding, durable idempotency and logical retry semantics without live target traffic.
+    changeRecord: null
+    evidence: 'prs:316,317,318; main:9cfa7ec69a078b316351c4202f066f8fa2d79f90'
+  - id: OBS-TB1-LIVE-DELIVERY
+    required: true
+    result: BLOCKED
+    status: OPEN
+    summary: Operational signed TB1 receipt issuance and trusted delivery into the Runner process are not implemented or live-accepted.
+    changeRecord: null
+    evidence: 'runner-adapters:TB1 operational receipt issuance/delivery NOT_IMPLEMENTED/NOT_RUN'
+  - id: OBS-RUNNER-POLICY-PROMOTION
+    required: true
+    result: BLOCKED
+    status: OPEN
+    summary: Resolver, AF_UNIX peer identity and authenticated routing policies remain canonically DISABLED/NOT_RUN and therefore cannot dispatch the candidate live.
+    changeRecord: null
+    evidence: 'resolver/transport/router:DISABLED/NOT_RUN'
+  - id: OBS-EVIDENCE-CUSTODY
+    required: true
+    result: BLOCKED
+    status: OPEN
+    summary: External Evidence Plane persistence/custody for terminal Runner outcomes is not implemented on main; the prior custody PR was closed without merge.
+    changeRecord: null
+    evidence: 'pr:319 closed-unmerged; evidence-plane:NOT_IMPLEMENTED/NOT_RUN'
+  - id: OBS-LIVE-EFFECT-RESET
+    required: true
+    result: BLOCKED
+    status: OPEN
+    summary: No live WebGoat effect plus evidence custody plus reset/known-state proof has been executed for this candidate.
+    changeRecord: null
+    evidence: 'webgoat-live-effect:NOT_RUN'
+promotionRecommendation: HOLD
+timestamps:
+  startedAt: '2026-08-09T21:12:00Z'
+  updatedAt: '2026-08-09T21:12:00Z'
+  closedAt: null
