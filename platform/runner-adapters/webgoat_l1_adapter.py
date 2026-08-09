@@ -11,6 +11,9 @@ Safety boundaries:
 - fixed capabilities: ``web.discovery.headers`` and ``web.discovery.tls``;
 - consumes only the canonical gateway -> Runner Protocol v2 operation envelope;
 - target envelope is fixed to ``lab-asset:webgoat-web``;
+- authorization must resolve to canonical TB1 ``VerifiedAuthorization`` metadata;
+- correlation, operation, capability, intrusiveness, target digest and parameter
+  digest are independently rebound at the adapter before any effect;
 - no raw URL/host/port/path input;
 - no shell, subprocess, scanner, redirect following, credentials or egress;
 - durable idempotency is required before any effect;
@@ -21,8 +24,10 @@ from __future__ import annotations
 
 import hashlib
 import http.client
+import importlib.util
 import json
 import re
+import sys
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -34,6 +39,35 @@ from runner_protocol_v2 import (
     SQLiteIdempotencyLedger,
     request_fingerprint,
     validate_semantics,
+)
+
+ROOT = Path(__file__).resolve().parents[2]
+GATEWAY_CONTRACT_PATH = ROOT / "platform" / "gateway-protocol" / "gateway_protocol.py"
+AUTHORIZATION_CONTRACT_PATH = (
+    ROOT / "platform" / "authorization-contract" / "authorization_receipt.py"
+)
+
+
+def _load_contract_module(name: str, path: Path):
+    existing = sys.modules.get(name)
+    if existing is not None:
+        return existing
+    spec = importlib.util.spec_from_file_location(name, path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"cannot load canonical contract {path.name}")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+gateway_contract = _load_contract_module(
+    "webgoat_adapter_gateway_contract",
+    GATEWAY_CONTRACT_PATH,
+)
+authorization_contract = _load_contract_module(
+    "webgoat_adapter_authorization_contract",
+    AUTHORIZATION_CONTRACT_PATH,
 )
 
 PROTOCOL_VERSION = "2.0.0"
@@ -58,6 +92,20 @@ CANONICAL_INPUT_KEYS = frozenset(
 SUPPORTED_CAPABILITIES = frozenset(
     {"web.discovery.headers", "web.discovery.tls"}
 )
+_REQUIRED_VERIFIED_FIELDS = (
+    "authorization_ref",
+    "issued_at",
+    "expires_at",
+    "campaign_id",
+    "run_id",
+    "step_id",
+    "operation_id",
+    "operation_version",
+    "operation_parameters_sha256",
+    "capability_id",
+    "target_sha256",
+    "intrusiveness_level",
+)
 _SENSITIVE_HEADERS = frozenset(
     {"authorization", "cookie", "proxy-authorization", "set-cookie"}
 )
@@ -72,27 +120,29 @@ def _utc_now() -> str:
     )
 
 
-@dataclass(frozen=True)
-class AuthorizationBinding:
-    """Verified authorization binding returned by a control-plane resolver."""
-
-    authorization_ref: str
-    target_id: str
-    capability_id: str
-    authorization_class: str = "LAB_ONLY"
+def _parse_utc(value: Any) -> datetime | None:
+    if not isinstance(value, str):
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        return None
+    return parsed.astimezone(timezone.utc)
 
 
 class AuthorizationResolver(Protocol):
-    """Runtime boundary for resolving a verified TB1 authorization reference."""
+    """Runtime boundary returning canonical verified TB1 metadata or no authority."""
 
-    def resolve(self, authorization_ref: str) -> AuthorizationBinding | None:
+    def resolve(self, authorization_ref: str) -> Any | None:
         ...
 
 
 class DenyAllAuthorizationResolver:
     """Fail-closed default until a verified TB1 resolver is deployed."""
 
-    def resolve(self, authorization_ref: str) -> AuthorizationBinding | None:
+    def resolve(self, authorization_ref: str) -> None:
         del authorization_ref
         return None
 
@@ -246,36 +296,63 @@ class WebGoatL1RunnerAdapter:
     def _authorize(
         self, request: dict[str, Any], capability_id: str
     ) -> dict[str, Any] | None:
-        binding = self.authorization_resolver.resolve(request["authorization_ref"])
-        if binding is None:
+        verified = self.authorization_resolver.resolve(request["authorization_ref"])
+        if verified is None:
             return _error(
                 "AUTHORIZATION_DENIED",
                 "authorization",
                 "TB1 authorization reference is not resolvable by a verified resolver",
             )
-        if binding.authorization_ref != request["authorization_ref"]:
+        if any(not hasattr(verified, field) for field in _REQUIRED_VERIFIED_FIELDS):
             return _error(
                 "AUTHORIZATION_DENIED",
                 "authorization",
-                "Resolved authorization reference does not match the request",
+                "Resolved authorization metadata is incomplete",
             )
-        if binding.authorization_class != "LAB_ONLY":
+
+        payload = request["operation"]["input"]
+        correlation = request["correlation"]
+        parameters = payload["parameters"]
+        target = payload["target"]
+
+        expected_parameter_digest = authorization_contract.canonical_parameters_sha256(
+            parameters
+        )
+        expected_target_digest = gateway_contract.canonical_target_digest(target)
+
+        bindings = (
+            (verified.authorization_ref, request["authorization_ref"]),
+            (verified.campaign_id, correlation["campaign_id"]),
+            (verified.run_id, correlation["run_id"]),
+            (verified.step_id, correlation["step_id"]),
+            (verified.operation_id, payload["operation_id"]),
+            (verified.operation_version, payload["operation_version"]),
+            (verified.capability_id, capability_id),
+            (verified.intrusiveness_level, payload["intrusiveness_level"]),
+            (verified.operation_parameters_sha256, expected_parameter_digest),
+            (verified.target_sha256, expected_target_digest),
+        )
+        if any(actual != expected for actual, expected in bindings):
             return _error(
                 "AUTHORIZATION_DENIED",
                 "authorization",
-                "WebGoat L1 adapter accepts LAB_ONLY authorization only",
+                "Verified TB1 authorization does not bind to this exact Runner effect",
             )
-        if binding.target_id != TARGET_ID:
+
+        issued_at = _parse_utc(verified.issued_at)
+        expires_at = _parse_utc(verified.expires_at)
+        now = datetime.now(timezone.utc)
+        if (
+            issued_at is None
+            or expires_at is None
+            or not issued_at < expires_at
+            or now < issued_at
+            or now >= expires_at
+        ):
             return _error(
                 "AUTHORIZATION_DENIED",
                 "authorization",
-                "Authorization target binding does not match webgoat-web",
-            )
-        if binding.capability_id != capability_id:
-            return _error(
-                "AUTHORIZATION_DENIED",
-                "authorization",
-                "Authorization capability binding does not match the requested effect",
+                "Verified TB1 authorization is outside its validity window",
             )
         return None
 
