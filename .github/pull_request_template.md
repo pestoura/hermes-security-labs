@@ -9,16 +9,19 @@
 
 ## Validation
 
-- [ ] `python security/tools/securityctl.py validate` (150/120/100/370, warnings=0)
-- [ ] testes por diretório relevantes (`deployment/tests`, `roadmap/tests`,
-      `security/tests`, `docs/tests`, packs afetados)
-- [ ] `ruff check .`
-- [ ] `bash -n` nos scripts alterados
+- [ ] `make validate` (catálogo, `lab_audit --strict`, `baseline-check`,
+      securityctl 150/120/100/370 warnings=0, sintaxe shell)
+- [ ] testes por diretório relevantes (`docs/tests`, `deployment/tests`,
+      `roadmap/tests`, `platform/tests`, `security/tests`, packs afetados)
+- [ ] `make lint` (gate de lint do CI; `ruff check .` nu não é o gate)
 - [ ] `git diff --check` e árvore limpa
+- [ ] falhas pré-existentes distinguidas das novas (delta base vs branch)
 
 ## Documentation
 
 - [ ] documentação afetada atualizada nesta PR
+- [ ] se a PR muda comandos de operação, [`docs/quickstart.md`](../docs/quickstart.md)
+      reflete o comportamento real
 - [ ] documentos novos ligados a partir de [`docs/README.md`](../docs/README.md)
 - [ ] diagramas Mermaid renderizam no GitHub
 - [ ] funcionalidade futura marcada como **roadmap** com o ID `SVP2-*`

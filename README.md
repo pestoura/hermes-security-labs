@@ -11,6 +11,7 @@ A navegação canónica da documentação está em [`docs/README.md`](docs/READM
 | [Project overview](docs/project-overview.md) | propósito, limites, estado atual e roadmap |
 | [Repository tour](docs/repository-tour.md) | estrutura, fonte de verdade e artefactos ignorados |
 | [Architecture](docs/architecture.md) | planos, fluxo de execução e diagramas |
+| [Quickstart](docs/quickstart.md) | caminho canónico curto: clone → validate → start → Kali → evidência → destroy |
 | [Getting started](docs/getting-started.md) | onboarding e validação local |
 | [Operator guide](docs/operator-guide.md) | operação diária, lifecycle e recuperação |
 | [Contributor guide](docs/contributor-guide.md) | como contribuir e o que testar |
@@ -86,9 +87,12 @@ Comandos read-only:
 ./platform/scripts/lab-validate.sh
 ./platform/scripts/lab-plan.sh
 ./platform/scripts/lab-plan.sh --phase docker-web-api
+python3 platform/scripts/lab_audit.py audit --runtime-managed
 ```
 
 `lab-plan.sh` distingue ambientes já catalogados (`CATALOGUED`) de ambientes ainda por implementar (`PLANNED`).
+
+Não existe wrapper genérico de provisionamento: `lab-start.sh`, `lab-stop.sh`, `lab-reset.sh` e `lab-destroy.sh` são `NOT_IMPLEMENTED` e saem com código `2`. A interface real de lifecycle é por ambiente e está tabelada em [`docs/quickstart.md`](docs/quickstart.md#7-matriz-de-comandos-de-lifecycle).
 
 ## Catálogo de segurança
 

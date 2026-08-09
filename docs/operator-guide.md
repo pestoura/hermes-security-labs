@@ -5,19 +5,40 @@ a laboratórios registados.
 
 ## 1. Lifecycle
 
+O caminho curto de ponta a ponta está em [Quickstart](quickstart.md). Esta secção
+descreve o contrato de cada fase.
+
+`LC` abaixo é a interface de lifecycle do ambiente. **Não existe um wrapper genérico
+de provisionamento**: a interface depende da população do ambiente e está tabelada na
+[matriz de comandos](quickstart.md#7-matriz-de-comandos-de-lifecycle).
+
+```bash
+# lifecycle.sh unificado (vampi, dvapi, pygoat, nodegoat, dvga, crapi, wrongsecrets)
+LC="bash platform/environments/web-api/vampi/scripts/lifecycle.sh"
+# scripts discretos (dvwa, webgoat, juice-shop): um ficheiro por ação
+# Fase 2 (13 ambientes): bash platform/scripts/phase2-compose-lab.sh <id> <ação>
+```
+
 | Fase | Comando | Verificação obrigatória |
 | --- | --- | --- |
 | inventariar | `python3 platform/scripts/labctl.py list` | o laboratório existe no catálogo |
-| validar | `./platform/scripts/lab-validate.sh` | manifesto conforme ao schema |
-| provision | `./platform/scripts/lab-start.sh <id>` | readiness real, não apenas `Up` |
-| estado | `./platform/scripts/lab-status.sh <id>` | health e rede corretas |
-| attach | ligar o Kali só à rede do laboratório ativo | `docker inspect hermes-kali-mcp` |
+| validar catálogo | `./platform/scripts/lab-validate.sh` | manifesto conforme ao schema |
+| auditar maturidade | `python3 platform/scripts/lab_audit.py audit --strict` | veredicto igual ao baseline |
+| provision | `$LC start` | readiness real, não apenas `Up` |
+| estado | `$LC status` ou `./platform/scripts/lab-status.sh <id>` | health e rede corretas |
+| readiness | `$LC smoke` | HTTP do contrato, mapeamento em `127.0.0.1`, Kali desligado |
+| attach | `$LC connect-kali` | `docker inspect hermes-kali-mcp` mostra base + rede do lab |
 | run | campanha através do control plane | âmbito validado por policy |
-| detach | `docker network disconnect <rede> hermes-kali-mcp` | Kali só na rede base |
-| stop | `./platform/scripts/lab-stop.sh <id>` | containers parados |
-| reset | `./platform/scripts/lab-reset.sh <id>` | estado limpo e determinístico |
-| destroy | `./platform/scripts/lab-destroy.sh <id>` | zero containers, redes e volumes |
+| detach | `$LC disconnect-kali` | Kali só na rede base |
+| stop | `$LC stop` | containers parados |
+| reset | `$LC reset` | estado limpo e determinístico |
+| destroy | `$LC destroy` | zero containers, redes e volumes |
 | verify | `bash deployment/verify.sh` | `IN_SYNC` |
+
+Os wrappers `platform/scripts/lab-{start,stop,reset,destroy}.sh` são
+`NOT_IMPLEMENTED`: saem com código `2` e não alteram estado. Só os wrappers
+read-only (`lab-list.sh`, `lab-status.sh`, `lab-validate.sh`, `lab-plan.sh`)
+delegam em `labctl.py` e funcionam.
 
 Regra fixa: **um laboratório pesado de cada vez** no hardware atual, e o Kali é
 desligado da rede do laboratório no fim de cada execução, mesmo em falha.

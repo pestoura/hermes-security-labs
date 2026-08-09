@@ -25,6 +25,7 @@ CANONICAL_DOCS = (
     "project-overview.md",
     "repository-tour.md",
     "architecture.md",
+    "quickstart.md",
     "getting-started.md",
     "operator-guide.md",
     "contributor-guide.md",
@@ -166,7 +167,13 @@ def test_relative_links_resolve(path: Path) -> None:
 
 @pytest.mark.parametrize(
     "doc",
-    ["getting-started.md", "operator-guide.md", "contributor-guide.md", "troubleshooting.md"],
+    [
+        "quickstart.md",
+        "getting-started.md",
+        "operator-guide.md",
+        "contributor-guide.md",
+        "troubleshooting.md",
+    ],
 )
 def test_documented_repository_paths_exist(doc: str) -> None:
     """Command examples must not reference repository paths that do not exist."""

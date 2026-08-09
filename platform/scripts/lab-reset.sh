@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
+# Not implemented. There is no generic reset wrapper in this repository.
+# Use the real lifecycle interface for the environment:
+#   lifecycle.sh unified : platform/environments/<category>/<id>/scripts/lifecycle.sh reset
+#   discrete scripts     : platform/environments/web-api/<id>/scripts/reset.sh
+#   Phase 2 catalog      : platform/scripts/phase2-compose-lab.sh <id> reset
+# Matrix: docs/quickstart.md#7-matriz-de-comandos-de-lifecycle
 set -euo pipefail
-export TMPDIR=/home/estourpm/hermes-labs/kali-mcp/data/tmp
-export TEMP="$TMPDIR"
-export TMP="$TMPDIR"
-PLATFORM_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-if [ $# -ne 1 ]; then
-  echo "Usage: $0 <env-id>" >&2
-  exit 2
-fi
-echo "DRY-RUN reset $1"
+cat >&2 <<'EOF'
+lab-reset.sh is NOT_IMPLEMENTED and changes no runtime state.
+Use the per-environment lifecycle interface documented in
+docs/quickstart.md (section 7, lifecycle command matrix).
+EOF
+exit 2

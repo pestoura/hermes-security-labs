@@ -3,6 +3,9 @@
 Percurso mínimo para validar o repositório localmente **sem executar campanhas
 ofensivas** e sem contactar alvos externos.
 
+Se o objetivo for operar um laboratório de ponta a ponta, o caminho curto é
+[Quickstart](quickstart.md). Este documento explica o porquê de cada gate.
+
 ## 1. Pré-requisitos
 
 | Requisito | Nota |
@@ -40,6 +43,10 @@ python3 platform/scripts/labctl.py validate
 python3 platform/scripts/labctl.py list
 python3 platform/scripts/labctl.py plan
 
+# maturidade dos laboratórios contra o baseline registado (read-only)
+python3 platform/scripts/lab_audit.py audit --strict
+python3 platform/scripts/lab_audit.py baseline-check
+
 # catálogo de segurança
 python3 security/tools/securityctl.py validate
 
@@ -48,12 +55,13 @@ python3 -m pytest -q deployment/tests -p no:cacheprovider
 python3 -m pytest -q roadmap/tests   -p no:cacheprovider
 python3 -m pytest -q security/tests  -p no:cacheprovider
 python3 -m pytest -q docs/tests      -p no:cacheprovider
+python3 -m pytest -q platform/tests  -p no:cacheprovider
 
-# lint
-RUFF_CACHE_DIR=/tmp/ruff-cache python3 -m ruff check .
+# lint — reproduzir o gate do CI, não o `ruff check .` nu
+make lint
 
-# sintaxe shell
-find . -path ./.git -prune -o -type f -name '*.sh' -print0 | xargs -0 -r -n1 bash -n
+# sintaxe shell (só ficheiros versionados)
+git ls-files '*.sh' | xargs -r -n1 bash -n
 ```
 
 > Não corra `pytest` na raiz sem argumentos. Existem colisões conhecidas de nomes de
