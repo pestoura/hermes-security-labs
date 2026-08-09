@@ -56,13 +56,13 @@ efeito lateral.
 | Ambiente | Veredicto | Lacuna dominante |
 | --- | --- | --- |
 | dvwa | PASS | — |
+| dvapi | PASS | — |
 | graphql-vulnerable-lab | PASS | — |
+| nodegoat | PASS | — |
 | pygoat | PASS | — |
 | vampi | PASS | — |
+| webgoat | PASS | — |
 | wrongsecrets | PASS | — |
-| dvapi | DEGRADED | imagem `mongo` sem digest |
-| nodegoat | DEGRADED | imagem `mongo` sem digest |
-| webgoat | DEGRADED | proxy sem healthcheck |
 | juice-shop | DEGRADED | porta de host fixa; sem scripts Kali |
 | crapi | DEGRADED | oito imagens sem digest |
 
@@ -72,12 +72,11 @@ O critério de promoção é `PASS` no auditor **mais** evidência de execução
 do ciclo de vida num host autorizado. O auditor cobre a primeira metade; a
 segunda continua a ser trabalho de aceitação com execução.
 
-1. **Prontos para aceitação de runtime** — `dvwa`, `vampi`,
-   `graphql-vulnerable-lab`, `wrongsecrets`, `pygoat`. Já cumprem o contrato
-   declarativo; falta apenas registar a execução observada.
-2. **Uma correção pequena de distância** — `webgoat` (healthcheck do proxy),
-   `dvapi` e `nodegoat` (fixar `mongo` por digest), `juice-shop`
-   (parametrizar a porta e adicionar os scripts Kali).
+1. **Prontos para aceitação de runtime** — `dvwa`, `dvapi`, `vampi`,
+   `graphql-vulnerable-lab`, `nodegoat`, `webgoat`, `wrongsecrets`, `pygoat`.
+   Já cumprem o contrato declarativo; falta apenas registar a execução observada.
+2. **Uma correção pequena de distância** — `juice-shop`: parametrizar a porta de
+   host e adicionar os scripts `connect-kali.sh` / `disconnect-kali.sh`.
 3. **Trabalho maior** — `crapi`: oito imagens upstream sem digest, com
    dependência do ciclo de publicação de imagens.
 

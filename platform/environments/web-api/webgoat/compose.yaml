@@ -65,6 +65,16 @@ services:
           cpus: "0.25"
           memory: 64M
           pids: 32
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          socat -u /dev/null TCP:127.0.0.1:8080,connect-timeout=3 &&
+          socat -u /dev/null TCP:127.0.0.1:9090,connect-timeout=3
+      interval: 15s
+      timeout: 10s
+      retries: 12
+      start_period: 60s
     networks:
       - webgoat-lab
       - webgoat-publish
