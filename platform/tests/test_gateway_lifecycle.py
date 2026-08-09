@@ -103,6 +103,7 @@ def test_normal_profile_inventory_remains_explicit_and_non_intrusive() -> None:
     assert normal["generic_execution"] is False
     assert set(normal["operations"]) == {
         "system.health.read",
+        "kali.mcp.health.read",
         "runtime.inventory.read",
         "web.discovery.headers",
         "web.discovery.tls",
