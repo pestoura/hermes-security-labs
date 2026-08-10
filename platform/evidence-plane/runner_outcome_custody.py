@@ -19,9 +19,20 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from runner_protocol_v2 import ProtocolValidationError, request_fingerprint, validate_semantics
 
 HERE = Path(__file__).resolve().parent
+REPOSITORY_ROOT = HERE.parents[1]
+RUNNER_SDK_SRC = REPOSITORY_ROOT / "platform" / "runner-protocol" / "src"
+
+if str(RUNNER_SDK_SRC) not in sys.path:  # pragma: no cover - import wiring
+    sys.path.insert(0, str(RUNNER_SDK_SRC))
+
+from runner_protocol_v2 import (  # noqa: E402
+    ProtocolValidationError,
+    request_fingerprint,
+    validate_semantics,
+)
+
 POLICY_PATH = HERE / "runner-outcome-policy.yaml"
 EXECUTION_BRIDGE_PATH = HERE / "execution_bridge.py"
 

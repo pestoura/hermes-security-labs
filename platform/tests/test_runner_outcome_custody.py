@@ -160,7 +160,7 @@ def test_pass_outcome_persists_and_projects_without_security_overclaim(tmp_path:
     )
     verified = custody_module.execution_bridge.verify_execution(tmp_path / "results", result.execution_id)
     assert verified["verified"] is True
-    manifest = verified["manifest"]
+    manifest = custody_module.execution_bridge.load_manifest(tmp_path / "results", result.execution_id)
     assert manifest["status"] == "completed"
     assert manifest["result"] == "inconclusive"
     assert manifest["metadata"]["runner_status"] == "PASS"
@@ -169,8 +169,8 @@ def test_pass_outcome_persists_and_projects_without_security_overclaim(tmp_path:
     assert store.verify(result.manifest_evidence_id) is True
     assert store.verify(result.summary_evidence_id) is True
     assert result.replayed_custody is False
-    assert store.metadata(result.manifest_evidence_id)["classification"] == "restricted"
-    assert store.metadata(result.summary_evidence_id)["classification"] == "summary"
+    assert store.get_record(result.manifest_evidence_id)["classification"] == "restricted"
+    assert store.get_record(result.summary_evidence_id)["classification"] == "summary"
 
 
 def test_same_outcome_reemission_is_idempotent(tmp_path: Path) -> None:
@@ -208,7 +208,9 @@ def test_exact_retry_new_attempt_addresses_original_custody_record(tmp_path: Pat
     assert retry.result_digest == first.result_digest
     assert retry.replayed_custody is True
     verified = custody_module.execution_bridge.verify_execution(tmp_path / "results", retry.execution_id)
-    assert verified["manifest"]["correlation"]["attempt_id"] == FIRST_ATTEMPT
+    assert verified["verified"] is True
+    replayed_manifest = custody_module.execution_bridge.load_manifest(tmp_path / "results", retry.execution_id)
+    assert replayed_manifest["correlation"]["attempt_id"] == FIRST_ATTEMPT
 
 
 def test_output_digest_mismatch_is_refused_before_write(tmp_path: Path) -> None:
@@ -278,7 +280,9 @@ def test_existing_execution_with_divergent_terminal_outcome_is_refused(tmp_path:
     changed["evidence_refs"][0]["sha256"] = custody_module.execution_bridge.sha256_hex(
         custody_module.execution_bridge.canonical_bytes(changed["output"])
     )
-    with pytest.raises(Exception):
+    with pytest.raises(
+        (custody_module.RunnerOutcomeCustodyError, custody_module.execution_bridge.ExecutionEvidenceError)
+    ):
         custody.persist(
             request=request, outcome=changed, adapter_id="webgoat-l1",
             principal_id="hexor.execution-gateway", results_root=tmp_path / "results",

@@ -1,0 +1,34 @@
+schemaVersion: jds.change/v1
+kind: ChangeRecord
+id: CHG-HSL-002
+product: hermes-security-labs
+classification: IMPROVEMENT
+state: ACCEPTED
+disposition: FIX_NOW
+summary: Reconstruct the idempotent Runner terminal-outcome custody bridge onto the existing Evidence Plane so terminal outcomes reach immutable execution evidence without a parallel store, without a second target effect on exact retry, and without runtime enablement.
+source:
+  type: ENGINEERING_REVIEW
+  campaign: null
+  observation: null
+  reference: 'closed-unmerged PR 319; governance/jds-002.yml evidencePlanePersistenceState=NOT_IMPLEMENTED_NOT_RUN'
+affectedRelease: jds-002-adoption-candidate
+targetRelease: null
+risk: LOW
+versionEffect: NONE
+branch: lane-a/runner-outcome-custody
+issue: null
+pr: null
+validation:
+  targeted: PASS
+  regression: PASS
+  security: PASS
+  runtime: NOT_APPLICABLE
+promotion:
+  commit: null
+  artifactDigest: null
+  previousRelease: null
+deferredTo: null
+timestamps:
+  discoveredAt: '2026-08-10T00:00:00Z'
+  updatedAt: '2026-08-10T00:00:00Z'
+  closedAt: null
