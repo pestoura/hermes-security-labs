@@ -37,6 +37,12 @@ _REQUIRED_CANDIDATE = {
     "capability_id",
     "intrusiveness_level",
 }
+_EXPECTED_CANDIDATE = {
+    "environment_id": "webgoat",
+    "adapter_id": "webgoat-l1",
+    "capability_id": "web.discovery.headers",
+    "intrusiveness_level": "L1",
+}
 
 
 class PromotionGateError(ValueError):
@@ -90,33 +96,47 @@ def _safe_repo_path(value: Any) -> Path:
     return candidate
 
 
-def load_bundle(path: Path = DEFAULT_BUNDLE) -> dict[str, Any]:
-    document = _load_yaml(path, "BUNDLE_UNREADABLE")
-    if set(document) != _REQUIRED_TOP:
-        raise PromotionGateError("BUNDLE_INVALID", "bundle must contain the exact canonical top-level fields")
+def _validate_bundle_document(document: Mapping[str, Any]) -> None:
+    if not isinstance(document, Mapping) or set(document) != _REQUIRED_TOP:
+        raise PromotionGateError(
+            "BUNDLE_INVALID", "bundle must contain the exact canonical top-level fields"
+        )
     if document.get("schema_version") != "1.0.0":
         raise PromotionGateError("BUNDLE_INVALID", "schema_version must be 1.0.0")
     if document.get("runtime_status") != "NOT_RUN":
         raise PromotionGateError("BUNDLE_INVALID", "runtime_status must remain NOT_RUN")
     if document.get("execution_authority") != "none":
-        raise PromotionGateError("BUNDLE_INVALID", "evidence bundle must never claim execution authority")
+        raise PromotionGateError(
+            "BUNDLE_INVALID", "evidence bundle must never claim execution authority"
+        )
     if document.get("promotion_mode") != "EVIDENCE_ONLY":
         raise PromotionGateError("BUNDLE_INVALID", "promotion_mode must remain EVIDENCE_ONLY")
+
     candidate = document.get("candidate")
     if not isinstance(candidate, Mapping) or set(candidate) != _REQUIRED_CANDIDATE:
         raise PromotionGateError("BUNDLE_INVALID", "candidate fields are invalid")
-    if candidate.get("environment_id") != "webgoat":
-        raise PromotionGateError("BUNDLE_INVALID", "first candidate must remain webgoat")
-    if candidate.get("adapter_id") != "webgoat-l1":
-        raise PromotionGateError("BUNDLE_INVALID", "adapter_id must be webgoat-l1")
-    if candidate.get("capability_id") != "web.discovery.headers":
-        raise PromotionGateError("BUNDLE_INVALID", "capability_id must be web.discovery.headers")
-    if candidate.get("intrusiveness_level") != "L1":
-        raise PromotionGateError("BUNDLE_INVALID", "first candidate must remain L1")
+    if dict(candidate) != _EXPECTED_CANDIDATE:
+        raise PromotionGateError(
+            "BUNDLE_INVALID", "first promotion candidate must remain exact WebGoat L1 headers"
+        )
+
+    campaign = document.get("campaign")
+    _safe_repo_path(campaign)
+
     for key in ("required_change_records", "required_components", "fail_closed_policies"):
         value = document.get(key)
         if not isinstance(value, list) or not value or len(value) != len(set(value)):
-            raise PromotionGateError("BUNDLE_INVALID", f"{key} must be a non-empty unique list")
+            raise PromotionGateError(
+                "BUNDLE_INVALID", f"{key} must be a non-empty unique list"
+            )
+        for entry in value:
+            if not isinstance(entry, str) or not entry:
+                raise PromotionGateError("BUNDLE_INVALID", f"{key} entries must be strings")
+
+
+def load_bundle(path: Path = DEFAULT_BUNDLE) -> dict[str, Any]:
+    document = _load_yaml(path, "BUNDLE_UNREADABLE")
+    _validate_bundle_document(document)
     return document
 
 
@@ -172,13 +192,7 @@ def _campaign_state(path: Path) -> tuple[bool, str, list[str]]:
 
 
 def run_gate(bundle: Mapping[str, Any]) -> PromotionGateResult:
-    # Reuse load_bundle's validation semantics for callers supplying an in-memory copy.
-    if not isinstance(bundle, Mapping) or set(bundle) != _REQUIRED_TOP:
-        raise PromotionGateError("BUNDLE_INVALID", "bundle structure is invalid")
-    if bundle.get("runtime_status") != "NOT_RUN" or bundle.get("execution_authority") != "none":
-        raise PromotionGateError("BUNDLE_INVALID", "bundle must remain non-operational")
-    if bundle.get("promotion_mode") != "EVIDENCE_ONLY":
-        raise PromotionGateError("BUNDLE_INVALID", "bundle must remain evidence-only")
+    _validate_bundle_document(bundle)
 
     findings: list[str] = []
     components = bundle["required_components"]
@@ -191,7 +205,7 @@ def run_gate(bundle: Mapping[str, Any]) -> PromotionGateResult:
             findings.append(f"missing required component {value}")
 
     for change_id in changes:
-        if not isinstance(change_id, str) or not change_id.startswith("CHG-HSL-"):
+        if not change_id.startswith("CHG-HSL-"):
             findings.append(f"invalid change record identifier {change_id!r}")
             continue
         findings.extend(_change_record_findings(change_id))
@@ -211,7 +225,7 @@ def run_gate(bundle: Mapping[str, Any]) -> PromotionGateResult:
     if recommendation != "HOLD":
         findings.append("canonical campaign must remain HOLD in the evidence-only bundle")
     if live_complete:
-        # Even complete evidence is not an approval. A separate HITL promotion record is required.
+        # Complete observations are still evidence, not authorization to promote.
         live_blockers = ["HUMAN_PROMOTION_APPROVAL_REQUIRED"]
 
     repository_ready = not findings
@@ -243,7 +257,17 @@ def main(argv: Sequence[str] | None = None) -> int:
         result = run_gate(bundle)
     except PromotionGateError as exc:
         if args.json:
-            print(json.dumps({"repository_ready": False, "promotion_allowed": False, "code": exc.code, "error": str(exc)}, sort_keys=True))
+            print(
+                json.dumps(
+                    {
+                        "repository_ready": False,
+                        "promotion_allowed": False,
+                        "code": exc.code,
+                        "error": str(exc),
+                    },
+                    sort_keys=True,
+                )
+            )
         else:
             print(f"FAIL-CLOSED [{exc.code}] {exc}")
         return 2
