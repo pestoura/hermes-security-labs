@@ -1,0 +1,34 @@
+schemaVersion: jds.change/v1
+kind: ChangeRecord
+id: CHG-HSL-016
+product: hermes-security-labs
+classification: HARDENING
+state: IMPLEMENTING
+disposition: FIX_NOW
+summary: Add a read-only host evidence collector that turns the accepted Runner identity/socket and TB1 trust-store declarations into observed account, group, filesystem and AF_UNIX socket evidence. It verifies exact UID/GID/shell, group membership, socket/directory ownership and mode, trust-store ownership/mode and exact declared public-document digest, but never mutates the host or grants promotion. Namespace mapping, signer attestation, negative peer, live audit sink and Runner effect remain separate evidence.
+source:
+  type: ENGINEERING_REVIEW
+  campaign: VAL-HSL-RUNNER-L1-LIVE-PROMOTION
+  observation: OBS-RUNNER-POLICY-PROMOTION
+  reference: 'The promotion campaign still lacks host evidence that declared service identities/socket/trust-store state actually exist and match the accepted deployment descriptors.'
+affectedRelease: jds-002-adoption-candidate
+targetRelease: null
+risk: LOW
+versionEffect: NONE
+branch: lane/runtime-host-evidence
+issue: null
+pr: null
+validation:
+  targeted: NOT_RUN
+  regression: NOT_RUN
+  security: NOT_RUN
+  runtime: NOT_RUN
+promotion:
+  commit: null
+  artifactDigest: null
+  previousRelease: null
+deferredTo: null
+timestamps:
+  discoveredAt: '2026-08-10T21:20:00Z'
+  updatedAt: '2026-08-10T21:20:00Z'
+  closedAt: null
