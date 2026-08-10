@@ -1,0 +1,17 @@
+schema_version: "1.0"
+policy_id: hexor.runner.authorization.receipt-delivery
+state: DISABLED
+default: deny
+runtime_status: NOT_RUN
+execution_authority: none
+issuer: hermes-control-plane
+channel:
+  kind: local-authenticated
+  transport: af_unix-peercred
+  socket_path: NOT_CONFIGURED
+  allowed_peer_principal: NOT_CONFIGURED
+  allowed_peer_uid: -1
+  require_monotonic_sequence: true
+runner_private_key: forbidden
+persistence: none
+restart_behaviour: fail-closed-empty

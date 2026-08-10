@@ -44,13 +44,26 @@ The cache is intentionally volatile in this first candidate. Process restart pro
 
 The resolver also rechecks `issued_at`/`expires_at` on every lookup and removes stale or future-dated cached entries.
 
+## Trusted receipt delivery boundary
+
+`receipt_delivery.py` is the smallest trusted composition path that answers *how a verified receipt reaches the Runner process*. It sits in front of the resolver and never bypasses it.
+
+- **Sole issuer.** The delivery envelope issuer must equal the canonical contract issuer (`hermes-control-plane`); anything else is refused before verification.
+- **No caller-controlled trust.** Envelope and receipt are rejected if they carry `verified`, `trusted`, `trust_level`, `execution_authority`, `verification_source`, `bypass` or similar fields. Trust is produced only by the canonical verifier.
+- **No private key in the Runner.** Secret-shaped fields (`private_key`, `signing_key`, `token`, `passphrase`, ...) fail closed, and the module itself never signs or loads key material.
+- **Authenticated local composition.** Delivery is authenticated by AF_UNIX peer credentials (`uid` + principal) against the policy, not by any field inside `runner.step.request` and not by a network claim.
+- **Replay discipline.** Sequences must be monotonic; an exact duplicate sequence is idempotent and does not re-register, while an out-of-order sequence is refused.
+- **Fail-closed restart.** Nothing is persisted. A restarted Runner has an empty resolver cache and no sequence baseline, so it resolves nothing until Hermes redelivers.
+
+The committed `receipt-delivery-policy.yaml` is `DISABLED` / `deny` / `NOT_RUN` / `execution_authority: none` with `socket_path: NOT_CONFIGURED`, so merging cannot create a live delivery path.
+
 ## Remaining runtime blocker
 
-This candidate still does not define **how a verified receipt reaches the Runner process**. That must be supplied by an authenticated, purpose-bound composition path; it must not be added as caller-controlled fields inside `runner.step.request`.
+Delivery composition now exists in the repository, but it is not enabled and not wired to a real socket.
 
 Before live promotion we still need:
 
-1. trusted receipt delivery/population from the control plane;
+1. an enabled delivery policy bound to a real socket path, peer uid and control-plane principal, provisioned by deployment;
 2. configured TB1 trust store on the Runner side;
 3. lifecycle/revocation behaviour for cached authorizations;
 4. audit evidence for receipt registration and lookup decisions;
