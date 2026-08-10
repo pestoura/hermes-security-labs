@@ -3,7 +3,7 @@ kind: ChangeRecord
 id: CHG-HSL-014
 product: hermes-security-labs
 classification: HARDENING
-state: IMPLEMENTING
+state: ACCEPTED
 disposition: FIX_NOW
 summary: Add an aggregate evidence-only gate for the first WebGoat L1 promotion candidate. The gate requires accepted repository changes, all chain components, canonical fail-closed policy posture and the live validation campaign, but can never grant execution authority or enable promotion. Unresolved live observations remain blockers and even complete evidence still requires a separate request-bound Human-in-the-Loop approval.
 source:
@@ -17,11 +17,11 @@ risk: LOW
 versionEffect: NONE
 branch: lane/runtime-promotion-evidence-bundle
 issue: null
-pr: null
+pr: 334
 validation:
-  targeted: NOT_RUN
-  regression: NOT_RUN
-  security: NOT_RUN
+  targeted: PASS
+  regression: PASS
+  security: PASS
   runtime: NOT_RUN
 promotion:
   commit: null
@@ -30,5 +30,5 @@ promotion:
 deferredTo: null
 timestamps:
   discoveredAt: '2026-08-10T21:08:00Z'
-  updatedAt: '2026-08-10T21:08:00Z'
+  updatedAt: '2026-08-10T21:20:00Z'
   closedAt: null
