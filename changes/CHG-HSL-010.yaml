@@ -1,0 +1,34 @@
+schemaVersion: jds.change/v1
+kind: ChangeRecord
+id: CHG-HSL-010
+product: hermes-security-labs
+classification: COMPATIBILITY
+state: ACCEPTED
+disposition: FIX_NOW
+summary: Restore runtime/readiness publication parity for DVWA and Juice Shop using the already accepted typed port_env mechanism. DVWA and Juice Shop readiness now follow their Compose host-port variables. Juice Shop smoke resolves the actual loopback Compose mapping instead of assuming port 3000, and reset disconnects Kali from the explicit canonical network name juice-shop-lab rather than the non-existent Compose-prefixed name.
+source:
+  type: ENGINEERING_REVIEW
+  campaign: null
+  observation: null
+  reference: 'Repository review after WebGoat live acceptance exposed the same host-port override drift in DVWA/Juice Shop and a Juice Shop reset network-name mismatch.'
+affectedRelease: jds-002-adoption-candidate
+targetRelease: null
+risk: LOW
+versionEffect: NONE
+branch: fix/readiness-port-parity-dvwa-juice
+issue: null
+pr: 329
+validation:
+  targeted: PASS
+  regression: PASS
+  security: PASS
+  runtime: NOT_RUN
+promotion:
+  commit: null
+  artifactDigest: null
+  previousRelease: null
+deferredTo: null
+timestamps:
+  discoveredAt: '2026-08-10T20:10:00Z'
+  updatedAt: '2026-08-10T20:39:00Z'
+  closedAt: null

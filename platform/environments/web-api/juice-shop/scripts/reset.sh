@@ -5,10 +5,12 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 COMPOSE_FILE="${SCRIPT_DIR}/../compose.yaml"
 
 PROJECT_NAME="juice-shop"
+APP_NETWORK="juice-shop-lab"
+KALI_CONTAINER="hermes-kali-mcp"
 COMPOSE=(docker compose -p "${PROJECT_NAME}" -f "${COMPOSE_FILE}")
 
 echo "[reset] Disconnecting Kali MCP if connected..."
-docker network disconnect juice-shop_juice-shop-lab hermes-kali-mcp 2>/dev/null || true
+docker network disconnect "${APP_NETWORK}" "${KALI_CONTAINER}" 2>/dev/null || true
 
 echo "[reset] Removing containers and volumes..."
 "${COMPOSE[@]}" down --volumes --remove-orphans
