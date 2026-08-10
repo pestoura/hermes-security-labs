@@ -1,0 +1,34 @@
+schemaVersion: jds.change/v1
+kind: ChangeRecord
+id: CHG-HSL-009
+product: hermes-security-labs
+classification: HARDENING
+state: ACCEPTED
+disposition: FIX_NOW
+summary: Implement the missing Hermes-side TB1 authorization receipt issuer without placing private-key material or a private-key loader in Labs. The boundary binds the exact admitted effect, derives canonical parameter and target digests plus authorization_ref, enforces a bounded lifetime, and delegates signing to a purpose-bound external signer suitable for HSM, KMS or Vault. Repository implementation does not configure signer, trust store or runtime authority.
+source:
+  type: ENGINEERING_REVIEW
+  campaign: VAL-HSL-RUNNER-L1-LIVE-PROMOTION
+  observation: OBS-TB1-LIVE-DELIVERY
+  reference: 'Current promotion blocker states Hermes operational TB1 receipt issuance is NOT_IMPLEMENTED/NOT_RUN while the delivery boundary already exists as DISABLED/NOT_RUN.'
+affectedRelease: jds-002-adoption-candidate
+targetRelease: null
+risk: MEDIUM
+versionEffect: NONE
+branch: lane/tb1-hermes-issuer-boundary
+issue: null
+pr: 328
+validation:
+  targeted: PASS
+  regression: PASS
+  security: PASS
+  runtime: NOT_RUN
+promotion:
+  commit: null
+  artifactDigest: null
+  previousRelease: null
+deferredTo: null
+timestamps:
+  discoveredAt: '2026-08-10T20:05:00Z'
+  updatedAt: '2026-08-10T20:36:00Z'
+  closedAt: null

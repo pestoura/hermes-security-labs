@@ -70,11 +70,14 @@ def test_roe_readme_preserves_unimplemented_production_boundaries() -> None:
     assert "Runtime changes: `NO_RUNTIME_CHANGE`" in text
 
 
-def test_tb1_authorization_contract_never_claims_runtime_issuance() -> None:
+def test_tb1_authorization_contract_distinguishes_repo_issuer_from_live_runtime() -> None:
     text = AUTH_README.read_text(encoding="utf-8")
 
     assert "Hermes is the only execution-authorization authority" in text
-    assert "Hermes operational receipt issuance: `NOT_IMPLEMENTED` / `NOT_RUN`" in text
+    assert "Hermes receipt issuance boundary: `IMPLEMENTED / GREEN-REPO-CANDIDATE`" in text
+    assert "production signer binding/private-key custody: `NOT_CONFIGURED / NOT_RUN`" in text
+    assert "deployed authorization trust store: `NOT_RUN`" in text
+    assert "live Hermes receipt issuance: `NOT_RUN`" in text
     assert "deployed gateway validation: `NOT_RUN`" in text
     assert "runtime changes: `NO_RUNTIME_CHANGE`" in text
 
