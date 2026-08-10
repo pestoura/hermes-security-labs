@@ -1,0 +1,12 @@
+schema_version: "1.0"
+policy_id: hexor.runner.dispatch.audit.custody
+state: DISABLED
+default: deny
+runtime_status: NOT_RUN
+execution_authority: none
+custody:
+  evidence_plane_projection: required
+  classification: restricted
+  retention_policy_id: default-30d
+  retention_days: 30
+  include_raw_application_payloads: false
