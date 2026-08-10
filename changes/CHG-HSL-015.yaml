@@ -3,9 +3,9 @@ kind: ChangeRecord
 id: CHG-HSL-015
 product: hermes-security-labs
 classification: HARDENING
-state: IMPLEMENTING
+state: VALIDATING
 disposition: FIX_NOW
-summary: Project the strict authenticated-principal Runner dispatch audit event into the existing Evidence Plane rather than creating a parallel audit datastore. The disabled/not-run custody bridge validates the event and fingerprint, stores it as restricted content-addressed evidence through an injected Evidence Plane store, verifies integrity after persistence, and keeps raw application target/parameter data outside the audit event. Production durable/WORM backend evidence remains NOT_IMPLEMENTED/NOT_RUN.
+summary: Project the authenticated-principal Runner dispatch audit event into the existing Evidence Plane instead of a parallel audit datastore. The disabled/not-run bridge validates the event and fingerprint, persists restricted content-addressed evidence through an injected Evidence Plane store, verifies integrity, and excludes raw application target/parameter data. Production durable/WORM backend evidence remains NOT_IMPLEMENTED/NOT_RUN.
 source:
   type: ENGINEERING_REVIEW
   campaign: VAL-HSL-RUNNER-L1-LIVE-PROMOTION
@@ -17,7 +17,7 @@ risk: LOW
 versionEffect: NONE
 branch: lane/dispatch-audit-evidence-custody
 issue: null
-pr: null
+pr: 335
 validation:
   targeted: NOT_RUN
   regression: NOT_RUN
@@ -30,5 +30,5 @@ promotion:
 deferredTo: null
 timestamps:
   discoveredAt: '2026-08-10T21:16:00Z'
-  updatedAt: '2026-08-10T21:16:00Z'
+  updatedAt: '2026-08-10T21:22:00Z'
   closedAt: null
