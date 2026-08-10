@@ -5,24 +5,24 @@ product: hermes-security-labs
 classification: BUGFIX
 state: ACCEPTED
 disposition: FIX_NOW
-summary: Close the WebGoat lifecycle publication-readiness race. start.sh and reset.sh waited only for the webgoat application healthcheck; reset.sh then invoked smoke.sh while webgoat-proxy (the sole publishing service, start_period 60s) was still starting, so smoke failed closed deterministically at the publication health assertion. Both entrypoints now gate on the SAME two-service readiness invariant (webgoat AND webgoat-proxy healthy) through a sourced, bounded, fail-closed helper (scripts/lib-health.sh, wait_for_services_healthy). The gate is bounded by WEBGOAT_HEALTH_TIMEOUT_SECONDS (default 300s) and fails closed on missing container, unhealthy, absent health status and timeout. Compose healthchecks are unchanged, no sleep-only substitution, WEBGOAT_HOST_PORT/WEBWOLF_HOST_PORT overrides preserved, existing logs --tail 50 diagnostics preserved, no generic command execution introduced, no target interaction added.
+summary: Close the WebGoat lifecycle publication-readiness race. start.sh and reset.sh waited only for the webgoat application healthcheck, so reset invoked smoke.sh while webgoat-proxy was still starting and smoke failed closed. Both entrypoints now gate on the same two-service invariant (webgoat AND webgoat-proxy healthy) through a bounded fail-closed helper. Compose healthchecks, env port overrides and existing diagnostics are unchanged; runtime validation pending a live rerun.
 source:
-  type: LIVE_OBSERVATION
+  type: ENGINEERING_REVIEW
   campaign: null
-  observation: 'WebGoat lab live run at main a91a325ed4ee1c66a17ab5d79a073b5f980fabbf: start + readiness + smoke PASS; `reset --yes` recreated services, waited only for the webgoat health gate and invoked smoke while webgoat-proxy health was still `starting`, producing `[smoke] Publication container not healthy: starting`; cleanup destroy proved zero residue.'
-  reference: 'platform/environments/web-api/webgoat/scripts/reset.sh single-service wait vs platform/environments/web-api/webgoat/scripts/smoke.sh publication health assertion; compose webgoat-proxy healthcheck start_period 60s'
+  observation: null
+  reference: 'Live WebGoat run at main a91a325ed4ee1c66a17ab5d79a073b5f980fabbf: start, readiness and smoke PASS; `reset --yes` recreated services, waited only for the webgoat health gate and called smoke while webgoat-proxy health was still `starting` (proxy start_period 60s), producing `[smoke] Publication container not healthy: starting`; cleanup destroy proved zero residue. start.sh carried the same single-service wait but hid the defect because no smoke follows it.'
 affectedRelease: jds-002-adoption-candidate
 targetRelease: null
 risk: LOW
 versionEffect: NONE
 branch: lane/webgoat-readiness-invariant
 issue: null
-pr: null
+pr: 327
 validation:
   targeted: PASS
   regression: PASS
   security: NOT_APPLICABLE
-  runtime: PENDING
+  runtime: NOT_RUN
 promotion:
   commit: null
   artifactDigest: null
