@@ -5,8 +5,17 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 COMPOSE_FILE="${SCRIPT_DIR}/../compose.yaml"
 
 PROJECT_NAME="webgoat"
+# Application service: owns the pinned image digest and the workload health gate.
 SERVICE_NAME="webgoat"
+# Publication service: the ONLY service that declares host port mappings, so the
+# lab is not usable (and smoke cannot pass) until it is healthy too.
+PUBLISH_SERVICE_NAME="webgoat-proxy"
 COMPOSE=(docker compose -p "${PROJECT_NAME}" -f "${COMPOSE_FILE}")
+
+# shellcheck source=lib-health.sh
+source "${SCRIPT_DIR}/lib-health.sh"
+
+HEALTH_TIMEOUT_SECONDS="${WEBGOAT_HEALTH_TIMEOUT_SECONDS:-300}"
 
 WEBGOAT_HOST_PORT="${WEBGOAT_HOST_PORT:-8080}"
 WEBWOLF_HOST_PORT="${WEBWOLF_HOST_PORT:-9090}"
@@ -37,25 +46,8 @@ done
 echo "[start] Starting webgoat..."
 "${COMPOSE[@]}" up -d
 
-echo "[start] Waiting for healthy (timeout 180s)..."
-timeout 180 bash -c '
-  while true; do
-    CONTAINER_ID=$(
-      docker compose -p webgoat -f '"${COMPOSE_FILE}"' ps -q webgoat 2>/dev/null
-    )
-    if [ -n "${CONTAINER_ID}" ]; then
-      health=$(docker inspect -f "{{.State.Health.Status}}" "${CONTAINER_ID}" 2>/dev/null || echo "none")
-      if [ "${health}" = "healthy" ]; then
-        exit 0
-      fi
-      if [ "${health}" = "unhealthy" ] || [ "${health}" = "none" ]; then
-        sleep 5
-        continue
-      fi
-    fi
-    sleep 5
-  done
-' || {
+echo "[start] Waiting for healthy application and publication services (timeout ${HEALTH_TIMEOUT_SECONDS}s)..."
+wait_for_services_healthy "start" "${HEALTH_TIMEOUT_SECONDS}" "${SERVICE_NAME}" "${PUBLISH_SERVICE_NAME}" || {
   echo "[start] Timeout or failure waiting for healthy"
   "${COMPOSE[@]}" logs --tail 50
   exit 1
