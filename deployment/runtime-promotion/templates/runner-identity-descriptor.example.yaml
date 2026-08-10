@@ -1,0 +1,39 @@
+schema_version: "1.0"
+descriptor_id: hexor.runner.runtime-promotion.example
+runtime_status: NOT_RUN
+
+identities:
+  gateway:
+    principal_id: hexor.execution-gateway
+    user: hexor-gateway
+    uid: 4100
+    gid: 4100
+    shell: /usr/sbin/nologin
+  runner:
+    principal_id: hexor.runner
+    user: hexor-runner
+    uid: 4101
+    gid: 4101
+    shell: /usr/sbin/nologin
+  dispatch_group:
+    group: hexor-dispatch
+    gid: 4110
+    members:
+      - hexor-gateway
+      - hexor-runner
+
+socket:
+  path: /run/hexor/runner-dispatch.sock
+  owner_uid: 4101
+  group_gid: 4110
+  mode: "0660"
+  directory:
+    path: /run/hexor
+    owner_uid: 4101
+    group_gid: 4110
+    mode: "0750"
+
+routing:
+  adapter_id: webgoat-l1
+  target_id: webgoat-web
+  capability_id: web.discovery.headers
