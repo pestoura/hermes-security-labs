@@ -57,8 +57,10 @@ gateway_contract = _load_module(
 DEFAULT_TTL_SECONDS = 300
 SUPPORTED_ALGORITHMS = frozenset({"Ed25519", "ECDSA-P256-SHA256"})
 SUPPORTED_INTRUSIVENESS = frozenset({"L0", "L1", "L2", "L3", "L4"})
+SUPPORTED_TARGET_TYPES = frozenset({"lab-asset", "cidr", "hostname", "url", "ip"})
 _DIGEST = re.compile(r"^[a-f0-9]{64}$")
 _KEY_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
+_TYPED_ID = re.compile(r"^[a-z0-9]+(?:[._-][a-z0-9]+)*$")
 
 _EFFECT_FIELDS = frozenset(
     {
@@ -149,6 +151,25 @@ def _validate_uuid(value: str) -> None:
         raise AuthorizationIssuanceError("ISSUER_EFFECT_UUID_INVALID")
 
 
+def _validate_typed_id(value: str, code: str) -> None:
+    if _TYPED_ID.fullmatch(value) is None:
+        raise AuthorizationIssuanceError(code)
+
+
+def _validate_target(target: Any) -> Mapping[str, Any]:
+    if not isinstance(target, Mapping):
+        raise AuthorizationIssuanceError("ISSUER_TARGET_INVALID")
+    if set(target) != {"type", "value"}:
+        raise AuthorizationIssuanceError("ISSUER_TARGET_INVALID")
+    target_type = target.get("type")
+    target_value = target.get("value")
+    if target_type not in SUPPORTED_TARGET_TYPES:
+        raise AuthorizationIssuanceError("ISSUER_TARGET_INVALID")
+    if not isinstance(target_value, str) or not 1 <= len(target_value) <= 2048:
+        raise AuthorizationIssuanceError("ISSUER_TARGET_INVALID")
+    return target
+
+
 def _validate_effect(effect: Mapping[str, Any]) -> None:
     if not isinstance(effect, Mapping):
         raise AuthorizationIssuanceError("ISSUER_EFFECT_REQUIRED")
@@ -160,9 +181,11 @@ def _validate_effect(effect: Mapping[str, Any]) -> None:
 
     _required_text(effect, "roe_contract_id", limit=128)
     _required_text(effect, "roe_step_request_id", limit=128)
-    _required_text(effect, "operation_id", limit=128)
+    operation_id = _required_text(effect, "operation_id", limit=128)
     _required_text(effect, "operation_version", limit=32)
-    _required_text(effect, "capability_id", limit=128)
+    capability_id = _required_text(effect, "capability_id", limit=128)
+    _validate_typed_id(operation_id, "ISSUER_OPERATION_ID_INVALID")
+    _validate_typed_id(capability_id, "ISSUER_CAPABILITY_ID_INVALID")
 
     roe_digest = effect.get("roe_contract_payload_sha256")
     if not isinstance(roe_digest, str) or _DIGEST.fullmatch(roe_digest) is None:
@@ -174,8 +197,7 @@ def _validate_effect(effect: Mapping[str, Any]) -> None:
 
     if not isinstance(effect.get("operation_parameters"), Mapping):
         raise AuthorizationIssuanceError("ISSUER_PARAMETERS_INVALID")
-    if not isinstance(effect.get("target"), Mapping):
-        raise AuthorizationIssuanceError("ISSUER_TARGET_INVALID")
+    _validate_target(effect.get("target"))
 
 
 def _validate_signer(signer: ReceiptSigner) -> tuple[str, str]:
