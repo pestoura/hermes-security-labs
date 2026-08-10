@@ -1,0 +1,21 @@
+schema_version: "1.0"
+policy_id: hexor.runner.transport.identity
+state: ENABLED
+default: deny
+runtime_status: NOT_RUN
+execution_authority: none
+
+modes:
+  unix-peer:
+    status: CANDIDATE
+    identity_source: linux-so-peercred
+    socket_path: "${SOCKET_PATH}"
+    allowed_peers:
+      - principal_id: "${GATEWAY_PRINCIPAL_ID}"
+        uid: ${GATEWAY_UID}
+        gid: ${GATEWAY_GID}
+        purpose: runner-dispatch
+  mtls:
+    status: FUTURE
+    identity_source: x509-client-certificate
+    trust_store: NOT_CONFIGURED

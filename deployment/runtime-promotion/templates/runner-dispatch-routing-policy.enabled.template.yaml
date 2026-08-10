@@ -1,0 +1,12 @@
+schema_version: "1.0"
+policy_id: hexor.runner.dispatch.routing
+state: ENABLED
+default: deny
+runtime_status: NOT_RUN
+execution_authority: none
+bindings:
+  - principal_id: "${GATEWAY_PRINCIPAL_ID}"
+    adapter_id: "${ADAPTER_ID}"
+    target_id: "${TARGET_ID}"
+    capabilities:
+      - "${CAPABILITY_ID}"
