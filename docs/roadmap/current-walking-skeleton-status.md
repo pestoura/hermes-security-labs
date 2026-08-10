@@ -1,233 +1,208 @@
 # Hermes Security Labs — current walking-skeleton status
 
-**Reconciled:** 2026-08-10 00:00 UTC  
-**Current Labs baseline:** `c6f12cefbcb1857af46835bef7531eab3e4533c5`  
-**Accepted/live Hermes MCP Bridge revision:** `7e4b6b1cd70ddda418f840f54ae7ecef30df52e9`
+**Reconciled:** 2026-08-10 21:05 UTC  
+**Current Labs baseline:** `038a2ae503a331a371fa69623ec0586c9c60c7e5`  
+**Accepted/live Hermes MCP Bridge revision:** `3717bd5469b061a44294b27e1a7510d477d3752b`
 
-This is the concise current-state view of the walking skeleton. Repository/CI proof and live Hermes runtime proof remain separate evidence classes. Historical detail remains in [`runtime-acceptance-checkpoint-2026-08-09.md`](runtime-acceptance-checkpoint-2026-08-09.md).
+This is the concise current-state view of the walking skeleton. Repository/CI proof and live Hermes runtime proof are separate evidence classes. Historical evidence remains in [`runtime-acceptance-checkpoint-2026-08-09.md`](runtime-acceptance-checkpoint-2026-08-09.md); the live Runner promotion campaign is [`../../validation/VAL-HSL-RUNNER-L1-LIVE-PROMOTION.yaml`](../../validation/VAL-HSL-RUNNER-L1-LIVE-PROMOTION.yaml).
 
-> **GREEN-REPO is not live acceptance.** Every row below marked `GREEN-REPO` means the contract, its fail-closed policy and its tests exist and pass in CI. It never means the capability has been exercised against a live target, that a policy has been promoted, or that any authority has been granted. Live acceptance is a separate evidence class tracked in [`../../validation/VAL-HSL-RUNNER-L1-LIVE-PROMOTION.yaml`](../../validation/VAL-HSL-RUNNER-L1-LIVE-PROMOTION.yaml).
+> **GREEN-REPO is not live acceptance.** It means the contract/code exists and passed repository gates. It does not grant execution authority, activate a policy, prove host deployment or prove target interaction.
 
 ## Current summary
 
 | Item | Current state |
 | --- | --- |
-| RTA-001 gateway admission | `RESOLVED-RUNTIME / GREEN` |
-| RTA-002 Stage 1 registration/discovery | `GREEN/PASS` |
-| RTA-002 Stage 2 semantic/policy contract | `GREEN-REPO`, merged PR #308 |
-| RTA-002 Stage 2 live health acceptance | `BLOCKED-ON-CONNECTOR` |
-| RTA-003 Bridge approval handoff | `RESOLVED-RUNTIME / GREEN` |
-| WebGoat/WebWolf lifecycle/readiness repository | `PASS / READY-REPO` |
-| DVWA lifecycle/readiness repository | `PASS / READY-REPO` |
-| Juice Shop lifecycle/readiness repository | `PASS / READY-REPO`, merged PR #309 |
-| Runner outcome -> Evidence Plane custody | `GREEN-REPO`, merged PR #321, policy `DISABLED / NOT_RUN` |
-| TB1 signed receipt delivery boundary | `GREEN-REPO`, merged PR #322, policy `DISABLED / NOT_RUN` |
-| Runtime-promotion identity/socket preflight | `GREEN-REPO`, merged PR #323, `runtime_status` stays `NOT_RUN` |
-| Seeded bounded scenario execution | `PRESENT-NOT-IMPLEMENTED` beyond health |
-| Full walking skeleton live completion | `BLOCKED-ON-CONNECTOR-AND-RUNTIME-INTEGRATION` |
+| RTA-001 gateway admission | `RESOLVED-RUNTIME / GREEN`; re-observation required before the next live mutation |
+| RTA-002 Stage 1 Kali registration/discovery | `GREEN/PASS`; canonical STDIO, disabled + sentinel retained |
+| RTA-002 Stage 2 minimum health surface | `RESOLVED-RUNTIME / GREEN`; exact effective surface `[server_health]`, one bounded invocation, then rollback to disabled + sentinel |
+| RTA-003 Bridge approval handoff | `RESOLVED-RUNTIME / GREEN` on Bridge `3717bd5469...` |
+| WebGoat/WebWolf repository lifecycle/readiness | `PASS / READY-REPO`; publication and dual-health races fixed in #325-#327 |
+| WebGoat live lifecycle | first cycle `start/readiness/smoke PASS`; reset race found; cleanup/destroy `PASS / ZERO-RESIDUE`; post-fix full rerun result currently `UNKNOWN` because connector recovery failed |
+| DVWA repository lifecycle/readiness | `PASS / READY-REPO`; `DVWA_HOST_PORT` parity merged #329 |
+| Juice Shop repository lifecycle/readiness | `PASS / READY-REPO`; readiness/smoke/reset publication parity merged #329 |
+| WebGoat L1 real adapter | `GREEN-REPO`; typed target-bound HTTP header effect exists, live end-to-end dispatch not accepted |
+| Runner outcome -> Evidence Plane custody | `GREEN-REPO`, #321; policy `DISABLED / NOT_RUN` |
+| TB1 receipt delivery boundary | `GREEN-REPO`, #322; policy `DISABLED / NOT_RUN` |
+| Runner identity/socket promotion preflight | `GREEN-REPO`, #323; runtime remains `NOT_RUN` |
+| Hermes TB1 receipt issuer boundary | `GREEN-REPO`, #328; external signer not live-configured |
+| TB1 signer + Runner trust-store deployment preflight | `GREEN-REPO`, #331; descriptor only, runtime `NOT_RUN` |
+| Authenticated-principal dispatch audit event | `GREEN-REPO`, #332; durable audit sink `NOT_IMPLEMENTED / NOT_RUN` |
+| Full walking skeleton live completion | `HOLD / BLOCKED-ON-LIVE-PROMOTION-EVIDENCE-AND-CONNECTOR` |
 
 ## Walking skeleton
 
 Target path:
 
-`authorize -> provision -> readiness -> execute bounded scenario -> evidence -> reset -> known-state proof`
+`authorize -> admit -> provision -> readiness -> dispatch bounded effect -> evidence -> reset -> known-state proof`
 
 | Stage | Repository/CI state | Live runtime state |
 | --- | --- | --- |
-| Authorize | target registry, deny-before-dispatch, typed operations, RoE/TB1 verifier contracts and the trusted TB1 receipt delivery boundary `GREEN-REPO` | RTA-003 approval flow accepted; Hermes operational TB1 receipt *issuance* remains `NOT_IMPLEMENTED / NOT_RUN` and the delivery policy remains `DISABLED / NOT_RUN` |
-| Admission | Bridge exact-SHA and policy/approval contracts accepted | RTA-001 last accepted observation: gateway `running`, `busy=false`, `drainable=true`, admission available |
-| Kali registration | canonical STDIO contract `GREEN-REPO` | Stage 1 `GREEN/PASS`; disabled + sentinel retained after discovery |
-| Kali health/policy binding | `kali.mcp.health.read -> server_health`, L0, exact mapping, `PRESENT/NOT_RUN` | Stage 2 live acceptance pending because ChatGPT Hermes connector is unavailable at invocation time |
-| Provision | Docker backend `READY-REPO` | live lifecycle re-observation pending |
-| Readiness | WebGoat/WebWolf, DVWA and Juice Shop repository maturity/readiness `PASS` | live readiness observation pending |
+| Authorize | TB1 verifier, Hermes issuer, trusted local receipt delivery and signer/trust-store deployment preflight `GREEN-REPO` | signer provider, protected private-key custody, installed trust store and live receipt issuance/delivery remain `NOT_RUN` |
+| Admission | Bridge exact-SHA + approval contracts accepted | RTA-001 and RTA-003 accepted; live Bridge baseline `3717bd5469...` |
+| Kali registration | canonical STDIO contract `GREEN-REPO` | Stage 1 `PASS`; disabled + sentinel retained |
+| Kali health | `kali.mcp.health.read -> server_health`, L0, exact mapping | Stage 2 `PASS`; only `server_health` exposed for the acceptance and the config was restored to least privilege afterwards |
+| Provision | WebGoat/DVWA/Juice lifecycle contracts `READY-REPO` | WebGoat start accepted before the reset race; other labs pending live acceptance |
+| Readiness | typed loopback readiness adapters with host-port parity `PASS` | WebGoat readiness accepted in first cycle; complete post-fix rerun `UNKNOWN`; DVWA/Juice pending |
 | Plan scenario | deterministic Scenario Plan Composer `GREEN-REPO` | not an execution claim |
-| Execute bounded scenario | typed scenario contracts exist | non-health real runner/Kali effect integration remains `NOT_IMPLEMENTED / NOT_RUN` |
-| Evidence | Evidence Plane v2, structured scenario evidence contracts and the idempotent Runner terminal-outcome custody bridge `GREEN-REPO` | custody policy `DISABLED / NOT_RUN`; real scenario persistence/observation pending |
-| Reset/cleanup | bounded lifecycle/reset governance exists | live zero-residue/known-state proof pending |
+| Dispatch bounded effect | WebGoat L1 adapter, Unix peer identity, router, authorization resolver and sanitized audit-event contract exist `GREEN-REPO` | transport/routing/resolver/delivery policies remain `DISABLED / NOT_RUN`; durable audit sink not deployed |
+| Evidence | Evidence Plane v2 + idempotent Runner terminal-outcome custody `GREEN-REPO` | real Runner terminal outcome persistence remains `NOT_RUN` |
+| Reset/cleanup | bounded reset/destroy governance exists | first WebGoat failure cleanup proved zero residue; post-fix full lifecycle result still unknown |
 
 ## RTA-001 — gateway admission
 
-**State:** `RESOLVED-RUNTIME / GREEN`
+**State:** `RESOLVED-RUNTIME / GREEN`.
 
-Accepted live observation established:
-
-- gateway state `running`;
-- `gateway_busy=false`;
-- `gateway_drainable=true`;
-- no forced restart or admission bypass;
-- new work admission available.
-
-This must be re-observed before the next live mutation, but it is no longer an unresolved historical blocker.
+Accepted observation proved gateway `running`, `busy=false`, `drainable=true` and able to admit new work without restart or bypass. This must be re-observed before a new live mutation; it is not an outstanding design gap.
 
 ## RTA-002 — Kali MCP
 
 ### Stage 1 — `GREEN/PASS`
 
-Canonical registration:
+Canonical Hermes registration remains fail-closed:
 
 ```yaml
 mcp_servers:
-  hermes-kali-mcp:
+  kali-lab:
     command: docker
-    args:
-      - exec
-      - -i
-      - hermes-kali-mcp
-      - mcp-server
+    args: [exec, -i, hermes-kali-mcp, mcp-server]
     enabled: false
-    connect_timeout: 30
     tools:
-      include:
-        - __hermes_rta002_no_tool__
+      include: [__hermes_rta002_no_tool__]
       resources: false
       prompts: false
 ```
 
-Accepted runtime evidence:
+Latest accepted discovery proved:
 
-- execution `run_09f177940abe43c1be253e843abb8d85`;
-- backup `/home/estourpm/.hermes/backups/config.yaml.rta002-20260809T154227Z.bak`;
-- backup SHA-256 `688e8c80527e45bcfee6f369c94a8772314fbe4b41ea9da856eb69e68d011939`;
-- STDIO connection through `docker exec -i hermes-kali-mcp mcp-server`;
-- server `kali_mcp` `1.22.0`;
-- protocol `2024-11-05`;
-- 12 tool names discovered as metadata only;
+- canonical STDIO handshake through `docker exec -i hermes-kali-mcp mcp-server`;
+- Kali MCP `1.22.0`;
+- MCP protocol `2025-06-18`;
+- 12 upstream tools visible as metadata;
 - sentinel matched no real tool;
-- no tool invocation and no target traffic;
-- registration left disabled.
+- zero tool invocation and zero target traffic.
 
-PR #306 corrected the earlier invalid STDIO assumption and permanently separates:
+### Stage 2 — `RESOLVED-RUNTIME / GREEN`
 
-- `kali-server-mcp` = container-local HTTP backend;
-- `mcp-server` = FastMCP STDIO wrapper used by Hermes.
+The repository contract remains L0 `kali.mcp.health.read -> server_health` with no parameters and no generic execution.
 
-### Stage 2 — minimum policy surface
+Live acceptance proved:
 
-PR #308 is merged. It introduces the least-privilege typed health contract:
+1. the active `pentest-lab` profile was transactionally changed from disabled + sentinel to enabled + exact allowlist `[server_health]`;
+2. the upstream server still advertised 12 tools but the effective Hermes model-facing surface exposed exactly one tool: `mcp__kali_lab__server_health`;
+3. exactly one `server_health` invocation occurred, with no arguments and no lab-target traffic;
+4. the Kali MCP service reported healthy;
+5. the transaction restored the safe backup and returned the profile byte-for-byte to disabled + sentinel.
 
-- operation `kali.mcp.health.read`;
-- normal/controlled profile;
-- L0;
-- no parameters;
-- side effect `none`;
-- exact tool mapping `kali-mcp.server-health -> server_health`;
-- availability remains `PRESENT`, never `READY` from discovery alone;
-- no `execute_command`;
-- no scanner/exploitation/credential tool mapping;
-- `kali-mcp.audit` remains `DEGRADED / UNMAPPED`.
+The health result also reported some optional Kali binaries (`nmap`, `nikto`, `dirb`, `gobuster`) unavailable. That does not invalidate the L0 health gate, but those capabilities must not be claimed READY until separately proven.
 
-Live Stage 2 closure is still required:
+Do **not** repeat Stage 2 merely because the connector is unavailable later. Re-run only if drift or a new acceptance requirement makes it necessary.
 
-`registered -> reachable -> exact exposed subset [server_health] -> bounded server_health result -> policy/HITL compliance -> healthy`
+## RTA-003 — Bridge approval handoff
 
-On any mismatch, restore the disabled sentinel registration fail-closed.
+**State:** `RESOLVED-RUNTIME / GREEN`.
 
-## RTA-003 — Bridge exact-SHA approval handoff
+The earlier `7e4b6b1...` baseline was superseded by the live Bridge revision:
 
-**State:** `RESOLVED-RUNTIME / GREEN`
+`3717bd5469b061a44294b27e1a7510d477d3752b`
 
-Accepted live Bridge:
+Repository evidence for that revision was GREEN. A fresh no-tool/no-target compatibility smoke exercised the normal request-bound approval flow; the approval was consumed exactly once and the run returned the expected RTA-003 PASS marker. No Kali tool or target action was involved.
 
-- revision `7e4b6b1cd70ddda418f840f54ae7ecef30df52e9`;
-- image `hermes-mcp-bridge:1.0.0-7e4b6b1cd70d-candidate`;
-- immutable image ID `sha256:b124045702bb62f6cd5cc8457a43e150e5b266c0c0f721f35d5f6b6f76e396c6`;
-- Bridge `1.0.0`, schema `0.6.1`, 27 tools;
-- accepted supply-chain SBOM/provenance retained under the exact-SHA evidence directory.
-
-Approval acceptance proof:
-
-1. policy returned `REQUIRE_APPROVAL`;
-2. non-null request-bound approval ID `approval-prompt-c364ea4f2364127b83d4ad01113c786ff5352b44039b6785`;
-3. decision recorded `approved`;
-4. exact logical request retried;
-5. execution `run_317ced10fb164add95872eff66f04420` completed with `RTA003_APPROVAL_SMOKE_PASS`;
-6. approval state became `consumed` and remained single-use.
-
-The accepted deployment also proved immutable drift detection: a stale rollback baseline caused a later duplicate rollout attempt to abort before mutation instead of overwriting the already-promoted accepted image.
-
-## Lifecycle/readiness targets
+## Lifecycle/readiness
 
 ### WebGoat/WebWolf
 
-Repository maturity `PASS`.
+Repository fixes #325-#327 closed three concrete acceptance defects:
 
-Readiness requires bounded TCP + HTTP checks for both WebGoat and WebWolf through the committed readiness adapter. Kali connectivity remains temporary and explicit.
+- readiness can follow typed loopback-only `WEBGOAT_HOST_PORT` / `WEBWOLF_HOST_PORT` overrides;
+- smoke resolves published ports through `webgoat-proxy`, the service that actually owns the host publications;
+- both `start` and `reset` wait fail-closed for **webgoat and webgoat-proxy** to become healthy before success/smoke.
+
+First live cycle on pre-#327 code established:
+
+`start PASS -> readiness PASS -> smoke PASS -> reset FAIL (proxy still starting)`
+
+The failure path then executed canonical `destroy --yes` and proved:
+
+- project containers absent;
+- project volume absent;
+- `webgoat-lab` network absent;
+- selected loopback listeners absent;
+- `hermes-kali-mcp` still running and disconnected.
+
+A post-#327 full rerun was started as `run_73cd8ef359ff486f93faeb7c2dc46290`. The ChatGPT Hermes connector became unavailable before its result could be recovered. The run result is therefore **UNKNOWN**, not PASS and not FAIL. Do not duplicate it blindly; first attempt recovery when the connector is usable.
 
 ### DVWA
 
-Repository maturity `PASS`.
-
-Readiness requires bounded TCP + HTTP `/login.php` checks. Application and database networks remain separated; Kali attach helper refuses the internal DB network.
+Repository state `PASS / READY-REPO`. PR #329 aligned TCP/HTTP readiness with the existing `DVWA_HOST_PORT` Compose publication while retaining application/database network separation. Live lifecycle acceptance remains pending.
 
 ### Juice Shop
 
-PR #309 is merged; repository maturity is now `PASS`.
+Repository state `PASS / READY-REPO`. PR #329 aligned readiness with `JUICE_SHOP_HOST_PORT`, made smoke resolve the actual loopback Compose port rather than hardcode `3000`, and corrected reset to disconnect Kali from the explicit canonical `juice-shop-lab` network. Live lifecycle acceptance remains pending.
 
-The previous two maturity findings were removed:
+## Authorization / Runner chain
 
-- fixed loopback publication became parameterized `127.0.0.1:${JUICE_SHOP_HOST_PORT:-3000}:3000`;
-- executable bounded `connect-kali.sh` and `disconnect-kali.sh` helpers were added.
+The repository now contains the complete **candidate** chain required to attempt a future live WebGoat L1 promotion without generic execution:
 
-The helpers verify network ownership and expected endpoints and fail closed on foreign endpoints. The manifest still truthfully declares the residual publication-bridge egress risk; PR #309 did not claim to solve egress hardening.
+- Hermes-only TB1 receipt issuer boundary (#328);
+- canonical TB1 receipt verification;
+- signer/trust-store deployment declaration and read-only preflight (#331);
+- authenticated local receipt-delivery boundary (#322);
+- `VerifiedAuthorizationResolver`;
+- Unix `SO_PEERCRED` identity contract and deployment preflight (#323);
+- deny-by-default dispatch router;
+- real target-bound WebGoat L1 adapter;
+- sanitized authenticated-principal/correlation audit event (#332);
+- Runner terminal outcome -> Evidence Plane custody bridge (#321).
 
-## Seeded scenario status
+This does **not** mean the live chain is enabled. Canonical resolver, delivery, transport, routing and outcome-custody policies remain deliberately `DISABLED / deny / NOT_RUN / execution_authority: none` where applicable.
 
-| Scenario | Static plan | Current effect state | Live state |
-| --- | --- | --- | --- |
-| `webgoat-tls-transport-review` | `PLAN_READY` | `web.discovery.headers` and `web.discovery.tls` registered but real effect/runner integration not implemented | blocked |
-| `dvwa-sql-injection-screening` | `PLAN_READY` | synthetic-only SQLi operation registered; real effect/runner integration not implemented | blocked |
-| `juice-shop-lab-lifecycle-stop` | `PLAN_READY` | lifecycle stop contract registered; real Runner dispatch/outcome path not implemented | blocked |
+### Still missing for live promotion
 
-The first implementation target should remain the WebGoat L1 read-only scenario, not L2 SQLi.
+- live external signer binding and evidence of protected key custody;
+- installed Runner authorization trust store with owner/mode evidence;
+- configured receipt-delivery AF_UNIX endpoint and live authenticated delivery;
+- host evidence for dedicated gateway/Runner UID/GID and namespace mapping;
+- negative live peer tests against the real Runner socket;
+- durable append-only/immutable audit sink; the event contract alone is not persistence;
+- live principal + correlation event observation at that sink;
+- explicit authorized promotion of resolver/delivery/transport/routing/custody policies;
+- live WebGoat L1 dispatch, terminal outcome custody and reset/known-state proof.
 
-## Current runtime blocker — ChatGPT Hermes connector
+## Seeded scenarios
 
-The Hermes MCP app is still installed and its app-specific permission is `Allow all actions`. The current failure is not a permission denial.
+| Scenario | Repository effect state | Live state |
+| --- | --- | --- |
+| `webgoat-tls-transport-review` | WebGoat L1 typed HTTP effect exists; supporting TLS operation remains separately governed | blocked on live promotion chain |
+| `dvwa-sql-injection-screening` | higher-intrusiveness/synthetic path; not the first live target | blocked |
+| `juice-shop-lab-lifecycle-stop` | lifecycle contract available | lifecycle acceptance pending |
 
-Observed repeatedly in this continuation:
+The first real effect remains the least-intrusive **WebGoat L1 read-only** path. Do not jump to L2 SQLi.
 
-1. plugin/tool discovery reports `Hermes_MCP.hermes-agent-bridge_hermes_health` available;
-2. immediate invocation returns `Resource not found` and asks for rediscovery;
-3. rediscovery can again expose the tool, followed by the same invocation failure.
+## Current connector state
 
-Therefore the current classification is:
+The ChatGPT Hermes connector is presently inconsistent/unavailable. During this continuation the namespace briefly reappeared, but `hermes_status(run_73cd...)` returned `Resource not found`; immediate rediscovery then reported no usable Hermes MCP namespace.
 
-`BLOCKED-ON-CONNECTOR`
+Classification:
 
-This is **not** evidence that the Hermes gateway itself is unhealthy. No new runtime health claim may be made until an invocation succeeds.
+`CONNECTOR-UNAVAILABLE / LIVE-RUN-RECOVERY-PENDING`
 
-## Runtime integration gap after connector recovery
-
-Even after the connector recovers, the full walking skeleton cannot be called final merely from lifecycle/readiness because the current architecture deliberately retains these states:
-
-- Hermes operational TB1 authorization receipt **issuance**: `NOT_IMPLEMENTED / NOT_RUN`;
-- TB1 receipt **delivery** into the Runner: implemented as a fail-closed boundary, policy `DISABLED / NOT_RUN`, no configured socket or trust store;
-- real runner identity/transport authentication: policies `DISABLED / NOT_RUN`; deployment prerequisites are now machine-checkable but no host identity evidence and no live negative test exist;
-- runner execution integration: `NOT_RUN`;
-- Kali MCP non-health handler integration: `NOT_RUN`;
-- deployed gateway outcome reception: `NOT_RUN`;
-- Evidence Plane real outcome persistence: custody bridge implemented, policy `DISABLED / NOT_RUN`, `NOT_RUN` against a real outcome.
-
-Three of these moved from "not implemented" to "implemented but deliberately disabled" in this wave. That is a repository-state change only. None of it grants authority, promotes a policy or constitutes live acceptance.
-
-The existing Runner Protocol supervised process boundary is reusable infrastructure, not a real adapter and not execution authority. Do not bypass these boundaries using `execute_command`, arbitrary shell, direct scanner calls or a caller-created authorization reference.
+This is not evidence that the Hermes gateway itself is unhealthy. It means no new live gateway or run claim can be made through this control surface.
 
 ## Automatic continuation order
 
-When the Hermes MCP resource is invokable again, continue without redoing completed work:
+When the Hermes connector is usable again:
 
-1. re-observe `hermes_health` / readiness and require gateway `running` + new-work admission;
-2. revalidate exact live Bridge revision `7e4b6b1cd70ddda418f840f54ae7ecef30df52e9`;
-3. read-only verify the Stage 1 Kali registration remains disabled + sentinel;
-4. back up Hermes config;
-5. replace only the sentinel with exact literal allowlist `[server_health]`, keep resources/prompts disabled and enable only for bounded Stage 2 acceptance;
-6. prove the effective exposed surface is exactly `server_health`;
-7. invoke only `server_health`; satisfy normal audited policy/HITL if required;
-8. on PASS, close RTA-002 as `registered -> reachable -> healthy -> policy-compliant`, then return to least privilege (disable again unless immediately required by an accepted scenario);
-9. execute lifecycle/readiness acceptance for WebGoat/WebWolf, DVWA and Juice Shop through `platform/scripts/lab_lifecycle.py` and committed readiness adapters;
-10. capture lifecycle evidence and reset/known-state proof;
-11. implement and validate the first real LAB_ONLY Runner adapter/typed effect for WebGoat L1 without generic execution;
-12. only after the authorization/Runner/evidence chain is real, execute the first bounded scenario and continue GREEN/PASS to the remaining seeded scenarios.
+1. recover `run_73cd8ef359ff486f93faeb7c2dc46290` before starting another WebGoat lifecycle;
+2. re-observe gateway admission and exact Bridge revision `3717bd5469b061a44294b27e1a7510d477d3752b`;
+3. verify the Kali profile is still disabled + sentinel; do not repeat RTA-002 Stage 2 unless drift is detected;
+4. if the recovered WebGoat run is PASS, record its full lifecycle/reset evidence; otherwise clean up canonically and repeat only the failed acceptance gate;
+5. execute bounded lifecycle/readiness acceptance for DVWA and Juice Shop using their typed loopback port overrides;
+6. produce host evidence for Runner identities/socket, TB1 signer/trust store and the durable audit sink;
+7. validate negative peer/trust-key cases;
+8. request/record the explicit Human-in-the-Loop promotion decision for the exact runtime candidate;
+9. promote only the minimum WebGoat L1 policy set;
+10. execute one bounded read-only WebGoat L1 effect, persist terminal evidence and audit events, then destroy/reset and prove known state;
+11. on any RED, stop the affected lane, restore fail-closed state and keep unrelated repo-only lanes independent.
 
 No target-interacting action is authorized merely because repository contracts or CI are GREEN.
 
@@ -235,21 +210,22 @@ No target-interacting action is authorized merely because repository contracts o
 
 | Change | PR | Merge SHA | Outcome |
 | --- | --- | --- | --- |
-| Kali STDIO role correction | #306 | `88a4ae88ae958cd889fff3a89cd64b269d3b75e6` | Stage 1 corrected transport contract |
-| Runtime acceptance reconciliation | #307 | `91c055fd9f7a79f84c2124f9bc8a9ebe1039ccd4` | RTA-001/003 closed, Stage 1 recorded |
-| Typed Kali health contract | #308 | `eae2b87508e4488741e1eb146a9ed49595003102` | exact L0 `server_health` policy mapping |
-| Juice Shop lifecycle readiness | #309 | `804e21feb0ec43002a5281978cd4c94c60b53200` | maturity `PASS`, bounded Kali attach/detach |
-| JDS-002 release maintenance adoption | #320 | `fced39a23b66e8641fe0e2c1bbf8e6295bec58e3` | change/validation ledger governance |
-| Runner outcome custody bridge | #321 | `7bd1b9da3af4f1b38b9ea057b6a3c8fd97f9b636` | idempotent immutable custody onto the existing Evidence Plane, policy `DISABLED / NOT_RUN` |
-| TB1 receipt delivery boundary | #322 | `dcae64435d87deb57fba64c160bb3fa1285a59bc` | Hermes-sole-issuer authenticated local composition, policy `DISABLED / NOT_RUN` |
-| Runtime-promotion identity/socket preflight | #323 | `c6f12cefbcb1857af46835bef7531eab3e4533c5` | non-root identities, restrictive socket mode, exact policy templates, `runtime_status` stays `NOT_RUN` |
+| Runner outcome custody | #321 | `7bd1b9da3af4f1b38b9ea057b6a3c8fd97f9b636` | GREEN-REPO, policy disabled |
+| TB1 receipt delivery | #322 | `dcae64435d87deb57fba64c160bb3fa1285a59bc` | GREEN-REPO, policy disabled |
+| Runtime identity/socket preflight | #323 | `c6f12cefbcb1857af46835bef7531eab3e4533c5` | GREEN-REPO, runtime NOT_RUN |
+| WebGoat readiness port parity | #325 | `b5b54dc54e6e8844e5bfcb5d74ed9e4c38e88645` | GREEN-REPO |
+| WebGoat smoke publication ownership | #326 | `a91a325ed4ee1c66a17ab5d79a073b5f980fabbf` | GREEN-REPO |
+| WebGoat dual-health lifecycle gate | #327 | `8f5d5aaedb011b8187c0a44bf8df2eaf0b9b9434` | GREEN-REPO after live-observed reset race |
+| Hermes TB1 issuer boundary | #328 | `1d88a9386ed17010d784e2c519cf778569874aca` | GREEN-REPO, signer live binding NOT_RUN |
+| DVWA/Juice publication parity | #329 | `1402503fa8eed62e9921b8166af86211e7ffd923` | GREEN-REPO |
+| JDS baseline repair | #330 | `042c068435aa31082217c8dc1772c4658eaca375` | release-governance baseline GREEN |
+| TB1 signer/trust-store deployment preflight | #331 | `472f3fbec9040519a8798044382f4462d0ad2d6b` | GREEN-REPO, runtime NOT_RUN |
+| Runner dispatch audit event contract | #332 | `038a2ae503a331a371fa69623ec0586c9c60c7e5` | GREEN-REPO, durable sink NOT_RUN |
 
 ## Decision record
 
-**Decision:** do not claim the walking skeleton final while the live connector is unavailable or while TB1/runner/Kali effect integration remains deliberately unimplemented.
+**Decision:** keep promotion on HOLD until live identity/trust/audit/evidence prerequisites and explicit Human-in-the-Loop promotion are proven.
 
-**Reason:** repository GREEN and lifecycle maturity are necessary but do not prove live authorization, execution, evidence or cleanup.
+**Reason:** the repository chain is now materially more complete, but GREEN-REPO cannot substitute for protected key custody, authenticated live transport, immutable audit persistence, real outcome custody or reset evidence.
 
-**Accepted approach:** preserve completed RTA evidence, continue repository engineering independently where safe, and resume the exact live gate from Stage 2 when the Hermes connector is invokable.
-
-**State:** `BLOCKED-ON-CONNECTOR-AND-RUNTIME-INTEGRATION`.
+**State:** `HOLD / BLOCKED-ON-LIVE-PROMOTION-EVIDENCE-AND-CONNECTOR`.

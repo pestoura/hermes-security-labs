@@ -1,0 +1,34 @@
+schemaVersion: jds.change/v1
+kind: ChangeRecord
+id: CHG-HSL-013
+product: hermes-security-labs
+classification: DOC_ONLY
+state: ACCEPTED
+disposition: FIX_NOW
+summary: Reconcile the walking-skeleton status and Runner L1 live-promotion campaign after PRs 325-332. The update records Bridge 3717bd5 and RTA-002 Stage 2 as live accepted, WebGoat post-fix lifecycle as UNKNOWN rather than PASS, TB1 issuer/signer preflight and dispatch audit event as GREEN-REPO, DVWA/Juice publication parity, and the remaining live signer, trust-store, identity, audit-sink, policy, evidence and connector blockers.
+source:
+  type: ENGINEERING_REVIEW
+  campaign: VAL-HSL-RUNNER-L1-LIVE-PROMOTION
+  observation: null
+  reference: 'Main 038a2ae503a331a371fa69623ec0586c9c60c7e5 after merged PRs 325-332 plus accepted RTA-002/RTA-003 runtime observations from this continuation.'
+affectedRelease: jds-002-adoption-candidate
+targetRelease: null
+risk: LOW
+versionEffect: NONE
+branch: docs/reconcile-walking-skeleton-20260810
+issue: null
+pr: 333
+validation:
+  targeted: PASS
+  regression: PASS
+  security: NOT_APPLICABLE
+  runtime: NOT_APPLICABLE
+promotion:
+  commit: null
+  artifactDigest: null
+  previousRelease: null
+deferredTo: null
+timestamps:
+  discoveredAt: '2026-08-10T21:05:00Z'
+  updatedAt: '2026-08-10T21:08:00Z'
+  closedAt: null
