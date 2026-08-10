@@ -38,17 +38,59 @@ Positive tests use temporary copies of the policies and adapter registry, mark t
 - Routing policy decides which authenticated principal may reach which adapter/target/capability.
 - Adapter registry selects the unique typed implementation and carries runtime promotion state.
 - The adapter independently resolves `authorization_ref` and enforces target/capability binding before an effect.
+- The dispatch audit projection records the authenticated principal together with the canonical Runner correlation identifiers; it does not create authority and does not trust a principal supplied inside the Runner request.
 
 No one layer substitutes for another.
+
+## Dispatch audit contract
+
+`dispatch-audit-event.schema.json` and `audit.py` define the repository-side audit projection required before live dispatch can be considered operationally accountable.
+
+The event binds the **transport-authenticated principal** to:
+
+- `campaign_id`;
+- `run_id`;
+- `step_id`;
+- `attempt_id`;
+- the TB1 `authorization_ref`;
+- the selected capability;
+- a canonical SHA-256 of the target;
+- the adapter ID when known;
+- a stable reason code and decision phase;
+- the terminal status for completed dispatches.
+
+The projection deliberately excludes raw target values, operation parameters, credentials, tokens and application payload. It first validates the Runner Protocol request and derives the target digest using the canonical gateway target-digest function.
+
+Each event has a deterministic `event_fingerprint`. `recorded_at` is excluded from that fingerprint so re-serialization time does not change the logical event identity; `attempt_id` remains included so retries are separately auditable even when the logical effect is idempotent.
+
+### Trust boundary
+
+`principal_id` and `transport` are explicit arguments to the projection because they must originate from the trusted transport-authentication result (for the current candidate, kernel `SO_PEERCRED`). They are never extracted from caller-controlled Runner request fields.
+
+The schema is strict (`additionalProperties: false`) and distinguishes:
+
+- `pre-dispatch / ALLOW`;
+- `pre-dispatch / DENY`;
+- `terminal / OUTCOME`.
+
+A terminal event requires both `adapter_id` and `terminal_status`. Pre-dispatch events cannot claim a terminal status.
+
+### Runtime status
+
+This is **GREEN-REPO candidate functionality only**. `audit.py` is a pure projection and intentionally performs no file write, syslog call, network request, subprocess invocation or SIEM integration.
+
+A durable append-only/immutable audit sink, retention policy and live delivery are still `NOT_IMPLEMENTED / NOT_RUN`. A repository-valid event does not prove that an event was persisted during a real dispatch.
 
 ## Remaining blockers
 
 Before live dispatch:
 
-- dedicated non-root gateway/Runner identities and socket permissions must be validated;
+- dedicated non-root gateway/Runner identities and socket permissions must be validated on the host;
 - canonical transport and routing policies must be explicitly promoted from disabled state;
 - WebGoat adapter must have accepted runtime promotion evidence before `AS_BUILT / READY`;
 - a trustworthy runtime resolver for verified `authorization_ref` must exist;
+- TB1 signer/trust-store deployment must be proven live rather than only through repository preflight;
 - terminal evidence must be persisted to the Evidence Plane;
+- the dispatch audit event must be persisted through a durable append-only/immutable sink and observed alongside the same correlation identifiers;
 - a listener/service composition boundary must be deployed and tested;
 - live negative tests must prove unauthorized peers, targets and capabilities cannot reach an adapter.
