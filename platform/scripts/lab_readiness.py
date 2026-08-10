@@ -37,6 +37,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import re
 import socket
 import subprocess
 import sys
@@ -45,8 +47,8 @@ import urllib.request
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Protocol
-from urllib.parse import urlparse
+from typing import Any, Mapping, Protocol
+from urllib.parse import urlparse, urlunparse
 
 try:
     import yaml
@@ -83,6 +85,17 @@ REASON_LIVENESS_FAILED = "LIVENESS_CHECK_FAILED"
 REASON_READINESS_FAILED = "READINESS_CHECK_FAILED"
 REASON_READINESS_NOT_EVALUATED = "READINESS_NOT_EVALUATED_LIVENESS_FAILED"
 REASON_NO_READINESS_CHECKS = "READINESS_CONTRACT_EMPTY"
+REASON_PORT_ENV_INVALID = "READINESS_PORT_ENV_INVALID"
+
+#: Optional, per-check port override. The adapter names ONE environment variable
+#: whose value may replace **only the port** of an already loopback-validated
+#: check. There is no template expansion, no host/scheme/path/query/command
+#: substitution: the sole mutable field is the TCP port number.
+PORT_ENV_KEY = "port_env"
+PORT_ENV_NAME_RE = re.compile(r"^[A-Z][A-Z0-9_]{0,63}$")
+
+MIN_PORT = 1
+MAX_PORT = 65535
 
 EXIT_READY = 0
 EXIT_NOT_READY = 1
@@ -156,6 +169,75 @@ def _timeout(raw: Any, default: int = 5) -> int:
     return raw
 
 
+def _port_env_name(raw: Any, check_id: str) -> str | None:
+    """Validate the OPTIONAL environment-variable name declared by a check.
+
+    The adapter may name exactly one variable; the name itself is strictly
+    validated so an adapter can never smuggle an expression or a shell fragment
+    through this field.
+    """
+    if raw is None:
+        return None
+    if not isinstance(raw, str) or not PORT_ENV_NAME_RE.match(raw):
+        raise ReadinessContractError(
+            f"{REASON_ADAPTER_INVALID}: check '{check_id}' {PORT_ENV_KEY} must match "
+            f"{PORT_ENV_NAME_RE.pattern}"
+        )
+    return raw
+
+
+def resolve_port(check: Check, environ: Mapping[str, str] | None = None) -> int:
+    """Return the effective port for a check.
+
+    * no ``port_env`` declared, or the variable is absent  -> the committed
+      default port from the validated adapter (exact legacy behaviour);
+    * variable present and a valid integer in 1..65535     -> that port;
+    * variable present and anything else                   -> fail closed.
+
+    There is never a silent fallback to the default for a *present but invalid*
+    value.
+    """
+    default_port = check.params["port"]
+    env_name = check.params.get(PORT_ENV_KEY)
+    if not env_name:
+        return int(default_port)
+    source = os.environ if environ is None else environ
+    if env_name not in source:
+        return int(default_port)
+    raw = source[env_name]
+    if not isinstance(raw, str):
+        raise ReadinessContractError(
+            f"{REASON_PORT_ENV_INVALID}: {env_name} must be an integer port in "
+            f"{MIN_PORT}..{MAX_PORT}"
+        )
+    candidate = raw.strip()
+    if not (candidate.isascii() and candidate.isdigit()):
+        raise ReadinessContractError(
+            f"{REASON_PORT_ENV_INVALID}: {env_name}={raw!r} is not an integer port"
+        )
+    value = int(candidate)
+    if not (MIN_PORT <= value <= MAX_PORT):
+        raise ReadinessContractError(
+            f"{REASON_PORT_ENV_INVALID}: {env_name}={raw!r} is outside {MIN_PORT}..{MAX_PORT}"
+        )
+    return value
+
+
+def effective_url(check: Check, environ: Mapping[str, str] | None = None) -> str:
+    """Rebuild an ``http_get`` URL with only the port replaced.
+
+    Scheme, host, path, params, query and fragment are taken verbatim from the
+    already loopback-validated adapter URL.
+    """
+    parsed = urlparse(check.params["url"])
+    port = resolve_port(check, environ)
+    host = parsed.hostname or ""
+    netloc = f"[{host}]:{port}" if ":" in host else f"{host}:{port}"
+    return urlunparse(
+        (parsed.scheme, netloc, parsed.path, parsed.params, parsed.query, parsed.fragment)
+    )
+
+
 def _parse_check(raw: Any, allowed: frozenset[str], section: str) -> Check:
     if not isinstance(raw, dict):
         raise ReadinessContractError(f"{REASON_ADAPTER_INVALID}: {section} entry is not a mapping")
@@ -185,6 +267,22 @@ def _parse_check(raw: Any, allowed: frozenset[str], section: str) -> Check:
         params["url"] = url
         params["expect_status"] = expect_status
         params["timeout_seconds"] = _timeout(raw.get("timeout_seconds"))
+        parsed_url = urlparse(url)
+        try:
+            explicit_port = parsed_url.port
+        except ValueError as exc:
+            raise ReadinessContractError(
+                f"{REASON_ADAPTER_INVALID}: http_get check '{check_id}' has a non-integer port ({url})"
+            ) from exc
+        default_http_port = explicit_port if explicit_port is not None else 80
+        if not (MIN_PORT <= default_http_port <= MAX_PORT):
+            raise ReadinessContractError(
+                f"{REASON_ADAPTER_INVALID}: http_get check '{check_id}' has an invalid port"
+            )
+        params["port"] = default_http_port
+        port_env = _port_env_name(raw.get(PORT_ENV_KEY), check_id)
+        if port_env is not None:
+            params[PORT_ENV_KEY] = port_env
         body_contains = raw.get("expect_body_contains")
         if body_contains is not None:
             if not isinstance(body_contains, str) or not body_contains:
@@ -207,6 +305,9 @@ def _parse_check(raw: Any, allowed: frozenset[str], section: str) -> Check:
         params["host"] = host
         params["port"] = port
         params["timeout_seconds"] = _timeout(raw.get("timeout_seconds"))
+        port_env = _port_env_name(raw.get(PORT_ENV_KEY), check_id)
+        if port_env is not None:
+            params[PORT_ENV_KEY] = port_env
 
     return Check(id=check_id, kind=kind, params=params, description=str(raw.get("description", "")))
 
@@ -333,8 +434,11 @@ class DefaultExecutor:
         return CheckResult(check.id, check.kind, True, "status exit=0")
 
     def _http_get(self, check: Check) -> CheckResult:
-        url = check.params["url"]
         expect = check.params["expect_status"]
+        try:
+            url = effective_url(check)
+        except ReadinessContractError as exc:
+            return CheckResult(check.id, check.kind, False, str(exc))
         request = urllib.request.Request(url, method="GET")  # noqa: S310 - loopback-validated http
         try:
             with urllib.request.urlopen(request, timeout=check.params["timeout_seconds"]) as response:  # noqa: S310
@@ -352,7 +456,11 @@ class DefaultExecutor:
         return CheckResult(check.id, check.kind, True, f"GET {url} status={status}")
 
     def _tcp_connect(self, check: Check) -> CheckResult:
-        host, port = check.params["host"], check.params["port"]
+        host = check.params["host"]
+        try:
+            port = resolve_port(check)
+        except ReadinessContractError as exc:
+            return CheckResult(check.id, check.kind, False, str(exc))
         try:
             with socket.create_connection((host, port), timeout=check.params["timeout_seconds"]):
                 pass
