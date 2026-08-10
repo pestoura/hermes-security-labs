@@ -5,7 +5,7 @@ product: hermes-security-labs
 classification: BUGFIX
 state: ACCEPTED
 disposition: FIX_NOW
-summary: Align the WebGoat smoke script with compose publication ownership. Host ports are published only by webgoat-proxy, so `docker compose port webgoat` never resolved a mapping and live smoke failed closed at port resolution. smoke.sh keeps SERVICE_NAME=webgoat for the workload health gate and pinned digest check, and adds PUBLISH_SERVICE_NAME=webgoat-proxy for port lookups plus a publication presence/health assertion. Binding, HTTP, digest and network checks unchanged; no target or offensive behaviour added.
+summary: Align WebGoat smoke with Compose publication ownership. Host ports are published by webgoat-proxy, so resolving mappings against webgoat failed closed. smoke.sh keeps webgoat for workload health and pinned-image checks, uses webgoat-proxy only for published-port lookup, and verifies publication presence/health. Loopback binding, HTTP, digest and network checks remain unchanged; no target or offensive behaviour is added.
 source:
   type: ENGINEERING_REVIEW
   campaign: null
@@ -30,5 +30,5 @@ promotion:
 deferredTo: null
 timestamps:
   discoveredAt: '2026-08-10T00:00:00Z'
-  updatedAt: '2026-08-10T00:00:00Z'
+  updatedAt: '2026-08-10T20:25:00Z'
   closedAt: null
