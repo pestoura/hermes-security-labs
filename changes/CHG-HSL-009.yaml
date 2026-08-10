@@ -3,9 +3,9 @@ kind: ChangeRecord
 id: CHG-HSL-009
 product: hermes-security-labs
 classification: HARDENING
-state: IMPLEMENTING
+state: VALIDATING
 disposition: FIX_NOW
-summary: Implement the missing Hermes-side TB1 authorization receipt issuance boundary without placing private-key material or a private-key loader in the Labs repository. The boundary binds the exact admitted effect, derives canonical parameter and target digests plus authorization_ref, enforces a bounded receipt lifetime, and delegates signing to a purpose-bound external signer suitable for HSM, KMS or Vault integration. Repository implementation does not configure a signer, trust store or runtime authority.
+summary: Implement the missing Hermes-side TB1 authorization receipt issuer without placing private-key material or a private-key loader in Labs. The boundary binds the exact admitted effect, derives canonical parameter and target digests plus authorization_ref, enforces a bounded lifetime, and delegates signing to a purpose-bound external signer suitable for HSM, KMS or Vault. Repository implementation does not configure signer, trust store or runtime authority.
 source:
   type: ENGINEERING_REVIEW
   campaign: VAL-HSL-RUNNER-L1-LIVE-PROMOTION
@@ -17,7 +17,7 @@ risk: MEDIUM
 versionEffect: NONE
 branch: lane/tb1-hermes-issuer-boundary
 issue: null
-pr: null
+pr: 328
 validation:
   targeted: NOT_RUN
   regression: NOT_RUN
@@ -30,5 +30,5 @@ promotion:
 deferredTo: null
 timestamps:
   discoveredAt: '2026-08-10T20:05:00Z'
-  updatedAt: '2026-08-10T20:05:00Z'
+  updatedAt: '2026-08-10T20:21:00Z'
   closedAt: null
