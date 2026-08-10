@@ -6,7 +6,7 @@ objective: Govern promotion of the current WebGoat L1 Runner repository chain in
 state: BLOCKED
 candidate:
   version: runner-webgoat-l1-repo-candidate
-  commit: 9cfa7ec69a078b316351c4202f066f8fa2d79f90
+  commit: c6f12cefbcb1857af46835bef7531eab3e4533c5
   artifactDigest: null
 environment: Hermes Security Labs / WebGoat isolated lab runtime
 observations:
@@ -21,23 +21,23 @@ observations:
     required: true
     result: BLOCKED
     status: OPEN
-    summary: Operational signed TB1 receipt issuance and trusted delivery into the Runner process are not implemented or live-accepted.
-    changeRecord: null
-    evidence: 'runner-adapters:TB1 operational receipt issuance/delivery NOT_IMPLEMENTED/NOT_RUN'
+    summary: The repository now implements the trusted local composition boundary that delivers a signed TB1 receipt into the Runner (Hermes sole issuer, no caller-controlled trust fields, no Runner private key, AF_UNIX peer-credential authentication, fail-closed restart), but the delivery policy is canonically DISABLED/NOT_RUN and operational Hermes-side receipt issuance plus a configured Runner trust store are still not implemented or live-accepted.
+    changeRecord: CHG-HSL-003
+    evidence: 'pr:322 merge c6f12ce-lineage dcae64435d87deb57fba64c160bb3fa1285a59bc; receipt-delivery-policy:DISABLED/NOT_RUN; hermes TB1 issuance:NOT_IMPLEMENTED/NOT_RUN'
   - id: OBS-RUNNER-POLICY-PROMOTION
     required: true
     result: BLOCKED
     status: OPEN
-    summary: Resolver, AF_UNIX peer identity and authenticated routing policies remain canonically DISABLED/NOT_RUN and therefore cannot dispatch the candidate live.
-    changeRecord: null
-    evidence: 'resolver/transport/router:DISABLED/NOT_RUN'
+    summary: Deployment-side promotion prerequisites are now machine-checkable (dedicated non-root gateway/runner identities, restrictive AF_UNIX socket ownership/mode, exact transport and routing policy templates validated by the product's own validators), but resolver, transport and routing policies remain canonically DISABLED/NOT_RUN, the rendered templates deliberately keep runtime_status NOT_RUN, and no host-level identity evidence or live negative test exists.
+    changeRecord: CHG-HSL-004
+    evidence: 'pr:323 merge c6f12cefbcb1857af46835bef7531eab3e4533c5; resolver/transport/router:DISABLED/NOT_RUN; preflight:IMPLEMENTED_NOT_RUN'
   - id: OBS-EVIDENCE-CUSTODY
     required: true
     result: BLOCKED
     status: OPEN
-    summary: External Evidence Plane persistence/custody for terminal Runner outcomes is not implemented on main; the prior custody PR was closed without merge.
-    changeRecord: null
-    evidence: 'pr:319 closed-unmerged; evidence-plane:NOT_IMPLEMENTED/NOT_RUN'
+    summary: The idempotent Runner terminal-outcome custody bridge onto the existing Evidence Plane is implemented and merged (immutable custody, exact retry reuses the original effect record, no second effect, no parallel evidence store, no security overclaim), superseding closed-unmerged PR 319; the custody policy is canonically DISABLED/NOT_RUN and no real terminal outcome has been persisted.
+    changeRecord: CHG-HSL-002
+    evidence: 'pr:321 merge 7bd1b9da3af4f1b38b9ea057b6a3c8fd97f9b636; runner-outcome-policy:DISABLED/NOT_RUN; live persistence:NOT_RUN'
   - id: OBS-LIVE-EFFECT-RESET
     required: true
     result: BLOCKED
@@ -48,5 +48,5 @@ observations:
 promotionRecommendation: HOLD
 timestamps:
   startedAt: '2026-08-09T21:12:00Z'
-  updatedAt: '2026-08-09T21:12:00Z'
+  updatedAt: '2026-08-10T00:00:00Z'
   closedAt: null
