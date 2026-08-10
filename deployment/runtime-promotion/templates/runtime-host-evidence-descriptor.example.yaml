@@ -1,0 +1,8 @@
+schema_version: "1.0"
+runtime_status: NOT_RUN
+identity_descriptor: deployment/runtime-promotion/templates/runner-identity-descriptor.example.yaml
+tb1_descriptor: deployment/runtime-promotion/templates/tb1-authorization-deployment-descriptor.example.yaml
+trust_store_expectation:
+  owner_uid: 0
+  group_gid: 4101
+  mode: "0640"

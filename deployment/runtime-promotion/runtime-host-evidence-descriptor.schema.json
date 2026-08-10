@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/pestoura/hermes-security-labs/deployment/runtime-promotion/runtime-host-evidence-descriptor.schema.json",
+  "title": "Runner runtime host evidence descriptor v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "runtime_status",
+    "identity_descriptor",
+    "tb1_descriptor",
+    "trust_store_expectation"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "runtime_status": {"const": "NOT_RUN"},
+    "identity_descriptor": {
+      "type": "string",
+      "pattern": "^deployment/runtime-promotion/[A-Za-z0-9._/-]+\\.yaml$",
+      "maxLength": 256
+    },
+    "tb1_descriptor": {
+      "type": "string",
+      "pattern": "^deployment/runtime-promotion/[A-Za-z0-9._/-]+\\.yaml$",
+      "maxLength": 256
+    },
+    "trust_store_expectation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["owner_uid", "group_gid", "mode"],
+      "properties": {
+        "owner_uid": {"type": "integer", "minimum": 0},
+        "group_gid": {"type": "integer", "minimum": 0},
+        "mode": {"type": "string", "pattern": "^0[0-7]{3}$"}
+      }
+    }
+  }
+}
