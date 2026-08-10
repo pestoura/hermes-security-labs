@@ -5,7 +5,7 @@ product: hermes-security-labs
 classification: HARDENING
 state: IMPLEMENTING
 disposition: FIX_NOW
-summary: Add a read-only host evidence collector that turns the accepted Runner identity/socket and TB1 trust-store declarations into observed account, group, filesystem and AF_UNIX socket evidence. It verifies exact UID/GID/shell, group membership, socket/directory ownership and mode, trust-store ownership/mode and exact declared public-document digest, but never mutates the host or grants promotion. Namespace mapping, signer attestation, negative peer, live audit sink and Runner effect remain separate evidence.
+summary: Add a read-only host evidence collector for accepted Runner identity/socket and TB1 trust-store declarations. It observes exact service UID/GID/shell, dispatch-group membership, socket/directory owner and mode, trust-store owner/mode and approved public-document digest, without mutating the host or granting promotion. Namespace mapping, signer attestation, negative peer, live audit sink and Runner effect remain separate evidence.
 source:
   type: ENGINEERING_REVIEW
   campaign: VAL-HSL-RUNNER-L1-LIVE-PROMOTION
@@ -30,5 +30,5 @@ promotion:
 deferredTo: null
 timestamps:
   discoveredAt: '2026-08-10T21:20:00Z'
-  updatedAt: '2026-08-10T21:20:00Z'
+  updatedAt: '2026-08-10T21:30:00Z'
   closedAt: null
