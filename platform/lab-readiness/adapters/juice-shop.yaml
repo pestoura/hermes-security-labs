@@ -10,11 +10,13 @@ readiness:
     kind: tcp_connect
     host: 127.0.0.1
     port: 3000
+    port_env: JUICE_SHOP_HOST_PORT
     timeout_seconds: 5
     description: Canonical loopback Juice Shop publication accepts connections.
   - id: http-juice-shop
     kind: http_get
     url: http://127.0.0.1:3000/
+    port_env: JUICE_SHOP_HOST_PORT
     expect_status: 200
     timeout_seconds: 5
     description: Fail-closed HTTP readiness for the canonical Juice Shop root endpoint.
