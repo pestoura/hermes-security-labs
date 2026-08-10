@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/pestoura/hermes-security-labs/deployment/runtime-promotion/tb1-authorization-deployment-descriptor.schema.json",
+  "title": "TB1 authorization deployment descriptor v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "runtime_status",
+    "authority",
+    "domain",
+    "purpose",
+    "signer",
+    "trust_store"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "runtime_status": {"const": "NOT_RUN"},
+    "authority": {"const": "hermes-control-plane"},
+    "domain": {"const": "hex0r.tb1.authorization.v1"},
+    "purpose": {"const": "tb1-authorization"},
+    "signer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider_kind",
+        "provider_ref",
+        "key_id",
+        "algorithm",
+        "private_key_local"
+      ],
+      "properties": {
+        "provider_kind": {
+          "type": "string",
+          "enum": ["KMS", "HSM", "VAULT", "PKCS11"]
+        },
+        "provider_ref": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*$"
+        },
+        "key_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+        },
+        "algorithm": {
+          "type": "string",
+          "enum": ["Ed25519", "ECDSA-P256-SHA256"]
+        },
+        "private_key_local": {"const": false}
+      }
+    },
+    "trust_store": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["install_path", "document"],
+      "properties": {
+        "install_path": {
+          "type": "string",
+          "pattern": "^/(etc|run|var/run)/[A-Za-z0-9._/-]+\\.json$",
+          "maxLength": 512
+        },
+        "document": {
+          "type": "object"
+        }
+      }
+    }
+  }
+}

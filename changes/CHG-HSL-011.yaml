@@ -1,0 +1,34 @@
+schemaVersion: jds.change/v1
+kind: ChangeRecord
+id: CHG-HSL-011
+product: hermes-security-labs
+classification: HARDENING
+state: IMPLEMENTING
+disposition: FIX_NOW
+summary: Make TB1 signer binding and Runner trust-store prerequisites machine-checkable without provisioning or runtime promotion. The read-only deployment preflight requires Hermes authority, purpose/domain separation, a non-local external signer reference, matching active public verification key material, a restricted trust-store install path, no secret/private fields, and runtime_status NOT_RUN.
+source:
+  type: ENGINEERING_REVIEW
+  campaign: VAL-HSL-RUNNER-L1-LIVE-PROMOTION
+  observation: OBS-TB1-LIVE-DELIVERY
+  reference: 'After PR #328 the issuer boundary is GREEN-REPO, while production signer binding/private-key custody and a deployed Runner authorization trust store remain NOT_CONFIGURED/NOT_RUN.'
+affectedRelease: jds-002-adoption-candidate
+targetRelease: null
+risk: MEDIUM
+versionEffect: NONE
+branch: lane/tb1-deployment-preflight
+issue: null
+pr: null
+validation:
+  targeted: NOT_RUN
+  regression: NOT_RUN
+  security: NOT_RUN
+  runtime: NOT_RUN
+promotion:
+  commit: null
+  artifactDigest: null
+  previousRelease: null
+deferredTo: null
+timestamps:
+  discoveredAt: '2026-08-10T20:39:00Z'
+  updatedAt: '2026-08-10T20:39:00Z'
+  closedAt: null
