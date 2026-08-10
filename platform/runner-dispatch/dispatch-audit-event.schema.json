@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/pestoura/hermes-security-labs/platform/runner-dispatch/dispatch-audit-event.schema.json",
+  "title": "Runner dispatch audit event v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "domain",
+    "recorded_at",
+    "event_fingerprint",
+    "phase",
+    "decision",
+    "reason_code",
+    "principal_id",
+    "transport",
+    "correlation",
+    "authorization_ref",
+    "capability_id",
+    "target_sha256"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "domain": {"const": "hex0r.runner.dispatch.audit.v1"},
+    "recorded_at": {"type": "string", "format": "date-time"},
+    "event_fingerprint": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "phase": {"type": "string", "enum": ["pre-dispatch", "terminal"]},
+    "decision": {"type": "string", "enum": ["ALLOW", "DENY", "OUTCOME"]},
+    "reason_code": {"type": "string", "pattern": "^[A-Z][A-Z0-9_]{1,95}$"},
+    "principal_id": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"},
+    "transport": {"type": "string", "minLength": 1, "maxLength": 64, "pattern": "^[a-z0-9][a-z0-9._-]*$"},
+    "correlation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["campaign_id", "run_id", "step_id", "attempt_id"],
+      "properties": {
+        "campaign_id": {"type": "string", "format": "uuid"},
+        "run_id": {"type": "string", "format": "uuid"},
+        "step_id": {"type": "string", "format": "uuid"},
+        "attempt_id": {"type": "string", "format": "uuid"}
+      }
+    },
+    "authorization_ref": {"type": "string", "pattern": "^tb1-authz:v1:[a-f0-9]{64}$"},
+    "capability_id": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-z0-9]+(?:[._-][a-z0-9]+)*$"},
+    "adapter_id": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-z0-9]+(?:[._-][a-z0-9]+)*$"},
+    "target_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "terminal_status": {"type": "string", "enum": ["SUCCEEDED", "FAILED", "REFUSED", "CANCELLED", "TIMED_OUT"]}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"phase": {"const": "terminal"}}, "required": ["phase"]},
+      "then": {"required": ["adapter_id", "terminal_status"], "properties": {"decision": {"const": "OUTCOME"}}}
+    },
+    {
+      "if": {"properties": {"phase": {"const": "pre-dispatch"}}, "required": ["phase"]},
+      "then": {"not": {"required": ["terminal_status"]}}
+    }
+  ]
+}
