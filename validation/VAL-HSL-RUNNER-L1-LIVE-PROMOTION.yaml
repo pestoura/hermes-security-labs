@@ -2,11 +2,11 @@ schemaVersion: jds.validation/v1
 kind: ValidationCampaign
 id: VAL-HSL-RUNNER-L1-LIVE-PROMOTION
 product: hermes-security-labs
-objective: Govern promotion of the current WebGoat L1 Runner repository chain into a first fully authorized, evidenced and resettable live target effect without treating repository acceptance as execution authority.
+objective: Govern promotion of the current WebGoat L1 Runner repository chain into a first fully authorized, audited, evidenced and resettable live target effect without treating repository acceptance as execution authority.
 state: BLOCKED
 candidate:
   version: runner-webgoat-l1-repo-candidate
-  commit: c6f12cefbcb1857af46835bef7531eab3e4533c5
+  commit: 038a2ae503a331a371fa69623ec0586c9c60c7e5
   artifactDigest: null
 environment: Hermes Security Labs / WebGoat isolated lab runtime
 observations:
@@ -14,39 +14,39 @@ observations:
     required: true
     result: PASS
     status: RESOLVED
-    summary: The repository proves canonical TB1 verification, VerifiedAuthorizationResolver, gateway handoff, exact WebGoat adapter binding, durable idempotency and logical retry semantics without live target traffic.
+    summary: The repository contains the typed WebGoat L1 adapter, TB1 verifier and Hermes issuer boundary, authenticated receipt delivery, VerifiedAuthorizationResolver, Unix peer identity and deny-by-default routing, idempotent outcome custody and a sanitized authenticated-principal audit-event contract. All remain non-authoritative until the required runtime policies and deployment evidence are explicitly promoted.
     changeRecord: null
-    evidence: 'prs:316,317,318; main:9cfa7ec69a078b316351c4202f066f8fa2d79f90'
+    evidence: 'prs:316,317,318,321,322,323,328,331,332; main:038a2ae503a331a371fa69623ec0586c9c60c7e5'
   - id: OBS-TB1-LIVE-DELIVERY
     required: true
     result: BLOCKED
     status: OPEN
-    summary: The repository now implements the trusted local composition boundary that delivers a signed TB1 receipt into the Runner (Hermes sole issuer, no caller-controlled trust fields, no Runner private key, AF_UNIX peer-credential authentication, fail-closed restart), but the delivery policy is canonically DISABLED/NOT_RUN and operational Hermes-side receipt issuance plus a configured Runner trust store are still not implemented or live-accepted.
-    changeRecord: CHG-HSL-003
-    evidence: 'pr:322 merge c6f12ce-lineage dcae64435d87deb57fba64c160bb3fa1285a59bc; receipt-delivery-policy:DISABLED/NOT_RUN; hermes TB1 issuance:NOT_IMPLEMENTED/NOT_RUN'
+    summary: Hermes-side TB1 receipt issuance is now GREEN-REPO and signer/trust-store deployment prerequisites are machine-checkable. Live acceptance is still blocked because no protected external signer has been bound, no Runner authorization trust store has been installed/proven, the receipt-delivery AF_UNIX endpoint is not configured, and delivery/resolver policies remain DISABLED/NOT_RUN.
+    changeRecord: CHG-HSL-011
+    evidence: 'pr:322 delivery boundary; pr:328 issuer boundary; pr:331 signer/trust-store preflight; signer-live:NOT_RUN; trust-store-install:NOT_RUN; receipt-delivery-policy:DISABLED/NOT_RUN; resolver-policy:DISABLED/NOT_RUN'
   - id: OBS-RUNNER-POLICY-PROMOTION
     required: true
     result: BLOCKED
     status: OPEN
-    summary: Deployment-side promotion prerequisites are now machine-checkable (dedicated non-root gateway/runner identities, restrictive AF_UNIX socket ownership/mode, exact transport and routing policy templates validated by the product's own validators), but resolver, transport and routing policies remain canonically DISABLED/NOT_RUN, the rendered templates deliberately keep runtime_status NOT_RUN, and no host-level identity evidence or live negative test exists.
-    changeRecord: CHG-HSL-004
-    evidence: 'pr:323 merge c6f12cefbcb1857af46835bef7531eab3e4533c5; resolver/transport/router:DISABLED/NOT_RUN; preflight:IMPLEMENTED_NOT_RUN'
+    summary: Repository preflights cover dedicated non-root identities, restrictive AF_UNIX ownership/mode and exact policy templates, and the dispatch layer now has a strict principal/correlation audit-event contract. Promotion remains blocked because there is no host UID/GID/namespace evidence, no real unauthorized-peer negative test, no durable audit sink, and transport/routing policies remain DISABLED/NOT_RUN.
+    changeRecord: CHG-HSL-012
+    evidence: 'pr:323 identity/socket preflight; pr:332 dispatch audit event; transport-policy:DISABLED/NOT_RUN; routing-policy:DISABLED/NOT_RUN; host-identity:NOT_RUN; unauthorized-peer-negative:NOT_RUN; durable-audit-sink:NOT_IMPLEMENTED/NOT_RUN'
   - id: OBS-EVIDENCE-CUSTODY
     required: true
     result: BLOCKED
     status: OPEN
-    summary: The idempotent Runner terminal-outcome custody bridge onto the existing Evidence Plane is implemented and merged (immutable custody, exact retry reuses the original effect record, no second effect, no parallel evidence store, no security overclaim), superseding closed-unmerged PR 319; the custody policy is canonically DISABLED/NOT_RUN and no real terminal outcome has been persisted.
+    summary: The idempotent Runner terminal-outcome custody bridge onto the existing Evidence Plane is GREEN-REPO. Exact retry reuses the original effect record and no parallel evidence store exists, but the custody policy remains DISABLED/NOT_RUN and no real Runner terminal outcome has been persisted through the live chain.
     changeRecord: CHG-HSL-002
     evidence: 'pr:321 merge 7bd1b9da3af4f1b38b9ea057b6a3c8fd97f9b636; runner-outcome-policy:DISABLED/NOT_RUN; live persistence:NOT_RUN'
   - id: OBS-LIVE-EFFECT-RESET
     required: true
     result: BLOCKED
     status: OPEN
-    summary: No live WebGoat effect plus evidence custody plus reset/known-state proof has been executed for this candidate.
-    changeRecord: null
-    evidence: 'webgoat-live-effect:NOT_RUN'
+    summary: The first WebGoat lifecycle acceptance proved start, readiness and smoke, then exposed a reset race and subsequently proved canonical destroy/zero-residue cleanup. PR 327 fixed the dual-service health gate. A post-fix full lifecycle rerun was started, but its result cannot currently be recovered because the Hermes connector is unavailable. No authorized WebGoat L1 Runner target effect plus terminal evidence and reset proof has yet been accepted.
+    changeRecord: CHG-HSL-008
+    evidence: 'pre-fix-live:start=PASS,readiness=PASS,smoke=PASS,reset=FAIL,destroy-zero-residue=PASS; pr:327 merge 8f5d5aaedb011b8187c0a44bf8df2eaf0b9b9434; post-fix-run:run_73cd8ef359ff486f93faeb7c2dc46290 result=UNKNOWN; live-runner-effect:NOT_RUN'
 promotionRecommendation: HOLD
 timestamps:
   startedAt: '2026-08-09T21:12:00Z'
-  updatedAt: '2026-08-10T00:00:00Z'
+  updatedAt: '2026-08-10T21:05:00Z'
   closedAt: null
