@@ -3,7 +3,7 @@ kind: ChangeRecord
 id: CHG-HSL-012
 product: hermes-security-labs
 classification: HARDENING
-state: IMPLEMENTING
+state: ACCEPTED
 disposition: FIX_NOW
 summary: Define a strict sanitized Runner dispatch audit event that binds the authenticated transport principal to Runner campaign/run/step/attempt correlation, TB1 authorization reference, capability and target digest. The projection emits no raw target or parameters and performs no logging or network I/O. Durable sink integration remains NOT_IMPLEMENTED/NOT_RUN.
 source:
@@ -17,11 +17,11 @@ risk: LOW
 versionEffect: NONE
 branch: lane/runner-dispatch-audit-contract
 issue: null
-pr: null
+pr: 332
 validation:
-  targeted: NOT_RUN
-  regression: NOT_RUN
-  security: NOT_RUN
+  targeted: PASS
+  regression: PASS
+  security: PASS
   runtime: NOT_RUN
 promotion:
   commit: null
@@ -30,5 +30,5 @@ promotion:
 deferredTo: null
 timestamps:
   discoveredAt: '2026-08-10T20:55:00Z'
-  updatedAt: '2026-08-10T20:55:00Z'
+  updatedAt: '2026-08-10T21:01:00Z'
   closedAt: null
