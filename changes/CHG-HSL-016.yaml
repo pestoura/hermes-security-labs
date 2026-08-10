@@ -3,7 +3,7 @@ kind: ChangeRecord
 id: CHG-HSL-016
 product: hermes-security-labs
 classification: HARDENING
-state: IMPLEMENTING
+state: ACCEPTED
 disposition: FIX_NOW
 summary: Add a read-only host evidence collector for accepted Runner identity/socket and TB1 trust-store declarations. It observes exact service UID/GID/shell, dispatch-group membership, socket/directory owner and mode, trust-store owner/mode and approved public-document digest, without mutating the host or granting promotion. Namespace mapping, signer attestation, negative peer, live audit sink and Runner effect remain separate evidence.
 source:
@@ -17,11 +17,11 @@ risk: LOW
 versionEffect: NONE
 branch: lane/runtime-host-evidence
 issue: null
-pr: null
+pr: 336
 validation:
-  targeted: NOT_RUN
-  regression: NOT_RUN
-  security: NOT_RUN
+  targeted: PASS
+  regression: PASS
+  security: PASS
   runtime: NOT_RUN
 promotion:
   commit: null
@@ -30,5 +30,5 @@ promotion:
 deferredTo: null
 timestamps:
   discoveredAt: '2026-08-10T21:20:00Z'
-  updatedAt: '2026-08-10T21:30:00Z'
+  updatedAt: '2026-08-10T21:36:00Z'
   closedAt: null
