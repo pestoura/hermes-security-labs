@@ -5,7 +5,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 COMPOSE_FILE="${SCRIPT_DIR}/../compose.yaml"
 
 PROJECT_NAME="webgoat"
+# Application service: owns the pinned image digest and the workload health gate.
 SERVICE_NAME="webgoat"
+# Publication service: the ONLY service that declares host port mappings in
+# compose.yaml, so it is also the only service `docker compose port` can resolve.
+PUBLISH_SERVICE_NAME="webgoat-proxy"
 COMPOSE=(docker compose -p "${PROJECT_NAME}" -f "${COMPOSE_FILE}")
 
 echo "[smoke] Checking container status..."
@@ -25,9 +29,23 @@ if [ "${health}" != "healthy" ]; then
 fi
 echo "[smoke] Health: ${health}"
 
-# Get actual host port mappings
-WEBGOAT_MAPPING=$("${COMPOSE[@]}" port "${SERVICE_NAME}" 8080 2>/dev/null || true)
-WEBWOLF_MAPPING=$("${COMPOSE[@]}" port "${SERVICE_NAME}" 9090 2>/dev/null || true)
+echo "[smoke] Checking publication service health status..."
+PUBLISH_CONTAINER_ID=$("${COMPOSE[@]}" ps -q "${PUBLISH_SERVICE_NAME}" 2>/dev/null)
+if [ -z "${PUBLISH_CONTAINER_ID}" ]; then
+  echo "[smoke] Publication container not found: ${PUBLISH_SERVICE_NAME}"
+  exit 1
+fi
+
+publish_health=$(docker inspect -f "{{.State.Health.Status}}" "${PUBLISH_CONTAINER_ID}" 2>/dev/null || echo "none")
+if [ "${publish_health}" != "healthy" ]; then
+  echo "[smoke] Publication container not healthy: ${publish_health}"
+  exit 1
+fi
+echo "[smoke] Publication health: ${publish_health}"
+
+# Get actual host port mappings from the publishing service (webgoat-proxy).
+WEBGOAT_MAPPING=$("${COMPOSE[@]}" port "${PUBLISH_SERVICE_NAME}" 8080 2>/dev/null || true)
+WEBWOLF_MAPPING=$("${COMPOSE[@]}" port "${PUBLISH_SERVICE_NAME}" 9090 2>/dev/null || true)
 
 if [ -z "${WEBGOAT_MAPPING}" ] || [ -z "${WEBWOLF_MAPPING}" ]; then
   echo "[smoke] Could not determine port mappings"
