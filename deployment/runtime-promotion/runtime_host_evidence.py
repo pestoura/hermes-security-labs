@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """Read-only host evidence collector for Runner live-promotion prerequisites.
 
-The collector observes declared service accounts, dispatch group membership,
-AF_UNIX socket/directory ownership and the installed public TB1 trust store. It
-never provisions users, changes permissions, creates sockets, reads a private
-key, contacts a signer or promotes a policy.
+The collector observes declared service accounts, dispatch-group membership,
+AF_UNIX socket/directory ownership and the installed public TB1 trust store.
+It never provisions users, changes permissions, creates sockets, reads private
+key material, contacts a signer or promotes a policy.
 
-A host-evidence PASS is intentionally partial: user-namespace mapping, external
-signer attestation, unauthorized-peer negative tests and live audit/effect
+A host-evidence PASS is intentionally partial: user-namespace mapping, signer
+provider attestation, unauthorized-peer negative tests and live audit/effect
 observations remain separate required evidence.
 """
 
@@ -46,6 +46,8 @@ REMAINING_EVIDENCE = (
 
 
 class HostEvidenceError(ValueError):
+    """Stable fail-closed host-evidence error."""
+
     def __init__(self, code: str, message: str) -> None:
         super().__init__(message)
         self.code = code
@@ -111,18 +113,30 @@ def _load_module(name: str, path: Path) -> Any:
 identity_preflight = _load_module(
     "runtime_host_evidence_identity_preflight", IDENTITY_PREFLIGHT_PATH
 )
-tb1_preflight = _load_module("runtime_host_evidence_tb1_preflight", TB1_PREFLIGHT_PATH)
+tb1_preflight = _load_module(
+    "runtime_host_evidence_tb1_preflight", TB1_PREFLIGHT_PATH
+)
 
 
 def _safe_repo_path(value: Any) -> Path:
+    """Resolve only canonical descriptors below deployment/runtime-promotion."""
+
     if not isinstance(value, str) or not value or value.startswith("/"):
-        raise HostEvidenceError("DESCRIPTOR_PATH_INVALID", "descriptor references must be relative")
-    path = (ROOT / value).resolve()
+        raise HostEvidenceError(
+            "DESCRIPTOR_PATH_INVALID", "descriptor references must be relative"
+        )
+    relative = Path(value)
+    if ".." in relative.parts or "." in relative.parts:
+        raise HostEvidenceError(
+            "DESCRIPTOR_PATH_INVALID", "descriptor references cannot contain dot traversal"
+        )
+    path = (ROOT / relative).resolve()
     try:
-        path.relative_to(ROOT.resolve())
+        path.relative_to(HERE.resolve())
     except ValueError as exc:
         raise HostEvidenceError(
-            "DESCRIPTOR_PATH_INVALID", "descriptor reference escapes repository root"
+            "DESCRIPTOR_PATH_INVALID",
+            "descriptor reference must remain under deployment/runtime-promotion",
         ) from exc
     return path
 
@@ -150,11 +164,15 @@ def _load_yaml(path: Path, code: str) -> dict[str, Any]:
 def _validate_descriptor(document: Mapping[str, Any]) -> None:
     schema = _load_json(SCHEMA_PATH, "DESCRIPTOR_SCHEMA_UNAVAILABLE")
     validator = jsonschema.Draft202012Validator(schema)
-    errors = sorted(validator.iter_errors(document), key=lambda error: list(error.path))
+    errors = sorted(
+        validator.iter_errors(document), key=lambda error: list(error.path)
+    )
     if errors:
         first = errors[0]
         location = ".".join(str(part) for part in first.path) or "<root>"
-        raise HostEvidenceError("DESCRIPTOR_INVALID", f"{location}: {first.message}")
+        raise HostEvidenceError(
+            "DESCRIPTOR_INVALID", f"{location}: {first.message}"
+        )
     _safe_repo_path(document["identity_descriptor"])
     _safe_repo_path(document["tb1_descriptor"])
 
@@ -172,7 +190,7 @@ def _canonical_sha256(value: Mapping[str, Any]) -> str:
     return hashlib.sha256(payload).hexdigest()
 
 
-def _kind(mode: int) -> str:
+def _path_kind(mode: int) -> str:
     if stat.S_ISSOCK(mode):
         return "socket"
     if stat.S_ISDIR(mode):
@@ -206,7 +224,11 @@ class RealHostObserver:
         for account in pwd.getpwall():
             if account.pw_gid == entry.gr_gid:
                 members.add(account.pw_name)
-        return {"group": entry.gr_name, "gid": entry.gr_gid, "members": sorted(members)}
+        return {
+            "group": entry.gr_name,
+            "gid": entry.gr_gid,
+            "members": sorted(members),
+        }
 
     def path(self, path: str) -> PathObservation:
         try:
@@ -215,7 +237,7 @@ class RealHostObserver:
             return PathObservation(exists=False)
         return PathObservation(
             exists=True,
-            kind=_kind(result.st_mode),
+            kind=_path_kind(result.st_mode),
             uid=result.st_uid,
             gid=result.st_gid,
             mode=f"0{stat.S_IMODE(result.st_mode):03o}",
@@ -223,16 +245,54 @@ class RealHostObserver:
         )
 
     def json_document(self, path: str) -> Mapping[str, Any]:
+        flags = os.O_RDONLY | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NOFOLLOW", 0)
+        descriptor: int | None = None
         try:
-            with Path(path).open("r", encoding="utf-8") as handle:
+            descriptor = os.open(path, flags)
+            with os.fdopen(descriptor, "r", encoding="utf-8") as handle:
+                descriptor = None
                 document = json.load(handle)
         except (OSError, ValueError, UnicodeDecodeError) as exc:
             raise HostEvidenceError(
-                "TRUST_STORE_UNREADABLE", "installed trust store cannot be read as JSON"
+                "TRUST_STORE_UNREADABLE",
+                "installed trust store cannot be read as JSON",
             ) from exc
+        finally:
+            if descriptor is not None:
+                os.close(descriptor)
         if not isinstance(document, Mapping):
-            raise HostEvidenceError("TRUST_STORE_INVALID", "installed trust store must be an object")
+            raise HostEvidenceError(
+                "TRUST_STORE_INVALID", "installed trust store must be an object"
+            )
         return dict(document)
+
+
+def _load_identity_descriptor(path: Path) -> tuple[dict[str, Any], Any]:
+    try:
+        document = identity_preflight.load_descriptor(path)
+        result = identity_preflight.run_preflight(document)
+    except identity_preflight.PreflightError as exc:
+        raise HostEvidenceError(
+            "IDENTITY_DESCRIPTOR_INVALID", str(exc)
+        ) from exc
+    if not result.ok:
+        raise HostEvidenceError(
+            "IDENTITY_DESCRIPTOR_INVALID", "; ".join(result.findings)
+        )
+    return document, result
+
+
+def _load_tb1_descriptor(path: Path) -> tuple[dict[str, Any], Any]:
+    try:
+        document = tb1_preflight.load_descriptor(path)
+        result = tb1_preflight.run_preflight(document)
+    except tb1_preflight.PreflightError as exc:
+        raise HostEvidenceError("TB1_DESCRIPTOR_INVALID", str(exc)) from exc
+    if not result.ok:
+        raise HostEvidenceError(
+            "TB1_DESCRIPTOR_INVALID", "; ".join(result.findings)
+        )
+    return document, result
 
 
 def _observe_identity(
@@ -248,7 +308,8 @@ def _observe_identity(
     for field in ("uid", "gid", "shell"):
         if actual.get(field) != expected.get(field):
             findings.append(
-                f"{role} account {field} mismatch: expected {expected.get(field)!r}, observed {actual.get(field)!r}"
+                f"{role} account {field} mismatch: expected {expected.get(field)!r}, "
+                f"observed {actual.get(field)!r}"
             )
     return {
         "present": True,
@@ -304,19 +365,12 @@ def collect_host_evidence(
     _validate_descriptor(descriptor)
     host = observer or RealHostObserver()
 
-    identity_path = _safe_repo_path(descriptor["identity_descriptor"])
-    identity_document = identity_preflight.load_descriptor(identity_path)
-    identity_result = identity_preflight.run_preflight(identity_document)
-    if not identity_result.ok:
-        raise HostEvidenceError(
-            "IDENTITY_DESCRIPTOR_INVALID", "; ".join(identity_result.findings)
-        )
-
-    tb1_path = _safe_repo_path(descriptor["tb1_descriptor"])
-    tb1_document = tb1_preflight.load_descriptor(tb1_path)
-    tb1_result = tb1_preflight.run_preflight(tb1_document)
-    if not tb1_result.ok:
-        raise HostEvidenceError("TB1_DESCRIPTOR_INVALID", "; ".join(tb1_result.findings))
+    identity_document, _ = _load_identity_descriptor(
+        _safe_repo_path(descriptor["identity_descriptor"])
+    )
+    tb1_document, _ = _load_tb1_descriptor(
+        _safe_repo_path(descriptor["tb1_descriptor"])
+    )
 
     findings: list[str] = []
     identities = identity_document["identities"]
@@ -324,7 +378,9 @@ def collect_host_evidence(
         "gateway": _observe_identity(
             "gateway", identities["gateway"], host, findings
         ),
-        "runner": _observe_identity("runner", identities["runner"], host, findings),
+        "runner": _observe_identity(
+            "runner", identities["runner"], host, findings
+        ),
     }
 
     group_expected = identities["dispatch_group"]
@@ -335,7 +391,8 @@ def collect_host_evidence(
     else:
         if group_actual.get("gid") != group_expected.get("gid"):
             findings.append(
-                f"dispatch group gid mismatch: expected {group_expected.get('gid')}, observed {group_actual.get('gid')}"
+                f"dispatch group gid mismatch: expected {group_expected.get('gid')}, "
+                f"observed {group_actual.get('gid')}"
             )
         observed_members = set(group_actual.get("members", []))
         expected_members = set(group_expected.get("members", []))
@@ -384,10 +441,13 @@ def collect_host_evidence(
         host,
         findings,
     )
+
     gateway_uid = int(identities["gateway"]["uid"])
     runner_uid = int(identities["runner"]["uid"])
     if trust_expectation["owner_uid"] in {gateway_uid, runner_uid}:
-        findings.append("trust-store owner must be independent of gateway and Runner identities")
+        findings.append(
+            "trust-store owner must be independent of gateway and Runner identities"
+        )
 
     trust_observation = observations["trust_store"]
     if trust_observation.get("present") and not trust_observation.get("symlink"):
@@ -401,9 +461,13 @@ def collect_host_evidence(
             declared_sha = _canonical_sha256(declared)
             trust_observation["document_sha256"] = installed_sha
             trust_observation["declared_sha256"] = declared_sha
-            trust_observation["document_matches_declaration"] = installed_sha == declared_sha
+            trust_observation["document_matches_declaration"] = (
+                installed_sha == declared_sha
+            )
             if installed_sha != declared_sha:
-                findings.append("installed trust-store document does not match approved declaration")
+                findings.append(
+                    "installed trust-store document does not match approved declaration"
+                )
 
     return HostEvidenceResult(
         host_checks_passed=not findings,
