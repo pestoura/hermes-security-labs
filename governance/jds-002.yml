@@ -16,10 +16,12 @@ currentState:
   repositoryHeadAtAdoption: 9cfa7ec69a078b316351c4202f066f8fa2d79f90
   runnerRepositoryState: GREEN_REPO_CANDIDATE
   runnerResolverState: DISABLED_NOT_RUN
+  runnerReceiptDeliveryState: IMPLEMENTED_DISABLED_NOT_RUN
   runnerTransportState: DISABLED_NOT_RUN
   runnerRoutingState: DISABLED_NOT_RUN
+  runnerPromotionPreflightState: IMPLEMENTED_NOT_RUN
   liveWebGoatEffectState: NOT_RUN
-  evidencePlanePersistenceState: NOT_IMPLEMENTED_NOT_RUN
+  evidencePlanePersistenceState: IMPLEMENTED_DISABLED_NOT_RUN
 
 rules:
   functionalChangeAfterCandidateEvidenceRequiresNewCandidateIdentity: true

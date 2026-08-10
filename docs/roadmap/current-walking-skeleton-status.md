@@ -1,10 +1,12 @@
 # Hermes Security Labs — current walking-skeleton status
 
-**Reconciled:** 2026-08-09 18:00 UTC  
-**Current Labs baseline:** `804e21feb0ec43002a5281978cd4c94c60b53200`  
+**Reconciled:** 2026-08-10 00:00 UTC  
+**Current Labs baseline:** `c6f12cefbcb1857af46835bef7531eab3e4533c5`  
 **Accepted/live Hermes MCP Bridge revision:** `7e4b6b1cd70ddda418f840f54ae7ecef30df52e9`
 
 This is the concise current-state view of the walking skeleton. Repository/CI proof and live Hermes runtime proof remain separate evidence classes. Historical detail remains in [`runtime-acceptance-checkpoint-2026-08-09.md`](runtime-acceptance-checkpoint-2026-08-09.md).
+
+> **GREEN-REPO is not live acceptance.** Every row below marked `GREEN-REPO` means the contract, its fail-closed policy and its tests exist and pass in CI. It never means the capability has been exercised against a live target, that a policy has been promoted, or that any authority has been granted. Live acceptance is a separate evidence class tracked in [`../../validation/VAL-HSL-RUNNER-L1-LIVE-PROMOTION.yaml`](../../validation/VAL-HSL-RUNNER-L1-LIVE-PROMOTION.yaml).
 
 ## Current summary
 
@@ -18,6 +20,9 @@ This is the concise current-state view of the walking skeleton. Repository/CI pr
 | WebGoat/WebWolf lifecycle/readiness repository | `PASS / READY-REPO` |
 | DVWA lifecycle/readiness repository | `PASS / READY-REPO` |
 | Juice Shop lifecycle/readiness repository | `PASS / READY-REPO`, merged PR #309 |
+| Runner outcome -> Evidence Plane custody | `GREEN-REPO`, merged PR #321, policy `DISABLED / NOT_RUN` |
+| TB1 signed receipt delivery boundary | `GREEN-REPO`, merged PR #322, policy `DISABLED / NOT_RUN` |
+| Runtime-promotion identity/socket preflight | `GREEN-REPO`, merged PR #323, `runtime_status` stays `NOT_RUN` |
 | Seeded bounded scenario execution | `PRESENT-NOT-IMPLEMENTED` beyond health |
 | Full walking skeleton live completion | `BLOCKED-ON-CONNECTOR-AND-RUNTIME-INTEGRATION` |
 
@@ -29,7 +34,7 @@ Target path:
 
 | Stage | Repository/CI state | Live runtime state |
 | --- | --- | --- |
-| Authorize | target registry, deny-before-dispatch, typed operations, RoE/TB1 verifier contracts `GREEN-REPO` | RTA-003 approval flow accepted; Hermes operational TB1 receipt issuance remains `NOT_IMPLEMENTED / NOT_RUN` |
+| Authorize | target registry, deny-before-dispatch, typed operations, RoE/TB1 verifier contracts and the trusted TB1 receipt delivery boundary `GREEN-REPO` | RTA-003 approval flow accepted; Hermes operational TB1 receipt *issuance* remains `NOT_IMPLEMENTED / NOT_RUN` and the delivery policy remains `DISABLED / NOT_RUN` |
 | Admission | Bridge exact-SHA and policy/approval contracts accepted | RTA-001 last accepted observation: gateway `running`, `busy=false`, `drainable=true`, admission available |
 | Kali registration | canonical STDIO contract `GREEN-REPO` | Stage 1 `GREEN/PASS`; disabled + sentinel retained after discovery |
 | Kali health/policy binding | `kali.mcp.health.read -> server_health`, L0, exact mapping, `PRESENT/NOT_RUN` | Stage 2 live acceptance pending because ChatGPT Hermes connector is unavailable at invocation time |
@@ -37,7 +42,7 @@ Target path:
 | Readiness | WebGoat/WebWolf, DVWA and Juice Shop repository maturity/readiness `PASS` | live readiness observation pending |
 | Plan scenario | deterministic Scenario Plan Composer `GREEN-REPO` | not an execution claim |
 | Execute bounded scenario | typed scenario contracts exist | non-health real runner/Kali effect integration remains `NOT_IMPLEMENTED / NOT_RUN` |
-| Evidence | Evidence Plane v2 and structured scenario evidence contracts `GREEN-REPO` | real scenario persistence/observation pending |
+| Evidence | Evidence Plane v2, structured scenario evidence contracts and the idempotent Runner terminal-outcome custody bridge `GREEN-REPO` | custody policy `DISABLED / NOT_RUN`; real scenario persistence/observation pending |
 | Reset/cleanup | bounded lifecycle/reset governance exists | live zero-residue/known-state proof pending |
 
 ## RTA-001 — gateway admission
@@ -195,12 +200,15 @@ This is **not** evidence that the Hermes gateway itself is unhealthy. No new run
 
 Even after the connector recovers, the full walking skeleton cannot be called final merely from lifecycle/readiness because the current architecture deliberately retains these states:
 
-- Hermes operational TB1 authorization receipt issuance: `NOT_IMPLEMENTED / NOT_RUN`;
-- real runner identity/transport authentication: `NOT_IMPLEMENTED / NOT_RUN`;
+- Hermes operational TB1 authorization receipt **issuance**: `NOT_IMPLEMENTED / NOT_RUN`;
+- TB1 receipt **delivery** into the Runner: implemented as a fail-closed boundary, policy `DISABLED / NOT_RUN`, no configured socket or trust store;
+- real runner identity/transport authentication: policies `DISABLED / NOT_RUN`; deployment prerequisites are now machine-checkable but no host identity evidence and no live negative test exist;
 - runner execution integration: `NOT_RUN`;
 - Kali MCP non-health handler integration: `NOT_RUN`;
 - deployed gateway outcome reception: `NOT_RUN`;
-- Evidence Plane real outcome persistence: `NOT_RUN`.
+- Evidence Plane real outcome persistence: custody bridge implemented, policy `DISABLED / NOT_RUN`, `NOT_RUN` against a real outcome.
+
+Three of these moved from "not implemented" to "implemented but deliberately disabled" in this wave. That is a repository-state change only. None of it grants authority, promotes a policy or constitutes live acceptance.
 
 The existing Runner Protocol supervised process boundary is reusable infrastructure, not a real adapter and not execution authority. Do not bypass these boundaries using `execute_command`, arbitrary shell, direct scanner calls or a caller-created authorization reference.
 
@@ -231,6 +239,10 @@ No target-interacting action is authorized merely because repository contracts o
 | Runtime acceptance reconciliation | #307 | `91c055fd9f7a79f84c2124f9bc8a9ebe1039ccd4` | RTA-001/003 closed, Stage 1 recorded |
 | Typed Kali health contract | #308 | `eae2b87508e4488741e1eb146a9ed49595003102` | exact L0 `server_health` policy mapping |
 | Juice Shop lifecycle readiness | #309 | `804e21feb0ec43002a5281978cd4c94c60b53200` | maturity `PASS`, bounded Kali attach/detach |
+| JDS-002 release maintenance adoption | #320 | `fced39a23b66e8641fe0e2c1bbf8e6295bec58e3` | change/validation ledger governance |
+| Runner outcome custody bridge | #321 | `7bd1b9da3af4f1b38b9ea057b6a3c8fd97f9b636` | idempotent immutable custody onto the existing Evidence Plane, policy `DISABLED / NOT_RUN` |
+| TB1 receipt delivery boundary | #322 | `dcae64435d87deb57fba64c160bb3fa1285a59bc` | Hermes-sole-issuer authenticated local composition, policy `DISABLED / NOT_RUN` |
+| Runtime-promotion identity/socket preflight | #323 | `c6f12cefbcb1857af46835bef7531eab3e4533c5` | non-root identities, restrictive socket mode, exact policy templates, `runtime_status` stays `NOT_RUN` |
 
 ## Decision record
 

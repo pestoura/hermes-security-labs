@@ -1,0 +1,34 @@
+schemaVersion: jds.change/v1
+kind: ChangeRecord
+id: CHG-HSL-005
+product: hermes-security-labs
+classification: DOC_ONLY
+state: ACCEPTED
+disposition: FIX_NOW
+summary: Reconcile the walking-skeleton status document, the JDS-002 current-state block and the VAL-HSL-RUNNER-L1-LIVE-PROMOTION campaign against current main after PRs 321, 322 and 323, explicitly distinguishing GREEN-REPO (contract implemented, policy disabled) from live acceptance.
+source:
+  type: ENGINEERING_REVIEW
+  campaign: VAL-HSL-RUNNER-L1-LIVE-PROMOTION
+  observation: null
+  reference: 'merges 7bd1b9da3af4f1b38b9ea057b6a3c8fd97f9b636, dcae64435d87deb57fba64c160bb3fa1285a59bc, c6f12cefbcb1857af46835bef7531eab3e4533c5'
+affectedRelease: jds-002-adoption-candidate
+targetRelease: null
+risk: LOW
+versionEffect: NONE
+branch: lane-d/status-reconciliation
+issue: null
+pr: null
+validation:
+  targeted: PASS
+  regression: PASS
+  security: NOT_APPLICABLE
+  runtime: NOT_APPLICABLE
+promotion:
+  commit: null
+  artifactDigest: null
+  previousRelease: null
+deferredTo: null
+timestamps:
+  discoveredAt: '2026-08-10T00:00:00Z'
+  updatedAt: '2026-08-10T00:00:00Z'
+  closedAt: null
