@@ -1,8 +1,8 @@
-"""Pin the post-composition WebGoat L1 promotion bundle prerequisites.
+"""Pin the WebGoat L1 promotion bundle repository prerequisites.
 
 These tests prevent repository readiness from silently dropping accepted audit,
-host, user-namespace or Runner service-composition boundaries. They do not
-authorize runtime promotion.
+host, user-namespace, signer-attestation or Runner service-composition boundaries.
+They do not authorize runtime promotion or claim that any live observation ran.
 """
 
 from __future__ import annotations
@@ -35,6 +35,7 @@ REQUIRED_CHANGES = {
     "CHG-HSL-016",
     "CHG-HSL-017",
     "CHG-HSL-020",
+    "CHG-HSL-022",
 }
 
 REQUIRED_COMPONENTS = {
@@ -44,6 +45,8 @@ REQUIRED_COMPONENTS = {
     "deployment/runtime-promotion/runtime-host-evidence-descriptor.schema.json",
     "deployment/runtime-promotion/runtime_userns_evidence.py",
     "deployment/runtime-promotion/runtime-userns-evidence-descriptor.schema.json",
+    "deployment/runtime-promotion/runtime_signer_attestation.py",
+    "deployment/runtime-promotion/tb1-signer-attestation.schema.json",
     "platform/runner-service/service_composition.py",
 }
 
@@ -59,14 +62,14 @@ def _bundle() -> dict[str, Any]:
     return document
 
 
-def test_bundle_pins_post_composition_repository_prerequisites() -> None:
+def test_bundle_pins_current_repository_prerequisites() -> None:
     bundle = _bundle()
     assert REQUIRED_CHANGES <= set(bundle["required_change_records"])
     assert REQUIRED_COMPONENTS <= set(bundle["required_components"])
     assert REQUIRED_POLICIES <= set(bundle["fail_closed_policies"])
 
 
-def test_new_change_records_are_accepted_without_runtime_claim() -> None:
+def test_required_change_records_are_accepted_without_runtime_claim() -> None:
     for change_id in REQUIRED_CHANGES:
         path = ROOT / "changes" / f"{change_id}.yaml"
         record = yaml.safe_load(path.read_text(encoding="utf-8"))
@@ -78,7 +81,7 @@ def test_new_change_records_are_accepted_without_runtime_claim() -> None:
         assert gate._change_record_findings(change_id) == []
 
 
-def test_new_policies_remain_fail_closed() -> None:
+def test_required_policies_remain_fail_closed() -> None:
     for value in REQUIRED_POLICIES:
         path = ROOT / value
         policy = yaml.safe_load(path.read_text(encoding="utf-8"))
@@ -92,9 +95,19 @@ def test_reconciled_bundle_is_repository_ready_but_never_promotes() -> None:
     assert result.recommendation == "HOLD"
 
 
+def test_signer_attestation_is_a_repository_prerequisite_not_live_evidence() -> None:
+    bundle = _bundle()
+    assert "CHG-HSL-022" in bundle["required_change_records"]
+    assert "deployment/runtime-promotion/runtime_signer_attestation.py" in bundle["required_components"]
+    assert "deployment/runtime-promotion/tb1-signer-attestation.schema.json" in bundle["required_components"]
+
+    record = yaml.safe_load((ROOT / "changes" / "CHG-HSL-022.yaml").read_text(encoding="utf-8"))
+    assert record["validation"]["runtime"] == "NOT_RUN"
+
+
 def test_bundle_does_not_require_reconciliation_change_records() -> None:
-    # Requiring the Change Record that governs a bundle reconciliation inside the
-    # same bundle would create a validation cycle while that record is still open.
+    # Requiring the Change Record governing a reconciliation inside that same
+    # bundle creates a validation cycle while the record is still open.
     required = set(_bundle()["required_change_records"])
-    assert "CHG-HSL-018" not in required
-    assert "CHG-HSL-021" not in required
+    for change_id in ("CHG-HSL-018", "CHG-HSL-021", "CHG-HSL-023"):
+        assert change_id not in required
