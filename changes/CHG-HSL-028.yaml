@@ -3,7 +3,7 @@ kind: ChangeRecord
 id: CHG-HSL-028
 product: hermes-security-labs
 classification: HARDENING
-state: IMPLEMENTING
+state: ACCEPTED
 disposition: FIX_NOW
 summary: Add a provider-neutral, evidence-bound acceptance verifier for future production Evidence Plane tenant isolation. It uses only distinct hashed tenant identities and requires namespace, access-policy and encryption-context isolation, no shared writable namespace, DENIED cross-tenant list/read/write observations and independently verified source evidence. It provisions no tenants or storage, performs no backend I/O and grants no promotion; live tenant-isolation acceptance remains NOT_RUN.
 source:
@@ -19,9 +19,9 @@ branch: lane/evidence-backend-tenant-isolation
 issue: null
 pr: 348
 validation:
-  targeted: NOT_RUN
-  regression: NOT_RUN
-  security: NOT_RUN
+  targeted: PASS
+  regression: PASS
+  security: PASS
   runtime: NOT_RUN
 promotion:
   commit: null
@@ -30,5 +30,5 @@ promotion:
 deferredTo: null
 timestamps:
   discoveredAt: '2026-08-11T20:36:00Z'
-  updatedAt: '2026-08-11T20:23:00Z'
+  updatedAt: '2026-08-11T20:40:00Z'
   closedAt: null
