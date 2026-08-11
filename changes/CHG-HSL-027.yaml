@@ -17,7 +17,7 @@ risk: LOW
 versionEffect: NONE
 branch: lane/evidence-backend-status-reconcile
 issue: null
-pr: null
+pr: 347
 validation:
   targeted: NOT_RUN
   regression: NOT_RUN
@@ -30,5 +30,5 @@ promotion:
 deferredTo: null
 timestamps:
   discoveredAt: '2026-08-11T20:20:00Z'
-  updatedAt: '2026-08-11T20:20:00Z'
+  updatedAt: '2026-08-11T20:21:00Z'
   closedAt: null
