@@ -3,7 +3,7 @@ kind: ChangeRecord
 id: CHG-HSL-023
 product: hermes-security-labs
 classification: HARDENING
-state: IMPLEMENTING
+state: ACCEPTED
 disposition: FIX_NOW
 summary: Reconcile the WebGoat L1 promotion bundle with the accepted external-signer attestation verifier from CHG-HSL-022. The bundle now requires the verifier and schema as repository prerequisites while preserving EVIDENCE_ONLY, HOLD, runtime NOT_RUN and structurally false promotion authority. Actual provider observation and source-evidence verification remain live evidence and are not claimed by this change.
 source:
@@ -19,9 +19,9 @@ branch: lane/runtime-promotion-signer-attestation-reconcile
 issue: null
 pr: 343
 validation:
-  targeted: NOT_RUN
-  regression: NOT_RUN
-  security: NOT_RUN
+  targeted: PASS
+  regression: PASS
+  security: PASS
   runtime: NOT_RUN
 promotion:
   commit: null
@@ -30,5 +30,5 @@ promotion:
 deferredTo: null
 timestamps:
   discoveredAt: '2026-08-11T09:31:00Z'
-  updatedAt: '2026-08-11T09:34:00Z'
+  updatedAt: '2026-08-11T09:42:00Z'
   closedAt: null
