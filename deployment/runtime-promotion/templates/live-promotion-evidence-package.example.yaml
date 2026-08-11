@@ -1,0 +1,57 @@
+schema_version: "1.0"
+package_id: webgoat-l1-live-evidence-example
+package_status: NOT_RUN
+phase: PRE_PROMOTION
+created_at: null
+candidate:
+  environment_id: webgoat
+  adapter_id: webgoat-l1
+  capability_id: web.discovery.headers
+  intrusiveness_level: L1
+  repository_commit: "0000000000000000000000000000000000000000"
+gates:
+  - gate_id: GATEWAY_ADMISSION_REOBSERVATION
+    result: NOT_RUN
+    observed_at: null
+    evidence_ref: null
+    evidence_sha256: null
+  - gate_id: BRIDGE_REVISION_REOBSERVATION
+    result: NOT_RUN
+    observed_at: null
+    evidence_ref: null
+    evidence_sha256: null
+  - gate_id: HOST_IDENTITY_SOCKET_TRUST
+    result: NOT_RUN
+    observed_at: null
+    evidence_ref: null
+    evidence_sha256: null
+  - gate_id: USER_NAMESPACE_MAPPING
+    result: NOT_RUN
+    observed_at: null
+    evidence_ref: null
+    evidence_sha256: null
+  - gate_id: SIGNER_PROVIDER_ATTESTATION
+    result: NOT_RUN
+    observed_at: null
+    evidence_ref: null
+    evidence_sha256: null
+  - gate_id: RECEIPT_DELIVERY
+    result: NOT_RUN
+    observed_at: null
+    evidence_ref: null
+    evidence_sha256: null
+  - gate_id: UNAUTHORIZED_PEER_NEGATIVE
+    result: NOT_RUN
+    observed_at: null
+    evidence_ref: null
+    evidence_sha256: null
+  - gate_id: EVIDENCE_BACKEND_CONTROLS
+    result: NOT_RUN
+    observed_at: null
+    evidence_ref: null
+    evidence_sha256: null
+  - gate_id: EVIDENCE_TENANT_ISOLATION
+    result: NOT_RUN
+    observed_at: null
+    evidence_ref: null
+    evidence_sha256: null

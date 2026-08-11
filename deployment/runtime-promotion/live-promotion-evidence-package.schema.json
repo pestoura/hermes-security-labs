@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/pestoura/hermes-security-labs/deployment/runtime-promotion/live-promotion-evidence-package.schema.json",
+  "title": "Hermes Security Labs live promotion evidence package v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "package_id",
+    "package_status",
+    "phase",
+    "created_at",
+    "candidate",
+    "gates"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "package_id": {
+      "type": "string",
+      "minLength": 8,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+    },
+    "package_status": {"enum": ["NOT_RUN", "ASSEMBLED"]},
+    "phase": {"enum": ["PRE_PROMOTION", "POST_EFFECT"]},
+    "created_at": {"type": ["string", "null"], "format": "date-time"},
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "environment_id",
+        "adapter_id",
+        "capability_id",
+        "intrusiveness_level",
+        "repository_commit"
+      ],
+      "properties": {
+        "environment_id": {"const": "webgoat"},
+        "adapter_id": {"const": "webgoat-l1"},
+        "capability_id": {"const": "web.discovery.headers"},
+        "intrusiveness_level": {"const": "L1"},
+        "repository_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"}
+      }
+    },
+    "gates": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 16,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "gate_id",
+          "result",
+          "observed_at",
+          "evidence_ref",
+          "evidence_sha256"
+        ],
+        "properties": {
+          "gate_id": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 96,
+            "pattern": "^[A-Z][A-Z0-9_]*$"
+          },
+          "result": {"enum": ["NOT_RUN", "PASS", "FAIL"]},
+          "observed_at": {"type": ["string", "null"], "format": "date-time"},
+          "evidence_ref": {
+            "type": ["string", "null"],
+            "pattern": "^evidence://[A-Za-z0-9][A-Za-z0-9._:/-]*$",
+            "maxLength": 512
+          },
+          "evidence_sha256": {
+            "type": ["string", "null"],
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        },
+        "allOf": [
+          {
+            "if": {"properties": {"result": {"const": "NOT_RUN"}}},
+            "then": {
+              "properties": {
+                "observed_at": {"type": "null"},
+                "evidence_ref": {"type": "null"},
+                "evidence_sha256": {"type": "null"}
+              }
+            }
+          },
+          {
+            "if": {"properties": {"result": {"enum": ["PASS", "FAIL"]}}},
+            "then": {
+              "properties": {
+                "observed_at": {"type": "string", "format": "date-time"},
+                "evidence_ref": {"type": "string", "pattern": "^evidence://[A-Za-z0-9][A-Za-z0-9._:/-]*$"},
+                "evidence_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"package_status": {"const": "NOT_RUN"}}},
+      "then": {"properties": {"created_at": {"type": "null"}}}
+    },
+    {
+      "if": {"properties": {"package_status": {"const": "ASSEMBLED"}}},
+      "then": {"properties": {"created_at": {"type": "string", "format": "date-time"}}}
+    }
+  ]
+}
