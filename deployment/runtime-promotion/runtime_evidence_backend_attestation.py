@@ -216,7 +216,7 @@ def verify_backend_attestation(
         ("legal_hold_supported", True, "legal hold is not supported"),
         ("privileged_delete_bypass", False, "privileged delete bypass remains available"),
         ("public_access_blocked", True, "public access is not blocked"),
-        ("versioning_enabled", True, "versioning is not enabled"),
+        ("overwrite_protected", True, "retained evidence overwrite protection is not enforced"),
         ("integrity_digest", "sha256", "integrity digest is not sha256"),
     )
     for field, expected, finding in required_values:
