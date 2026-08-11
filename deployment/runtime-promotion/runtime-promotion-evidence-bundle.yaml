@@ -16,20 +16,30 @@ required_change_records:
   - CHG-HSL-009
   - CHG-HSL-011
   - CHG-HSL-012
+  - CHG-HSL-015
+  - CHG-HSL-016
+  - CHG-HSL-017
 required_components:
   - platform/authorization-contract/hermes_authorization_issuer.py
   - deployment/runtime-promotion/tb1_authorization_preflight.py
   - deployment/runtime-promotion/runner_identity_preflight.py
+  - deployment/runtime-promotion/runtime_host_evidence.py
+  - deployment/runtime-promotion/runtime-host-evidence-descriptor.schema.json
   - platform/runner-authorization/receipt_delivery.py
   - platform/runner-authorization/verified_authorization_resolver.py
   - platform/runner-transport/unix_peer_identity.py
   - platform/runner-dispatch/router.py
+  - platform/runner-dispatch/audit.py
   - platform/runner-dispatch/dispatch-audit-event.schema.json
   - platform/runner-adapters/webgoat_l1_adapter.py
+  - platform/evidence-plane/dispatch_audit_custody.py
   - platform/evidence-plane/runner_outcome_custody.py
+  - platform/runner-service/service_composition.py
 fail_closed_policies:
   - platform/runner-authorization/receipt-delivery-policy.yaml
   - platform/runner-authorization/resolver-policy.yaml
   - platform/runner-transport/transport-policy.yaml
   - platform/runner-dispatch/routing-policy.yaml
+  - platform/evidence-plane/dispatch-audit-policy.yaml
   - platform/evidence-plane/runner-outcome-policy.yaml
+  - platform/runner-service/composition-policy.yaml
