@@ -3,7 +3,7 @@ kind: ChangeRecord
 id: CHG-HSL-030
 product: hermes-security-labs
 classification: DOC_ONLY
-state: IMPLEMENTING
+state: ACCEPTED
 disposition: FIX_NOW
 summary: Reconcile the Runner L1 campaign, walking-skeleton status and EPIC-10 after backend tenant-isolation verification became GREEN-REPO in PRs #348-#349. The sources now reference main 05babbbb, preserve production backend deployment, tenant configuration, provider evidence and cross-tenant negatives as NOT_IMPLEMENTED/NOT_RUN or NOT_RUN, retain WebGoat UNKNOWN and keep promotionRecommendation HOLD.
 source:
@@ -19,8 +19,8 @@ branch: lane/evidence-tenant-isolation-status-reconcile
 issue: null
 pr: 350
 validation:
-  targeted: NOT_RUN
-  regression: NOT_RUN
+  targeted: PASS
+  regression: PASS
   security: NOT_APPLICABLE
   runtime: NOT_APPLICABLE
 promotion:
@@ -30,5 +30,5 @@ promotion:
 deferredTo: null
 timestamps:
   discoveredAt: '2026-08-11T20:42:00Z'
-  updatedAt: '2026-08-11T20:44:00Z'
+  updatedAt: '2026-08-11T20:55:00Z'
   closedAt: null
