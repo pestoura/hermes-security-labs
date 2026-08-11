@@ -14,5 +14,5 @@ retention_enforced: false
 legal_hold_supported: false
 privileged_delete_bypass: true
 public_access_blocked: false
-versioning_enabled: false
+overwrite_protected: false
 integrity_digest: sha256
