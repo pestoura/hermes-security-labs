@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/pestoura/hermes-security-labs/deployment/runtime-promotion/evidence-backend-attestation.schema.json",
+  "title": "Evidence Plane durable backend observation attestation v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "observation_status",
+    "attestation_id",
+    "observation_source",
+    "observed_at",
+    "source_evidence_ref",
+    "source_evidence_sha256",
+    "backend_id",
+    "deployment_scope",
+    "backend_state",
+    "encryption_at_rest",
+    "immutability_mode",
+    "retention_enforced",
+    "legal_hold_supported",
+    "privileged_delete_bypass",
+    "public_access_blocked",
+    "overwrite_protected",
+    "integrity_digest"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "observation_status": {"enum": ["NOT_RUN", "OBSERVED"]},
+    "attestation_id": {
+      "type": "string",
+      "minLength": 8,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+    },
+    "observation_source": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/ -]*$"
+    },
+    "observed_at": {"type": ["string", "null"], "format": "date-time"},
+    "source_evidence_ref": {
+      "type": ["string", "null"],
+      "pattern": "^evidence://[A-Za-z0-9][A-Za-z0-9._:/-]*$",
+      "maxLength": 512
+    },
+    "source_evidence_sha256": {
+      "type": ["string", "null"],
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "backend_id": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+    },
+    "deployment_scope": {"enum": ["PRODUCTION", "PRE_PRODUCTION", "LAB"]},
+    "backend_state": {"enum": ["active", "disabled", "provisioning", "unknown"]},
+    "encryption_at_rest": {"type": "boolean"},
+    "immutability_mode": {"enum": ["WORM_COMPLIANCE", "WORM_GOVERNANCE", "NONE", "UNKNOWN"]},
+    "retention_enforced": {"type": "boolean"},
+    "legal_hold_supported": {"type": "boolean"},
+    "privileged_delete_bypass": {"type": "boolean"},
+    "public_access_blocked": {"type": "boolean"},
+    "overwrite_protected": {"type": "boolean"},
+    "integrity_digest": {"const": "sha256"}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"observation_status": {"const": "NOT_RUN"}}},
+      "then": {
+        "properties": {
+          "observed_at": {"type": "null"},
+          "source_evidence_ref": {"type": "null"},
+          "source_evidence_sha256": {"type": "null"}
+        }
+      }
+    },
+    {
+      "if": {"properties": {"observation_status": {"const": "OBSERVED"}}},
+      "then": {
+        "properties": {
+          "observed_at": {"type": "string", "format": "date-time"},
+          "source_evidence_ref": {"type": "string", "pattern": "^evidence://[A-Za-z0-9][A-Za-z0-9._:/-]*$"},
+          "source_evidence_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+        }
+      }
+    }
+  ]
+}
