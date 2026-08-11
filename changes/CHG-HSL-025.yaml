@@ -3,7 +3,7 @@ kind: ChangeRecord
 id: CHG-HSL-025
 product: hermes-security-labs
 classification: HARDENING
-state: IMPLEMENTING
+state: ACCEPTED
 disposition: FIX_NOW
 summary: Add a provider-neutral, evidence-bound acceptance verifier for a future production Evidence Plane backend. It requires a fresh PRODUCTION observation with encryption at rest, WORM compliance mode, enforced retention, legal-hold support, no privileged delete bypass, blocked public access, overwrite protection and independently verified source evidence. It provisions no storage, selects no vendor and grants no promotion; production backend deployment and live persistence remain NOT_RUN.
 source:
@@ -19,9 +19,9 @@ branch: lane/evidence-backend-attestation
 issue: null
 pr: 345
 validation:
-  targeted: NOT_RUN
-  regression: NOT_RUN
-  security: NOT_RUN
+  targeted: PASS
+  regression: PASS
+  security: PASS
   runtime: NOT_RUN
 promotion:
   commit: null
@@ -30,5 +30,5 @@ promotion:
 deferredTo: null
 timestamps:
   discoveredAt: '2026-08-11T19:40:00Z'
-  updatedAt: '2026-08-11T19:47:00Z'
+  updatedAt: '2026-08-11T19:55:00Z'
   closedAt: null
