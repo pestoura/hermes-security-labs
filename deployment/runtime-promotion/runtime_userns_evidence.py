@@ -191,7 +191,7 @@ def _validate_map(entries: tuple[NamespaceMapEntry, ...], label: str) -> None:
 
     for ranges, dimension in ((inside_ranges, "inside"), (outside_ranges, "outside")):
         ordered = sorted(ranges)
-        for previous, current in zip(ordered, ordered[1:]):
+        for previous, current in zip(ordered, ordered[1:], strict=False):
             if current[0] < previous[1]:
                 raise UserNamespaceEvidenceError(
                     "NAMESPACE_MAP_INVALID",
