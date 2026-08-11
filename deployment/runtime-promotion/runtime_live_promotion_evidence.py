@@ -174,7 +174,7 @@ def _campaign_candidate_commit(campaign: Mapping[str, Any]) -> str:
 
 def _gate_map(package: Mapping[str, Any]) -> dict[str, Mapping[str, Any]]:
     gates = package["gates"]
-    if not isinstance(gates, list):  # schema protects this; keep boundary explicit
+    if not isinstance(gates, list):
         raise LiveEvidencePackageError("PACKAGE_INVALID", "gates must be a list")
     result: dict[str, Mapping[str, Any]] = {}
     for gate in gates:
@@ -323,7 +323,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
         for blocker in result.blockers:
             print(f"- {blocker}")
-    return 0 if result.package_valid else 2
+    return 0 if result.package_complete else 2
 
 
 if __name__ == "__main__":
