@@ -3,7 +3,7 @@ kind: ChangeRecord
 id: CHG-HSL-017
 product: hermes-security-labs
 classification: HARDENING
-state: IMPLEMENTING
+state: ACCEPTED
 disposition: FIX_NOW
 summary: Compose accepted AF_UNIX peer identity, deny-by-default routing, adapter-local TB1 authorization, dispatch audit custody and Runner outcome custody into one fail-closed repository boundary for an already accepted peer. Pre-dispatch audit custody must succeed before routing; terminal audit and outcome custody share the existing Evidence Plane. No listener, daemon, target client or runtime promotion is added.
 source:
@@ -19,9 +19,9 @@ branch: lane/runner-service-composition
 issue: null
 pr: 337
 validation:
-  targeted: NOT_RUN
-  regression: NOT_RUN
-  security: NOT_RUN
+  targeted: PASS
+  regression: PASS
+  security: PASS
   runtime: NOT_RUN
 promotion:
   commit: null
@@ -30,5 +30,5 @@ promotion:
 deferredTo: null
 timestamps:
   discoveredAt: '2026-08-10T21:36:00Z'
-  updatedAt: '2026-08-11T08:10:00Z'
+  updatedAt: '2026-08-11T08:17:00Z'
   closedAt: null
