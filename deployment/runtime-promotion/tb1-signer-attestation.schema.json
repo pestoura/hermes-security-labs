@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/pestoura/hermes-security-labs/deployment/runtime-promotion/tb1-signer-attestation.schema.json",
+  "title": "TB1 external signer observation attestation v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "observation_status",
+    "attestation_id",
+    "observation_source",
+    "observed_at",
+    "source_evidence_ref",
+    "source_evidence_sha256",
+    "provider_kind",
+    "provider_ref",
+    "key_id",
+    "algorithm",
+    "key_state",
+    "signing_enabled",
+    "private_key_exportable",
+    "public_key_spki_sha256"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "observation_status": {"enum": ["NOT_RUN", "OBSERVED"]},
+    "attestation_id": {
+      "type": "string",
+      "minLength": 8,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+    },
+    "observation_source": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/ -]*$"
+    },
+    "observed_at": {"type": ["string", "null"], "format": "date-time"},
+    "source_evidence_ref": {
+      "type": ["string", "null"],
+      "pattern": "^evidence://[A-Za-z0-9][A-Za-z0-9._:/-]*$",
+      "maxLength": 512
+    },
+    "source_evidence_sha256": {
+      "type": ["string", "null"],
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "provider_kind": {"enum": ["KMS", "HSM", "VAULT", "PKCS11"]},
+    "provider_ref": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*$"
+    },
+    "key_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+    },
+    "algorithm": {"enum": ["Ed25519", "ECDSA-P256-SHA256"]},
+    "key_state": {"enum": ["active", "disabled", "pending", "revoked", "unknown"]},
+    "signing_enabled": {"type": "boolean"},
+    "private_key_exportable": {"type": "boolean"},
+    "public_key_spki_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"observation_status": {"const": "NOT_RUN"}}},
+      "then": {
+        "properties": {
+          "observed_at": {"type": "null"},
+          "source_evidence_ref": {"type": "null"},
+          "source_evidence_sha256": {"type": "null"}
+        }
+      }
+    },
+    {
+      "if": {"properties": {"observation_status": {"const": "OBSERVED"}}},
+      "then": {
+        "properties": {
+          "observed_at": {"type": "string", "format": "date-time"},
+          "source_evidence_ref": {"type": "string", "pattern": "^evidence://[A-Za-z0-9][A-Za-z0-9._:/-]*$"},
+          "source_evidence_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+        }
+      }
+    }
+  ]
+}

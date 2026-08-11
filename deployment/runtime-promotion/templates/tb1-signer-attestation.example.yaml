@@ -1,0 +1,15 @@
+schema_version: "1.0"
+observation_status: NOT_RUN
+attestation_id: tb1-signer-attestation-example
+observation_source: provider-read-only-metadata
+observed_at: null
+source_evidence_ref: null
+source_evidence_sha256: null
+provider_kind: HSM
+provider_ref: tb1-authorizer-example-slot-a
+key_id: tb1-authorization-example-ed25519
+algorithm: Ed25519
+key_state: unknown
+signing_enabled: false
+private_key_exportable: false
+public_key_spki_sha256: 600a42d9d93596b9d6a844f80190e80130f3977ad130a9fafb698d38508b0c41
