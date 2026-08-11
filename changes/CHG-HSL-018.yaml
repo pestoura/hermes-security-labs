@@ -3,7 +3,7 @@ kind: ChangeRecord
 id: CHG-HSL-018
 product: hermes-security-labs
 classification: HARDENING
-state: IMPLEMENTING
+state: ACCEPTED
 disposition: FIX_NOW
 summary: Reconcile the WebGoat L1 promotion evidence bundle with the accepted dispatch-audit custody, read-only host-evidence and Runner service-composition boundaries. The bundle now requires their Change Records, components and fail-closed policies while preserving EVIDENCE_ONLY, HOLD, runtime NOT_RUN and structurally false promotion authority. CHG-HSL-018 is intentionally not self-required to avoid circular validation.
 source:
@@ -17,11 +17,11 @@ risk: LOW
 versionEffect: NONE
 branch: lane/runtime-promotion-bundle-reconcile
 issue: null
-pr: null
+pr: 338
 validation:
-  targeted: NOT_RUN
-  regression: NOT_RUN
-  security: NOT_RUN
+  targeted: PASS
+  regression: PASS
+  security: PASS
   runtime: NOT_RUN
 promotion:
   commit: null
@@ -30,5 +30,5 @@ promotion:
 deferredTo: null
 timestamps:
   discoveredAt: '2026-08-11T08:20:00Z'
-  updatedAt: '2026-08-11T08:20:00Z'
+  updatedAt: '2026-08-11T08:27:00Z'
   closedAt: null
