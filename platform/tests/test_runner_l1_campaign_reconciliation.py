@@ -7,7 +7,8 @@ import yaml
 ROOT = Path(__file__).resolve().parents[2]
 CAMPAIGN_PATH = ROOT / "validation" / "VAL-HSL-RUNNER-L1-LIVE-PROMOTION.yaml"
 STATUS_PATH = ROOT / "docs" / "roadmap" / "current-walking-skeleton-status.md"
-BASELINE = "c4c6bf3ff9630ddeab02028047f3129e3c8f0423"
+EPIC_PATH = ROOT / "docs" / "roadmap" / "epics" / "EPIC-10-evidence-plane.md"
+BASELINE = "56a9965dbbdda2c6986df7b0822e33e5529c05b0"
 
 
 def _campaign() -> dict:
@@ -42,7 +43,7 @@ def test_campaign_records_current_repo_capabilities_as_non_live_evidence() -> No
     observations = {item["id"]: item for item in campaign["observations"]}
 
     repo_evidence = observations["OBS-RUNNER-REPO-CHAIN"]["evidence"]
-    for pr in ("335", "336", "337", "338", "340", "341", "342", "343"):
+    for pr in ("335", "336", "337", "338", "340", "341", "342", "343", "345", "346"):
         assert pr in repo_evidence
 
     tb1 = observations["OBS-TB1-LIVE-DELIVERY"]
@@ -52,12 +53,18 @@ def test_campaign_records_current_repo_capabilities_as_non_live_evidence() -> No
 
     policy = observations["OBS-RUNNER-POLICY-PROMOTION"]
     assert "user-namespace observation" in policy["summary"]
+    assert "durable-backend acceptance verification" in policy["summary"]
     assert "user-namespace-mapping:NOT_RUN" in policy["evidence"]
+    assert "production-durable-audit-backend:NOT_IMPLEMENTED/NOT_RUN" in policy["evidence"]
+    assert "backend-provider-observation:NOT_RUN" in policy["evidence"]
     assert "DISABLED/NOT_RUN" in policy["summary"]
 
-    evidence_text = observations["OBS-EVIDENCE-CUSTODY"]["summary"]
-    assert "production durable/WORM backend" in evidence_text
-    assert "DISABLED/NOT_RUN" in evidence_text
+    evidence = observations["OBS-EVIDENCE-CUSTODY"]
+    assert "provider-neutral verifier" in evidence["summary"]
+    assert "does not establish a production durable/WORM backend" in evidence["summary"]
+    assert "durable-backend-verifier:GREEN-REPO" in evidence["evidence"]
+    assert "production-WORM-backend:NOT_IMPLEMENTED/NOT_RUN" in evidence["evidence"]
+    assert "backend-provider-observation:NOT_RUN" in evidence["evidence"]
 
 
 def test_walking_skeleton_status_uses_same_baseline_and_hold_state() -> None:
@@ -66,9 +73,22 @@ def test_walking_skeleton_status_uses_same_baseline_and_hold_state() -> None:
     assert "GREEN-REPO is not live acceptance" in text
     assert "Read-only user-namespace evidence" in text
     assert "Evidence-bound signer-attestation verifier" in text
-    assert "Signer-attestation promotion reconciliation" in text
+    assert "Durable Evidence Plane backend attestation verifier" in text
+    assert "Durable-backend promotion reconciliation" in text
+    assert "production backend `NOT_IMPLEMENTED / NOT_RUN`" in text
     assert "promotion_allowed=false" in text
     assert "HOLD / BLOCKED-ON-LIVE-PROMOTION-EVIDENCE-AND-CONNECTOR" in text
+
+
+def test_epic10_records_verifier_without_claiming_production_backend() -> None:
+    text = EPIC_PATH.read_text(encoding="utf-8")
+    assert "Document version | 1.4.0" in text
+    assert "production backend control-attestation verifier: `GREEN_REPO`" in text
+    assert "production backend selection/deployment: `NOT_IMPLEMENTED` / `NOT_RUN`" in text
+    assert "A GREEN backend-attestation verifier does not mean a production backend exists" in text
+    assert "`AS_BUILT` for the complete concept remains false" in text
+    assert "`FINAL` remains false" in text
+    assert "NO_RUNTIME_CHANGE" in text
 
 
 def test_unknown_webgoat_rerun_is_not_promoted_to_pass_or_fail() -> None:

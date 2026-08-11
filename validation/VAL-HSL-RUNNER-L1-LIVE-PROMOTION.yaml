@@ -6,7 +6,7 @@ objective: Govern promotion of the current WebGoat L1 Runner repository chain in
 state: BLOCKED
 candidate:
   version: runner-webgoat-l1-repo-candidate
-  commit: c4c6bf3ff9630ddeab02028047f3129e3c8f0423
+  commit: 56a9965dbbdda2c6986df7b0822e33e5529c05b0
   artifactDigest: null
 environment: Hermes Security Labs / WebGoat isolated lab runtime
 observations:
@@ -14,9 +14,9 @@ observations:
     required: true
     result: PASS
     status: RESOLVED
-    summary: Repository chain includes WebGoat L1, TB1 issuer/verifier/delivery/resolver, Unix peer identity/routing, audit and outcome Evidence Plane custody, host and user-namespace observation boundaries, evidence-bound signer-attestation verification, Runner service composition and the EVIDENCE_ONLY promotion gate/bundle. All remain non-authoritative until live evidence and explicit human promotion exist.
+    summary: Repository chain includes WebGoat L1, TB1 issuer/verifier/delivery/resolver, Unix peer identity/routing, audit and outcome Evidence Plane custody, host and user-namespace observation boundaries, evidence-bound signer and durable-backend attestation verifiers, Runner service composition and the EVIDENCE_ONLY promotion gate/bundle. All remain non-authoritative until live evidence and explicit human promotion exist.
     changeRecord: null
-    evidence: 'prs:316,317,318,321,322,323,328,331,332,334,335,336,337,338,340,341,342,343; main:c4c6bf3ff9630ddeab02028047f3129e3c8f0423'
+    evidence: 'prs:316,317,318,321,322,323,328,331,332,334,335,336,337,338,340,341,342,343,345,346; main:56a9965dbbdda2c6986df7b0822e33e5529c05b0'
   - id: OBS-TB1-LIVE-DELIVERY
     required: true
     result: BLOCKED
@@ -28,16 +28,16 @@ observations:
     required: true
     result: BLOCKED
     status: OPEN
-    summary: Identity/socket preflight, host and user-namespace observation boundaries, Evidence Plane audit custody and Runner service composition are GREEN-REPO. Promotion remains blocked because host/user-namespace observations, unauthorized-peer negative testing and a production durable/WORM backend are not accepted live, while transport/routing/service policies remain DISABLED/NOT_RUN.
+    summary: Identity/socket preflight, host and user-namespace observation boundaries, Evidence Plane audit custody, durable-backend acceptance verification and Runner service composition are GREEN-REPO. Promotion remains blocked because host/user-namespace observations, unauthorized-peer negative testing, a real production durable/WORM backend and its live persistence are not accepted, while transport/routing/service policies remain DISABLED/NOT_RUN.
     changeRecord: CHG-HSL-012
-    evidence: 'pr:323 identity/socket preflight; pr:332 dispatch audit contract; pr:335 audit Evidence Plane custody; pr:336 host evidence; pr:337 service composition; pr:340 user-namespace observer; pr:341 bundle userns reconciliation; host-evidence:NOT_RUN; user-namespace-mapping:NOT_RUN; unauthorized-peer-negative:NOT_RUN; production-durable-audit-backend:NOT_IMPLEMENTED/NOT_RUN; transport-policy:DISABLED/NOT_RUN; routing-policy:DISABLED/NOT_RUN; service-composition-policy:DISABLED/NOT_RUN'
+    evidence: 'pr:336 host; pr:340 userns; pr:345 backend verifier; pr:346 bundle reconciliation; host-evidence:NOT_RUN; user-namespace-mapping:NOT_RUN; unauthorized-peer-negative:NOT_RUN; production-durable-audit-backend:NOT_IMPLEMENTED/NOT_RUN; backend-provider-observation:NOT_RUN; policies:DISABLED/NOT_RUN'
   - id: OBS-EVIDENCE-CUSTODY
     required: true
     result: BLOCKED
     status: OPEN
-    summary: 'Runner terminal outcomes and sanitized dispatch audit events both have GREEN-REPO custody paths into the existing Evidence Plane, with no parallel datastore. This does not establish a production durable/WORM backend: the canonical custody policies remain DISABLED/NOT_RUN and no real Runner terminal outcome or dispatch audit event has been persisted through the promoted live chain.'
+    summary: 'Terminal outcomes and dispatch audit events have GREEN-REPO Evidence Plane custody. PR #345 adds a provider-neutral verifier for production controls, but this does not establish a production durable/WORM backend; no backend is selected/deployed or observed and live persistence remains NOT_RUN.'
     changeRecord: CHG-HSL-002
-    evidence: 'pr:321 terminal-outcome custody; pr:335 dispatch-audit custody; runner-outcome-policy:DISABLED/NOT_RUN; dispatch-audit-policy:DISABLED/NOT_RUN; production-WORM-backend:NOT_IMPLEMENTED/NOT_RUN; live-terminal-persistence:NOT_RUN; live-audit-persistence:NOT_RUN'
+    evidence: 'pr:321 terminal-outcome custody; pr:335 dispatch-audit custody; pr:345 durable-backend attestation verifier; pr:346 promotion prerequisite reconciliation; durable-backend-verifier:GREEN-REPO; production-WORM-backend:NOT_IMPLEMENTED/NOT_RUN; backend-provider-observation:NOT_RUN; runner-outcome-policy:DISABLED/NOT_RUN; dispatch-audit-policy:DISABLED/NOT_RUN; live-terminal-persistence:NOT_RUN; live-audit-persistence:NOT_RUN'
   - id: OBS-LIVE-EFFECT-RESET
     required: true
     result: BLOCKED
@@ -48,5 +48,5 @@ observations:
 promotionRecommendation: HOLD
 timestamps:
   startedAt: '2026-08-09T21:12:00Z'
-  updatedAt: '2026-08-11T09:45:00Z'
+  updatedAt: '2026-08-11T20:20:00Z'
   closedAt: null
