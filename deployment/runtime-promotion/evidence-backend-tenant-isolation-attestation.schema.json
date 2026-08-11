@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/pestoura/hermes-security-labs/deployment/runtime-promotion/evidence-backend-tenant-isolation-attestation.schema.json",
+  "title": "Evidence Plane backend tenant-isolation observation attestation v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "observation_status",
+    "attestation_id",
+    "observation_source",
+    "observed_at",
+    "source_evidence_ref",
+    "source_evidence_sha256",
+    "backend_id",
+    "subject_tenant_sha256",
+    "peer_tenant_sha256",
+    "namespace_isolated",
+    "access_policy_isolated",
+    "encryption_context_isolated",
+    "shared_writable_namespace",
+    "cross_tenant_list_result",
+    "cross_tenant_read_result",
+    "cross_tenant_write_result"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "observation_status": {"enum": ["NOT_RUN", "OBSERVED"]},
+    "attestation_id": {
+      "type": "string",
+      "minLength": 8,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+    },
+    "observation_source": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/ -]*$"
+    },
+    "observed_at": {"type": ["string", "null"], "format": "date-time"},
+    "source_evidence_ref": {
+      "type": ["string", "null"],
+      "pattern": "^evidence://[A-Za-z0-9][A-Za-z0-9._:/-]*$",
+      "maxLength": 512
+    },
+    "source_evidence_sha256": {
+      "type": ["string", "null"],
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "backend_id": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+    },
+    "subject_tenant_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "peer_tenant_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "namespace_isolated": {"type": "boolean"},
+    "access_policy_isolated": {"type": "boolean"},
+    "encryption_context_isolated": {"type": "boolean"},
+    "shared_writable_namespace": {"type": "boolean"},
+    "cross_tenant_list_result": {"enum": ["DENIED", "ALLOWED", "NOT_RUN"]},
+    "cross_tenant_read_result": {"enum": ["DENIED", "ALLOWED", "NOT_RUN"]},
+    "cross_tenant_write_result": {"enum": ["DENIED", "ALLOWED", "NOT_RUN"]}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"observation_status": {"const": "NOT_RUN"}}},
+      "then": {
+        "properties": {
+          "observed_at": {"type": "null"},
+          "source_evidence_ref": {"type": "null"},
+          "source_evidence_sha256": {"type": "null"},
+          "cross_tenant_list_result": {"const": "NOT_RUN"},
+          "cross_tenant_read_result": {"const": "NOT_RUN"},
+          "cross_tenant_write_result": {"const": "NOT_RUN"}
+        }
+      }
+    },
+    {
+      "if": {"properties": {"observation_status": {"const": "OBSERVED"}}},
+      "then": {
+        "properties": {
+          "observed_at": {"type": "string", "format": "date-time"},
+          "source_evidence_ref": {"type": "string", "pattern": "^evidence://[A-Za-z0-9][A-Za-z0-9._:/-]*$"},
+          "source_evidence_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+        }
+      }
+    }
+  ]
+}

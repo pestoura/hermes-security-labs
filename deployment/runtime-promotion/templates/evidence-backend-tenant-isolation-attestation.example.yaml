@@ -1,0 +1,17 @@
+schema_version: "1.0"
+observation_status: NOT_RUN
+attestation_id: evidence-backend-tenant-isolation-example
+observation_source: provider-read-only-metadata-and-negative-tests
+observed_at: null
+source_evidence_ref: null
+source_evidence_sha256: null
+backend_id: evidence-production-example
+subject_tenant_sha256: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+peer_tenant_sha256: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+namespace_isolated: false
+access_policy_isolated: false
+encryption_context_isolated: false
+shared_writable_namespace: true
+cross_tenant_list_result: NOT_RUN
+cross_tenant_read_result: NOT_RUN
+cross_tenant_write_result: NOT_RUN
