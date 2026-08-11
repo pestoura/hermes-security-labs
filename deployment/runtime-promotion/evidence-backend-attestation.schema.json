@@ -21,7 +21,7 @@
     "legal_hold_supported",
     "privileged_delete_bypass",
     "public_access_blocked",
-    "versioning_enabled",
+    "overwrite_protected",
     "integrity_digest"
   ],
   "properties": {
@@ -63,7 +63,7 @@
     "legal_hold_supported": {"type": "boolean"},
     "privileged_delete_bypass": {"type": "boolean"},
     "public_access_blocked": {"type": "boolean"},
-    "versioning_enabled": {"type": "boolean"},
+    "overwrite_protected": {"type": "boolean"},
     "integrity_digest": {"const": "sha256"}
   },
   "allOf": [
