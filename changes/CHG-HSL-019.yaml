@@ -3,7 +3,7 @@ kind: ChangeRecord
 id: CHG-HSL-019
 product: hermes-security-labs
 classification: DOC_ONLY
-state: IMPLEMENTING
+state: ACCEPTED
 disposition: FIX_NOW
 summary: Reconcile the canonical Runner L1 promotion campaign and current walking-skeleton status after PRs #334-#338. The documentation records audit custody, host evidence, service composition and the reconciled promotion bundle as GREEN-REPO while preserving all unresolved live observations as BLOCKED/OPEN, the WebGoat post-fix rerun as UNKNOWN, and the promotion recommendation as HOLD.
 source:
@@ -17,10 +17,10 @@ risk: LOW
 versionEffect: NONE
 branch: lane/runner-l1-campaign-reconcile
 issue: null
-pr: null
+pr: 339
 validation:
-  targeted: NOT_RUN
-  regression: NOT_RUN
+  targeted: PASS
+  regression: PASS
   security: NOT_APPLICABLE
   runtime: NOT_APPLICABLE
 promotion:
@@ -30,5 +30,5 @@ promotion:
 deferredTo: null
 timestamps:
   discoveredAt: '2026-08-11T08:30:00Z'
-  updatedAt: '2026-08-11T08:30:00Z'
+  updatedAt: '2026-08-11T08:42:00Z'
   closedAt: null
