@@ -3,7 +3,7 @@ kind: ChangeRecord
 id: CHG-HSL-024
 product: hermes-security-labs
 classification: DOC_ONLY
-state: IMPLEMENTING
+state: ACCEPTED
 disposition: FIX_NOW
 summary: Reconcile the canonical Runner L1 campaign and walking-skeleton status after the user-namespace and signer-attestation boundaries became GREEN-REPO. The sources now reference main c4c6bf3f, record PRs #340-#343 as repository capabilities, preserve the related live observations as NOT_RUN/BLOCKED, retain the WebGoat rerun as UNKNOWN and keep promotionRecommendation HOLD.
 source:
@@ -19,8 +19,8 @@ branch: lane/runner-l1-evidence-reconcile
 issue: null
 pr: 344
 validation:
-  targeted: NOT_RUN
-  regression: NOT_RUN
+  targeted: PASS
+  regression: PASS
   security: NOT_APPLICABLE
   runtime: NOT_APPLICABLE
 promotion:
@@ -30,5 +30,5 @@ promotion:
 deferredTo: null
 timestamps:
   discoveredAt: '2026-08-11T09:45:00Z'
-  updatedAt: '2026-08-11T09:47:00Z'
+  updatedAt: '2026-08-11T19:34:00Z'
   closedAt: null
