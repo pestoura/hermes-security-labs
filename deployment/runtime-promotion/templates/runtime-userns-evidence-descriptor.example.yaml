@@ -1,0 +1,25 @@
+schema_version: "1.0"
+runtime_status: NOT_RUN
+identity_descriptor: deployment/runtime-promotion/templates/runner-identity-descriptor.example.yaml
+user_namespace_relationship: same
+processes:
+  gateway:
+    pid: 42001
+    uid_map:
+      - inside_start: 0
+        outside_start: 0
+        length: 4294967295
+    gid_map:
+      - inside_start: 0
+        outside_start: 0
+        length: 4294967295
+  runner:
+    pid: 42002
+    uid_map:
+      - inside_start: 0
+        outside_start: 0
+        length: 4294967295
+    gid_map:
+      - inside_start: 0
+        outside_start: 0
+        length: 4294967295
