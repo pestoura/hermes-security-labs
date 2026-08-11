@@ -1,8 +1,9 @@
 """Pin the WebGoat L1 promotion bundle repository prerequisites.
 
 These tests prevent repository readiness from silently dropping accepted audit,
-host, user-namespace, signer-attestation or Runner service-composition boundaries.
-They do not authorize runtime promotion or claim that any live observation ran.
+host, user-namespace, signer-attestation, durable-backend-attestation or Runner
+service-composition boundaries. They do not authorize runtime promotion or claim
+that any live observation ran.
 """
 
 from __future__ import annotations
@@ -36,6 +37,7 @@ REQUIRED_CHANGES = {
     "CHG-HSL-017",
     "CHG-HSL-020",
     "CHG-HSL-022",
+    "CHG-HSL-025",
 }
 
 REQUIRED_COMPONENTS = {
@@ -47,6 +49,8 @@ REQUIRED_COMPONENTS = {
     "deployment/runtime-promotion/runtime-userns-evidence-descriptor.schema.json",
     "deployment/runtime-promotion/runtime_signer_attestation.py",
     "deployment/runtime-promotion/tb1-signer-attestation.schema.json",
+    "deployment/runtime-promotion/runtime_evidence_backend_attestation.py",
+    "deployment/runtime-promotion/evidence-backend-attestation.schema.json",
     "platform/runner-service/service_composition.py",
 }
 
@@ -105,9 +109,25 @@ def test_signer_attestation_is_a_repository_prerequisite_not_live_evidence() -> 
     assert record["validation"]["runtime"] == "NOT_RUN"
 
 
+def test_backend_attestation_is_a_repository_prerequisite_not_live_backend_proof() -> None:
+    bundle = _bundle()
+    assert "CHG-HSL-025" in bundle["required_change_records"]
+    assert (
+        "deployment/runtime-promotion/runtime_evidence_backend_attestation.py"
+        in bundle["required_components"]
+    )
+    assert (
+        "deployment/runtime-promotion/evidence-backend-attestation.schema.json"
+        in bundle["required_components"]
+    )
+
+    record = yaml.safe_load((ROOT / "changes" / "CHG-HSL-025.yaml").read_text(encoding="utf-8"))
+    assert record["validation"]["runtime"] == "NOT_RUN"
+
+
 def test_bundle_does_not_require_reconciliation_change_records() -> None:
     # Requiring the Change Record governing a reconciliation inside that same
     # bundle creates a validation cycle while the record is still open.
     required = set(_bundle()["required_change_records"])
-    for change_id in ("CHG-HSL-018", "CHG-HSL-021", "CHG-HSL-023"):
+    for change_id in ("CHG-HSL-018", "CHG-HSL-021", "CHG-HSL-023", "CHG-HSL-026"):
         assert change_id not in required
