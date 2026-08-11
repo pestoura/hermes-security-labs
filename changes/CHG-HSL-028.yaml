@@ -17,7 +17,7 @@ risk: LOW
 versionEffect: NONE
 branch: lane/evidence-backend-tenant-isolation
 issue: null
-pr: null
+pr: 348
 validation:
   targeted: NOT_RUN
   regression: NOT_RUN
@@ -30,5 +30,5 @@ promotion:
 deferredTo: null
 timestamps:
   discoveredAt: '2026-08-11T20:36:00Z'
-  updatedAt: '2026-08-11T20:36:00Z'
+  updatedAt: '2026-08-11T20:23:00Z'
   closedAt: null
