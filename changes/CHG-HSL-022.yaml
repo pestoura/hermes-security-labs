@@ -3,7 +3,7 @@ kind: ChangeRecord
 id: CHG-HSL-022
 product: hermes-security-labs
 classification: HARDENING
-state: IMPLEMENTING
+state: ACCEPTED
 disposition: FIX_NOW
 summary: Add an evidence-bound, provider-neutral verifier for external TB1 signer observations. It requires a fresh normalized provider observation, exact provider/key/algorithm binding, active signing state, non-exportable private key, the approved public-key SPKI fingerprint and independently verified source-evidence reference/digest. It contacts no provider, reads no private key and grants no promotion; live provider observation remains NOT_RUN.
 source:
@@ -19,9 +19,9 @@ branch: lane/runtime-signer-attestation
 issue: null
 pr: 342
 validation:
-  targeted: NOT_RUN
-  regression: NOT_RUN
-  security: NOT_RUN
+  targeted: PASS
+  regression: PASS
+  security: PASS
   runtime: NOT_RUN
 promotion:
   commit: null
@@ -30,5 +30,5 @@ promotion:
 deferredTo: null
 timestamps:
   discoveredAt: '2026-08-11T09:12:00Z'
-  updatedAt: '2026-08-11T09:19:00Z'
+  updatedAt: '2026-08-11T09:29:00Z'
   closedAt: null
