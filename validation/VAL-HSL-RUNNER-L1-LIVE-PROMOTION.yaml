@@ -28,7 +28,7 @@ observations:
     required: true
     result: BLOCKED
     status: OPEN
-    summary: Identity/socket preflight, host-evidence collection, dispatch audit/custody and Runner service composition are GREEN-REPO. Promotion remains blocked because host/namespace evidence, unauthorized-peer negative testing and a production durable/WORM backend are not accepted live, while transport/routing/service policies remain DISABLED/NOT_RUN.
+    summary: Identity/socket preflight, host-evidence collection, Evidence Plane audit custody and Runner service composition are GREEN-REPO. Promotion remains blocked because host/namespace evidence, unauthorized-peer negative testing and a production durable/WORM backend are not accepted live, while transport/routing/service policies remain DISABLED/NOT_RUN.
     changeRecord: CHG-HSL-012
     evidence: 'pr:323 identity/socket preflight; pr:332 dispatch audit contract; pr:335 audit Evidence Plane custody; pr:336 read-only host evidence; pr:337 service composition; pr:338 promotion bundle reconciliation; host-evidence:NOT_RUN; user-namespace-mapping:NOT_RUN; unauthorized-peer-negative:NOT_RUN; production-durable-audit-backend:NOT_IMPLEMENTED/NOT_RUN; transport-policy:DISABLED/NOT_RUN; routing-policy:DISABLED/NOT_RUN; service-composition-policy:DISABLED/NOT_RUN'
   - id: OBS-EVIDENCE-CUSTODY
