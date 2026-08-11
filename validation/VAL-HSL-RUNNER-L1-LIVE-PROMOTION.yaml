@@ -35,7 +35,7 @@ observations:
     required: true
     result: BLOCKED
     status: OPEN
-    summary: Runner terminal outcomes and sanitized dispatch audit events both have GREEN-REPO custody paths into the existing Evidence Plane, with no parallel datastore. This does not establish a production durable/WORM backend: the canonical custody policies remain DISABLED/NOT_RUN and no real Runner terminal outcome or dispatch audit event has been persisted through the promoted live chain.
+    summary: 'Runner terminal outcomes and sanitized dispatch audit events both have GREEN-REPO custody paths into the existing Evidence Plane, with no parallel datastore. This does not establish a production durable/WORM backend: the canonical custody policies remain DISABLED/NOT_RUN and no real Runner terminal outcome or dispatch audit event has been persisted through the promoted live chain.'
     changeRecord: CHG-HSL-002
     evidence: 'pr:321 terminal-outcome custody; pr:335 dispatch-audit custody; runner-outcome-policy:DISABLED/NOT_RUN; dispatch-audit-policy:DISABLED/NOT_RUN; production-WORM-backend:NOT_IMPLEMENTED/NOT_RUN; live-terminal-persistence:NOT_RUN; live-audit-persistence:NOT_RUN'
   - id: OBS-LIVE-EFFECT-RESET
