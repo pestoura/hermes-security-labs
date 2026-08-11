@@ -6,7 +6,7 @@ objective: Govern promotion of the current WebGoat L1 Runner repository chain in
 state: BLOCKED
 candidate:
   version: runner-webgoat-l1-repo-candidate
-  commit: 6dbd34cabb5766837803c6c9083254902fefa1dc
+  commit: c4c6bf3ff9630ddeab02028047f3129e3c8f0423
   artifactDigest: null
 environment: Hermes Security Labs / WebGoat isolated lab runtime
 observations:
@@ -14,23 +14,23 @@ observations:
     required: true
     result: PASS
     status: RESOLVED
-    summary: Repository chain includes WebGoat L1, TB1 issuer/verifier/delivery/resolver, Unix peer identity/routing, audit and outcome Evidence Plane custody, host-evidence collection, Runner service composition and the EVIDENCE_ONLY promotion gate/bundle. All remain non-authoritative until live deployment evidence and explicit human promotion exist.
+    summary: Repository chain includes WebGoat L1, TB1 issuer/verifier/delivery/resolver, Unix peer identity/routing, audit and outcome Evidence Plane custody, host and user-namespace observation boundaries, evidence-bound signer-attestation verification, Runner service composition and the EVIDENCE_ONLY promotion gate/bundle. All remain non-authoritative until live evidence and explicit human promotion exist.
     changeRecord: null
-    evidence: 'prs:316,317,318,321,322,323,328,331,332,334,335,336,337,338; main:6dbd34cabb5766837803c6c9083254902fefa1dc'
+    evidence: 'prs:316,317,318,321,322,323,328,331,332,334,335,336,337,338,340,341,342,343; main:c4c6bf3ff9630ddeab02028047f3129e3c8f0423'
   - id: OBS-TB1-LIVE-DELIVERY
     required: true
     result: BLOCKED
     status: OPEN
-    summary: Hermes-side TB1 receipt issuance, signer/trust-store preflight and read-only host observation capability are GREEN-REPO. Live acceptance remains blocked because no protected external signer has been bound and attested, the approved Runner authorization trust store has not been observed installed on the target host, the receipt-delivery AF_UNIX endpoint is not configured, and delivery/resolver policies remain DISABLED/NOT_RUN.
+    summary: TB1 issuance, signer/trust-store preflight and an evidence-bound signer-observation verifier are GREEN-REPO. Live acceptance remains blocked because no real provider observation/source evidence has been verified, the approved Runner trust store has not been observed installed, the receipt-delivery AF_UNIX endpoint is not configured, and delivery/resolver policies remain DISABLED/NOT_RUN.
     changeRecord: CHG-HSL-011
-    evidence: 'pr:322 delivery boundary; pr:328 issuer boundary; pr:331 signer/trust-store preflight; pr:336 host-evidence collector; signer-live:NOT_RUN; signer-attestation:NOT_RUN; trust-store-host-observation:NOT_RUN; receipt-delivery-policy:DISABLED/NOT_RUN; resolver-policy:DISABLED/NOT_RUN'
+    evidence: 'pr:322 delivery boundary; pr:328 issuer boundary; pr:331 signer/trust-store preflight; pr:336 host-evidence collector; pr:342 signer-attestation verifier; pr:343 bundle reconciliation; signer-provider-observation:NOT_RUN; signer-source-evidence:NOT_RUN; trust-store-host-observation:NOT_RUN; receipt-delivery-policy:DISABLED/NOT_RUN; resolver-policy:DISABLED/NOT_RUN'
   - id: OBS-RUNNER-POLICY-PROMOTION
     required: true
     result: BLOCKED
     status: OPEN
-    summary: Identity/socket preflight, host-evidence collection, Evidence Plane audit custody and Runner service composition are GREEN-REPO. Promotion remains blocked because host/namespace evidence, unauthorized-peer negative testing and a production durable/WORM backend are not accepted live, while transport/routing/service policies remain DISABLED/NOT_RUN.
+    summary: Identity/socket preflight, host and user-namespace observation boundaries, Evidence Plane audit custody and Runner service composition are GREEN-REPO. Promotion remains blocked because host/user-namespace observations, unauthorized-peer negative testing and a production durable/WORM backend are not accepted live, while transport/routing/service policies remain DISABLED/NOT_RUN.
     changeRecord: CHG-HSL-012
-    evidence: 'pr:323 identity/socket preflight; pr:332 dispatch audit contract; pr:335 audit Evidence Plane custody; pr:336 read-only host evidence; pr:337 service composition; pr:338 promotion bundle reconciliation; host-evidence:NOT_RUN; user-namespace-mapping:NOT_RUN; unauthorized-peer-negative:NOT_RUN; production-durable-audit-backend:NOT_IMPLEMENTED/NOT_RUN; transport-policy:DISABLED/NOT_RUN; routing-policy:DISABLED/NOT_RUN; service-composition-policy:DISABLED/NOT_RUN'
+    evidence: 'pr:323 identity/socket preflight; pr:332 dispatch audit contract; pr:335 audit Evidence Plane custody; pr:336 host evidence; pr:337 service composition; pr:340 user-namespace observer; pr:341 bundle userns reconciliation; host-evidence:NOT_RUN; user-namespace-mapping:NOT_RUN; unauthorized-peer-negative:NOT_RUN; production-durable-audit-backend:NOT_IMPLEMENTED/NOT_RUN; transport-policy:DISABLED/NOT_RUN; routing-policy:DISABLED/NOT_RUN; service-composition-policy:DISABLED/NOT_RUN'
   - id: OBS-EVIDENCE-CUSTODY
     required: true
     result: BLOCKED
@@ -48,5 +48,5 @@ observations:
 promotionRecommendation: HOLD
 timestamps:
   startedAt: '2026-08-09T21:12:00Z'
-  updatedAt: '2026-08-11T08:30:00Z'
+  updatedAt: '2026-08-11T09:45:00Z'
   closedAt: null
