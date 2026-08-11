@@ -63,7 +63,7 @@ def _observed_attestation() -> dict[str, Any]:
         "legal_hold_supported": True,
         "privileged_delete_bypass": False,
         "public_access_blocked": True,
-        "versioning_enabled": True,
+        "overwrite_protected": True,
         "integrity_digest": "sha256",
     }
 
@@ -121,7 +121,7 @@ def test_default_evidence_verifier_refuses_observed_envelope() -> None:
         ("legal_hold_supported", False, "legal hold"),
         ("privileged_delete_bypass", True, "delete bypass"),
         ("public_access_blocked", False, "public access"),
-        ("versioning_enabled", False, "versioning"),
+        ("overwrite_protected", False, "overwrite protection"),
     ],
 )
 def test_required_backend_control_mismatch_fails_closed(
