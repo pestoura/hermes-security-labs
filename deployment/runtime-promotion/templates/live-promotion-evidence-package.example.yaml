@@ -8,7 +8,7 @@ candidate:
   adapter_id: webgoat-l1
   capability_id: web.discovery.headers
   intrusiveness_level: L1
-  repository_commit: 0000000000000000000000000000000000000000
+  repository_commit: "0000000000000000000000000000000000000000"
 gates:
   - gate_id: GATEWAY_ADMISSION_REOBSERVATION
     result: NOT_RUN
