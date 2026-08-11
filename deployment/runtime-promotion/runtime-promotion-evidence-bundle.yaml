@@ -22,6 +22,7 @@ required_change_records:
   - CHG-HSL-020
   - CHG-HSL-022
   - CHG-HSL-025
+  - CHG-HSL-028
 required_components:
   - platform/authorization-contract/hermes_authorization_issuer.py
   - deployment/runtime-promotion/tb1_authorization_preflight.py
@@ -34,6 +35,8 @@ required_components:
   - deployment/runtime-promotion/tb1-signer-attestation.schema.json
   - deployment/runtime-promotion/runtime_evidence_backend_attestation.py
   - deployment/runtime-promotion/evidence-backend-attestation.schema.json
+  - deployment/runtime-promotion/runtime_evidence_backend_tenant_isolation.py
+  - deployment/runtime-promotion/evidence-backend-tenant-isolation-attestation.schema.json
   - platform/runner-authorization/receipt_delivery.py
   - platform/runner-authorization/verified_authorization_resolver.py
   - platform/runner-transport/unix_peer_identity.py
