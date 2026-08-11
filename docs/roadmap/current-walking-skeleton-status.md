@@ -1,7 +1,7 @@
 # Hermes Security Labs — current walking-skeleton status
 
-**Reconciled:** 2026-08-11 08:30 UTC  
-**Current Labs baseline:** `6dbd34cabb5766837803c6c9083254902fefa1dc`  
+**Reconciled:** 2026-08-11 09:45 UTC  
+**Current Labs baseline:** `c4c6bf3ff9630ddeab02028047f3129e3c8f0423`  
 **Accepted/live Hermes MCP Bridge revision:** `3717bd5469b061a44294b27e1a7510d477d3752b`
 
 This is the concise current-state view of the walking skeleton. Repository/CI proof and live Hermes runtime proof are separate evidence classes. Historical evidence remains in [`runtime-acceptance-checkpoint-2026-08-09.md`](runtime-acceptance-checkpoint-2026-08-09.md); the governed Runner promotion campaign is [`../../validation/VAL-HSL-RUNNER-L1-LIVE-PROMOTION.yaml`](../../validation/VAL-HSL-RUNNER-L1-LIVE-PROMOTION.yaml).
@@ -28,10 +28,14 @@ This is the concise current-state view of the walking skeleton. Repository/CI pr
 | TB1 signer + Runner trust-store deployment preflight | `GREEN-REPO`, #331; runtime `NOT_RUN` |
 | Authenticated-principal dispatch audit contract | `GREEN-REPO`, #332 |
 | Promotion evidence gate | `GREEN-REPO`, #334; structurally `promotion_allowed=false` |
-| Dispatch audit -> Evidence Plane custody | `GREEN-REPO`, #335; production durable/WORM backend not proven |
-| Runner host-evidence collector | `GREEN-REPO`, #336; read-only collector exists, host execution `NOT_RUN` |
-| Runner service composition root | `GREEN-REPO`, #337; no listener/daemon; policy `DISABLED / NOT_RUN` |
-| WebGoat L1 promotion bundle | `GREEN-REPO`, #338; reconciled with #335-#337; `EVIDENCE_ONLY / HOLD` |
+| Dispatch audit Evidence Plane custody | `GREEN-REPO`, #335; production durable/WORM backend not proven |
+| Read-only Runner host evidence | `GREEN-REPO`, #336; host execution `NOT_RUN` |
+| Runner service composition | `GREEN-REPO`, #337; no listener/daemon; policy `DISABLED / NOT_RUN` |
+| Promotion bundle reconciliation | #338 | `GREEN-REPO`; audit/host/service prerequisites pinned |
+| Read-only user-namespace evidence | `GREEN-REPO`, #340; live `/proc` observation `NOT_RUN` |
+| User-namespace promotion reconciliation | `GREEN-REPO`, #341; verifier required by bundle, live observation `NOT_RUN` |
+| Evidence-bound signer-attestation verifier | `GREEN-REPO`, #342; real provider observation/source evidence `NOT_RUN` |
+| Signer-attestation promotion reconciliation | `GREEN-REPO`, #343; verifier required by bundle, no live attestation claim |
 | Full walking skeleton live completion | `HOLD / BLOCKED-ON-LIVE-PROMOTION-EVIDENCE-AND-CONNECTOR` |
 
 ## Walking skeleton
@@ -42,16 +46,18 @@ Target path:
 
 | Stage | Repository/CI state | Live runtime state |
 | --- | --- | --- |
-| Authorize | TB1 verifier, Hermes issuer, receipt delivery, signer/trust-store preflight and host-observation capability `GREEN-REPO` | external signer attestation, installed trust store and live issuance/delivery remain `NOT_RUN` |
-| Admission | Bridge exact-SHA + approval contracts accepted | RTA-001 and RTA-003 accepted; live Bridge baseline `3717bd5469...` |
+| Authorize | TB1 verifier, Hermes issuer, delivery/resolver, signer/trust preflight and evidence-bound signer-attestation verifier `GREEN-REPO` | actual provider observation/source evidence, installed trust store and live issuance/delivery remain `NOT_RUN` |
+| Admission | Bridge exact-SHA + approval contracts accepted | RTA-001 and RTA-003 accepted; Bridge `3717bd5469...` |
 | Kali registration | canonical STDIO contract `GREEN-REPO` | Stage 1 `PASS`; disabled + sentinel retained |
-| Kali health | `kali.mcp.health.read -> server_health`, L0, exact mapping | Stage 2 `PASS`; only `server_health` exposed and safe state restored |
+| Kali health | `kali.mcp.health.read -> server_health`, L0, exact mapping | Stage 2 `PASS`; safe state restored |
 | Provision | WebGoat/DVWA/Juice lifecycle contracts `READY-REPO` | WebGoat pre-fix start accepted; DVWA/Juice live acceptance pending |
-| Readiness | typed loopback readiness adapters with host-port parity `PASS` | WebGoat post-fix full rerun `UNKNOWN`; DVWA/Juice pending |
-| Plan scenario | deterministic Scenario Plan Composer `GREEN-REPO` | not an execution claim |
+| Readiness | typed loopback readiness adapters with host-port parity `PASS` | WebGoat post-fix rerun `UNKNOWN`; DVWA/Juice pending |
 | Dispatch bounded effect | WebGoat L1 adapter + peer identity + router + resolver + audit + service composition `GREEN-REPO` | transport/routing/resolver/delivery/service policies `DISABLED / NOT_RUN`; live effect `NOT_RUN` |
-| Evidence | terminal outcome custody + dispatch audit custody use the existing Evidence Plane `GREEN-REPO` | production durable/WORM backend and live persistence remain unproven |
-| Reset/cleanup | bounded reset/destroy governance exists | first failure cleanup proved zero residue; post-fix full lifecycle result remains `UNKNOWN` |
+| Host identity/trust | host-evidence collector #336 `GREEN-REPO` | explicit host observation `NOT_RUN` |
+| User namespace | explicit-PID read-only observer #340 `GREEN-REPO` | gateway/Runner mapping observation `NOT_RUN` |
+| Signer attestation | evidence-bound verifier #342 `GREEN-REPO` | provider metadata capture + source-evidence verification `NOT_RUN` |
+| Evidence | terminal outcome custody + dispatch audit custody use the same Evidence Plane `GREEN-REPO` | production durable/WORM backend and live persistence unproven |
+| Reset/cleanup | bounded reset/destroy governance exists | first failure cleanup proved zero residue; post-fix full lifecycle remains `UNKNOWN` |
 
 ## Runtime acceptance already closed
 
@@ -59,7 +65,7 @@ Target path:
 
 **State:** `RESOLVED-RUNTIME / GREEN`.
 
-Gateway admission was accepted as running, non-busy and drainable. Re-observe before a new live mutation; do not treat this as an open design gap.
+Gateway admission was accepted as running, non-busy and drainable. Re-observe before a new live mutation.
 
 ### RTA-002 — Kali MCP
 
@@ -93,17 +99,16 @@ The repository contains a complete **promotion candidate**, not an enabled runti
 
 - Hermes-only TB1 issuer boundary (#328);
 - TB1 verification and signer/trust-store deployment preflight (#331);
-- authenticated receipt-delivery boundary (#322);
-- `VerifiedAuthorizationResolver`;
+- authenticated receipt-delivery boundary (#322) and `VerifiedAuthorizationResolver`;
 - Unix `SO_PEERCRED` identity and identity/socket deployment preflight (#323);
-- deny-by-default dispatch router;
-- target-bound WebGoat L1 adapter;
+- deny-by-default dispatch router and target-bound WebGoat L1 adapter;
 - sanitized authenticated-principal/correlation audit event (#332);
-- Runner terminal-outcome custody (#321);
-- dispatch-audit custody into the same Evidence Plane (#335);
+- Runner terminal-outcome custody (#321) and dispatch-audit custody in the same Evidence Plane (#335);
 - read-only host evidence for identity/socket/trust-store declarations (#336);
 - fail-closed service composition for an already accepted AF_UNIX peer (#337);
-- aggregate EVIDENCE_ONLY promotion gate/bundle (#334/#338).
+- aggregate EVIDENCE_ONLY promotion gate/bundle (#334/#338);
+- explicit-PID read-only Linux user-namespace observation boundary (#340), required by the bundle after #341;
+- provider-neutral, evidence-bound external signer observation verifier (#342), required by the bundle after #343.
 
 The service composition sequence is:
 
@@ -113,10 +118,11 @@ It intentionally provides no listener, daemon, generic execution path or implici
 
 ### Still missing for live promotion
 
-- protected external signer binding and provider/key attestation;
+- actual protected signer provider observation with independently verified source evidence;
 - host-observed Runner authorization trust store with approved digest and owner/mode;
 - configured receipt-delivery AF_UNIX endpoint and authenticated live delivery;
-- host evidence for actual gateway/Runner identities, socket and user-namespace mapping;
+- live host evidence for gateway/Runner identities and socket;
+- live user-namespace mapping evidence for the explicitly reviewed gateway/Runner PIDs;
 - unauthorized-peer negative test against the real Runner socket;
 - production durable/append-only/WORM Evidence Plane backend and live audit observation;
 - explicit promotion of only the minimum resolver/delivery/transport/routing/service/custody policy set;
@@ -135,20 +141,22 @@ Classification:
 
 ## Automatic continuation order
 
-When the Hermes connector is usable again:
+When the Hermes connector and authorized deployment evidence are usable again:
 
 1. recover `run_73cd8ef359ff486f93faeb7c2dc46290` before starting another WebGoat lifecycle;
-2. re-observe gateway admission and exact Bridge revision `3717bd5469b061a44294b27e1a7510d477d3752b`;
-3. verify the Kali profile remains disabled + sentinel; repeat Stage 2 only on detected drift/new requirement;
-4. if the recovered WebGoat run is PASS, record lifecycle/reset evidence; otherwise clean up and repeat only the failed gate;
+2. re-observe gateway admission and Bridge revision `3717bd5469b061a44294b27e1a7510d477d3752b`;
+3. verify the Kali profile remains disabled + sentinel;
+4. resolve/repeat only a failed WebGoat lifecycle gate, preserving known-state cleanup;
 5. execute bounded DVWA and Juice Shop lifecycle/readiness acceptance;
-6. run the read-only host-evidence collector against an explicitly reviewed deployment descriptor;
-7. obtain external signer attestation, trust-store proof, user-namespace mapping and unauthorized-peer negative evidence;
-8. prove the selected durable Evidence Plane/audit backend live;
-9. request and record explicit Human-in-the-Loop promotion for the exact candidate;
-10. promote only the minimum WebGoat L1 policy set;
-11. execute one bounded read-only WebGoat L1 effect, persist terminal/audit evidence, reset/destroy and prove known state;
-12. on any RED, restore fail-closed state for the affected lane while unrelated repo-only work may continue.
+6. run #336 host evidence against an explicitly reviewed descriptor;
+7. run #340 user-namespace evidence against explicitly reviewed PIDs;
+8. capture real external signer metadata, custody its source evidence and verify it through #342;
+9. prove installed trust store and the selected durable Evidence Plane/audit backend live;
+10. execute the unauthorized-peer negative acceptance against the real Runner socket;
+11. request and record explicit Human-in-the-Loop promotion for the exact candidate;
+12. promote only the minimum WebGoat L1 policy set;
+13. execute one bounded read-only WebGoat L1 effect, persist terminal/audit evidence, reset/destroy and prove known state;
+14. on any RED, restore fail-closed state for the affected lane while unrelated repo-only work may continue.
 
 No target-interacting action is authorized merely because repository contracts or CI are GREEN.
 
@@ -156,29 +164,22 @@ No target-interacting action is authorized merely because repository contracts o
 
 | Change | PR | Merge SHA | Outcome |
 | --- | --- | --- | --- |
-| Runner outcome custody | #321 | `7bd1b9da3af4f1b38b9ea057b6a3c8fd97f9b636` | GREEN-REPO, policy disabled |
-| TB1 receipt delivery | #322 | `dcae64435d87deb57fba64c160bb3fa1285a59bc` | GREEN-REPO, policy disabled |
-| Runtime identity/socket preflight | #323 | `c6f12cefbcb1857af46835bef7531eab3e4533c5` | GREEN-REPO, runtime NOT_RUN |
-| WebGoat readiness port parity | #325 | `b5b54dc54e6e8844e5bfcb5d74ed9e4c38e88645` | GREEN-REPO |
-| WebGoat smoke publication ownership | #326 | `a91a325ed4ee1c66a17ab5d79a073b5f980fabbf` | GREEN-REPO |
-| WebGoat dual-health lifecycle gate | #327 | `8f5d5aaedb011b8187c0a44bf8df2eaf0b9b9434` | GREEN-REPO after live-observed reset race |
-| Hermes TB1 issuer boundary | #328 | `1d88a9386ed17010d784e2c519cf778569874aca` | GREEN-REPO, signer live binding NOT_RUN |
-| DVWA/Juice publication parity | #329 | `1402503fa8eed62e9921b8166af86211e7ffd923` | GREEN-REPO |
-| JDS baseline repair | #330 | `042c068435aa31082217c8dc1772c4658eaca375` | release-governance baseline GREEN |
-| TB1 signer/trust-store deployment preflight | #331 | `472f3fbec9040519a8798044382f4462d0ad2d6b` | GREEN-REPO, runtime NOT_RUN |
-| Runner dispatch audit event contract | #332 | `038a2ae503a331a371fa69623ec0586c9c60c7e5` | GREEN-REPO |
 | Promotion evidence gate | #334 | `135dc1a5b360cace7a69612437933bbc7770a5cd` | GREEN-REPO, promotion authority always false |
 | Dispatch audit Evidence Plane custody | #335 | `68a8ce6770532ecbdd0c0ee841a53de5b871a44f` | GREEN-REPO, production WORM NOT_RUN |
 | Read-only Runner host evidence | #336 | `c52f7838a9e5bb75c7f326fa094a5e60af371445` | GREEN-REPO, host execution NOT_RUN |
 | Runner service composition | #337 | `191f51e3912cd9ddd54f5f4eaf7d08f914ca8c1b` | GREEN-REPO, service policy disabled |
 | Promotion bundle reconciliation | #338 | `6dbd34cabb5766837803c6c9083254902fefa1dc` | GREEN-REPO, EVIDENCE_ONLY / HOLD |
+| Read-only user-namespace evidence | #340 | `f0f9753152f6e1cb8d1c138d95e7f70455fceca9` | GREEN-REPO, live observation NOT_RUN |
+| User-namespace promotion reconciliation | #341 | `459450fdef88b3dfc295d319a41bd2e32e138c52` | GREEN-REPO, live observation still NOT_RUN |
+| Evidence-bound signer attestation verifier | #342 | `d4bb4cb7ae2bbbf54e3e806b3a2d843389ee8217` | GREEN-REPO, provider observation NOT_RUN |
+| Signer-attestation promotion reconciliation | #343 | `c4c6bf3ff9630ddeab02028047f3129e3c8f0423` | GREEN-REPO, bundle requires verifier; HOLD retained |
 
 ## Decision record
 
-**Decision:** keep promotion on HOLD until live identity/trust/audit/evidence prerequisites and explicit Human-in-the-Loop promotion are proven.
+**Decision:** keep promotion on HOLD until live identity/trust/signer/audit/evidence prerequisites and explicit Human-in-the-Loop promotion are proven.
 
-**Context:** the repository chain now includes host observation, audit custody and service composition, but these remain repository capabilities and policies are still fail-closed.
+**Context:** the repository now contains host, user-namespace and signer-attestation verification boundaries, but they remain repository capabilities and their live observations have not run.
 
-**Risks accepted:** continued implementation can proceed repo-side while the connector/live prerequisites are unavailable, provided no repository result is promoted to a live claim.
+**Risks accepted:** continued implementation may proceed repo-side while connector/live prerequisites are unavailable, provided no repository result is promoted to a live claim.
 
 **State:** `HOLD / BLOCKED-ON-LIVE-PROMOTION-EVIDENCE-AND-CONNECTOR`.
