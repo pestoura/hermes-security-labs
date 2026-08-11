@@ -3,7 +3,7 @@ kind: ChangeRecord
 id: CHG-HSL-020
 product: hermes-security-labs
 classification: HARDENING
-state: IMPLEMENTING
+state: ACCEPTED
 disposition: FIX_NOW
 summary: Add a read-only Linux user-namespace evidence boundary for explicitly reviewed gateway and Runner PIDs. It validates exact UID/GID maps against the accepted identity descriptor, checks the expected user-namespace relationship and pins procfs observation through explicit PID directory file descriptors. It performs no process discovery, namespace entry, mutation, networking or runtime promotion; live execution remains NOT_RUN.
 source:
@@ -17,11 +17,11 @@ risk: LOW
 versionEffect: NONE
 branch: lane/runtime-userns-evidence
 issue: null
-pr: null
+pr: 340
 validation:
-  targeted: NOT_RUN
-  regression: NOT_RUN
-  security: NOT_RUN
+  targeted: PASS
+  regression: PASS
+  security: PASS
   runtime: NOT_RUN
 promotion:
   commit: null
@@ -30,5 +30,5 @@ promotion:
 deferredTo: null
 timestamps:
   discoveredAt: '2026-08-11T08:45:00Z'
-  updatedAt: '2026-08-11T08:45:00Z'
+  updatedAt: '2026-08-11T08:58:00Z'
   closedAt: null
