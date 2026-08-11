@@ -1,8 +1,8 @@
 """Pin the post-composition WebGoat L1 promotion bundle prerequisites.
 
-These tests prevent repository readiness from silently dropping the accepted
-audit-custody, host-evidence or Runner service-composition boundaries. They do
-not authorize runtime promotion.
+These tests prevent repository readiness from silently dropping accepted audit,
+host, user-namespace or Runner service-composition boundaries. They do not
+authorize runtime promotion.
 """
 
 from __future__ import annotations
@@ -34,6 +34,7 @@ REQUIRED_CHANGES = {
     "CHG-HSL-015",
     "CHG-HSL-016",
     "CHG-HSL-017",
+    "CHG-HSL-020",
 }
 
 REQUIRED_COMPONENTS = {
@@ -41,6 +42,8 @@ REQUIRED_COMPONENTS = {
     "platform/evidence-plane/dispatch_audit_custody.py",
     "deployment/runtime-promotion/runtime_host_evidence.py",
     "deployment/runtime-promotion/runtime-host-evidence-descriptor.schema.json",
+    "deployment/runtime-promotion/runtime_userns_evidence.py",
+    "deployment/runtime-promotion/runtime-userns-evidence-descriptor.schema.json",
     "platform/runner-service/service_composition.py",
 }
 
@@ -89,7 +92,9 @@ def test_reconciled_bundle_is_repository_ready_but_never_promotes() -> None:
     assert result.recommendation == "HOLD"
 
 
-def test_bundle_does_not_require_its_own_change_record() -> None:
-    # CHG-HSL-018 governs this reconciliation. Requiring it inside the evidence
-    # bundle would create a circular dependency while that record is validating.
-    assert "CHG-HSL-018" not in set(_bundle()["required_change_records"])
+def test_bundle_does_not_require_reconciliation_change_records() -> None:
+    # Requiring the Change Record that governs a bundle reconciliation inside the
+    # same bundle would create a validation cycle while that record is still open.
+    required = set(_bundle()["required_change_records"])
+    assert "CHG-HSL-018" not in required
+    assert "CHG-HSL-021" not in required

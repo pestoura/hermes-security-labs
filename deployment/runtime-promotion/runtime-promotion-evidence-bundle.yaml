@@ -19,12 +19,15 @@ required_change_records:
   - CHG-HSL-015
   - CHG-HSL-016
   - CHG-HSL-017
+  - CHG-HSL-020
 required_components:
   - platform/authorization-contract/hermes_authorization_issuer.py
   - deployment/runtime-promotion/tb1_authorization_preflight.py
   - deployment/runtime-promotion/runner_identity_preflight.py
   - deployment/runtime-promotion/runtime_host_evidence.py
   - deployment/runtime-promotion/runtime-host-evidence-descriptor.schema.json
+  - deployment/runtime-promotion/runtime_userns_evidence.py
+  - deployment/runtime-promotion/runtime-userns-evidence-descriptor.schema.json
   - platform/runner-authorization/receipt_delivery.py
   - platform/runner-authorization/verified_authorization_resolver.py
   - platform/runner-transport/unix_peer_identity.py
