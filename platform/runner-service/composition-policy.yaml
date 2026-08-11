@@ -1,0 +1,12 @@
+schema_version: "1.0"
+policy_id: hexor.runner.service.composition
+state: DISABLED
+default: deny
+runtime_status: NOT_RUN
+execution_authority: none
+requirements:
+  peer_authentication: linux-so-peercred
+  pre_dispatch_audit_custody: required
+  terminal_audit_custody: required
+  runner_outcome_custody: required
+  shared_evidence_plane_store: required
