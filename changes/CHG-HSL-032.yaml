@@ -17,7 +17,7 @@ risk: LOW
 versionEffect: NONE
 branch: lane/runtime-promotion-live-package-reconcile
 issue: null
-pr: null
+pr: 352
 validation:
   targeted: NOT_RUN
   regression: NOT_RUN
@@ -30,5 +30,5 @@ promotion:
 deferredTo: null
 timestamps:
   discoveredAt: '2026-08-11T21:18:00Z'
-  updatedAt: '2026-08-11T21:18:00Z'
+  updatedAt: '2026-08-11T21:20:00Z'
   closedAt: null
