@@ -17,7 +17,7 @@ risk: LOW
 versionEffect: NONE
 branch: lane/evidence-tenant-isolation-status-reconcile
 issue: null
-pr: null
+pr: 350
 validation:
   targeted: NOT_RUN
   regression: NOT_RUN
@@ -29,6 +29,6 @@ promotion:
   previousRelease: null
 deferredTo: null
 timestamps:
-  discoveredAt: '2026-08-11T21:00:00Z'
-  updatedAt: '2026-08-11T21:00:00Z'
+  discoveredAt: '2026-08-11T20:42:00Z'
+  updatedAt: '2026-08-11T20:44:00Z'
   closedAt: null
