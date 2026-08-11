@@ -10,14 +10,14 @@
 | Phase | 2 |
 | Priority | P0 |
 | Delivery umbrella | `SVP2-D-01` (issue [#84](https://github.com/pestoura/hermes-security-labs/issues/84)) |
-| Document version | 1.4.0 |
+| Document version | 1.5.0 |
 | Document date | 2026-08-11 |
 | Catalogue | [Epic catalogue 45](../epic-catalogue-45.md) |
 | Lifecycle contract | [Architecture documentation lifecycle](../../architecture/architecture-documentation-lifecycle.md) |
 
 ## 2. Current status
 
-**IMPLEMENTING** — PR #141 delivered the Evidence Plane v2 record/classification/replay contract. PR #217 added controlled local content-addressed persistence. PRs #219/#221 added deterministic structured redaction and redaction-before-persistence for synthetic structured sources. PR #223 added canonical record-metadata integrity sidecars and deterministic verified reconstruction of stored sanitized/summary results. PR #345 added a provider-neutral, evidence-bound verifier for future production backend controls, and PR #346 made that verifier a repository prerequisite of the WebGoat L1 promotion bundle.
+**IMPLEMENTING** — PR #141 delivered the Evidence Plane v2 record/classification/replay contract. PR #217 added controlled local content-addressed persistence. PRs #219/#221 added deterministic structured redaction and redaction-before-persistence for synthetic structured sources. PR #223 added canonical record-metadata integrity sidecars and deterministic verified reconstruction of stored sanitized/summary results. PRs #345/#346 added and pinned a provider-neutral verifier for future production backend controls. PRs #348/#349 add and pin a separate provider-neutral tenant-isolation verifier using opaque tenant hashes and bounded cross-tenant negative evidence.
 
 The delivery umbrella `SVP2-D-01` may be completed at this controlled local boundary once its completion PR and post-merge gates are GREEN. That delivery completion does **not** promote this concept to `AS_BUILT` or `FINAL`.
 
@@ -38,8 +38,11 @@ Current evidence boundary:
 - redaction before persistence: `PASS_CONTROLLED_CI`;
 - verified stored-result reconstruction: `PASS_CONTROLLED_CI`;
 - production backend control-attestation verifier: `GREEN_REPO` (#345/#346);
+- backend tenant-isolation attestation verifier: `GREEN_REPO` (#348/#349);
 - production backend selection/deployment: `NOT_IMPLEMENTED` / `NOT_RUN`;
 - production backend provider observation: `NOT_RUN`;
+- production tenant configuration: `NOT_RUN`;
+- cross-tenant list/read/write negative acceptance: `NOT_RUN`;
 - execution replay: `NOT_CLAIMED`;
 - authorization replay: `NOT_CLAIMED`;
 - encryption at rest: `NOT_RUN`;
@@ -73,6 +76,7 @@ An Evidence Plane v2 with normalized records, chain of custody, retention policy
 - Controlled redaction-before-persistence for structured synthetic sources
 - Deterministic verified reconstruction of stored sanitized/summary results
 - Provider-neutral acceptance contract for future production storage controls
+- Provider-neutral acceptance contract for future production tenant isolation
 
 ### Non-goals of the current local store
 
@@ -85,8 +89,9 @@ An Evidence Plane v2 with normalized records, chain of custody, retention policy
 - Replay of authorization decisions
 - Protection against an actor with write control over the complete store
 - Storing real client secrets or credentials in CI fixtures
+- Claiming multi-tenant production isolation from local CI behavior
 
-The production-backend attestation verifier is also **not** a provisioning layer, provider selector or storage implementation.
+The production-backend and tenant-isolation attestation verifiers are **not** provisioning layers, provider selectors, storage implementations or executors of live cross-tenant tests.
 
 ## 6. Intent architecture
 
@@ -101,10 +106,12 @@ flowchart LR
   DERIVED --> EXPORT[Controlled export]
   RAW -. default deny .-> EXPORT
   PROD[Future production backend] -. read-only control metadata .-> ATTEST[Backend control attestation verifier]
+  PROD -. isolation metadata + bounded negatives .-> TISO[Tenant-isolation attestation verifier]
   ATTEST -. never grants execution .-> STORE
+  TISO -. never grants execution .-> STORE
 ```
 
-The local reference store implements persistence, payload integrity, canonical record-metadata integrity, lineage verification, replay descriptors, controlled sanitized export and stored-result reconstruction. The backend-attestation boundary defines what a future production backend must prove but does not implement production storage, production replay or external export.
+The local reference store implements persistence, payload integrity, canonical record-metadata integrity, lineage verification, replay descriptors, controlled sanitized export and stored-result reconstruction. The backend attestation boundaries define what a future production backend and its multi-tenant isolation must prove but do not implement production storage, production replay, tenant provisioning or external export.
 
 ## 7. Contracts, data and capabilities
 
@@ -119,6 +126,8 @@ Canonical implementation:
 - `platform/evidence-plane/reconstruction.py`
 - `deployment/runtime-promotion/evidence-backend-attestation.schema.json`
 - `deployment/runtime-promotion/runtime_evidence_backend_attestation.py`
+- `deployment/runtime-promotion/evidence-backend-tenant-isolation-attestation.schema.json`
+- `deployment/runtime-promotion/runtime_evidence_backend_tenant_isolation.py`
 
 The local store and reconstruction boundary:
 
@@ -135,7 +144,7 @@ The local store and reconstruction boundary:
 - reconstruct only sanitized/summary results with verified lineage;
 - emit deterministic reconstruction receipts that explicitly state `execution_replayed=false` and `authorization_replayed=false`.
 
-The production-backend attestation boundary requires a fresh, externally evidenced observation proving:
+The production-backend control attestation boundary requires a fresh, externally evidenced observation proving:
 
 - deployment scope `PRODUCTION` and active backend state;
 - encryption at rest;
@@ -148,7 +157,21 @@ The production-backend attestation boundary requires a fresh, externally evidenc
 - SHA-256 integrity digest;
 - independently verified source-evidence reference and digest.
 
-The verifier is provider-neutral, performs no provider call or provisioning and always returns `promotion_allowed=false` and `runtime_status=NOT_RUN` at repository level.
+The tenant-isolation attestation boundary is separate and requires:
+
+- two distinct tenant identities represented only as SHA-256 digests;
+- namespace isolation;
+- access-policy isolation;
+- encryption-context isolation;
+- no shared writable evidence namespace;
+- cross-tenant list `DENIED`;
+- cross-tenant read `DENIED`;
+- cross-tenant write `DENIED`;
+- fresh, independently verified source evidence binding the observed configuration and negative-test results.
+
+The tenant-isolation verifier does not carry customer or tenant names and does not execute live negative tests. Evidence Record v2 is deliberately unchanged by #348/#349; adding record-level tenant identity would be a separate versioned, cross-cutting architecture decision.
+
+Both verifiers are provider-neutral, perform no provider call or provisioning and always return `promotion_allowed=false` and `runtime_status=NOT_RUN` at repository level.
 
 Evidence content never grants or expands execution authority.
 
@@ -157,7 +180,7 @@ Evidence content never grants or expands execution authority.
 - [EPIC-05 — Runner Protocol v2](EPIC-05-runner-protocol-v2.md)
 - [EPIC-12 — Redaction and data classification](EPIC-12-redaction-and-data-classification.md)
 
-Runner Protocol B-02 is completed at its delivery boundary, while production Runner execution remains non-final. D-01 can likewise complete at the declared controlled local boundary without claiming production Evidence Plane finality. Selection and deployment of a production backend remain a later implementation decision and must satisfy the provider-neutral acceptance contract rather than being inferred from product choice.
+Runner Protocol B-02 is completed at its delivery boundary, while production Runner execution remains non-final. D-01 can likewise complete at the declared controlled local boundary without claiming production Evidence Plane finality. Selection and deployment of a production backend remain a later implementation decision and must satisfy both provider-neutral backend-control and tenant-isolation acceptance contracts rather than being inferred from product choice.
 
 ## 9. Security, risks and failure modes
 
@@ -169,8 +192,11 @@ Runner Protocol B-02 is completed at its delivery boundary, while production Run
 - Derived evidence referencing the wrong source digest
 - Local filesystem sidecars being mistaken for WORM guarantees
 - A GREEN repository verifier being mistaken for a deployed WORM backend
+- A GREEN tenant-isolation verifier being mistaken for live cross-tenant acceptance
 - Provider metadata being trusted without independently verified source evidence
 - Governance/bypass immutability being mistaken for compliance-mode WORM
+- Shared writable namespaces defeating customer separation
+- Tenant identifiers leaking customer identity into repository fixtures or telemetry
 - Treating stored-result reconstruction as re-execution of the original operation
 - Treating controlled CI evidence as production custody evidence
 
@@ -198,6 +224,8 @@ Delivered for the D-01 umbrella/repository boundary:
 - deterministic verified stored-result reconstruction;
 - provider-neutral durable-backend control-attestation schema/verifier (#345);
 - promotion-bundle prerequisite for that verifier (#346);
+- provider-neutral backend tenant-isolation schema/verifier (#348);
+- promotion-bundle prerequisite for tenant-isolation verification (#349);
 - adversarial integrity/lineage/export/reconstruction/attestation tests in canonical CI.
 
 Still pending for the broader concept/finality:
@@ -207,7 +235,7 @@ Still pending for the broader concept/finality:
 - WORM/immutability and legal-hold enforcement in the selected deployment;
 - executable retention/deletion policy;
 - production Runner/Evidence Plane handoff and live terminal/audit persistence;
-- tenant-isolation proof;
+- real tenant configuration and live cross-tenant negative acceptance;
 - production redaction/replay;
 - customer export/release process.
 
@@ -225,14 +253,15 @@ Demonstrated at repository/local-controlled level:
 - a sanitized/summary stored result can be deterministically reconstructed from its record and verified lineage;
 - reconstruction receipts contain no storage reference and explicitly do not claim operation or authorization replay;
 - a provider-neutral production-backend attestation contract fails closed unless all required controls and independently verified source evidence are present;
-- a positive repository test of the attestation contract never grants promotion or claims runtime execution.
+- a tenant-isolation attestation contract fails closed unless opaque tenants are distinct, all isolation controls are true, list/read/write negatives are `DENIED` and source evidence is verified;
+- repository attestation tests never grant promotion or claim runtime execution.
 
 Not yet demonstrated at production level:
 
 - selected/deployed backend and live provider observation;
 - encryption at rest and WORM/immutability enforcement in that deployment;
 - retention expiry/legal-hold execution;
-- production tenant isolation;
+- production tenant configuration and cross-tenant negative acceptance;
 - production redaction/replay and external publication;
 - end-to-end production Runner → Evidence Plane → evaluation/customer export.
 
@@ -245,9 +274,11 @@ Current evidence:
 - PR #221 merge `cbf88aecb9bf69ad4d7bd0164f8ac8f61f04b4aa`; post-merge security `31267199992` PASS; validate `31267199995` PASS;
 - PR #223 validated head `38ad140426392f13e2ac361016d5ec952ddb5665`; pre-merge security `31268294121` PASS; validate `31268294124` PASS; squash merge `fa0e0eb40e0fd558b43a2bae8f411761d51f9807`; post-merge security `31268410335` PASS; validate `31268410326` PASS;
 - PR #345 merge `5b1e889519a1929fbdd13ce3d7853043ddebd0d7`; provider-neutral backend-control attestation verifier GREEN-REPO, runtime `NOT_RUN`;
-- PR #346 merge `56a9965dbbdda2c6986df7b0822e33e5529c05b0`; promotion bundle requires the verifier while retaining `EVIDENCE_ONLY / HOLD` and runtime `NOT_RUN`.
+- PR #346 merge `56a9965dbbdda2c6986df7b0822e33e5529c05b0`; promotion bundle requires backend-control verifier while retaining `EVIDENCE_ONLY / HOLD` and runtime `NOT_RUN`;
+- PR #348 merge `3cd53975ae152fbf13d1c06059ba187ed35a75d9`; provider-neutral tenant-isolation verifier GREEN-REPO, live tenant configuration/negatives `NOT_RUN`;
+- PR #349 merge `05babbbbdf50253374a5add1f73b6c8d96b4eb92`; promotion bundle requires tenant-isolation verifier while retaining `EVIDENCE_ONLY / HOLD` and runtime `NOT_RUN`.
 
-Future finality evidence must include the selected/deployed production backend, live encryption/WORM/retention control observation, retention operations, tenant isolation, deployed handoff and controlled release/export path.
+Future finality evidence must include the selected/deployed production backend, live encryption/WORM/retention control observation, retention operations, real tenant configuration, cross-tenant negative acceptance, deployed handoff and controlled release/export path.
 
 ## 13. Decisions and open questions
 
@@ -262,13 +293,17 @@ Future finality evidence must include the selected/deployed production backend, 
 - Production backend acceptance is based on provider-neutral security properties rather than a product-specific versioning/API feature.
 - A backend attestation file is not trusted by presence alone; source evidence must be independently verified.
 - A GREEN backend-attestation verifier does not mean a production backend exists.
+- Tenant-isolation acceptance uses opaque SHA-256 tenant identities and requires DENIED cross-tenant list/read/write observations.
+- A GREEN tenant-isolation verifier does not mean tenant isolation has run live.
+- Evidence Record v2 is not modified merely to support this acceptance gate; any record-level tenant identity is a separate versioned architecture decision.
 
 ### Open questions
 
 - Production evidence backend/provider selection
-- Encryption/key lifecycle and tenant isolation
+- Encryption/key lifecycle and tenant isolation implementation
 - Retention classes/deletion scheduler
-- Provider-specific read-only metadata collector for the selected backend
+- Provider-specific read-only metadata collectors for backend controls and tenant isolation
+- Whether/when Evidence Record requires versioned tenant identity/context
 - Whether production replay requires pinned images or only evidence reconstruction
 - Customer export/release approval workflow
 
@@ -282,9 +317,11 @@ Future finality evidence must include the selected/deployed production backend, 
 - PR #221 integrated structured redaction-before-persistence.
 - PR #223 integrated record metadata integrity sidecars and verified stored-result reconstruction.
 - PR #345 integrated the provider-neutral, fail-closed durable-backend attestation verifier and inert `NOT_RUN` example.
-- PR #346 made the verifier/schema a WebGoat L1 promotion-bundle prerequisite without adding policy or backend implementation.
+- PR #346 made that verifier/schema a WebGoat L1 promotion-bundle prerequisite without adding policy or backend implementation.
+- PR #348 integrated the provider-neutral, fail-closed tenant-isolation verifier with synthetic opaque tenant hashes and inert `NOT_RUN` example.
+- PR #349 made that verifier/schema a promotion-bundle prerequisite without adding tenant configuration, policy or live negative tests.
 - All CI fixtures are synthetic and local/deterministic.
-- No customer payload, credential, target, network or deployed Evidence Plane was used by #345/#346.
+- No customer payload, credential, target, network, customer identity or deployed Evidence Plane was used by #345/#346/#348/#349.
 - Production/deployed runtime remains `NO_RUNTIME_CHANGE`.
 
 ## 15. As-built / final architecture
@@ -304,9 +341,12 @@ Current factual state:
 - redaction before persistence: `PASS_CONTROLLED_CI`;
 - verified stored-result reconstruction: `PASS_CONTROLLED_CI`;
 - durable production-backend acceptance verifier: `GREEN_REPO`;
+- production tenant-isolation acceptance verifier: `GREEN_REPO`;
 - operation/authorization replay: `NOT_CLAIMED`;
 - production backend selection/deployment: `NOT_IMPLEMENTED` / `NOT_RUN`;
 - production backend observation: `NOT_RUN`;
+- production tenant configuration: `NOT_RUN`;
+- cross-tenant list/read/write negative acceptance: `NOT_RUN`;
 - encryption at rest: `NOT_RUN`;
 - WORM/object storage: `NOT_IMPLEMENTED` / `NOT_RUN`;
 - retention execution: `NOT_IMPLEMENTED` / `NOT_RUN`;
@@ -316,7 +356,7 @@ Current factual state:
 
 `AS_BUILT` for the complete concept remains false; `FINAL` remains false.
 
-_Lifecycle unchanged: EPIC-10 is `IMPLEMENTING`; `AS_BUILT` and `FINAL` remain no. Repository-level backend-control verification narrows the acceptance contract but does not satisfy production finality._
+_Lifecycle unchanged: EPIC-10 is `IMPLEMENTING`; `AS_BUILT` and `FINAL` remain no. Repository-level backend-control and tenant-isolation verification narrow the acceptance contract but do not satisfy production finality._
 
 ### Exact evidence
 
@@ -324,14 +364,17 @@ _Lifecycle unchanged: EPIC-10 is `IMPLEMENTING`; `AS_BUILT` and `FINAL` remain n
 | --- | --- |
 | Original technical pull request | [#141](https://github.com/pestoura/hermes-security-labs/pull/141) |
 | Durable-backend verifier | [#345](https://github.com/pestoura/hermes-security-labs/pull/345), merge `5b1e889519a1929fbdd13ce3d7853043ddebd0d7` |
-| Promotion prerequisite reconciliation | [#346](https://github.com/pestoura/hermes-security-labs/pull/346), merge `56a9965dbbdda2c6986df7b0822e33e5529c05b0` |
+| Durable-backend promotion reconciliation | [#346](https://github.com/pestoura/hermes-security-labs/pull/346), merge `56a9965dbbdda2c6986df7b0822e33e5529c05b0` |
+| Tenant-isolation verifier | [#348](https://github.com/pestoura/hermes-security-labs/pull/348), merge `3cd53975ae152fbf13d1c06059ba187ed35a75d9` |
+| Tenant-isolation promotion reconciliation | [#349](https://github.com/pestoura/hermes-security-labs/pull/349), merge `05babbbbdf50253374a5add1f73b6c8d96b4eb92` |
 | Current production backend state | `NOT_IMPLEMENTED / NOT_RUN` |
+| Current live tenant-isolation state | `NOT_RUN` |
 
 ### Evidence that is missing for promotion
 
 `AS_BUILT` is withheld because the epic's target state is not satisfied by repository-level contract integration alone:
 
-- production evidence storage deployment, encryption at rest, WORM/immutability, retention enforcement, tenant isolation and production redaction/replay: `NOT_IMPLEMENTED / NOT_RUN` or `NOT_RUN` as applicable.
+- production evidence storage deployment, encryption at rest, WORM/immutability, retention enforcement, real tenant isolation and production redaction/replay: `NOT_IMPLEMENTED / NOT_RUN` or `NOT_RUN` as applicable.
 
 `NO_RUNTIME_CHANGE`.
 
@@ -344,3 +387,4 @@ _Lifecycle unchanged: EPIC-10 is `IMPLEMENTING`; `AS_BUILT` and `FINAL` remain n
 | 2026-08-08 | 1.2.0 | Record PR #217 controlled local persistence, integrity/replay and export-boundary evidence. |
 | 2026-08-08 | 1.3.0 | Record redaction-before-persistence and PR #223 verified stored-result reconstruction; separate D-01 delivery completion from EPIC-10 production finality. |
 | 2026-08-11 | 1.4.0 | Record PRs #345/#346 provider-neutral production-backend acceptance verifier and promotion prerequisite while preserving production backend `NOT_IMPLEMENTED / NOT_RUN`. |
+| 2026-08-11 | 1.5.0 | Record PRs #348/#349 provider-neutral tenant-isolation acceptance verifier and promotion prerequisite while preserving live tenant configuration/negative acceptance `NOT_RUN`. |

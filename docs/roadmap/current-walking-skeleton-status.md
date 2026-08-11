@@ -1,7 +1,7 @@
 # Hermes Security Labs — current walking-skeleton status
 
-**Reconciled:** 2026-08-11 20:20 UTC  
-**Current Labs baseline:** `56a9965dbbdda2c6986df7b0822e33e5529c05b0`  
+**Reconciled:** 2026-08-11 20:58 UTC  
+**Current Labs baseline:** `05babbbbdf50253374a5add1f73b6c8d96b4eb92`  
 **Accepted/live Hermes MCP Bridge revision:** `3717bd5469b061a44294b27e1a7510d477d3752b`
 
 This is the concise current-state view of the walking skeleton. Repository/CI proof and live Hermes runtime proof are separate evidence classes. Historical evidence remains in [`runtime-acceptance-checkpoint-2026-08-09.md`](runtime-acceptance-checkpoint-2026-08-09.md); the governed Runner promotion campaign is [`../../validation/VAL-HSL-RUNNER-L1-LIVE-PROMOTION.yaml`](../../validation/VAL-HSL-RUNNER-L1-LIVE-PROMOTION.yaml).
@@ -38,6 +38,8 @@ This is the concise current-state view of the walking skeleton. Repository/CI pr
 | Signer-attestation promotion reconciliation | `GREEN-REPO`, #343; verifier required by bundle, no live attestation claim |
 | Durable Evidence Plane backend attestation verifier | `GREEN-REPO`, #345; no backend selected/deployed; provider observation `NOT_RUN` |
 | Durable-backend promotion reconciliation | `GREEN-REPO`, #346; verifier required by bundle; production backend still `NOT_IMPLEMENTED / NOT_RUN` |
+| Evidence Plane backend tenant-isolation verifier | `GREEN-REPO`, #348; live tenant configuration/negative tests `NOT_RUN` |
+| Tenant-isolation promotion reconciliation | `GREEN-REPO`, #349; verifier required by bundle; no live isolation claim |
 | Full walking skeleton live completion | `HOLD / BLOCKED-ON-LIVE-PROMOTION-EVIDENCE-AND-CONNECTOR` |
 
 ## Walking skeleton
@@ -58,7 +60,9 @@ Target path:
 | Host identity/trust | host-evidence collector #336 `GREEN-REPO` | explicit host observation `NOT_RUN` |
 | User namespace | explicit-PID read-only observer #340 `GREEN-REPO` | gateway/Runner mapping observation `NOT_RUN` |
 | Signer attestation | evidence-bound verifier #342 `GREEN-REPO` | provider metadata capture + source-evidence verification `NOT_RUN` |
-| Evidence | terminal/audit custody plus provider-neutral durable-backend control verifier #345 `GREEN-REPO` | production backend `NOT_IMPLEMENTED / NOT_RUN`; provider observation and live persistence `NOT_RUN` |
+| Evidence backend controls | durable-backend control verifier #345 `GREEN-REPO` | production backend `NOT_IMPLEMENTED / NOT_RUN`; provider observation `NOT_RUN` |
+| Evidence tenant isolation | provider-neutral tenant-isolation verifier #348 `GREEN-REPO` | real tenant config/evidence and cross-tenant negatives `NOT_RUN` |
+| Evidence custody | terminal/audit custody use the existing Evidence Plane `GREEN-REPO` | live terminal/audit persistence `NOT_RUN` |
 | Reset/cleanup | bounded reset/destroy governance exists | first failure cleanup proved zero residue; post-fix full lifecycle remains `UNKNOWN` |
 
 ## Runtime acceptance already closed
@@ -111,7 +115,8 @@ The repository contains a complete **promotion candidate**, not an enabled runti
 - aggregate EVIDENCE_ONLY promotion gate/bundle (#334/#338);
 - explicit-PID read-only Linux user-namespace observation boundary (#340), required by the bundle after #341;
 - provider-neutral, evidence-bound external signer observation verifier (#342), required by the bundle after #343;
-- provider-neutral durable Evidence Plane backend-control verifier (#345), required by the promotion bundle after #346.
+- provider-neutral durable Evidence Plane backend-control verifier (#345), required by the promotion bundle after #346;
+- provider-neutral backend tenant-isolation verifier using only opaque tenant hashes and DENIED cross-tenant list/read/write evidence (#348), required by the bundle after #349.
 
 The service composition sequence is:
 
@@ -123,7 +128,9 @@ It intentionally provides no listener, daemon, generic execution path or implici
 
 PR #345 defines the **acceptance contract**, not the production storage implementation. A future `OBSERVED` backend attestation must prove production scope, active state, encryption at rest, `WORM_COMPLIANCE`, enforced retention, legal-hold support, no privileged delete bypass, blocked public access, overwrite protection and independently verified source evidence. The verifier is provider-neutral and performs no provisioning or storage mutation.
 
-The production backend itself remains **unselected, undeployed and unobserved**. `LocalEvidenceStore` remains a controlled CI reference and is not reclassified as production durable/WORM storage.
+PR #348 adds a separate **tenant-isolation acceptance contract**. It carries no customer/tenant names: only two distinct SHA-256 tenant identities. A future positive observation must prove namespace, access-policy and encryption-context isolation, no shared writable namespace, and DENIED cross-tenant list/read/write results bound to independently verified source evidence. The repository verifier does not execute those live negatives.
+
+The production backend itself remains **unselected, undeployed and unobserved**. Real tenant configuration and cross-tenant negative acceptance remain `NOT_RUN`. `LocalEvidenceStore` remains a controlled CI reference and is not reclassified as production durable/WORM or multi-tenant storage.
 
 ### Still missing for live promotion
 
@@ -134,7 +141,9 @@ The production backend itself remains **unselected, undeployed and unobserved**.
 - live user-namespace mapping evidence for the explicitly reviewed gateway/Runner PIDs;
 - unauthorized-peer negative test against the real Runner socket;
 - selected/deployed production durable/append-only/WORM Evidence Plane backend;
-- live backend provider observation accepted through #345 and live Runner/audit persistence;
+- live backend provider/control observation accepted through #345;
+- live backend tenant configuration and cross-tenant isolation negatives accepted through #348;
+- live Runner/audit/terminal persistence;
 - explicit promotion of only the minimum resolver/delivery/transport/routing/service/custody policy set;
 - Human-in-the-Loop approval for the exact promoted candidate;
 - one authorized WebGoat L1 effect, terminal/audit persistence and reset/known-state proof.
@@ -161,13 +170,14 @@ When the Hermes connector and authorized deployment evidence are usable again:
 6. run #336 host evidence against an explicitly reviewed descriptor;
 7. run #340 user-namespace evidence against explicitly reviewed PIDs;
 8. capture real external signer metadata, custody its source evidence and verify it through #342;
-9. select/deploy a production Evidence Plane backend, capture read-only control metadata and validate it through #345;
-10. prove installed trust store, live Runner/Evidence handoff and live audit/terminal persistence;
-11. execute the unauthorized-peer negative acceptance against the real Runner socket;
-12. request and record explicit Human-in-the-Loop promotion for the exact candidate;
-13. promote only the minimum WebGoat L1 policy set;
-14. execute one bounded read-only WebGoat L1 effect, persist terminal/audit evidence, reset/destroy and prove known state;
-15. on any RED, restore fail-closed state for the affected lane while unrelated repo-only work may continue.
+9. select/deploy a production Evidence Plane backend, capture read-only controls and validate them through #345;
+10. capture tenant-isolation configuration and bounded cross-tenant negative results and verify them through #348;
+11. prove installed trust store, live Runner/Evidence handoff and live audit/terminal persistence;
+12. execute the unauthorized-peer negative acceptance against the real Runner socket;
+13. request and record explicit Human-in-the-Loop promotion for the exact candidate;
+14. promote only the minimum WebGoat L1 policy set;
+15. execute one bounded read-only WebGoat L1 effect, persist terminal/audit evidence, reset/destroy and prove known state;
+16. on any RED, restore fail-closed state for the affected lane while unrelated repo-only work may continue.
 
 No target-interacting action is authorized merely because repository contracts or CI are GREEN.
 
@@ -187,12 +197,14 @@ No target-interacting action is authorized merely because repository contracts o
 | Runner L1 source-of-truth reconciliation | #344 | `b8c3302413a0c62bf4f98ae4f6fbb0c1ed8d2bc3` | DOC_ONLY, BLOCKED/HOLD preserved |
 | Durable Evidence Plane backend attestation verifier | #345 | `5b1e889519a1929fbdd13ce3d7853043ddebd0d7` | GREEN-REPO, backend deployment/observation NOT_RUN |
 | Durable-backend promotion reconciliation | #346 | `56a9965dbbdda2c6986df7b0822e33e5529c05b0` | GREEN-REPO, verifier required; backend still NOT_IMPLEMENTED/NOT_RUN |
+| Backend tenant-isolation verifier | #348 | `3cd53975ae152fbf13d1c06059ba187ed35a75d9` | GREEN-REPO, tenant config/negatives NOT_RUN |
+| Tenant-isolation promotion reconciliation | #349 | `05babbbbdf50253374a5add1f73b6c8d96b4eb92` | GREEN-REPO, verifier required; live isolation NOT_RUN |
 
 ## Decision record
 
-**Decision:** keep promotion on HOLD until live identity/trust/signer/backend/audit/evidence prerequisites and explicit Human-in-the-Loop promotion are proven.
+**Decision:** keep promotion on HOLD until live identity/trust/signer/backend/tenant-isolation/audit/evidence prerequisites and explicit Human-in-the-Loop promotion are proven.
 
-**Context:** the repository now contains host, user-namespace, signer-attestation and durable-backend-control verification boundaries, but these remain repository capabilities. No production backend has been selected/deployed and the related live observations have not run.
+**Context:** the repository now contains host, user-namespace, signer-attestation, durable-backend-control and tenant-isolation verification boundaries, but these remain repository capabilities. No production backend or tenant configuration has been selected/deployed and the related live observations have not run.
 
 **Risks accepted:** continued implementation may proceed repo-side while connector/live prerequisites are unavailable, provided no repository result is promoted to a live claim.
 
