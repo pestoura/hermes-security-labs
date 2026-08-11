@@ -14,7 +14,7 @@ observations:
     required: true
     result: PASS
     status: RESOLVED
-    summary: The repository chain now includes the typed WebGoat L1 adapter, TB1 verifier and Hermes issuer boundary, receipt delivery and verified authorization resolver, Unix peer identity and deny-by-default routing, sanitized dispatch audit projection and Evidence Plane custody, idempotent terminal-outcome custody, a read-only host-evidence collector, a fail-closed Runner service composition root and an aggregate EVIDENCE_ONLY promotion bundle. All remain non-authoritative until live deployment evidence and explicit human promotion exist.
+    summary: Repository chain includes WebGoat L1, TB1 issuer/verifier/delivery/resolver, Unix peer identity/routing, audit and outcome Evidence Plane custody, host-evidence collection, Runner service composition and the EVIDENCE_ONLY promotion gate/bundle. All remain non-authoritative until live deployment evidence and explicit human promotion exist.
     changeRecord: null
     evidence: 'prs:316,317,318,321,322,323,328,331,332,334,335,336,337,338; main:6dbd34cabb5766837803c6c9083254902fefa1dc'
   - id: OBS-TB1-LIVE-DELIVERY
@@ -28,7 +28,7 @@ observations:
     required: true
     result: BLOCKED
     status: OPEN
-    summary: Dedicated non-root identity/socket preflight, read-only host-evidence collection, strict authenticated-principal audit projection, Evidence Plane audit custody and the fail-closed Runner service composition are GREEN-REPO. Promotion remains blocked because host UID/GID/socket/trust-store observations and user-namespace mapping have not been accepted live, no unauthorized-peer negative test has run, no production durable/WORM audit backend has been proven, and transport/routing/service policies remain DISABLED/NOT_RUN.
+    summary: Identity/socket preflight, host-evidence collection, dispatch audit/custody and Runner service composition are GREEN-REPO. Promotion remains blocked because host/namespace evidence, unauthorized-peer negative testing and a production durable/WORM backend are not accepted live, while transport/routing/service policies remain DISABLED/NOT_RUN.
     changeRecord: CHG-HSL-012
     evidence: 'pr:323 identity/socket preflight; pr:332 dispatch audit contract; pr:335 audit Evidence Plane custody; pr:336 read-only host evidence; pr:337 service composition; pr:338 promotion bundle reconciliation; host-evidence:NOT_RUN; user-namespace-mapping:NOT_RUN; unauthorized-peer-negative:NOT_RUN; production-durable-audit-backend:NOT_IMPLEMENTED/NOT_RUN; transport-policy:DISABLED/NOT_RUN; routing-policy:DISABLED/NOT_RUN; service-composition-policy:DISABLED/NOT_RUN'
   - id: OBS-EVIDENCE-CUSTODY
