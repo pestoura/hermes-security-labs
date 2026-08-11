@@ -5,7 +5,7 @@ product: hermes-security-labs
 classification: HARDENING
 state: IMPLEMENTING
 disposition: FIX_NOW
-summary: Add a phased, candidate-bound live-promotion evidence package verifier. PRE_PROMOTION aggregates verified prerequisite evidence before explicit Human-in-the-Loop review; POST_EFFECT binds the promotion decision, effective minimum policy set, live terminal/audit persistence and bounded WebGoat L1 effect/reset evidence. Exact gate sets, campaign candidate SHA binding and independently verified evidence references are required. The package never updates campaign state, changes policy or grants promotion authority.
+summary: Add a phased, candidate-bound live-promotion evidence package. PRE_PROMOTION aggregates verified prerequisites before HITL; POST_EFFECT binds approval, the promoted policy set, terminal/audit persistence and bounded WebGoat effect/reset evidence. Exact gate sets and candidate SHA are enforced. Evidence only; no campaign/policy mutation or promotion authority.
 source:
   type: ENGINEERING_REVIEW
   campaign: VAL-HSL-RUNNER-L1-LIVE-PROMOTION
@@ -30,5 +30,5 @@ promotion:
 deferredTo: null
 timestamps:
   discoveredAt: '2026-08-11T20:57:00Z'
-  updatedAt: '2026-08-11T21:00:00Z'
+  updatedAt: '2026-08-11T21:03:00Z'
   closedAt: null
