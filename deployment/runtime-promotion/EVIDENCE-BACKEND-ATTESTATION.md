@@ -14,7 +14,7 @@ An `OBSERVED` envelope passes only when all of the following are true:
 - legal hold is supported;
 - privileged delete bypass is unavailable;
 - public access is blocked;
-- versioning is enabled;
+- retained evidence is technically protected against overwrite;
 - SHA-256 remains the integrity digest;
 - an independently injected `EvidenceVerifier` confirms the source provider-metadata artefact at the declared `evidence://` reference and SHA-256.
 
@@ -24,7 +24,7 @@ The default evidence verifier denies everything, so a committed YAML file cannot
 
 This boundary contains no client or provisioning code for AWS, Azure, Google Cloud, S3-compatible products, appliances or filesystems. A future provider-specific collector may normalize read-only configuration metadata into the common schema, but provider selection and deployment are separate decisions.
 
-The contract intentionally validates capabilities rather than product names.
+The contract intentionally validates security properties rather than product features. In particular, it requires generic overwrite protection rather than a storage-vendor-specific versioning mechanism.
 
 ## Canonical example
 
