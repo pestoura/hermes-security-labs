@@ -1,0 +1,122 @@
+# Runner runtime deployment boundary — live runtime acceptance evidence (#354)
+#
+# CANONICAL, SANITIZED, READ-ONLY EVIDENCE for the fail-closed Runner HOLD
+# boundary deployed by commit eb58b9a (#354). This file records the result of
+# the live runtime acceptance pass that occurred AFTER the merged deployment.
+#
+# It does NOT change any promotion semantics. The boundary remains:
+#   - runtime_status: NOT_RUN
+#   - execution_authority: none
+#   - promotion_allowed: false
+#   - trust store: ABSENT (before and after)
+#   - listener contract: strictly HOLD (REFUSE_HOLD, NO PAYLOAD)
+#
+# No pentest payload was sent. No WebGoat / Juice Shop / Kali target was
+# touched. No execution policy was enabled or bound. No trust store was
+# created, installed, or synthesized.
+schema_version: "1.0"
+evidence_id: EVD-HSL-354-RUNTIME-ACCEPTANCE
+change_record: CHG-HSL-034
+issue: 354
+accepted_sha: eb58b9ae9f9ac2a34f94f5b32c8f15331dc8c3eb
+phase: base-hold-deployment
+
+# Deployment/runtime acceptance verdict (NOT promotion).
+deployment_runtime_acceptance: PASS
+
+# Promotion state is deliberately left HOLD/DISABLED — evidence is not approval.
+promotion:
+  promotion_allowed: false
+  execution_authority: none
+  runtime_status: NOT_RUN
+  execution_promotion: HOLD
+  promotion_blocker: HUMAN_PROMOTION_APPROVAL_REQUIRED
+
+# Canonical, sanitized observed runtime facts (no secrets, no payloads).
+observed_runtime:
+  socket:
+    path: /run/hexor/runner-dispatch.sock
+    owner_uid: 4101
+    group_gid: 4110
+    mode: "0660"
+    active: true
+    enabled: true
+  socket_directory:
+    path: /run/hexor
+    owner_uid: 4101
+    group_gid: 4110
+    mode: "0750"
+  identities:
+    hexor-gateway:
+      uid: 4100
+      gid: 4100
+      member_of_dispatch: true
+    hexor-runner:
+      uid: 4101
+      gid: 4101
+      member_of_dispatch: true
+    hexor-dispatch:
+      gid: 4110
+  service:
+    unit: hexor-runner.service
+    active: true
+    running: true
+  trust_store:
+    present_before: false
+    present_after: false
+  docker_container_state:
+    identical_before_after: true
+
+# Sanitized access-control acceptance facts.
+acceptance_facts:
+  - id: UNAUTHORIZED_CONNECT_DENIED
+    description: >
+      Unauthorized local AF_UNIX connect from a non-dispatch member was denied
+      with errno=13 (EACCES) by the socket DAC (owner 4101:4110, mode 0660).
+    result: PASS
+  - id: AUTHORIZED_CONNECT_SUCCEEDED_NO_PAYLOAD
+    description: >
+      Authorized connection as hexor-gateway (uid 4100, member of hexor-dispatch)
+      succeeded at the socket layer with NO PAYLOAD exchanged.
+    result: PASS
+  - id: LISTENER_REFUSE_HOLD
+    description: >
+      Listener accepted the connection, derived kernel peer credential, logged
+      REFUSE_HOLD, recorded peer_uid=4100 peer_gid=4100, and performed_effects=[].
+      No request payload was read; no execution was authorized; no receipt,
+      router, adapter, evidence plane, target, or trust store was touched.
+    result: PASS
+  - id: TRUST_STORE_ABSENT
+    description: >
+      Trust store /etc/hexor/runner/authorization-trust-store.json was confirmed
+      absent both before and after the acceptance pass. No binding occurred.
+    result: PASS
+  - id: CONTAINER_STATE_STABLE
+    description: >
+      Docker container state (where the boundary is co-located) was identical
+      before and after the acceptance pass; no target effect.
+    result: PASS
+  - id: SOCKET_SERVICE_ACTIVE
+    description: >
+      Socket reported active/enabled and systemd unit hexor-runner.service
+      reported active/running after activation.
+    result: PASS
+
+# Explicitly out of scope for this evidence file (no change, no promotion).
+out_of_scope:
+  - bind_trust: not performed
+  - enable_execution_policy: not performed
+  - send_pentest_payload: not performed
+  - touch_targets: not performed (webgoat/juice-shop/kali)
+  - promotion_allowed: unchanged (false)
+
+# Validation that produced this evidence (all GREEN in the evidence branch).
+validation_corroboration:
+  targeted_deployment_tests: PASS
+  full_deployment_tests: PASS
+  ruff_deployment: PASS
+  yaml_parse: PASS
+  systemd_analyze_verify: PASS
+  jds_static_gate: PASS
+  runtime_promotion_evidence_gate: PASS
+  git_diff_check: CLEAN
