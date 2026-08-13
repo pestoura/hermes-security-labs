@@ -1,0 +1,34 @@
+schemaVersion: jds.change/v1
+kind: ChangeRecord
+id: CHG-HSL-033
+product: hermes-security-labs
+classification: DOC_ONLY
+state: IMPLEMENTING
+disposition: FIX_NOW
+summary: Reconcile the Runner L1 campaign, walking-skeleton status and canonical reconciliation test after PRs #351-#352. The exact repository candidate becomes main 6a77921e; phased live-evidence verification is GREEN-REPO while PRE_PROMOTION/POST_EFFECT packages, runtime policies and all production/live evidence remain NOT_RUN or BLOCKED. HOLD is preserved.
+source:
+  type: ENGINEERING_REVIEW
+  campaign: VAL-HSL-RUNNER-L1-LIVE-PROMOTION
+  observation: OBS-RUNNER-POLICY-PROMOTION
+  reference: 'Main 6a77921ec2079aa6689d11e2d7118f948ccb3a60 after merged PRs #351-#352; canonical campaign/status still referenced 05babbbb.'
+affectedRelease: jds-002-adoption-candidate
+targetRelease: null
+risk: LOW
+versionEffect: NONE
+branch: lane/runtime-promotion-source-of-truth-reconcile
+issue: null
+pr: null
+validation:
+  targeted: NOT_RUN
+  regression: NOT_RUN
+  security: NOT_APPLICABLE
+  runtime: NOT_APPLICABLE
+promotion:
+  commit: null
+  artifactDigest: null
+  previousRelease: null
+deferredTo: null
+timestamps:
+  discoveredAt: '2026-08-13T08:45:00Z'
+  updatedAt: '2026-08-13T08:45:00Z'
+  closedAt: null
