@@ -1,9 +1,9 @@
 """Pin the WebGoat L1 promotion bundle repository prerequisites.
 
 These tests prevent repository readiness from silently dropping accepted audit,
-host, user-namespace, signer-attestation, durable-backend, tenant-isolation or
-Runner service-composition boundaries. They do not authorize runtime promotion
-or claim that any live observation ran.
+host, user-namespace, signer-attestation, durable-backend, tenant-isolation,
+live-evidence-package or Runner service-composition boundaries. They do not
+authorize runtime promotion or claim that any live observation ran.
 """
 
 from __future__ import annotations
@@ -39,6 +39,7 @@ REQUIRED_CHANGES = {
     "CHG-HSL-022",
     "CHG-HSL-025",
     "CHG-HSL-028",
+    "CHG-HSL-031",
 }
 
 REQUIRED_COMPONENTS = {
@@ -54,6 +55,8 @@ REQUIRED_COMPONENTS = {
     "deployment/runtime-promotion/evidence-backend-attestation.schema.json",
     "deployment/runtime-promotion/runtime_evidence_backend_tenant_isolation.py",
     "deployment/runtime-promotion/evidence-backend-tenant-isolation-attestation.schema.json",
+    "deployment/runtime-promotion/runtime_live_promotion_evidence.py",
+    "deployment/runtime-promotion/live-promotion-evidence-package.schema.json",
     "platform/runner-service/service_composition.py",
 }
 
@@ -105,10 +108,17 @@ def test_reconciled_bundle_is_repository_ready_but_never_promotes() -> None:
 def test_signer_attestation_is_a_repository_prerequisite_not_live_evidence() -> None:
     bundle = _bundle()
     assert "CHG-HSL-022" in bundle["required_change_records"]
-    assert "deployment/runtime-promotion/runtime_signer_attestation.py" in bundle["required_components"]
-    assert "deployment/runtime-promotion/tb1-signer-attestation.schema.json" in bundle["required_components"]
-
-    record = yaml.safe_load((ROOT / "changes" / "CHG-HSL-022.yaml").read_text(encoding="utf-8"))
+    assert (
+        "deployment/runtime-promotion/runtime_signer_attestation.py"
+        in bundle["required_components"]
+    )
+    assert (
+        "deployment/runtime-promotion/tb1-signer-attestation.schema.json"
+        in bundle["required_components"]
+    )
+    record = yaml.safe_load(
+        (ROOT / "changes" / "CHG-HSL-022.yaml").read_text(encoding="utf-8")
+    )
     assert record["validation"]["runtime"] == "NOT_RUN"
 
 
@@ -123,8 +133,9 @@ def test_backend_attestation_is_a_repository_prerequisite_not_live_backend_proof
         "deployment/runtime-promotion/evidence-backend-attestation.schema.json"
         in bundle["required_components"]
     )
-
-    record = yaml.safe_load((ROOT / "changes" / "CHG-HSL-025.yaml").read_text(encoding="utf-8"))
+    record = yaml.safe_load(
+        (ROOT / "changes" / "CHG-HSL-025.yaml").read_text(encoding="utf-8")
+    )
     assert record["validation"]["runtime"] == "NOT_RUN"
 
 
@@ -139,8 +150,30 @@ def test_tenant_isolation_is_a_repository_prerequisite_not_live_proof() -> None:
         "deployment/runtime-promotion/evidence-backend-tenant-isolation-attestation.schema.json"
         in bundle["required_components"]
     )
+    record = yaml.safe_load(
+        (ROOT / "changes" / "CHG-HSL-028.yaml").read_text(encoding="utf-8")
+    )
+    assert record["validation"]["runtime"] == "NOT_RUN"
 
-    record = yaml.safe_load((ROOT / "changes" / "CHG-HSL-028.yaml").read_text(encoding="utf-8"))
+
+def test_live_package_verifier_is_required_but_live_package_is_not_committed() -> None:
+    bundle = _bundle()
+    assert "CHG-HSL-031" in bundle["required_change_records"]
+    assert (
+        "deployment/runtime-promotion/runtime_live_promotion_evidence.py"
+        in bundle["required_components"]
+    )
+    assert (
+        "deployment/runtime-promotion/live-promotion-evidence-package.schema.json"
+        in bundle["required_components"]
+    )
+    assert (
+        "deployment/runtime-promotion/templates/live-promotion-evidence-package.example.yaml"
+        not in bundle["required_components"]
+    )
+    record = yaml.safe_load(
+        (ROOT / "changes" / "CHG-HSL-031.yaml").read_text(encoding="utf-8")
+    )
     assert record["validation"]["runtime"] == "NOT_RUN"
 
 
@@ -152,5 +185,6 @@ def test_bundle_does_not_require_reconciliation_change_records() -> None:
         "CHG-HSL-023",
         "CHG-HSL-026",
         "CHG-HSL-029",
+        "CHG-HSL-032",
     ):
         assert change_id not in required
