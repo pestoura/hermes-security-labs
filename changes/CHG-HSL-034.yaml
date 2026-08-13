@@ -5,36 +5,11 @@ product: hermes-security-labs
 classification: HARDENING
 state: ACCEPTED
 disposition: FIX_NOW
-summary: >-
-  Implement the repository-only Runner runtime deployment boundary for #354 (phase A):
-  a fail-closed, idempotent and rollbackable HOLD boundary that declares the OS
-  identity boundary (hexor-gateway 4100 with private group 4100, hexor-runner 4101
-  with private group 4101, shared hexor-dispatch 4110 with both users as members),
-  the /run/hexor AF_UNIX dispatch surface (0750 dir, 0660 socket), systemd socket
-  activation/service supervision, a tmpfiles.d declaration, a strictly-HOLD listener
-  that reuses the canonical platform/runner-transport unix_peer_identity SO_PEERCRED
-  module and refuses, and an exact-aware, namespace-aware identity/collision
-  preflight (EXACT / ABSENT / CONFLICT; uid 4100 and gid 4100 are distinct
-  namespaces and not a duplicate collision). base deployment CAN materialize the
-  dedicated identities: after a fully GREEN descriptor/dependency/identity/artifact
-  drift preflight, install-base provisions ONLY the ABSENT objects via an injected
-  command runner (groupadd/useradd/usermod, no passwords or credentials), re-probes
-  the identities and requires an exact final state before any file or systemd
-  action. A failed identity command or wrong postcondition fails closed with
-  partial_identity_provisioning and the created identities recorded for the
-  operator; identities are never auto-deleted to compensate. rollback-base still
-  never deletes users, groups, memberships or the trust store: these are durable
-  boundary identities with a separate explicit administrative lifecycle. Policies
-  stay DISABLED / deny / NOT_RUN / execution_authority=none /
-  promotion_allowed=false. Validation is GREEN-REPO only; live runtime status
-  remains NOT_RUN until install-base --live is actually executed and observed on a
-  host. No target effect (WebGoat/Kali), no trust store created or synthesized.
-  Trust binding (phase B) is deferred to explicit external public sources with
-  SHA-256.
+summary: Add fail-closed Runner HOLD runtime deployment boundary with dedicated identities, AF_UNIX socket activation, and explicit trust binding.
 source:
   type: ENGINEERING_REVIEW
   campaign: null
-  observation: ISSUE-354-RUNNER-RUNTIME-DEPLOYMENT-BASE
+  observation: OBS-RUNNER-RUNTIME-DEPLOYMENT-BASE
   reference: 'issue #354; runtime-deployment.yaml; runtime_deployment.py; runner_hold_listener.py'
 affectedRelease: jds-002-adoption-candidate
 targetRelease: null
