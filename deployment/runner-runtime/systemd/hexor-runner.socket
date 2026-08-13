@@ -1,0 +1,18 @@
+[Unit]
+Description=Hexor Runner dispatch socket (HOLD boundary, #354)
+Documentation=file:/opt/hexor/runner-runtime/README.md
+
+[Socket]
+# AF_UNIX socket owned by hexor-runner (4101) and group hexor-dispatch (4110).
+# Mode 0660: rw for owner and group, no world access.
+ListenStream=/run/hexor/runner-dispatch.sock
+SocketUser=hexor-runner
+SocketGroup=hexor-dispatch
+SocketMode=0660
+DirectoryMode=0750
+# Keep the boundary strictly HOLD: accept the connection, the service inspects
+# the peer credential and closes/refuses. No payload, no dispatch.
+Accept=no
+
+[Install]
+WantedBy=sockets.target
