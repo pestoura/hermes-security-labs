@@ -3,7 +3,7 @@ kind: ChangeRecord
 id: CHG-HSL-033
 product: hermes-security-labs
 classification: DOC_ONLY
-state: IMPLEMENTING
+state: ACCEPTED
 disposition: FIX_NOW
 summary: Reconcile the Runner L1 campaign, walking-skeleton status and canonical reconciliation test after PRs #351-#352. The exact repository candidate becomes main 6a77921e; phased live-evidence verification is GREEN-REPO while PRE_PROMOTION/POST_EFFECT packages, runtime policies and all production/live evidence remain NOT_RUN or BLOCKED. HOLD is preserved.
 source:
@@ -19,8 +19,8 @@ branch: lane/runtime-promotion-source-of-truth-reconcile
 issue: null
 pr: 353
 validation:
-  targeted: NOT_RUN
-  regression: NOT_RUN
+  targeted: PASS
+  regression: PASS
   security: NOT_APPLICABLE
   runtime: NOT_APPLICABLE
 promotion:
@@ -30,5 +30,5 @@ promotion:
 deferredTo: null
 timestamps:
   discoveredAt: '2026-08-13T08:45:00Z'
-  updatedAt: '2026-08-13T08:51:00Z'
+  updatedAt: '2026-08-13T08:57:00Z'
   closedAt: null
