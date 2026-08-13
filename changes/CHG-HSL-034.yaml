@@ -1,0 +1,34 @@
+schemaVersion: jds.change/v1
+kind: ChangeRecord
+id: CHG-HSL-034
+product: hermes-security-labs
+classification: HARDENING
+state: ACCEPTED
+disposition: FIX_NOW
+summary: Add fail-closed Runner HOLD runtime deployment boundary with dedicated identities, AF_UNIX socket activation, and explicit trust binding.
+source:
+  type: ENGINEERING_REVIEW
+  campaign: null
+  observation: OBS-RUNNER-RUNTIME-DEPLOYMENT-BASE
+  reference: 'issue #354; runtime-deployment.yaml; runtime_deployment.py; runner_hold_listener.py'
+affectedRelease: jds-002-adoption-candidate
+targetRelease: null
+risk: LOW
+versionEffect: NONE
+branch: lane/runner-runtime-deployment
+issue: 354
+pr: null
+validation:
+  targeted: PASS
+  regression: PASS
+  security: PASS
+  runtime: NOT_APPLICABLE
+promotion:
+  commit: null
+  artifactDigest: null
+  previousRelease: null
+deferredTo: null
+timestamps:
+  discoveredAt: '2026-08-13T19:00:00Z'
+  updatedAt: '2026-08-13T19:00:00Z'
+  closedAt: null

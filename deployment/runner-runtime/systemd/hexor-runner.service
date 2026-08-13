@@ -1,0 +1,44 @@
+[Unit]
+Description=Hexor Runner HOLD listener (repository-only boundary, #354)
+Documentation=file:/opt/hexor/runner-runtime/README.md
+# No network dependency: AF_UNIX socket activation only.
+Requires=hexor-runner.socket
+After=hexor-runner.socket
+
+[Service]
+# Dedicated non-root identities. Nothing here promotes runtime_status.
+# Primary group is hexor-runner (4101); supplementary hexor-dispatch (4110) so
+# the service can own/accept on the runner:hexor-dispatch socket and /run/hexor.
+User=hexor-runner
+Group=hexor-runner
+SupplementaryGroups=hexor-dispatch
+# Never write __pycache__ next to the installed listener.
+Environment=PYTHONDONTWRITEBYTECODE=1
+# HOLD: the listener only obtains SO_PEERCRED and closes/refuses. It never reads
+# payloads, authorizes, creates receipts, calls the router/adapter/Evidence Plane
+# or touches a target.
+ExecStart=/usr/bin/python3 /opt/hexor/runner-runtime/runner_hold_listener.py
+Restart=on-failure
+RestartSec=5
+# Fail-closed hardening: no privileges, no new privileges, isolated.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_UNIX
+RestrictNamespaces=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+# No capabilities at all; fail-closed.
+CapabilityBoundingSet=
+AmbientCapabilities=
+# The runtime directory /run/hexor (owned runner:hexor-dispatch 0750) is created
+# by tmpfiles.d, NOT by RuntimeDirectory, so its ownership is never reset to the
+# service's primary group. The socket is created by hexor-runner.socket.
+
+[Install]
+WantedBy=multi-user.target
