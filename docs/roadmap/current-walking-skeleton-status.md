@@ -1,7 +1,7 @@
 # Hermes Security Labs — current walking-skeleton status
 
-**Reconciled:** 2026-08-11 20:58 UTC  
-**Current Labs baseline:** `05babbbbdf50253374a5add1f73b6c8d96b4eb92`  
+**Reconciled:** 2026-08-13 08:45 UTC  
+**Current Labs baseline:** `6a77921ec2079aa6689d11e2d7118f948ccb3a60`  
 **Accepted/live Hermes MCP Bridge revision:** `3717bd5469b061a44294b27e1a7510d477d3752b`
 
 This is the concise current-state view of the walking skeleton. Repository/CI proof and live Hermes runtime proof are separate evidence classes. Historical evidence remains in [`runtime-acceptance-checkpoint-2026-08-09.md`](runtime-acceptance-checkpoint-2026-08-09.md); the governed Runner promotion campaign is [`../../validation/VAL-HSL-RUNNER-L1-LIVE-PROMOTION.yaml`](../../validation/VAL-HSL-RUNNER-L1-LIVE-PROMOTION.yaml).
@@ -40,6 +40,8 @@ This is the concise current-state view of the walking skeleton. Repository/CI pr
 | Durable-backend promotion reconciliation | `GREEN-REPO`, #346; verifier required by bundle; production backend still `NOT_IMPLEMENTED / NOT_RUN` |
 | Evidence Plane backend tenant-isolation verifier | `GREEN-REPO`, #348; live tenant configuration/negative tests `NOT_RUN` |
 | Tenant-isolation promotion reconciliation | `GREEN-REPO`, #349; verifier required by bundle; no live isolation claim |
+| Phased live-promotion evidence package | `GREEN-REPO`, #351; PRE_PROMOTION/POST_EFFECT live packages `NOT_RUN`; `promotion_allowed=false` |
+| Live-package promotion reconciliation | `GREEN-REPO`, #352; verifier/schema required by bundle; committed example is not live evidence |
 | Full walking skeleton live completion | `HOLD / BLOCKED-ON-LIVE-PROMOTION-EVIDENCE-AND-CONNECTOR` |
 
 ## Walking skeleton
@@ -63,6 +65,7 @@ Target path:
 | Evidence backend controls | durable-backend control verifier #345 `GREEN-REPO` | production backend `NOT_IMPLEMENTED / NOT_RUN`; provider observation `NOT_RUN` |
 | Evidence tenant isolation | provider-neutral tenant-isolation verifier #348 `GREEN-REPO` | real tenant config/evidence and cross-tenant negatives `NOT_RUN` |
 | Evidence custody | terminal/audit custody use the existing Evidence Plane `GREEN-REPO` | live terminal/audit persistence `NOT_RUN` |
+| Live promotion evidence package | phased PRE_PROMOTION/POST_EFFECT verifier #351 `GREEN-REPO`, pinned by #352 | PRE_PROMOTION and POST_EFFECT packages `NOT_RUN`; even complete packages remain review evidence only |
 | Reset/cleanup | bounded reset/destroy governance exists | first failure cleanup proved zero residue; post-fix full lifecycle remains `UNKNOWN` |
 
 ## Runtime acceptance already closed
@@ -116,7 +119,9 @@ The repository contains a complete **promotion candidate**, not an enabled runti
 - explicit-PID read-only Linux user-namespace observation boundary (#340), required by the bundle after #341;
 - provider-neutral, evidence-bound external signer observation verifier (#342), required by the bundle after #343;
 - provider-neutral durable Evidence Plane backend-control verifier (#345), required by the promotion bundle after #346;
-- provider-neutral backend tenant-isolation verifier using only opaque tenant hashes and DENIED cross-tenant list/read/write evidence (#348), required by the bundle after #349.
+- provider-neutral backend tenant-isolation verifier using only opaque tenant hashes and DENIED cross-tenant list/read/write evidence (#348), required by the bundle after #349;
+- phased, candidate-bound live-evidence package verifier with exact PRE_PROMOTION/POST_EFFECT gate sets and independently verified evidence references (#351);
+- promotion bundle requirement for the #351 verifier/schema, while explicitly excluding the inert committed example as live evidence (#352).
 
 The service composition sequence is:
 
@@ -132,6 +137,12 @@ PR #348 adds a separate **tenant-isolation acceptance contract**. It carries no 
 
 The production backend itself remains **unselected, undeployed and unobserved**. Real tenant configuration and cross-tenant negative acceptance remain `NOT_RUN`. `LocalEvidenceStore` remains a controlled CI reference and is not reclassified as production durable/WORM or multi-tenant storage.
 
+### Phased live-evidence package boundary
+
+PR #351 defines a candidate-bound package around already-collected evidence. `PRE_PROMOTION` requires the exact prerequisite gate set before Human-in-the-Loop review. `POST_EFFECT` binds the Human-in-the-Loop decision, promoted minimum policy set, terminal/audit persistence and bounded WebGoat L1 effect/reset evidence. Every executed gate requires an `evidence://` reference and SHA-256 verified through an injected `EvidenceVerifier`; the default verifier denies all references.
+
+A complete package never grants promotion. It returns only the next review state while retaining `promotion_allowed=false` and recommendation `HOLD`. PR #352 makes only the verifier and schema promotion-bundle prerequisites. Live packages remain external evidence and are not committed as proof.
+
 ### Still missing for live promotion
 
 - actual protected signer provider observation with independently verified source evidence;
@@ -144,9 +155,11 @@ The production backend itself remains **unselected, undeployed and unobserved**.
 - live backend provider/control observation accepted through #345;
 - live backend tenant configuration and cross-tenant isolation negatives accepted through #348;
 - live Runner/audit/terminal persistence;
+- assembled and verified PRE_PROMOTION package for the exact candidate;
 - explicit promotion of only the minimum resolver/delivery/transport/routing/service/custody policy set;
 - Human-in-the-Loop approval for the exact promoted candidate;
-- one authorized WebGoat L1 effect, terminal/audit persistence and reset/known-state proof.
+- one authorized WebGoat L1 effect, terminal/audit persistence and reset/known-state proof;
+- assembled and verified POST_EFFECT package before campaign acceptance review.
 
 The canonical promotion gate remains `EVIDENCE_ONLY`, `HOLD`, `runtime_status: NOT_RUN`, `execution_authority: none`, and `promotion_allowed=false` even if all machine evidence becomes complete. Human promotion is a separate decision.
 
@@ -174,10 +187,12 @@ When the Hermes connector and authorized deployment evidence are usable again:
 10. capture tenant-isolation configuration and bounded cross-tenant negative results and verify them through #348;
 11. prove installed trust store, live Runner/Evidence handoff and live audit/terminal persistence;
 12. execute the unauthorized-peer negative acceptance against the real Runner socket;
-13. request and record explicit Human-in-the-Loop promotion for the exact candidate;
-14. promote only the minimum WebGoat L1 policy set;
-15. execute one bounded read-only WebGoat L1 effect, persist terminal/audit evidence, reset/destroy and prove known state;
-16. on any RED, restore fail-closed state for the affected lane while unrelated repo-only work may continue.
+13. assemble and verify the exact-candidate PRE_PROMOTION package through #351; completeness leads only to `HUMAN_PROMOTION_REVIEW_REQUIRED`;
+14. request and record explicit Human-in-the-Loop promotion for the exact candidate;
+15. promote only the minimum WebGoat L1 policy set;
+16. execute one bounded read-only WebGoat L1 effect, persist terminal/audit evidence, reset/destroy and prove known state;
+17. assemble and verify the POST_EFFECT package through #351; completeness leads only to `CAMPAIGN_ACCEPTANCE_REVIEW_REQUIRED`;
+18. on any RED, restore fail-closed state for the affected lane while unrelated repo-only work may continue.
 
 No target-interacting action is authorized merely because repository contracts or CI are GREEN.
 
@@ -199,13 +214,16 @@ No target-interacting action is authorized merely because repository contracts o
 | Durable-backend promotion reconciliation | #346 | `56a9965dbbdda2c6986df7b0822e33e5529c05b0` | GREEN-REPO, verifier required; backend still NOT_IMPLEMENTED/NOT_RUN |
 | Backend tenant-isolation verifier | #348 | `3cd53975ae152fbf13d1c06059ba187ed35a75d9` | GREEN-REPO, tenant config/negatives NOT_RUN |
 | Tenant-isolation promotion reconciliation | #349 | `05babbbbdf50253374a5add1f73b6c8d96b4eb92` | GREEN-REPO, verifier required; live isolation NOT_RUN |
+| Runner L1 tenant-isolation source-of-truth reconciliation | #350 | `d136bbfc7bad7aa9d94f8616c28e6b771f234b59` | DOC_ONLY, tenant live evidence remains NOT_RUN |
+| Phased live-promotion evidence package | #351 | `49cd0bd945fa4315a7faacba095fbb83318900ce` | GREEN-REPO, exact candidate/evidence binding; no promotion authority |
+| Live-package promotion-bundle reconciliation | #352 | `6a77921ec2079aa6689d11e2d7118f948ccb3a60` | GREEN-REPO, verifier/schema required; live packages NOT_RUN |
 
 ## Decision record
 
-**Decision:** keep promotion on HOLD until live identity/trust/signer/backend/tenant-isolation/audit/evidence prerequisites and explicit Human-in-the-Loop promotion are proven.
+**Decision:** keep promotion on HOLD until live identity/trust/signer/backend/tenant-isolation/audit/evidence prerequisites, a verified PRE_PROMOTION package and explicit Human-in-the-Loop promotion are proven; campaign acceptance additionally requires verified POST_EFFECT evidence.
 
-**Context:** the repository now contains host, user-namespace, signer-attestation, durable-backend-control and tenant-isolation verification boundaries, but these remain repository capabilities. No production backend or tenant configuration has been selected/deployed and the related live observations have not run.
+**Context:** the repository now contains host, user-namespace, signer-attestation, durable-backend-control, tenant-isolation and phased live-evidence package verification boundaries, but these remain repository capabilities. No production backend or tenant configuration has been selected/deployed and the related live observations/packages have not run.
 
-**Risks accepted:** continued implementation may proceed repo-side while connector/live prerequisites are unavailable, provided no repository result is promoted to a live claim.
+**Risks accepted:** continued implementation may proceed repo-side while connector/live prerequisites are unavailable, provided no repository result or package schema/example is promoted to a live claim.
 
 **State:** `HOLD / BLOCKED-ON-LIVE-PROMOTION-EVIDENCE-AND-CONNECTOR`.
