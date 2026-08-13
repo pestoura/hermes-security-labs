@@ -3,7 +3,7 @@ kind: ChangeRecord
 id: CHG-HSL-032
 product: hermes-security-labs
 classification: HARDENING
-state: IMPLEMENTING
+state: ACCEPTED
 disposition: FIX_NOW
 summary: Reconcile the WebGoat L1 promotion bundle with the accepted phased live-evidence package verifier from CHG-HSL-031. The bundle requires the verifier and schema, not a committed live package. EVIDENCE_ONLY, HOLD, runtime NOT_RUN and structurally false promotion authority remain unchanged; real PRE_PROMOTION/POST_EFFECT packages remain external live evidence.
 source:
@@ -19,9 +19,9 @@ branch: lane/runtime-promotion-live-package-reconcile
 issue: null
 pr: 352
 validation:
-  targeted: NOT_RUN
-  regression: NOT_RUN
-  security: NOT_RUN
+  targeted: PASS
+  regression: PASS
+  security: PASS
   runtime: NOT_RUN
 promotion:
   commit: null
@@ -30,5 +30,5 @@ promotion:
 deferredTo: null
 timestamps:
   discoveredAt: '2026-08-11T21:18:00Z'
-  updatedAt: '2026-08-11T21:20:00Z'
+  updatedAt: '2026-08-13T08:38:00Z'
   closedAt: null
