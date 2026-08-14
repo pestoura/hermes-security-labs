@@ -1,0 +1,43 @@
+[Unit]
+Description=Hexor Execution Gateway HOLD supervisor (repository-only boundary, #79)
+Documentation=file:/opt/hexor/execution-gateway/README.md
+# No network dependency: AF_UNIX client side only. The dispatcher socket is owned
+# by the runner runtime boundary (hexor-runner.socket).
+
+[Service]
+# Dedicated non-root identity. Primary group is hexor-gateway (4100); supplementary
+# hexor-dispatch (4110) so the gateway can connect to the runner:hexor-dispatch
+# socket at /run/hexor/runner-dispatch.sock.
+User=hexor-gateway
+Group=hexor-gateway
+SupplementaryGroups=hexor-dispatch
+# Never write __pycache__ next to the installed supervisor.
+Environment=PYTHONDONTWRITEBYTECODE=1
+# HOLD: the gateway only connects as a client, observes the dispatcher's refusal
+# and closes. It never sends a Runner payload, authorizes, creates receipts, calls
+# the router/adapter/Evidence Plane or touches a target. The loop keeps a real PID
+# for userns evidence.
+ExecStart=/usr/bin/python3 /opt/hexor/execution-gateway/execution_gateway_hold.py --hold
+Restart=on-failure
+RestartSec=5
+# Fail-closed hardening: no privileges, no new privileges, isolated.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_UNIX
+RestrictNamespaces=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+# No capabilities at all; fail-closed.
+CapabilityBoundingSet=
+AmbientCapabilities=
+# The runtime directory /run/hexor is created by the runner runtime tmpfiles.d,
+# NOT by RuntimeDirectory, so its ownership is never reset by this service.
+
+[Install]
+WantedBy=multi-user.target

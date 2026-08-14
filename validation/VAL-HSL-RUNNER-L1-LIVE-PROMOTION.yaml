@@ -14,8 +14,8 @@ observations:
     required: true
     result: PASS
     status: RESOLVED
-    summary: Repository chain includes WebGoat L1, TB1 authorization, peer identity/routing, Evidence Plane custody, host/userns observation, signer, durable-backend and tenant-isolation attestation verifiers, service composition, the EVIDENCE_ONLY promotion gate and the phased live-evidence package verifier. All remain non-authoritative until live evidence and explicit human promotion exist.
-    changeRecord: null
+    summary: Repository chain includes WebGoat L1, TB1 authorization, peer identity/routing, Evidence Plane custody, host/userns observation, signer, durable-backend and tenant-isolation attestation verifiers, service composition, the EVIDENCE_ONLY promotion gate and the phased live-evidence package verifier. The Execution Gateway runtime HOLD boundary (client side of the AF_UNIX dispatch surface, CHG-HSL-036 / issue #359) is now also part of the repository chain as a fail-closed, NOT-promoted capability. All remain non-authoritative until live evidence and explicit human promotion exist.
+    changeRecord: CHG-HSL-036
     evidence: 'prs:316,317,318,321,322,323,328,331,332,334,335,336,337,338,340,341,342,343,345,346,348,349,350,351,352; main:6a77921ec2079aa6689d11e2d7118f948ccb3a60'
   - id: OBS-TB1-LIVE-DELIVERY
     required: true
