@@ -1,5 +1,5 @@
 schema_version: assurance-profile/v1
-assurance_profile: LAB_L1
+assurance_profile: PROD
 derived_from: ADR-0011
 evaluation:
   requires_external_signer: true
@@ -16,5 +16,5 @@ evaluation:
   requires_mandatory_reset: true
   requires_request_bound_hitl: true
   allows_automatic_supplier_choice: false
-  requires_external_worm_backend: false
-  requires_tenant_isolation: false
+  requires_external_worm_backend: true
+  requires_tenant_isolation: true
