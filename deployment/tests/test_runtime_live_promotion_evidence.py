@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import hashlib
 import importlib.util
+import json
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -26,6 +27,8 @@ PACKAGE_PATH = (
     / "live-promotion-evidence-package.example.yaml"
 )
 CAMPAIGN_PATH = ROOT / "validation" / "VAL-HSL-RUNNER-L1-LIVE-PROMOTION.yaml"
+CURRENT_PROFILE_PATH = ROOT / "platform" / "assurance" / "current-assurance-profile.yaml"
+PROD_PROFILE_PATH = ROOT / "platform" / "assurance" / "prod-assurance-profile.yaml"
 
 
 def _load(name: str, path: Path) -> Any:
@@ -38,6 +41,9 @@ def _load(name: str, path: Path) -> Any:
 
 
 live = _load("runtime_live_promotion_evidence_test", MODULE_PATH)
+
+LAB_L1_PROFILE = live.load_assurance_profile(CURRENT_PROFILE_PATH)
+PROD_PROFILE = live.load_assurance_profile(PROD_PROFILE_PATH)
 
 
 def _campaign() -> dict[str, Any]:
@@ -56,9 +62,10 @@ def _digest(gate_id: str) -> str:
     return hashlib.sha256(f"evidence:{gate_id}".encode()).hexdigest()
 
 
-def _assembled(phase: str) -> dict[str, Any]:
+def _assembled(phase: str, profile: Any = None) -> dict[str, Any]:
+    profile = profile or LAB_L1_PROFILE
     gates = []
-    for gate_id in sorted(live.REQUIRED_GATES[phase]):
+    for gate_id in sorted(live.resolve_required_gates(phase, profile)):
         gates.append(
             {
                 "gate_id": gate_id,
@@ -98,28 +105,160 @@ class StaticEvidenceVerifier:
 def test_committed_example_is_inert_and_incomplete() -> None:
     package = live.load_package(PACKAGE_PATH)
     result = live.verify_live_evidence_package(
-        package, _campaign(), evidence_verifier=StaticEvidenceVerifier()
+        package,
+        _campaign(),
+        evidence_verifier=StaticEvidenceVerifier(),
+        assurance_profile=LAB_L1_PROFILE,
     )
     assert result.package_valid is True
     assert result.package_complete is False
     assert result.promotion_allowed is False
     assert result.recommendation == "HOLD"
     assert result.next_review == "EVIDENCE_COLLECTION_REQUIRED"
+    assert result.assurance_profile == "LAB_L1"
+    assert result.required_gate_count == len(
+        live.resolve_required_gates("PRE_PROMOTION", LAB_L1_PROFILE)
+    )
+    assert all(blocker.endswith(":NOT_RUN") for blocker in result.blockers)
+
+
+def test_committed_example_is_also_inert_and_incomplete_under_prod() -> None:
+    package = live.load_package(PACKAGE_PATH)
+    result = live.verify_live_evidence_package(
+        package,
+        _campaign(),
+        evidence_verifier=StaticEvidenceVerifier(),
+        assurance_profile=PROD_PROFILE,
+    )
+    assert result.assurance_profile == "PROD"
+    assert result.package_complete is False
+    assert result.promotion_allowed is False
+    assert result.recommendation == "HOLD"
     assert result.required_gate_count == len(live.PRE_PROMOTION_GATES)
     assert all(blocker.endswith(":NOT_RUN") for blocker in result.blockers)
+
+
+def test_lab_l1_does_not_require_external_worm_or_tenant_isolation_gates() -> None:
+    required = live.resolve_required_gates("PRE_PROMOTION", LAB_L1_PROFILE)
+    assert "EVIDENCE_BACKEND_CONTROLS" not in required
+    assert "EVIDENCE_TENANT_ISOLATION" not in required
+    assert required == live.BASE_PRE_PROMOTION_GATES
+    assert live.optional_gates("PRE_PROMOTION", LAB_L1_PROFILE) == frozenset(
+        {"EVIDENCE_BACKEND_CONTROLS", "EVIDENCE_TENANT_ISOLATION"}
+    )
+
+
+def test_prod_still_requires_external_worm_and_tenant_isolation_gates() -> None:
+    required = live.resolve_required_gates("PRE_PROMOTION", PROD_PROFILE)
+    assert "EVIDENCE_BACKEND_CONTROLS" in required
+    assert "EVIDENCE_TENANT_ISOLATION" in required
+    assert required == live.PRE_PROMOTION_GATES
+    assert live.optional_gates("PRE_PROMOTION", PROD_PROFILE) == frozenset()
+
+
+def test_post_effect_gate_set_is_profile_invariant() -> None:
+    assert live.resolve_required_gates(
+        "POST_EFFECT", LAB_L1_PROFILE
+    ) == live.resolve_required_gates("POST_EFFECT", PROD_PROFILE)
+    assert live.resolve_required_gates("POST_EFFECT", LAB_L1_PROFILE) == live.POST_EFFECT_GATES
+
+
+def test_missing_or_invalid_profile_document_fails_closed_to_prod() -> None:
+    for document in ({}, {"assurance_profile": "LAB_L2"}, {"assurance_profile": None}):
+        evaluation = live.validate_profile_document(document)
+        assert evaluation.resolved_profile == "PROD"
+        assert evaluation.promotion_allowed is False
+        assert (
+            live.resolve_required_gates("PRE_PROMOTION", evaluation)
+            == live.PRE_PROMOTION_GATES
+        )
+
+
+def test_unreadable_profile_path_fails_closed_to_prod(tmp_path: Path) -> None:
+    evaluation = live.load_assurance_profile(tmp_path / "absent-profile.yaml")
+    assert evaluation.resolved_profile == "PROD"
+    assert evaluation.promotion_allowed is False
+    assert (
+        live.resolve_required_gates("PRE_PROMOTION", evaluation)
+        == live.PRE_PROMOTION_GATES
+    )
+
+
+def test_lab_l1_package_is_rejected_under_prod_profile() -> None:
+    package = _assembled("PRE_PROMOTION", LAB_L1_PROFILE)
+    with pytest.raises(live.LiveEvidencePackageError) as exc:
+        live.verify_live_evidence_package(
+            package,
+            _campaign(),
+            evidence_verifier=StaticEvidenceVerifier(),
+            assurance_profile=PROD_PROFILE,
+        )
+    assert exc.value.code == "PACKAGE_GATE_SET_INVALID"
+
+
+def test_prod_package_under_lab_l1_keeps_optional_gates_verified() -> None:
+    package = _assembled("PRE_PROMOTION", PROD_PROFILE)
+    result = live.verify_live_evidence_package(
+        package,
+        _campaign(),
+        evidence_verifier=StaticEvidenceVerifier(),
+        assurance_profile=LAB_L1_PROFILE,
+    )
+    assert result.assurance_profile == "LAB_L1"
+    assert result.package_complete is True
+    assert result.promotion_allowed is False
+    assert result.recommendation == "HOLD"
+    assert result.optional_gates_present == (
+        "EVIDENCE_BACKEND_CONTROLS",
+        "EVIDENCE_TENANT_ISOLATION",
+    )
+    assert result.verified_evidence_count == len(live.PRE_PROMOTION_GATES)
+
+
+def test_optional_gate_failure_still_blocks_under_lab_l1() -> None:
+    package = _assembled("PRE_PROMOTION", PROD_PROFILE)
+    gate = next(
+        item for item in package["gates"] if item["gate_id"] == "EVIDENCE_TENANT_ISOLATION"
+    )
+    gate["result"] = "FAIL"
+    result = live.verify_live_evidence_package(
+        package,
+        _campaign(),
+        evidence_verifier=StaticEvidenceVerifier(),
+        assurance_profile=LAB_L1_PROFILE,
+    )
+    assert result.package_complete is False
+    assert result.promotion_allowed is False
+    assert "EVIDENCE_TENANT_ISOLATION:FAIL" in result.blockers
+
+
+def test_phase2_seal_gate_hook_is_declared_but_not_wired() -> None:
+    assert live.PHASE2_SEAL_GATE_HOOK == "EVIDENCE_HASH_CHAIN_SEAL"
+    assert live.PHASE2_SEAL_GATE_REQUIREMENT_KEY == "requires_hash_chain"
+    assert live.PHASE2_SEAL_GATE_ENABLED is False
+    for profile in (LAB_L1_PROFILE, PROD_PROFILE):
+        for phase in live.PHASES:
+            assert live.PHASE2_SEAL_GATE_HOOK not in live.resolve_required_gates(
+                phase, profile
+            )
 
 
 def test_complete_pre_promotion_package_requires_human_review_not_promotion() -> None:
     verifier = StaticEvidenceVerifier()
     package = _assembled("PRE_PROMOTION")
     result = live.verify_live_evidence_package(
-        package, _campaign(), evidence_verifier=verifier
+        package,
+        _campaign(),
+        evidence_verifier=verifier,
+        assurance_profile=LAB_L1_PROFILE,
     )
     assert result.package_complete is True
     assert result.promotion_allowed is False
     assert result.recommendation == "HOLD"
     assert result.next_review == "HUMAN_PROMOTION_REVIEW_REQUIRED"
-    assert result.verified_evidence_count == len(live.PRE_PROMOTION_GATES)
+    assert result.verified_evidence_count == len(
+        live.resolve_required_gates("PRE_PROMOTION", LAB_L1_PROFILE)
+    )
     assert result.blockers == ()
 
 
@@ -127,7 +266,10 @@ def test_complete_post_effect_package_requires_campaign_acceptance_review() -> N
     verifier = StaticEvidenceVerifier()
     package = _assembled("POST_EFFECT")
     result = live.verify_live_evidence_package(
-        package, _campaign(), evidence_verifier=verifier
+        package,
+        _campaign(),
+        evidence_verifier=verifier,
+        assurance_profile=LAB_L1_PROFILE,
     )
     assert result.package_complete is True
     assert result.promotion_allowed is False
@@ -137,7 +279,9 @@ def test_complete_post_effect_package_requires_campaign_acceptance_review() -> N
 
 
 def test_default_verifier_refuses_self_declared_pass_evidence() -> None:
-    result = live.verify_live_evidence_package(_assembled("PRE_PROMOTION"), _campaign())
+    result = live.verify_live_evidence_package(
+        _assembled("PRE_PROMOTION"), _campaign(), assurance_profile=LAB_L1_PROFILE
+    )
     assert result.package_complete is False
     assert result.verified_evidence_count == 0
     assert all("EVIDENCE_UNVERIFIED" in blocker for blocker in result.blockers)
@@ -148,7 +292,10 @@ def test_verified_fail_is_valid_evidence_but_blocks_phase() -> None:
     gate = next(item for item in package["gates"] if item["gate_id"] == "UNAUTHORIZED_PEER_NEGATIVE")
     gate["result"] = "FAIL"
     result = live.verify_live_evidence_package(
-        package, _campaign(), evidence_verifier=StaticEvidenceVerifier()
+        package,
+        _campaign(),
+        evidence_verifier=StaticEvidenceVerifier(),
+        assurance_profile=LAB_L1_PROFILE,
     )
     assert result.package_valid is True
     assert result.package_complete is False
@@ -171,7 +318,10 @@ def test_not_run_gate_blocks_assembled_phase() -> None:
         }
     )
     result = live.verify_live_evidence_package(
-        package, _campaign(), evidence_verifier=StaticEvidenceVerifier()
+        package,
+        _campaign(),
+        evidence_verifier=StaticEvidenceVerifier(),
+        assurance_profile=LAB_L1_PROFILE,
     )
     assert result.package_complete is False
     assert "RECEIPT_DELIVERY:NOT_RUN" in result.blockers
@@ -182,7 +332,10 @@ def test_assembled_package_must_bind_exact_campaign_commit() -> None:
     package["candidate"]["repository_commit"] = "f" * 40
     with pytest.raises(live.LiveEvidencePackageError) as exc:
         live.verify_live_evidence_package(
-            package, _campaign(), evidence_verifier=StaticEvidenceVerifier()
+            package,
+            _campaign(),
+            evidence_verifier=StaticEvidenceVerifier(),
+            assurance_profile=LAB_L1_PROFILE,
         )
     assert exc.value.code == "PACKAGE_CANDIDATE_MISMATCH"
 
@@ -194,7 +347,10 @@ def test_phase_gate_set_is_exact_and_cannot_skip_human_decision() -> None:
     ]
     with pytest.raises(live.LiveEvidencePackageError) as exc:
         live.verify_live_evidence_package(
-            package, _campaign(), evidence_verifier=StaticEvidenceVerifier()
+            package,
+            _campaign(),
+            evidence_verifier=StaticEvidenceVerifier(),
+            assurance_profile=LAB_L1_PROFILE,
         )
     assert exc.value.code == "PACKAGE_GATE_SET_INVALID"
 
@@ -206,7 +362,10 @@ def test_extra_gate_is_rejected_instead_of_silently_ignored() -> None:
     package["gates"].append(extra)
     with pytest.raises(live.LiveEvidencePackageError) as exc:
         live.verify_live_evidence_package(
-            package, _campaign(), evidence_verifier=StaticEvidenceVerifier()
+            package,
+            _campaign(),
+            evidence_verifier=StaticEvidenceVerifier(),
+            assurance_profile=LAB_L1_PROFILE,
         )
     assert exc.value.code == "PACKAGE_GATE_SET_INVALID"
 
@@ -216,7 +375,10 @@ def test_duplicate_gate_is_rejected() -> None:
     package["gates"].append(copy.deepcopy(package["gates"][0]))
     with pytest.raises(live.LiveEvidencePackageError) as exc:
         live.verify_live_evidence_package(
-            package, _campaign(), evidence_verifier=StaticEvidenceVerifier()
+            package,
+            _campaign(),
+            evidence_verifier=StaticEvidenceVerifier(),
+            assurance_profile=LAB_L1_PROFILE,
         )
     assert exc.value.code == "PACKAGE_INVALID"
 
@@ -232,13 +394,25 @@ def test_not_run_package_cannot_smuggle_executed_gate() -> None:
     }
     with pytest.raises(live.LiveEvidencePackageError) as exc:
         live.verify_live_evidence_package(
-            package, _campaign(), evidence_verifier=StaticEvidenceVerifier()
+            package,
+            _campaign(),
+            evidence_verifier=StaticEvidenceVerifier(),
+            assurance_profile=LAB_L1_PROFILE,
         )
     assert exc.value.code == "PACKAGE_INVALID"
 
 
 def test_cli_returns_red_for_incomplete_committed_example() -> None:
     assert live.main(["--package", str(PACKAGE_PATH), "check"]) == 2
+
+
+def test_cli_reports_the_accepted_profile_and_holds(capsys: Any) -> None:
+    assert live.main(["--package", str(PACKAGE_PATH), "--json", "check"]) == 2
+    payload = json.loads(capsys.readouterr().out.strip())
+    assert payload["assurance_profile"] == "LAB_L1"
+    assert payload["promotion_allowed"] is False
+    assert payload["recommendation"] == "HOLD"
+    assert payload["package_complete"] is False
 
 
 def test_source_has_no_collection_mutation_or_target_execution_path() -> None:
