@@ -1,0 +1,34 @@
+schemaVersion: jds.change/v1
+kind: ChangeRecord
+id: CHG-HSL-057
+product: hermes-security-labs
+classification: HARDENING
+state: ACCEPTED
+disposition: FIX_NOW
+summary: 'Repo-only fail-closed operator harness for the two remaining non-Vault SAFE-LIVE observations: USER_NAMESPACE_MAPPING re-attestation with PIDs from systemd MainPID at execution time, start-time bound, reviewed descriptor generated outside Git; UNAUTHORIZED_PEER_NEGATIVE via ephemeral setpriv identity (unauthorized UID + dispatch gid 4110 for DAC reachability only), no payload, DAC EACCES rejected as canonical proof. No live run; HOLD/NOT_RUN/promotion_allowed=false invariant.'
+source:
+  type: ENGINEERING_REVIEW
+  campaign: VAL-HSL-RUNNER-L1-LIVE-PROMOTION
+  observation: OBS-RUNNER-POLICY-PROMOTION
+  reference: 'Repo-only lane at origin/main 7f03567435c163184f314dd5a94f1d13cf1d558b (after CHG-HSL-056). Files: deployment/runtime-promotion/operator_live_observation_harness.py, OPERATOR-LIVE-OBSERVATION-HARNESS.md, deployment/tests/test_operator_live_observation_harness.py (40 tests, mocks/fakes only), changes/CHG-HSL-057.yaml. No privileged or live observation executed; no Docker/network/target/credential/policy/trust/signer effect; evidence only outside Git; campaign BLOCKED/HOLD unchanged.'
+affectedRelease: jds-002-adoption-candidate
+targetRelease: null
+risk: LOW
+versionEffect: NONE
+branch: chg-hsl-057/operator-live-observation-harness
+issue: null
+pr: null
+validation:
+  targeted: PASS
+  regression: PASS
+  security: PASS
+  runtime: NOT_APPLICABLE
+promotion:
+  commit: null
+  artifactDigest: null
+  previousRelease: null
+deferredTo: null
+timestamps:
+  discoveredAt: '2026-08-14T23:30:00Z'
+  updatedAt: '2026-08-14T23:30:00Z'
+  closedAt: null
