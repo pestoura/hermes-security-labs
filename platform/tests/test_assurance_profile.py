@@ -280,3 +280,52 @@ def test_load_profile_does_not_mutate_any_runtime_state() -> None:
     # The function must not have altered the canonical file.
     after = yaml.safe_load(PROFILE_PATH.read_text(encoding="utf-8"))
     assert after == before
+
+
+# ---------------------------------------------------------------------------
+# CHG-HSL-050: locked assurance-profile invariants (repository-only, HOLD)
+# ---------------------------------------------------------------------------
+
+
+def test_committed_lab_l1_profile_omits_only_worm_and_tenant_isolation() -> None:
+    doc = yaml.safe_load(PROFILE_PATH.read_text(encoding="utf-8"))
+    evaluation = doc["evaluation"]
+    # LAB_L1 may set ONLY these two to False; every other control stays True.
+    assert evaluation["requires_external_worm_backend"] is False
+    assert evaluation["requires_tenant_isolation"] is False
+    for key in (
+        "requires_external_signer",
+        "requires_purpose_bound_trust_store",
+        "requires_non_exportable_private_key",
+        "requires_explicit_trust_store",
+        "requires_accepted_signer_baseline",
+        "requires_so_peerccred_with_audit",
+        "requires_audit_sink",
+        "requires_tamper_evident_evidence",
+        "requires_hash_chain",
+        "requires_pre_promotion_package",
+        "requires_post_effect_package",
+        "requires_mandatory_reset",
+        "requires_request_bound_hitl",
+    ):
+        assert evaluation[key] is True
+
+
+def test_committed_lab_l1_profile_forbids_automatic_supplier_choice() -> None:
+    doc = yaml.safe_load(PROFILE_PATH.read_text(encoding="utf-8"))
+    assert doc["evaluation"]["allows_automatic_supplier_choice"] is False
+
+
+def test_committed_lab_l1_profile_is_always_unpromoted() -> None:
+    result = load_profile(PROFILE_PATH)
+    assert result.promotion_allowed is False
+    assert result.resolved_profile == LAB_L1
+
+
+def test_lab_l1_profile_rejects_any_unexpected_additional_control() -> None:
+    # A LAB_L1 doc that weakens by ADDING a control flag set False must fail
+    # (only the two omissible keys are allowed to be False).
+    doc = _doc(LAB_L1, requires_mandatory_reset=False)
+    result = validate_profile_document(doc)
+    assert result.resolved_profile == LAB_L1
+    assert any("requires_mandatory_reset" in f and "expected True" in f for f in result.failures)

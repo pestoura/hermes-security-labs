@@ -808,6 +808,78 @@ def test_descriptor_refuses_promotion_claim() -> None:
     assert "must remain NOT_RUN" in str(exc.value)
 
 
+# ----------------------------------------- CHG-HSL-050 extended deployment invariants
+
+
+def test_descriptor_is_repo_only_fail_closed_hold_boundary() -> None:
+    descriptor = _descriptor()
+    # The gateway HOLD boundary is repository-only and fail-closed: no live
+    # promotion, no target effect, client role on the AF_UNIX dispatch surface.
+    envelope = deployment.fail_closed_policy_envelope()
+    assert descriptor["policy"]["promotion_allowed"] is False
+    assert descriptor["promotion_allowed"] is False
+    assert descriptor["runtime_status"] == "NOT_RUN"
+    assert envelope["promotion_allowed"] is False
+    assert descriptor["gateway_client"]["role"] == "client"
+    assert descriptor["listener"]["mode"] == "HOLD"
+    # The gateway is the client side of the AF_UNIX dispatch surface and never
+    # promotes or enables a policy; promotion stays disabled and NOT_RUN.
+    assert descriptor["policy"]["state"] == "DISABLED"
+
+
+def test_install_base_never_sends_payload_touches_target_or_binds_trust(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    host = FakeIdentityHost.exact()
+    result, installed, _systemd = _install(host, monkeypatch, tmp_path)
+    # The deployment controller must never emit a Runner payload, touch a target
+    # (WebGoat/Kali) or bind a trust store. These are hard postconditions.
+    assert result["touched_target"] is False
+    assert result["bound_trust"] is False
+    assert result["enabled_policies"] is False
+    assert result["promotion_allowed"] is False
+    assert result["execution_authority"] == "none"
+    assert result["runtime_status"] == "NOT_RUN"
+    # Only gateway-owned files are installed; no runner/dispatch/trust artifacts.
+    for path in installed:
+        assert "runner-dispatch" not in path
+        assert "trust-store" not in path
+
+
+def test_module_never_sends_payload_or_touches_target_or_trust_state() -> None:
+    tree = ast.parse(DEPLOYMENT_MODULE.read_text(encoding="utf-8"))
+    source = ast.unparse(tree)
+    # No privileged provisioning or trust-binding calls anywhere in the module.
+    for forbidden in ("groupadd", "useradd", "bind_trust", "apply_policy"):
+        assert forbidden not in source
+    called = {ast.unparse(n.func) for n in ast.walk(tree) if isinstance(n, ast.Call)}
+    for verb in ("dispatch", "authorize", "apply_policy", "bind_trust"):
+        assert not any(verb in c for c in called)
+    # The module declares PROHIBITED_EFFECTS by name but exposes NO method that
+    # performs any of them; only plan/install/rollback lifecycle calls exist.
+    for effect in deployment.PROHIBITED_EFFECTS:
+        assert not hasattr(deployment, effect)
+        assert not hasattr(deployment, f"do_{effect}")
+
+
+def test_descriptor_never_declares_target_or_trust_effect() -> None:
+    descriptor = _descriptor()
+    tb = descriptor["trust_binding"]
+    assert tb["enabled"] is False
+    assert tb["source"] is None
+    assert tb["expected_sha256"] is None
+    for effect in descriptor["target_effects"].values():
+        assert effect in (None, "none")
+    assert descriptor["listener"]["mode"] == "HOLD"
+
+
+def test_deployment_descriptor_mirrors_canonical_gateway_identity_ids() -> None:
+    descriptor = _descriptor()
+    assert descriptor["identities"]["gateway"]["uid"] == 4100
+    assert descriptor["identities"]["gateway"]["gid"] == 4100
+    assert descriptor["identities"]["dispatch_group"]["gid"] == 4110
+
+
 # --------------------------------------------------------------------- helper
 
 
