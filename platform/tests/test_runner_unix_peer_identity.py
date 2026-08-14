@@ -194,3 +194,127 @@ def test_identity_is_derived_from_socket_not_caller_supplied_credentials() -> No
     assert "uid" not in [arg.arg for arg in authenticate.args.args]
     assert "gid" not in [arg.arg for arg in authenticate.args.args]
     assert "principal_id" not in [arg.arg for arg in authenticate.args.args]
+    assert authenticate.args.vararg is None
+    assert authenticate.args.kwarg is None
+
+
+def test_authenticated_decision_is_audited_when_sink_injected() -> None:
+    policy = _enabled_policy()
+    sink = identity.AuthenticatorAuditSink()
+    left, right = socket.socketpair(socket.AF_UNIX, socket.SOCK_STREAM)
+    try:
+        peer = identity.authenticate_unix_peer(left, policy, audit_sink=sink)
+    finally:
+        left.close()
+        right.close()
+
+    records = sink.records
+    assert len(records) == 1
+    record = records[0]
+    assert record["decision"] == "ALLOW"
+    assert record["reason_code"] == "PEER_AUTHORIZED"
+    assert record["principal_id"] == peer.principal_id
+    assert record["peer_uid"] == peer.peer_uid
+    assert record["peer_gid"] == peer.peer_gid
+    assert record["evidence_source"] == "kernel-so-peercred"
+
+
+def test_unauthorized_decision_is_audited_as_deny() -> None:
+    policy = _enabled_policy(uid=os.getuid() + 100000)
+    sink = identity.AuthenticatorAuditSink()
+    left, right = socket.socketpair(socket.AF_UNIX, socket.SOCK_STREAM)
+    try:
+        with pytest.raises(identity.TransportIdentityError) as exc:
+            identity.authenticate_unix_peer(left, policy, audit_sink=sink)
+        assert exc.value.code == "PEER_NOT_AUTHORIZED"
+    finally:
+        left.close()
+        right.close()
+
+    records = sink.records
+    assert len(records) == 1
+    record = records[0]
+    assert record["decision"] == "DENY"
+    assert record["reason_code"] == "PEER_NOT_AUTHORIZED"
+    assert record["principal_id"] is None
+    assert record["peer_uid"] == os.getuid()
+    assert record["peer_gid"] == os.getgid()
+    assert record["evidence_source"] == "kernel-so-peercred"
+
+
+def test_disabled_policy_emits_no_authorization_admission_audit() -> None:
+    policy = identity.load_policy()
+    assert policy["state"] == "DISABLED"
+    sink = identity.AuthenticatorAuditSink()
+    left, right = socket.socketpair(socket.AF_UNIX, socket.SOCK_STREAM)
+    try:
+        with pytest.raises(identity.TransportIdentityError) as exc:
+            identity.authenticate_unix_peer(left, policy, audit_sink=sink)
+        assert exc.value.code == "TRANSPORT_DISABLED"
+    finally:
+        left.close()
+        right.close()
+
+    # Fail-closed: a disabled transport produces no authorization admission audit.
+    assert sink.records == []
+
+
+def test_caller_can_never_bypass_kernel_identity_derivation() -> None:
+    # The authenticator takes only (peer_socket, policy, *, audit_sink). There is
+    # no positional or keyword parameter through which a caller could inject a
+    # principal id, uid or gid. Passing any such name must fail closed.
+    policy = _enabled_policy()
+    sink = identity.AuthenticatorAuditSink()
+    left, right = socket.socketpair(socket.AF_UNIX, socket.SOCK_STREAM)
+    try:
+        with pytest.raises(TypeError):
+            identity.authenticate_unix_peer(  # type: ignore[call-arg]
+                left, policy, audit_sink=sink, uid=os.getuid(), gid=os.getgid()
+            )
+        with pytest.raises(TypeError):
+            identity.authenticate_unix_peer(  # type: ignore[call-arg]
+                left, policy, audit_sink=sink, principal_id="hexor.attacker"
+            )
+    finally:
+        left.close()
+        right.close()
+    # If the call somehow returned, the kernel (not the caller) still decides.
+    assert sink.records == []
+
+
+def test_audit_sink_record_is_tamper_integrity_protected() -> None:
+    policy = _enabled_policy()
+    sink = identity.AuthenticatorAuditSink()
+    left, right = socket.socketpair(socket.AF_UNIX, socket.SOCK_STREAM)
+    try:
+        identity.authenticate_unix_peer(left, policy, audit_sink=sink)
+    finally:
+        left.close()
+        right.close()
+
+    stored = sink.records[0]
+    snapshot = dict(stored)
+    # A tampered caller mutating the returned reference cannot alter the internal
+    # stored record: the sink copies on append and returns a defensive list copy.
+    stored["principal_id"] = "hexor.tampered"
+    stored["decision"] = "DENY"
+    assert sink.records[0]["principal_id"] == snapshot["principal_id"]
+    assert sink.records[0]["decision"] == snapshot["decision"]
+    # The returned records list is also a defensive copy.
+    external = sink.records
+    external[0] = {"decision": "DENY", "reason_code": "x", "evidence_source": None,
+                   "peer_uid": None, "peer_gid": None, "principal_id": None}
+    assert sink.records[0]["principal_id"] == snapshot["principal_id"]
+
+
+def test_sink_default_is_none_and_default_behavior_is_preserved() -> None:
+    # Without an injected sink the function behaves exactly as before.
+    policy = _enabled_policy()
+    left, right = socket.socketpair(socket.AF_UNIX, socket.SOCK_STREAM)
+    try:
+        peer = identity.authenticate_unix_peer(left, policy)
+    finally:
+        left.close()
+        right.close()
+    assert peer.principal_id == "hexor.execution-gateway"
+    assert peer.evidence_source == "kernel-so-peercred"
