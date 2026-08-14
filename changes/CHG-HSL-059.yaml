@@ -1,0 +1,34 @@
+schemaVersion: jds.change/v1
+kind: ChangeRecord
+id: CHG-HSL-059
+product: hermes-security-labs
+classification: HARDENING
+state: ACCEPTED
+disposition: FIX_NOW
+summary: 'Repo-only hardening: the dropped peer probe is now an INDEPENDENT self-contained stdlib-only `/usr/bin/python3 -c` snippet (no harness/yaml/jsonschema/home import, no evidence write), wrapped by `setpriv --reuid/--regid <uid> --groups 4110 --no-new-privs`. Parent stays root, re-attests userns first, then spawns the child. Fail-closed parse (zero/2+/non-JSON/non-dict marker lines rejected), no shell=True. Re-invoking `peer-child` subcommand removed. HOLD/NOT_RUN invariant.'
+source:
+  type: ENGINEERING_REVIEW
+  campaign: VAL-HSL-RUNNER-L1-LIVE-PROMOTION
+  observation: OBS-RUNNER-POLICY-PROMOTION
+  reference: 'Repo-only lane at origin/main c5d988f1223399cf7ea201bdd4c8a567a827b063. Files: operator_live_observation_harness.py, OPERATOR-LIVE-OBSERVATION-HARNESS.md, test_operator_live_observation_harness.py, changes/CHG-HSL-059.yaml. Canonical parent collect (LAB only) uses the proven Hermes venv; the dropped peer child is independent `/usr/bin/python3 -c` stdlib and is marked temporary LAB operational debt. No live collect, no sudo, no runtime/policy/trust mutation; campaign BLOCKED/HOLD unchanged.'
+affectedRelease: jds-002-adoption-candidate
+targetRelease: null
+risk: LOW
+versionEffect: NONE
+branch: chg-hsl-059/stdlib-peer-probe-child
+issue: null
+pr: null
+validation:
+  targeted: PASS
+  regression: PASS
+  security: PASS
+  runtime: NOT_APPLICABLE
+promotion:
+  commit: null
+  artifactDigest: null
+  previousRelease: null
+deferredTo: null
+timestamps:
+  discoveredAt: '2026-08-15T02:30:00Z'
+  updatedAt: '2026-08-15T02:30:00Z'
+  closedAt: null
