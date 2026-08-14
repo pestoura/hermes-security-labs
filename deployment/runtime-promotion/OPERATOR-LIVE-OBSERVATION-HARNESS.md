@@ -62,11 +62,17 @@ authorized peer. Anything else is rejected as `IDENTITY_ASSUMPTION_REJECTED`.
 ## Step 2 — collect (read-only observation)
 
 ```bash
-sudo python3 deployment/runtime-promotion/operator_live_observation_harness.py \
-  --output-directory /var/tmp/hsl-058-evidence \
+sudo /home/estourpm/.hermes/hermes-agent/venv/bin/python \
+  deployment/runtime-promotion/operator_live_observation_harness.py \
+  --output-directory /var/tmp/hsl-059-evidence \
   --unauthorized-uid <EPHEMERAL_UID> \
   collect
 ```
+
+> **LAB_OPERATIONAL_DEBT:** the parent invocation above relies on the already-proven
+> Hermes agent venv for LAB only. The **dropped peer child is independent** of this
+> dependency — it is always the plain `/usr/bin/python3 -c` stdlib snippet (see the
+> canonical live form below).
 
 `sudo` is required whenever `--unauthorized-uid` is supplied: the parent must hold
 effective root for the privileged userns re-attestation and to drop the peer child.
@@ -117,18 +123,43 @@ completed under root does the parent spawn one dedicated child:
 ```text
 /usr/bin/setpriv --reuid <EPHEMERAL_UID> --regid <EPHEMERAL_UID> \
   --groups 4110 --no-new-privs -- \
-  <python3> <harness.py> peer-child \
-    --socket-path /run/hexor/runner-dispatch.sock \
-    --unauthorized-uid <EPHEMERAL_UID> --dispatch-gid 4110
+  /usr/bin/python3 -c "<self-contained stdlib peer-probe source>" \
+  /run/hexor/runner-dispatch.sock
 ```
 
-That child performs the socket connect/observe **only**. It runs no userns
-collection, sends no payload, writes no evidence, and returns its outcome to the
-parent as a single deterministic machine-readable line
-(`HSL058_PEER_CHILD_RESULT {json}`), which the parent decodes into the evidence
-envelope. `--unauthorized-uid` is required for the peer-negative observation; when
-it is supplied, `collect` **fails closed with `ROOT_REQUIRED`** if the parent is
-not effective root.
+That child is an **INDEPENDENT, self-contained `stdlib`-only**
+`/usr/bin/python3 -c` snippet. It imports no harness code, no `yaml`, no
+`jsonschema`, no repository source and no home paths, and it writes **no
+evidence**. It connects to the socket, observes `recv`/EOF/refusal (it NEVER
+calls `send`/`sendall`), emits exactly one prefixed JSON result line
+(`PEER_CHILD_RESULT {json}`) from its self-contained `/usr/bin/python3 -c`
+source, and exits. The parent parses that one line fail-closed (rejecting
+zero, two, or more marker lines, non-JSON, or a non-mapping payload). An AST
+guard test proves the child
+source imports only `errno`/`json`/`socket`/`struct`/`sys` and contains none of
+`send`/`sendall`/`jsonschema`/`yaml`/`harness`/`runtime_userns_evidence`/`open(`
+or any home path. The parent parses that one line fail-closed (rejecting zero,
+two, or more marker lines, non-JSON, or a non-mapping payload).
+
+> **LAB_OPERATIONAL_DEBT — temporary dependency.** The canonical **parent**
+> command documented below relies on the already-proven **Hermes agent venv**
+> solely for the *repository-side* orchestration of the live collect:
+>
+> ```bash
+> sudo /home/estourpm/.hermes/hermes-agent/venv/bin/python \
+>   deployment/runtime-promotion/operator_live_observation_harness.py \
+>   --output-directory /var/tmp/hsl-059-evidence \
+>   --unauthorized-uid <EPHEMERAL_UID> \
+>   collect
+> ```
+>
+> This venv dependency is **temporary LAB operational debt** and applies ONLY to
+> the parent harness invocation on the lab host. The **dropped peer child is
+> independent** of it — it is always the plain `/usr/bin/python3 -c` stdlib
+> snippet above, with no Hermes venv, no harness module and no repository import.
+> Removing the LAB_OPERATIONAL_DEBT note requires replacing the parent's venv
+> invocation with a system-Python / pinned-interpreter path, which is out of scope
+> for CHG-HSL-059.
 
 #### Rejected: wrapping the whole harness in `setpriv`
 

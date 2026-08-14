@@ -21,7 +21,9 @@ Scope (exactly two observations, nothing else):
    is reachable at the DAC layer while its UID is UNAUTHORIZED. The child connects
    and observes the HOLD boundary refusing/closing, runs NO userns collection,
    NEVER sends a Runner request payload, and returns its result to the parent in a
-   deterministic machine-readable form.
+   deterministic machine-readable form. The child is an INDEPENDENT stdlib-only
+   ``/usr/bin/python3 -c`` snippet (no harness code, no yaml, no jsonschema, no
+   repository or home path, no evidence write).
 
 Hard invariants enforced by this module (fail-closed, no exceptions):
 
@@ -74,11 +76,65 @@ RUNNER_UNIT = "hexor-runner.service"
 RUNNER_HOLD_SOCKET = "/run/hexor/runner-dispatch.sock"
 DISPATCH_GID = 4110
 
-# Internal child subcommand (CHG-HSL-058). The harness itself stays privileged so
-# ``/proc/<pid>/ns/user`` remains dereferenceable; ONLY this dedicated child is
-# dropped to the unauthorized identity via setpriv to connect/observe the socket.
-PEER_CHILD_SUBCOMMAND = "peer-child"
-PEER_CHILD_RESULT_MARKER = "HSL058_PEER_CHILD_RESULT"
+# CHG-HSL-059: dedicated self-contained stdlib-only child for the peer probe.
+# The parent harness stays privileged (effective root) so the userns
+# re-attestation above can dereference ``/proc/<pid>/ns/user``; ONLY a dedicated
+# child process is dropped to a TEMPORARY unauthorized identity via
+# ``/usr/bin/setpriv --reuid <uid> --regid <uid> --groups 4110 --no-new-privs``.
+# That child is a SELF-CONTAINED stdlib-only ``/usr/bin/python3 -c`` snippet: it
+# imports NO harness code, NO ``yaml``, NO ``jsonschema``, NO repository source,
+# NO home paths, and writes NO evidence. It connects, observes recv/EOF/refusal,
+# emits exactly one prefixed JSON result line, and exits.
+PEER_CHILD_MARKER = "PEER_CHILD_RESULT"
+
+# Exactly the source executed by the dropped child. Stdlib-only by construction
+# (proven by an AST guard test): only errno/json/socket/struct/sys are imported
+# and no send/sendall/jsonschema/yaml/harness/home reference exists. The parent
+# passes only the socket path as an argument; the identity is already dropped by
+# setpriv before this code runs.
+PEER_CHILD_CODE = "\n".join([
+    "import errno, json, socket, struct, sys",
+    "marker = " + repr(PEER_CHILD_MARKER),
+    "def _child_main():",
+    "    socket_path = sys.argv[1]",
+    "    result = {'observation': 'UNAUTHORIZED_PEER_NEGATIVE', 'payload_sent': False}",
+    "    try:",
+    "        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)",
+    "        sock.settimeout(5.0)",
+    "        try:",
+    "            sock.connect(socket_path)",
+    "        except PermissionError as exc:",
+    "            result.update({'connected': False, 'dac_blocked': True, 'errno': exc.errno, 'outcome': 'DAC_BLOCKED_NOT_CANONICAL_PROOF', 'canonical_proof': False})",
+    "            sys.stdout.write(marker + ' ' + json.dumps(result) + '\\n')",
+    "            return",
+    "        except OSError as exc:",
+    "            if exc.errno in (errno.EACCES, errno.EPERM):",
+    "                result.update({'connected': False, 'dac_blocked': True, 'errno': exc.errno, 'outcome': 'DAC_BLOCKED_NOT_CANONICAL_PROOF', 'canonical_proof': False})",
+    "            else:",
+    "                result.update({'connected': False, 'dac_blocked': False, 'errno': exc.errno, 'outcome': 'NO_REFUSAL_SIGNAL_OBSERVED', 'canonical_proof': False})",
+    "            sys.stdout.write(marker + ' ' + json.dumps(result) + '\\n')",
+    "            return",
+    "        try:",
+    "            raw = sock.getsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED, struct.calcsize('3i'))",
+    "            pid, server_uid, server_gid = struct.unpack('3i', raw)",
+    "        except OSError:",
+    "            pid = server_uid = server_gid = None",
+    "        closed = False",
+    "        try:",
+    "            data = sock.recv(1)",
+    "            closed = (data == b'')",
+    "        except OSError:",
+    "            closed = True",
+    "        if closed:",
+    "            result.update({'connected': True, 'dac_blocked': False, 'server_pid': pid, 'server_uid': server_uid, 'server_gid': server_gid, 'closed_without_response': True, 'outcome': 'HOLD_REFUSAL_OBSERVED', 'canonical_proof': True})",
+    "        else:",
+    "            result.update({'connected': True, 'dac_blocked': False, 'server_pid': pid, 'server_uid': server_uid, 'server_gid': server_gid, 'closed_without_response': False, 'outcome': 'NO_REFUSAL_SIGNAL_OBSERVED', 'canonical_proof': False})",
+    "        sys.stdout.write(marker + ' ' + json.dumps(result) + '\\n')",
+    "    except OSError as exc:",
+    "        result.update({'connected': False, 'dac_blocked': False, 'errno': exc.errno, 'outcome': 'NO_REFUSAL_SIGNAL_OBSERVED', 'canonical_proof': False})",
+    "        sys.stdout.write(marker + ' ' + json.dumps(result) + '\\n')",
+    "_child_main()",
+])
 
 # Identities that must never be used as the "unauthorized" probe UID.
 RESERVED_PROBE_UIDS = frozenset({0, 4100, 4101})
@@ -736,7 +792,8 @@ def observe_unauthorized_peer_negative(
 # dedicated child process is dropped to the unauthorized identity via ``setpriv``
 # to perform the socket connect/observe. The child NEVER runs userns collection,
 # NEVER sends a payload, and returns its result to the parent in a deterministic
-# machine-readable form (a single JSON line behind ``PEER_CHILD_RESULT_MARKER``).
+# machine-readable form (a single JSON line behind ``PEER_CHILD_MARKER`` emitted
+# by the independent stdlib-only child snippet ``PEER_CHILD_CODE``).
 
 
 def require_effective_root(*, getuid: Any = None) -> None:
@@ -768,57 +825,19 @@ def build_peer_child_argv(
     socket_path: str = RUNNER_HOLD_SOCKET,
     dispatch_gid: int = DISPATCH_GID,
     python_executable: str | None = None,
-    module_path: str | os.PathLike[str] | None = None,
 ) -> list[str]:
     """Build the exact setpriv-wrapped argv for the dedicated peer child.
 
-    The wrapped command re-invokes THIS module with the ``peer-child``
-    subcommand, so the child performs only the connect/observe. ``setpriv`` drops
-    to the unauthorized UID/GID with the dispatch supplementary GID (DAC
-    reachability only) and ``--no-new-privs``. No persistent identity is created.
+    The wrapped command is an INDEPENDENT ``/usr/bin/python3 -c`` snippet
+    (``PEER_CHILD_CODE``): it imports no harness code and passes only the socket
+    path. ``setpriv`` drops to the unauthorized UID/GID with the dispatch
+    supplementary GID (DAC reachability only) and ``--no-new-privs``. No
+    persistent identity is created.
     """
 
-    python = python_executable or sys.executable
-    module = str(module_path if module_path is not None else Path(__file__).resolve())
-    command = [
-        python,
-        module,
-        PEER_CHILD_SUBCOMMAND,
-        "--socket-path",
-        socket_path,
-        "--unauthorized-uid",
-        str(unauthorized_uid),
-        "--dispatch-gid",
-        str(dispatch_gid),
-    ]
+    python = python_executable or "/usr/bin/python3"
+    command = [python, "-c", PEER_CHILD_CODE, socket_path]
     return plan.argv(command)
-
-
-def _peer_child_observe(
-    *,
-    unauthorized_uid: int,
-    socket_path: str = RUNNER_HOLD_SOCKET,
-    dispatch_gid: int = DISPATCH_GID,
-    probe: PeerProbe | None = None,
-    which: Any = shutil.which,
-    stat_fn: Any = os.stat,
-) -> PeerNegativeResult:
-    """Child-side observation body.
-
-    Runs ONLY the connect/observe classification. It never re-attests the user
-    namespace, never writes evidence, and never sends a payload. This is the code
-    the dropped child executes; it reuses the shared classifier so the child and a
-    unit-tested call share one implementation.
-    """
-
-    return observe_unauthorized_peer_negative(
-        unauthorized_uid=unauthorized_uid,
-        socket_path=socket_path,
-        dispatch_gid=dispatch_gid,
-        probe=probe,
-        which=which,
-        stat_fn=stat_fn,
-    )
 
 
 def observe_peer_negative_via_child(
@@ -831,7 +850,6 @@ def observe_peer_negative_via_child(
     stat_fn: Any = os.stat,
     runner: Any = None,
     python_executable: str | None = None,
-    module_path: str | os.PathLike[str] | None = None,
 ) -> PeerNegativeResult:
     """Parent-side: validate identity, spawn the setpriv child, parse its result.
 
@@ -880,7 +898,6 @@ def observe_peer_negative_via_child(
         socket_path=socket_path,
         dispatch_gid=dispatch_gid,
         python_executable=python_executable,
-        module_path=module_path,
     )
 
     run = runner
@@ -918,26 +935,41 @@ def observe_peer_negative_via_child(
     )
 
 
-def _emit_peer_child_result(result: PeerNegativeResult) -> str:
-    """Serialize the child result behind the deterministic marker line."""
+def _emit_peer_child_line(result: PeerNegativeResult) -> str:
+    """Serialize the parent-side result behind the deterministic marker line.
+
+    The INDEPENDENT child emits its own marker line with the same marker; this
+    helper is used only by tests to assert the parent-side round-trip.
+    """
 
     body = json.dumps(result.as_dict(), sort_keys=True)
-    return f"{PEER_CHILD_RESULT_MARKER} {body}"
+    return f"{PEER_CHILD_MARKER} {body}"
 
 
 def _parse_peer_child_result(stdout: str) -> dict[str, Any] | None:
-    """Parse the last deterministic marker line the child emitted, if any."""
+    """Fail-closed parse of the independent child's deterministic marker line.
 
-    for line in reversed((stdout or "").splitlines()):
+    Returns the single result object only when: the child emitted exactly ONE
+    marker line, that line is valid JSON, and it is a mapping. Zero, two, or more
+    marker lines, a non-JSON line, or a non-mapping payload are rejected (return
+    ``None``) so a malformed/absent/multi-result child never yields a false
+    observation.
+    """
+
+    marker_lines: list[str] = []
+    for line in (stdout or "").splitlines():
         stripped = line.strip()
-        if stripped.startswith(PEER_CHILD_RESULT_MARKER):
-            body = stripped[len(PEER_CHILD_RESULT_MARKER) :].strip()
-            try:
-                parsed = json.loads(body)
-            except json.JSONDecodeError:
-                return None
-            return parsed if isinstance(parsed, dict) else None
-    return None
+        if stripped.startswith(PEER_CHILD_MARKER):
+            marker_lines.append(stripped)
+
+    if len(marker_lines) != 1:
+        return None
+    body = marker_lines[0][len(PEER_CHILD_MARKER) :].strip()
+    try:
+        parsed = json.loads(body)
+    except json.JSONDecodeError:
+        return None
+    return parsed if isinstance(parsed, dict) else None
 
 
 # ---------------------------------------------------------------------------
@@ -1026,12 +1058,11 @@ def _parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "command",
-        choices=("plan", "collect", PEER_CHILD_SUBCOMMAND),
+        choices=("plan", "collect"),
         help=(
             "plan = validate assumptions only; collect = observe read-only "
-            "(parent stays root, drops ONLY a setpriv peer child); "
-            "peer-child = internal privilege-dropped connect/observe (not for "
-            "direct operator use)"
+            "(parent stays root, drops ONLY a setpriv peer child that is a "
+            "self-contained stdlib /usr/bin/python3 -c snippet)"
         ),
     )
     return parser
@@ -1040,28 +1071,11 @@ def _parser() -> argparse.ArgumentParser:
 def main(argv: Sequence[str] | None = None) -> int:
     args = _parser().parse_args(list(argv) if argv is not None else None)
 
-    # Internal child path: connect/observe ONLY. No output directory, no userns
-    # collection, no evidence write. The result goes to stdout behind the
-    # deterministic marker so the privileged parent can decode it.
-    if args.command == PEER_CHILD_SUBCOMMAND:
-        if args.unauthorized_uid is None:
-            print(
-                json.dumps(
-                    {
-                        "code": "IDENTITY_ASSUMPTION_REJECTED",
-                        "error": "peer child requires --unauthorized-uid",
-                    },
-                    sort_keys=True,
-                )
-            )
-            return 2
-        child_result = _peer_child_observe(
-            unauthorized_uid=args.unauthorized_uid,
-            socket_path=args.socket_path,
-            dispatch_gid=args.dispatch_gid,
-        )
-        print(_emit_peer_child_result(child_result))
-        return 0
+    # CHG-HSL-059: the dropped peer child is an INDEPENDENT stdlib-only
+    # ``/usr/bin/python3 -c`` snippet (PEER_CHILD_CODE) launched by the parent via
+    # setpriv. The harness module itself therefore has NO internal child subcommand:
+    # the parent never re-invokes itself to perform the probe. Only ``plan`` and
+    # ``collect`` exist.
 
     if args.output_directory is None:
         print(
