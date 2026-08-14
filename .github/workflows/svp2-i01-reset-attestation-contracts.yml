@@ -1,0 +1,37 @@
+name: svp2-i01-reset-attestation-contracts
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/svp2-i01-reset-attestation-contracts.yml'
+      - 'platform/lab-registry-v2/**'
+      - 'platform/tests/test_reset_attestation_contracts.py'
+  pull_request:
+    paths:
+      - '.github/workflows/svp2-i01-reset-attestation-contracts.yml'
+      - 'platform/lab-registry-v2/**'
+      - 'platform/tests/test_reset_attestation_contracts.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: svp2-i01-reset-attestation-contracts-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  reset-attestation-contracts:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+      - name: Install bounded test dependencies
+        run: python -m pip install --disable-pip-version-check pytest
+      - name: Execute repository-only reset attestation contracts (no Docker/target)
+        run: python -m pytest platform/tests/test_reset_attestation_contracts.py -q -ra
