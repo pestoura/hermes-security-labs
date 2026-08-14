@@ -1,0 +1,62 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Hermes Security Labs assurance profile (provider-neutral, fail-closed default)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "assurance_profile",
+    "derived_from",
+    "evaluation"
+  ],
+  "properties": {
+    "schema_version": {"const": "assurance-profile/v1"},
+    "assurance_profile": {
+      "type": "string",
+      "enum": ["LAB_L1", "PROD"]
+    },
+    "derived_from": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Decisive source of the profile choice: ADR id, change record id or explicit override. Absent/invalid => fail-closed to PROD."
+    },
+    "evaluation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requires_external_signer",
+        "requires_purpose_bound_trust_store",
+        "requires_non_exportable_private_key",
+        "requires_explicit_trust_store",
+        "requires_so_peerccred_with_audit",
+        "requires_audit_sink",
+        "requires_tamper_evident_evidence",
+        "requires_hash_chain",
+        "requires_pre_promotion_package",
+        "requires_post_effect_package",
+        "requires_mandatory_reset",
+        "requires_request_bound_hitl",
+        "allows_automatic_supplier_choice",
+        "requires_external_worm_backend",
+        "requires_tenant_isolation"
+      ],
+      "properties": {
+        "requires_external_signer": {"type": "boolean"},
+        "requires_purpose_bound_trust_store": {"type": "boolean"},
+        "requires_non_exportable_private_key": {"type": "boolean"},
+        "requires_explicit_trust_store": {"type": "boolean"},
+        "requires_so_peerccred_with_audit": {"type": "boolean"},
+        "requires_audit_sink": {"type": "boolean"},
+        "requires_tamper_evident_evidence": {"type": "boolean"},
+        "requires_hash_chain": {"type": "boolean"},
+        "requires_pre_promotion_package": {"type": "boolean"},
+        "requires_post_effect_package": {"type": "boolean"},
+        "requires_mandatory_reset": {"type": "boolean"},
+        "requires_request_bound_hitl": {"type": "boolean"},
+        "allows_automatic_supplier_choice": {"type": "boolean"},
+        "requires_external_worm_backend": {"type": "boolean"},
+        "requires_tenant_isolation": {"type": "boolean"}
+      }
+    }
+  }
+}

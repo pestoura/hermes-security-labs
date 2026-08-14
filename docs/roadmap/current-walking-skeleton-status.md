@@ -8,6 +8,28 @@ This is the concise current-state view of the walking skeleton. Repository/CI pr
 
 > **GREEN-REPO is not live acceptance.** It means the contract/code exists and passed repository gates. It does not grant execution authority, activate a policy, prove host deployment or prove target interaction.
 
+## Assurance profile decision (ADR-0011, Accepted)
+
+ADR-0011 is **Accepted** as Option B: the assurance requirement set is split into two profiles,
+`LAB_L1` (narrow, controlled) and `PROD` (production-equivalent). The decision is **structural
+only**; it authorizes no live effect, policy enablement, trust binding or target interaction.
+
+- canonical profile declaration: `platform/assurance/current-assurance-profile.yaml` (`assurance_profile: LAB_L1`, `derived_from: ADR-0011`);
+- schema: `platform/schemas/assurance-profile.schema.json`;
+- evaluation: `platform/assurance/assurance_profile.py` (fail-closed: absent/invalid profile -> `PROD`).
+- `LAB_L1` MAY omit **only** the external production WORM backend and multi-tenant production
+  tenant-isolation gates. It MUST still require external signer, non-exportable private key, explicit
+  trust store, `SO_PEERCRED` + audit, tamper-evident/hash-chained evidence, PRE/POST packages,
+  mandatory reset/zero-residue and request-bound HITL. No automatic supplier/provider selection.
+- `PROD` retains every current production-equivalent control (WORM + tenant isolation included).
+
+**Current campaign profile: `LAB_L1`, campaign state `BLOCKED / HOLD`.** This record reflects the
+*accepted profile decision* and the *current* campaign profile. It does **not** mark any unresolved
+observation in `validation/VAL-HSL-RUNNER-L1-LIVE-PROMOTION.yaml` as resolved and adds **no** live
+promotion path. `promotion_allowed` remains `false`; the campaign remains `HOLD` until the remaining
+`LAB_L1` prerequisites (signer/trust store, `SO_PEERCRED` negative test, WORM/tenant observation,
+PRE/POST packages, one authorized effect + reset evidence) are actually observed.
+
 ## Current summary
 
 | Item | Current state |

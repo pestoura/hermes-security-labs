@@ -1,17 +1,22 @@
-# ADR-0011 — Assurance profiles for the first isolated L1 lab effect (proposal)
+# ADR-0011 — Assurance profiles for the first isolated L1 lab effect (accepted)
 
-- **Status:** Proposed — **Em validação / EM_VALIDACAO, non-final, non-operative**
+- **Status:** Accepted — **Decision recorded 2026-08-14; non-operative until live prerequisites observed**
 - **Date:** 2026-08-14
 - **Decision owners:** `SVP2-A-01`, `EPIC-01`
 - **Supersedes:** none
 - **Superseded by:** none
 
-> **Non-operative notice.** This record is a **proposal under validation**. It changes no policy,
-> no template, no gate, no runtime code and no campaign state. `VAL-HSL-RUNNER-L1-LIVE-PROMOTION`
-> remains `BLOCKED / HOLD`, with `promotion_allowed: false`, `runtime_status: NOT_RUN`,
-> `execution_authority: none` and `default: deny`. Nothing in this document authorizes a live
-> effect, a policy enablement, a trust binding or a target interaction. Acceptance of any option
-> below would require a separate, explicitly authorized decision and its own change record.
+> **Accepted-decision notice.** This ADR is now an **accepted architectural decision** (Option B:
+> split assurance profiles `LAB_L1` and `PROD`). Acceptance is a *structural* decision about which
+> requirement sets exist and how they fail closed; it authorizes **no live effect, policy
+> enablement, trust binding or target interaction**. The canonical profile declaration is
+> `platform/assurance/current-assurance-profile.yaml` (`derived_from: ADR-0011`), validated by
+> `platform/schemas/assurance-profile.schema.json` and
+> `platform/assurance/assurance_profile.py`. `VAL-HSL-RUNNER-L1-LIVE-PROMOTION` remains `BLOCKED /
+> HOLD`, with `promotion_allowed: false`, `runtime_status: NOT_RUN`, `execution_authority: none`
+> and `default: deny`. This decision does **not** mark any unresolved observation in the campaign
+> as resolved, and adds **no** live promotion path: promotion remains a separate, explicitly
+> request-bound human decision (ADR-0008).
 
 ## Context
 
@@ -40,8 +45,20 @@ itself, without adding proportional security value.
 
 ## Decision
 
-**No decision is taken.** This ADR records the option space and a *recommended proposal* for later
-human decision. Three options are compared.
+**Accepted: Option B — split assurance profiles `LAB_L1` and `PROD`** (explicit human decision,
+recorded 2026-08-14 by the decision owners `SVP2-A-01` / `EPIC-01`). The rationale in the original
+proposal is adopted: `LAB_L1` removes only the two heaviest, least lab-relevant blockers (external
+production WORM durability, multi-tenant isolation) while keeping every identity, authorization,
+audit and tamper-evidence control the first live effect exercises. `PROD` is unchanged.
+
+The decision is **structural only**: it defines which requirement sets exist and the fail-closed
+resolution rule. It does **not** perform, authorize or schedule any live effect. The canonical
+machine-checked declaration is `platform/assurance/current-assurance-profile.yaml`
+(`assurance_profile: LAB_L1`, `derived_from: ADR-0011`), validated by
+`platform/schemas/assurance-profile.schema.json` and `platform/assurance/assurance_profile.py`.
+An absent, invalid or unparsable `assurance_profile` always resolves to `PROD` (fail-closed).
+
+Three options were compared; A and C were considered and rejected as the chosen path:
 
 ### Option A — keep the strict production-equivalent promotion gate unchanged
 
@@ -49,7 +66,10 @@ Promotion of any live effect, including a single isolated L1 lab, requires the c
 assurance stack: external signer/trust store, external WORM compliance backend, tenant isolation,
 audit sink, PRE/POST packages, enabled `SO_PEERCRED` identity mapping with audit, and HITL.
 
-### Option B — split assurance profiles (`LAB_L1` and `PROD`) — *proposed, not decided*
+*Not chosen:* keeps the first real boundary evidence gated behind the most expensive components and
+sustains `HOLD` with no empirical validation of `SO_PEERCRED` + audit.
+
+### Option B — split assurance profiles (`LAB_L1` and `PROD`) — *accepted*
 
 Two named assurance profiles with explicitly different, individually auditable requirement sets:
 
@@ -67,11 +87,18 @@ Two named assurance profiles with explicitly different, individually auditable r
 
 `PROD` requirements are **not weakened**. `LAB_L1` is an additional, narrower profile whose scope is
 bounded by the isolation invariants of ADR-0005 and whose evidence classification follows ADR-0007.
+`LAB_L1` MAY omit **only** the external production WORM backend and the multi-tenant production
+tenant-isolation gates; it MUST NOT bypass signer/trust, `SO_PEERCRED` negative test + audit,
+evidence integrity + hash-chain, PRE/POST packages, mandatory reset, or request-bound HITL. No
+automatic supplier/provider selection is permitted under either profile.
 
 ### Option C — simulation-only until the full production stack exists
 
 No live effect at all; the boundary is exercised only through simulated dispatch and static
 evidence until every production blocker is closed.
+
+*Not chosen:* simulation cannot produce the peer-identity, audit-sink or evidence-sealing evidence
+the campaign requires, risking a permanently deferred boundary.
 
 ## Consequences
 
@@ -138,13 +165,14 @@ evidence until every production blocker is closed.
    the migration as provenance rather than re-derivation;
 6. no `LAB_L1` result is ever promoted to a `PROD` assurance claim by re-labelling.
 
-## Recommendation (proposal only)
+## Recommendation (accepted)
 
-**Option B is proposed**, subject to human decision. Rationale: it removes the two blockers whose
-security relevance to a single disposable lab is weakest (regulated WORM durability, multi-tenant
-isolation) while keeping every identity, authorization, audit and tamper-evidence control that the
-first live effect actually exercises. It is explicitly *not* adopted here, and Option A remains the
-current gate until a separate authorized decision says otherwise.
+**Option B is accepted** as the structural assurance-profile split. Rationale: it removes the two
+blockers whose security relevance to a single disposable lab is weakest (regulated WORM durability,
+multi-tenant isolation) while keeping every identity, authorization, audit and tamper-evidence control
+that the first live effect actually exercises. The acceptance is structural only: Option A remains the
+effective production-equivalent gate for any `PROD`/`LAB_L1`-absent context, and the live promotion
+campaign stays `HOLD` until the remaining `LAB_L1` prerequisites are actually observed.
 
 ## Alternatives considered
 

@@ -62,7 +62,7 @@ Editorial clarification that does not alter behaviour or authority does not requ
 | [ADR-0008](ADR-0008-human-controlled-content-promotion.md) | Generated content remains a proposal until recorded human promotion | Accepted | content lifecycle |
 | [ADR-0009](ADR-0009-runtime-source-of-truth-and-drift-semantics.md) | Use the Git registry as the runtime catalogue root, keep observation non-authoritative and apply fail-safe tri-state drift | Accepted | runtime source of truth |
 | [ADR-0010](ADR-0010-versioned-uuid-correlation-contract.md) | Introduce a versioned UUID correlation contract for gateway/admission integrations without rewriting legacy identifiers | Accepted | execution correlation contracts |
-| [ADR-0011](ADR-0011-assurance-profiles-for-first-live-lab-promotion.md) | Analyse whether production-grade WORM plus tenant isolation must precede the first isolated L1 lab effect; proposes split assurance profiles | Proposed (Em validação, non-final) | assurance profiles and promotion coupling |
+| [ADR-0011](ADR-0011-assurance-profiles-for-first-live-lab-promotion.md) | Analyse whether production-grade WORM plus tenant isolation must precede the first isolated L1 lab effect; accepts split assurance profiles LAB_L1 (narrow) and PROD (production-equivalent), fail-closed to PROD | Accepted | assurance profiles and promotion coupling |
 
 ## Structural-decision coverage
 
