@@ -8,9 +8,9 @@ disposition: FIX_NOW
 summary: Add fail-closed Runner HOLD runtime deployment boundary with dedicated identities, AF_UNIX socket activation, and explicit trust binding.
 source:
   type: ENGINEERING_REVIEW
-  campaign: null
-  observation: OBS-RUNNER-RUNTIME-DEPLOYMENT-BASE
-  reference: 'issue #354; runtime-deployment.yaml; runtime_deployment.py; runner_hold_listener.py'
+  campaign: VAL-HSL-RUNNER-L1-LIVE-PROMOTION
+  observation: OBS-RUNNER-REPO-CHAIN
+  reference: 'issue #354; runtime-deployment.yaml; runtime_deployment.py; runner_hold_listener.py; HOLD boundary is a repository-chain capability under the merged promotion candidate, not an independent live-acceptance observation'
 affectedRelease: jds-002-adoption-candidate
 targetRelease: null
 risk: LOW
