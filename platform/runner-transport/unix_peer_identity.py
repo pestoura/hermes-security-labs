@@ -20,9 +20,86 @@ import sys
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Protocol, runtime_checkable
 
 import yaml
+
+
+@runtime_checkable
+class AuditSinkProtocol(Protocol):
+    """Minimal audit sink contract for authentication decisions.
+
+    Any sink (the in-memory ``AuthenticatorAuditSink`` test double, the canonical
+    evidence-plane adapter, or a future durable backend) implements only
+    ``record_decision``. The authenticator depends on THIS protocol, not on a
+    concrete sink -- so it does not own a second production audit sink. It emits
+    ALLOW/DENY through the injected contract only on the ENABLED path and
+    otherwise produces no authorization-admission audit.
+    """
+
+    def record_decision(
+        self, *, decision: str, reason_code: str, detail: Mapping[str, Any]
+    ) -> None:
+        ...
+
+
+class AuthenticatorAuditSink:
+    """Repository-only in-memory test double for ``AuditSinkProtocol``.
+
+    This is NOT a production audit sink. It implements the minimal protocol purely
+    for repository tests and local inspection: it records exactly the
+    authentication decisions made by ``authenticate_unix_peer``. No filesystem,
+    network or process I/O occurs here. It is fail-closed relative to the
+    transport policy -- consulted only when ENABLED, and a DISABLED policy fails
+    closed without producing any authorization-admission audit record. Callers
+    cannot influence the emitted identity (principal/uid/gid) because those
+    values are derived exclusively from the kernel ``SO_PEERCRED`` tuple inside
+    the authenticator.
+    """
+
+    def __init__(self) -> None:
+        self._records: list[dict[str, Any]] = []
+
+    @property
+    def records(self) -> list[dict[str, Any]]:
+        # Defensive copy of every stored record so a tampered caller cannot
+        # mutate internal audit state through the returned reference.
+        return [dict(record) for record in self._records]
+
+    def record_decision(self, *, decision: str, reason_code: str, detail: Mapping[str, Any]) -> None:
+        if decision not in {"ALLOW", "DENY"}:
+            raise TransportIdentityError(
+                "AUDIT_DECISION_INVALID",
+                "authenticator audit sink received an unsupported decision",
+            )
+        if not isinstance(reason_code, str) or not reason_code:
+            raise TransportIdentityError(
+                "AUDIT_REASON_INVALID",
+                "authenticator audit sink requires a non-empty reason code",
+            )
+        entry = {
+            "decision": decision,
+            "reason_code": reason_code,
+            "evidence_source": detail.get("evidence_source"),
+            "peer_uid": detail.get("peer_uid"),
+            "peer_gid": detail.get("peer_gid"),
+            "principal_id": detail.get("principal_id"),
+        }
+        # Store a fresh copy so later mutation of the caller's detail mapping
+        # cannot alter the persisted audit record.
+        self._records.append(dict(entry))
+
+
+def _emit_decision(
+    sink: AuditSinkProtocol | None,
+    *,
+    decision: str,
+    reason_code: str,
+    detail: Mapping[str, Any],
+) -> None:
+    if sink is None:
+        return
+    sink.record_decision(decision=decision, reason_code=reason_code, detail=detail)
 
 POLICY_PATH = Path(__file__).resolve().parent / "transport-policy.yaml"
 PRINCIPAL_RE = re.compile(r"^[a-z0-9][a-z0-9._:-]{2,127}$")
@@ -206,13 +283,26 @@ def read_kernel_peer_credentials(peer_socket: socket.socket) -> KernelPeerCreden
 def authenticate_unix_peer(
     peer_socket: socket.socket,
     policy: Mapping[str, Any],
+    *,
+    audit_sink: AuditSinkProtocol | None = None,
 ) -> AuthenticatedPeer:
-    """Authenticate one accepted Unix peer using exact kernel UID/GID mapping."""
+    """Authenticate one accepted Unix peer using exact kernel UID/GID mapping.
+
+    An optional ``audit_sink`` records the authentication decision (allowed or
+    denied) but never changes it. The sink is only consulted when the transport
+    policy is ENABLED, because a DISABLED policy must fail closed without
+    producing any authorization-admission audit record. The authenticated
+    identity is derived exclusively from the kernel ``SO_PEERCRED`` tuple; it is
+    never taken from the socket object, caller-supplied values or the policy
+    principal metadata beyond exact UID/GID equality.
+    """
 
     problems = validate_policy(policy)
     if problems:
         raise TransportIdentityError("POLICY_INVALID", "; ".join(problems))
     if policy.get("state") != "ENABLED":
+        # Fail closed first. No authorization-admission audit is emitted for a
+        # disabled transport: audit only observes an ENABLED decision path.
         raise TransportIdentityError("TRANSPORT_DISABLED", "transport policy is disabled")
 
     credentials = read_kernel_peer_credentials(peer_socket)
@@ -223,17 +313,39 @@ def authenticate_unix_peer(
         if peer["uid"] == credentials.uid and peer["gid"] == credentials.gid
     ]
     if not matches:
+        _emit_decision(
+            audit_sink,
+            decision="DENY",
+            reason_code="PEER_NOT_AUTHORIZED",
+            detail={
+                "evidence_source": "kernel-so-peercred",
+                "peer_uid": credentials.uid,
+                "peer_gid": credentials.gid,
+                "principal_id": None,
+            },
+        )
         raise TransportIdentityError(
             "PEER_NOT_AUTHORIZED",
             "kernel peer UID/GID is not allowlisted",
         )
     if len(matches) != 1:
+        _emit_decision(
+            audit_sink,
+            decision="DENY",
+            reason_code="PEER_IDENTITY_AMBIGUOUS",
+            detail={
+                "evidence_source": "kernel-so-peercred",
+                "peer_uid": credentials.uid,
+                "peer_gid": credentials.gid,
+                "principal_id": None,
+            },
+        )
         raise TransportIdentityError(
             "PEER_IDENTITY_AMBIGUOUS",
             "kernel peer UID/GID resolves to multiple principals",
         )
     peer = matches[0]
-    return AuthenticatedPeer(
+    authenticated = AuthenticatedPeer(
         principal_id=peer["principal_id"],
         purpose=peer["purpose"],
         transport="unix-peer",
@@ -242,6 +354,18 @@ def authenticate_unix_peer(
         peer_gid=credentials.gid,
         evidence_source="kernel-so-peercred",
     )
+    _emit_decision(
+        audit_sink,
+        decision="ALLOW",
+        reason_code="PEER_AUTHORIZED",
+        detail={
+            "evidence_source": authenticated.evidence_source,
+            "peer_uid": authenticated.peer_uid,
+            "peer_gid": authenticated.peer_gid,
+            "principal_id": authenticated.principal_id,
+        },
+    )
+    return authenticated
 
 
 def main(argv: Sequence[str] | None = None) -> int:

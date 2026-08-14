@@ -1,0 +1,43 @@
+schemaVersion: jds.change/v1
+kind: ChangeRecord
+id: CHG-HSL-045
+product: hermes-security-labs
+classification: HARDENING
+state: ACCEPTED
+disposition: FIX_NOW
+summary: >-
+  Repo-only SO_PEERCRED Unix peer authenticator audit integration. An optional
+  injected sink records ALLOW/DENY for the ENABLED transport; DISABLED fails
+  closed with no authorization-admission audit. Identity stays exclusively
+  kernel-derived from SO_PEERCRED with no caller-injectable principal/uid/gid.
+  Campaign BLOCKED/HOLD; promotion_allowed false; no runtime/trust/target state
+  changed.
+source:
+  type: ENGINEERING_REVIEW
+  campaign: VAL-HSL-RUNNER-L1-LIVE-PROMOTION
+  observation: OBS-EVIDENCE-CUSTODY
+  reference: >-
+    platform/runner-transport/unix_peer_identity.py;
+    platform/tests/test_runner_unix_peer_identity.py;
+    merged AuditSink/evidence-chain PR #369/#370 (47a3ea8/1236667).
+affectedRelease: jds-002-adoption-candidate
+targetRelease: null
+risk: LOW
+versionEffect: NONE
+branch: lane/runner-peer-audit
+issue: 373
+pr: null
+validation:
+  targeted: PASS
+  regression: PASS
+  security: PASS
+  runtime: NOT_APPLICABLE
+promotion:
+  commit: null
+  artifactDigest: null
+  previousRelease: null
+deferredTo: null
+timestamps:
+  discoveredAt: '2026-08-14T12:00:00Z'
+  updatedAt: '2026-08-14T12:00:00Z'
+  closedAt: null
