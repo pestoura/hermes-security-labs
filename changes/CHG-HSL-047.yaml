@@ -1,0 +1,34 @@
+schemaVersion: jds.change/v1
+kind: ChangeRecord
+id: CHG-HSL-047
+product: hermes-security-labs
+classification: DOC_ONLY
+state: ACCEPTED
+disposition: FIX_NOW
+summary: 'Reconcile the already-merged LAB_L1 capabilities into VAL-HSL-RUNNER-L1-LIVE-PROMOTION as GREEN-REPO evidence without resolving any live observation. Records hash-chain-seal (CHG-042), audit-sink (CHG-043), profile-aware PRE/POST plus package composition (CHG-044/046) and peer-identity-audit (CHG-045) as GREEN-REPO; HASH_CHAIN_SEAL stays NOT_RUN for live evidence. Campaign BLOCKED/HOLD preserved, promotion_allowed false, no live/runtime/trust/provider state changed.'
+source:
+  type: ENGINEERING_REVIEW
+  campaign: VAL-HSL-RUNNER-L1-LIVE-PROMOTION
+  observation: OBS-EVIDENCE-CUSTODY
+  reference: 'Repo-only LAB_L1 campaign reconciliation on base 9bdc59409ea14ed238915ff6356b76fe91849add (PR #374). Updates validation/VAL-HSL-RUNNER-L1-LIVE-PROMOTION.yaml and platform/tests/test_runner_l1_campaign_reconciliation.py only. Records already-merged capability tokens (CHG-042/043/044/045/046) as GREEN-REPO and HASH_CHAIN_SEAL as NOT_RUN. No live observation resolved; BLOCKED/HOLD, promotion_allowed false, runtime_status NOT_RUN, execution_authority none unchanged.'
+affectedRelease: jds-002-adoption-candidate
+targetRelease: null
+risk: LOW
+versionEffect: NONE
+branch: chg-hsl-047/lab-l1-reconciliation
+issue: null
+pr: null
+validation:
+  targeted: PASS
+  regression: PASS
+  security: PASS
+  runtime: NOT_APPLICABLE
+promotion:
+  commit: null
+  artifactDigest: null
+  previousRelease: null
+deferredTo: null
+timestamps:
+  discoveredAt: '2026-08-14T18:00:00Z'
+  updatedAt: '2026-08-14T18:30:00Z'
+  closedAt: null

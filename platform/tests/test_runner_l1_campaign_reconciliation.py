@@ -133,3 +133,40 @@ def test_unknown_webgoat_rerun_is_not_promoted_to_pass_or_fail() -> None:
     assert "result=UNKNOWN" in observation["evidence"]
     assert "live-runner-effect:NOT_RUN" in observation["evidence"]
     assert "post-effect-package:NOT_RUN" in observation["evidence"]
+
+
+def test_chg_hsl_047_records_merged_green_repo_capability_tokens_without_resolving_live_state() -> None:
+    campaign = _campaign()
+    observations = {item["id"]: item for item in campaign["observations"]}
+
+    repo_chain = observations["OBS-RUNNER-REPO-CHAIN"]
+    assert repo_chain["result"] == "PASS"
+    assert repo_chain["status"] == "RESOLVED"
+
+    policy = observations["OBS-RUNNER-POLICY-PROMOTION"]
+    assert "DISABLED/NOT_RUN" in policy["evidence"]
+
+    evidence = observations["OBS-EVIDENCE-CUSTODY"]
+    assert "hash-chain-seal:GREEN-REPO(CHG-042)" in evidence["evidence"]
+    assert "audit-sink:GREEN-REPO(CHG-043)" in evidence["evidence"]
+    assert "profile-aware-pre-post:GREEN-REPO(CHG-044)" in evidence["evidence"]
+    assert "package-composition:GREEN-REPO(CHG-046)" in evidence["evidence"]
+    assert "peer-identity-audit:GREEN-REPO(CHG-045)" in evidence["evidence"]
+    assert "HASH_CHAIN_SEAL:NOT_RUN" in evidence["evidence"]
+    assert "CHG-HSL-047 reconciles" in evidence["summary"]
+
+
+def test_chg_hsl_047_preserves_blocked_hold_invariants() -> None:
+    campaign = _campaign()
+    assert campaign["state"] == "BLOCKED"
+    assert campaign["promotionRecommendation"] == "HOLD"
+
+    observations = {item["id"]: item for item in campaign["observations"]}
+    for observation_id in (
+        "OBS-TB1-LIVE-DELIVERY",
+        "OBS-RUNNER-POLICY-PROMOTION",
+        "OBS-EVIDENCE-CUSTODY",
+        "OBS-LIVE-EFFECT-RESET",
+    ):
+        assert observations[observation_id]["result"] == "BLOCKED"
+        assert observations[observation_id]["status"] == "OPEN"
