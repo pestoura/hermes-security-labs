@@ -23,14 +23,14 @@ observations:
     status: OPEN
     summary: TB1 issuance, signer/trust-store preflight and signer-observation verification are GREEN-REPO. Live acceptance remains blocked because no real signer provider/source evidence or installed trust store has been observed, the receipt-delivery AF_UNIX endpoint is not configured, and delivery/resolver policies remain DISABLED/NOT_RUN.
     changeRecord: CHG-HSL-011
-    evidence: 'pr:322 delivery; pr:328 issuer; pr:331 signer/trust preflight; pr:336 host evidence; pr:342 signer verifier; signer-provider-observation:NOT_RUN; signer-source-evidence:NOT_RUN; trust-store-host-observation:NOT_RUN; receipt-delivery-policy:DISABLED/NOT_RUN; resolver-policy:DISABLED/NOT_RUN'
+    evidence: 'pr:322 delivery; pr:328 issuer; pr:331 signer/trust preflight; pr:336 host evidence; pr:342 signer verifier; evidence:deployment/runtime-promotion/evidence/live-observation-CHG-HSL-038.yaml; trust-store-host-observation:OBSERVED_ABSENT(/etc/hexor/runner/authorization-trust-store.json); signer-provider-observation:NOT_RUN; signer-source-evidence:NOT_RUN; receipt-delivery-policy:DISABLED/NOT_RUN; resolver-policy:DISABLED/NOT_RUN'
   - id: OBS-RUNNER-POLICY-PROMOTION
     required: true
     result: BLOCKED
     status: OPEN
-    summary: Host/userns observation, audit custody, backend-control and tenant-isolation verification, service composition and phased live-evidence package verification are GREEN-REPO. Promotion remains blocked because live host/userns, real-socket negative testing, production backend/tenant isolation, live persistence and PRE_PROMOTION/POST_EFFECT packages are not accepted; runtime policies remain DISABLED/NOT_RUN.
+    summary: 'Host/userns observation, audit custody, backend-control and tenant-isolation verification, service composition and phased live-evidence package verification are GREEN-REPO. Two live observation classes are now recorded as sanitized evidence under CHG-HSL-038 - the user-namespace collector PASSED against the two reviewed PIDs, and the host identity/socket collector OBSERVED the canonical gateway/runner/dispatch identities, socket and socket directory exactly as reviewed. That host collector still fails closed for a single reason, the Runner authorization trust store being ABSENT, and no trust was bound or synthesized. Promotion therefore remains blocked: trust store absent, signer provider attestation, real-socket unauthorized-peer negative testing, production durable/WORM backend, tenant isolation, live audit sink, live persistence and PRE_PROMOTION/POST_EFFECT packages are all still not accepted; runtime policies remain DISABLED/NOT_RUN.'
     changeRecord: CHG-HSL-012
-    evidence: 'pr:336 host; pr:340 userns; pr:345 backend; pr:348 tenant isolation; pr:351 phased package; pr:352 bundle reconciliation; host-evidence:NOT_RUN; userns:NOT_RUN; unauthorized-peer-negative:NOT_RUN; production-backend:NOT_IMPLEMENTED/NOT_RUN; tenant-isolation:NOT_RUN; live-evidence-package-verifier:GREEN-REPO; pre-promotion-package:NOT_RUN; post-effect-package:NOT_RUN; policies:DISABLED/NOT_RUN'
+    evidence: 'pr:336 host; pr:340 userns; pr:345 backend; pr:348 tenant isolation; pr:351 phased package; pr:352 bundle reconciliation; evidence:deployment/runtime-promotion/evidence/live-observation-CHG-HSL-038.yaml; userns-observation:PASS(gateway-pid=3649254,runner-pid=3367226,ns-inode=4026531837,relationship=same,findings=none); host-identity-socket-observation:OBSERVED(gateway=4100/4100,runner=4101/4101,dispatch-gid=4110,socket=/run/hexor/runner-dispatch.sock uid=4101 gid=4110 mode=0660,socket-dir=0750); runner-authorization-trust-store:ABSENT; signer-provider-attestation:NOT_OBSERVED; unauthorized-peer-negative:NOT_RUN; production-backend:NOT_IMPLEMENTED/NOT_RUN; tenant-isolation:NOT_RUN; live-audit-sink:NOT_OBSERVED; live-evidence-package-verifier:GREEN-REPO; pre-promotion-package:NOT_RUN; post-effect-package:NOT_RUN; live-runner-effect:NOT_RUN; policies:DISABLED/NOT_RUN'
   - id: OBS-EVIDENCE-CUSTODY
     required: true
     result: BLOCKED
@@ -48,5 +48,5 @@ observations:
 promotionRecommendation: HOLD
 timestamps:
   startedAt: '2026-08-09T21:12:00Z'
-  updatedAt: '2026-08-13T08:45:00Z'
+  updatedAt: '2026-08-14T13:10:00Z'
   closedAt: null

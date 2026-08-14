@@ -1,0 +1,165 @@
+# First-live promotion campaign — sanitized live OBSERVATION evidence (#354 / #359 boundaries)
+#
+# CANONICAL, SANITIZED, READ-ONLY evidence for the runtime observation classes
+# of VAL-HSL-RUNNER-L1-LIVE-PROMOTION. It records exactly two things:
+#
+#   1. runtime_userns_evidence observation: PASS (both reviewed PIDs).
+#   2. runtime host identity/socket observation: OBSERVED, but the aggregate
+#      host collector result is FAIL-CLOSED because the Runner authorization
+#      trust store is ABSENT.
+#
+# It changes no promotion semantics whatsoever:
+#   - runtime_status: NOT_RUN
+#   - execution_authority: none
+#   - promotion_allowed: false
+#   - recommendation: HOLD
+#
+# No trust material, signer, WORM backend, tenant isolation, unauthorized-peer
+# negative test, live audit sink or live Runner/target effect is claimed here.
+# No policy was enabled, no trust was bound, no target was touched, no payload
+# was sent.
+schema_version: "1.0"
+evidence_id: EVD-HSL-L1-LIVE-OBSERVATION
+change_record: CHG-HSL-038
+campaign: VAL-HSL-RUNNER-L1-LIVE-PROMOTION
+observation: OBS-RUNNER-POLICY-PROMOTION
+phase: live-observation-only
+
+# Aggregate verdict for THIS evidence class only (never promotion).
+live_observation_acceptance: PARTIAL
+
+promotion:
+  promotion_allowed: false
+  execution_authority: none
+  runtime_status: NOT_RUN
+  execution_promotion: HOLD
+  promotion_blocker: LIVE_PROMOTION_REQUIREMENTS_INCOMPLETE
+
+# ---------------------------------------------------------------------------
+# 1. User-namespace mapping observation — PASS
+# ---------------------------------------------------------------------------
+user_namespace_observation:
+  collector: deployment/runtime-promotion/runtime_userns_evidence.py
+  result: PASS
+  exit_code: 0
+  user_namespace_checks_passed: true
+  findings: []
+  observed:
+    gateway:
+      pid: 3649254
+      user_namespace_inode: 4026531837
+      uid_map:
+        - inside_start: 0
+          outside_start: 0
+          length: 4294967295
+      gid_map:
+        - inside_start: 0
+          outside_start: 0
+          length: 4294967295
+      declared_host_uid_covered: true
+      declared_host_gid_covered: true
+    runner:
+      pid: 3367226
+      user_namespace_inode: 4026531837
+      uid_map:
+        - inside_start: 0
+          outside_start: 0
+          length: 4294967295
+      gid_map:
+        - inside_start: 0
+          outside_start: 0
+          length: 4294967295
+      declared_host_uid_covered: true
+      declared_host_gid_covered: true
+    user_namespace_relationship: same
+
+# ---------------------------------------------------------------------------
+# 2. Host identity / socket observation — OBSERVED, trust store ABSENT
+# ---------------------------------------------------------------------------
+host_identity_socket_observation:
+  collector: deployment/runtime-promotion/runtime_host_evidence.py
+  result: FAIL_CLOSED
+  exit_code: 2
+  host_checks_passed: false
+  # The ONLY finding. Every other host observation matched the reviewed
+  # deployment evidence exactly.
+  findings:
+    - Runner authorization trust store is absent: /etc/hexor/runner/authorization-trust-store.json
+  observed:
+    gateway:
+      user: hexor-gateway
+      uid: 4100
+      gid: 4100
+      shell: /usr/sbin/nologin
+      present: true
+    runner:
+      user: hexor-runner
+      uid: 4101
+      gid: 4101
+      shell: /usr/sbin/nologin
+      present: true
+    dispatch_group:
+      group: hexor-dispatch
+      gid: 4110
+      present: true
+      expected_members_present: true
+    socket:
+      path: /run/hexor/runner-dispatch.sock
+      kind: socket
+      uid: 4101
+      gid: 4110
+      mode: "0660"
+      symlink: false
+      present: true
+    socket_directory:
+      path: /run/hexor
+      kind: directory
+      uid: 4101
+      gid: 4110
+      mode: "0750"
+      symlink: false
+      present: true
+    trust_store:
+      path: /etc/hexor/runner/authorization-trust-store.json
+      present: false
+
+# Independent corroboration of the socket facts (separate read-only probe).
+socket_probe_corroboration:
+  socket_type: socket
+  owner_uid: 4101
+  owner_gid: 4110
+  mode: "0660"
+  path: /run/hexor/runner-dispatch.sock
+  agrees_with_host_collector: true
+
+# ---------------------------------------------------------------------------
+# Requirements that remain NOT observed / NOT run
+# ---------------------------------------------------------------------------
+remaining_live_requirements:
+  - RUNNER_AUTHORIZATION_TRUST_STORE_ABSENT
+  - SIGNER_PROVIDER_ATTESTATION_NOT_OBSERVED
+  - UNAUTHORIZED_PEER_NEGATIVE_TEST_NOT_RUN
+  - LIVE_AUDIT_SINK_NOT_OBSERVED
+  - PRODUCTION_WORM_BACKEND_NOT_OBSERVED
+  - BACKEND_TENANT_ISOLATION_NOT_OBSERVED
+  - PRE_PROMOTION_EVIDENCE_PACKAGE_NOT_RUN
+  - POST_EFFECT_EVIDENCE_PACKAGE_NOT_RUN
+  - LIVE_RUNNER_EFFECT_NOT_RUN
+  - HUMAN_PROMOTION_APPROVAL_REQUIRED
+
+out_of_scope:
+  - bind_trust: not performed
+  - create_or_synthesize_trust_store: not performed
+  - enable_execution_policy: not performed
+  - send_runner_payload: not performed
+  - touch_targets: not performed (webgoat/juice-shop/kali)
+  - promotion_allowed: unchanged (false)
+
+# Repository-only validation that accompanied this reconciliation.
+validation_corroboration:
+  deployment_tests: PASS
+  ruff_deployment: PASS
+  yaml_parse: PASS
+  source_of_truth: PASS
+  jds_static_gate: PASS
+  runtime_promotion_evidence_gate: HOLD

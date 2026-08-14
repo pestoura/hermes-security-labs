@@ -1,0 +1,34 @@
+schemaVersion: jds.change/v1
+kind: ChangeRecord
+id: CHG-HSL-038
+product: hermes-security-labs
+classification: DOC_ONLY
+state: ACCEPTED
+disposition: FIX_NOW
+summary: Reconcile the canonical first-live promotion campaign with sanitized live OBSERVATION evidence only. Records runtime user-namespace observation PASS for the two reviewed PIDs and host identity/socket observation as OBSERVED with the Runner authorization trust store ABSENT (single fail-closed finding). No observation is resolved, no policy is enabled, no trust is bound, no signer/WORM backend/tenant isolation/unauthorized-peer test/live audit sink/live effect is claimed. promotion_allowed stays false, runtime_status NOT_RUN, execution_authority none, recommendation HOLD.
+source:
+  type: ENGINEERING_REVIEW
+  campaign: VAL-HSL-RUNNER-L1-LIVE-PROMOTION
+  observation: OBS-RUNNER-POLICY-PROMOTION
+  reference: 'repository-only reconciliation; evidence file deployment/runtime-promotion/evidence/live-observation-CHG-HSL-038.yaml; host collectors runtime_userns_evidence.py (rc=0) and runtime_host_evidence.py (rc=2, trust store absent); boundaries #354 (Runner HOLD) and #359 (Execution Gateway HOLD); no live mutation, no target interaction, no trust binding, no policy enablement'
+affectedRelease: jds-002-adoption-candidate
+targetRelease: null
+risk: LOW
+versionEffect: NONE
+branch: lane/hsl-l1-live-observation-evidence
+issue: null
+pr: null
+validation:
+  targeted: PASS
+  regression: PASS
+  security: NOT_APPLICABLE
+  runtime: NOT_APPLICABLE
+promotion:
+  commit: null
+  artifactDigest: null
+  previousRelease: null
+deferredTo: null
+timestamps:
+  discoveredAt: '2026-08-14T13:10:00Z'
+  updatedAt: '2026-08-14T13:10:00Z'
+  closedAt: null
