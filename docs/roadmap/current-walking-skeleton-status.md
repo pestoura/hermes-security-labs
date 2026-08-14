@@ -1,14 +1,15 @@
 # Hermes Security Labs — current walking-skeleton status
 
-**Reconciled:** 2026-08-14 21:00 UTC  
-**Current Labs baseline:** `c36fa8551ed4ae2b347b3b68e4343cbe3e7b592c`  
-**Accepted/live Hermes MCP Bridge revision:** `3717bd5469b061a44294b27e1a7510d477d3752b`
+**Reconciled:** 2026-08-14 22:00 UTC  
+**Current Labs baseline:** `a63ef01925e5c1b925936c1e73b11b2d6cd2a6a5`  
+**Accepted/live Hermes MCP Bridge revision:** `3717bd5469b061a44294b27e1a7510d477d3752b`  
+**Safe live read-only reobservation:** `run_ec368a4ccc04419e985b1c4d01e0ddea` (CHG-HSL-053)
 
 This is the concise current-state view of the walking skeleton. Repository/CI proof and live Hermes runtime proof are separate evidence classes. Historical evidence remains in [`runtime-acceptance-checkpoint-2026-08-09.md`](runtime-acceptance-checkpoint-2026-08-09.md); the governed Runner promotion campaign is [`../../validation/VAL-HSL-RUNNER-L1-LIVE-PROMOTION.yaml`](../../validation/VAL-HSL-RUNNER-L1-LIVE-PROMOTION.yaml).
 
 > **GREEN-REPO is not live acceptance.** It means the contract/code exists and passed repository gates. It does not grant execution authority, activate a policy, prove host deployment or prove target interaction.
 
-> **The commit SHA is reconciliation provenance, not a runtime authority.** The value above is the exact authoritative `origin/main` at the time of the CHG-HSL-052 reconciliation (after CHG-042..050, PR #378). It is recorded so a reader can pin the tree state; it is not read by any runtime, gate, policy or promotion path. Git and `validation/VAL-HSL-RUNNER-L1-LIVE-PROMOTION.yaml` remain the only sources of truth. A SHA must never be used to assert that a capability is live, that a policy is enabled, or that promotion authority exists.
+> **The commit SHA is reconciliation provenance, not a runtime authority.** The value above is the exact authoritative `origin/main` at the time of the CHG-HSL-053 reconciliation (`a63ef01925e5c1b925936c1e73b11b2d6cd2a6a5`). It is recorded so a reader can pin the tree state; it is not read by any runtime, gate, policy or promotion path. Git and `validation/VAL-HSL-RUNNER-L1-LIVE-PROMOTION.yaml` remain the only sources of truth. A SHA must never be used to assert that a capability is live, that a policy is enabled, or that promotion authority exists.
 
 ## Assurance profile decision (ADR-0011, Accepted)
 
@@ -111,6 +112,24 @@ Gateway admission was accepted as running, non-busy and drainable. Re-observe be
 **State:** `RESOLVED-RUNTIME / GREEN` on Bridge `3717bd5469b061a44294b27e1a7510d477d3752b`.
 
 A no-target compatibility smoke consumed the request-bound approval exactly once. No Kali target tool was involved.
+
+**Bridge SHA divergence (resolved, CHG-HSL-053):** the historical live Bridge observed on 2026-08-09 was `7e4b6b1cd70ddda418f840f54ae7ecef30df52e9` (recorded in [`runtime-acceptance-checkpoint-2026-08-09.md`](runtime-acceptance-checkpoint-2026-08-09.md) and the RTA-003 closure). A later, already-authorized Bridge deployment lane promoted `3717bd5469b061a44294b27e1a7510d477d3752b` as the current live Bridge 1.0.0. The divergence is resolved as: **`3717bd5469b061a44294b27e1a7510d477d3752b` is the current live observation**; **`7e4b6b1cd70ddda418f840f54ae7ecef30df52e9` is retained only as historical candidate/evidence and is never the current runtime and never promoted to "current".** No SHA is a runtime authority and no divergence changed any promotion state.
+
+### Safe live read-only reobservation (run_ec368a4ccc04419e985b1c4d01e0ddea — CHG-HSL-053)
+
+Read-only reobservation only; no mutation, no promotion. See the dedicated ledger [`safe-live-readonly-observation-ec368a4.md`](safe-live-readonly-observation-ec368a4.md).
+
+| Reobserved fact | Value |
+| --- | --- |
+| Execution Gateway HOLD boundary | active; PID identity `4100` |
+| Runner | active; PID identity `4101` |
+| Dispatch socket | `LISTEN`; owner `4101:4110`; mode `0660` |
+| Installed artifact parity | `7/7` |
+| Runner authorization trust store | `OBSERVED_ABSENT` (`/etc/hexor/runner/authorization-trust-store.json` not present) |
+| `uid_map` / `gid_map` | observed `0 0 4294967295` |
+| Namespace relationship | **NOT re-attested** — ns/user dereference denied; no ns relationship derived or claimed |
+
+Explicitly retained `NOT_RUN` (not elevated): signer/provider `NOT_RUN`; unauthorized-peer negative `NOT_RUN`; phased live-evidence packages (`PRE_PROMOTION`/`POST_EFFECT`) `NOT_RUN`; first authorized effect + reset `NOT_RUN`/`UNKNOWN`. `HOLD`/`NOT_RUN`/`promotion_allowed=false` remain invariant.
 
 ## Lifecycle/readiness
 
@@ -283,6 +302,7 @@ unverifiable observation is never converted to `IN_SYNC` or `DRIFT_DETECTED`.
 | Deterministic reset attestation contracts | #377 | `567e143af332b96b37c0a2aaf6cb563a30cad93c` | GREEN-REPO, production_lab_runtime NOT_RUN |
 | Regression coverage for LAB_L1 + Execution Gateway HOLD | #378 | `c36fa8551ed4ae2b347b3b68e4343cbe3e7b592c` | GREEN-REPO, #359/#361 UNPROMOTED; HOLD preserved |
 | Walking-skeleton reconciliation (CHG-042..050) | CHG-HSL-052 | `c36fa8551ed4ae2b347b3b68e4343cbe3e7b592c` | DOC_ONLY, baseline re-pinned; BLOCKED/HOLD preserved |
+| Safe live read-only reobservation (run_ec368a4) + RTA-003 SHA reconciliation | CHG-HSL-053 | `a63ef01925e5c1b925936c1e73b11b2d6cd2a6a5` | DOC_ONLY, SAFE-LIVE-READONLY; Bridge current `3717bd54`, historical `7e4b6b1c` retained; HOLD/NOT_RUN preserved |
 
 ## Decision record
 

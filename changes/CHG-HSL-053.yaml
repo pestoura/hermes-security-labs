@@ -1,0 +1,34 @@
+schemaVersion: jds.change/v1
+kind: ChangeRecord
+id: CHG-HSL-053
+product: hermes-security-labs
+classification: DOC_ONLY
+state: ACCEPTED
+disposition: FIX_NOW
+summary: 'Repo-only SAFE-LIVE-READONLY reconcile run_ec368a4ccc04419e985b1c4d01e0ddea. RTA-003 Bridge SHA divergence resolved: current 3717bd5469b061a44294b27e1a7510d477d3752b; 7e4b6b1cd70ddda418f840f54ae7ecef30df52e9 historical-only. Reobserve Gateway HOLD PID 4100, Runner PID 4101, socket 4101:4110 0660, parity 7/7, trust OBSERVED_ABSENT, uid/gid_map 0 0 4294967295 ns not re-attested; retain signer/peer-negative/packages/effect NOT_RUN/UNKNOWN. HOLD/NOT_RUN/promotion_allowed=false invariant.'
+source:
+  type: ENGINEERING_REVIEW
+  campaign: VAL-HSL-RUNNER-L1-LIVE-PROMOTION
+  observation: OBS-RUNNER-REPO-CHAIN
+  reference: 'Repo-only lane at origin/main a63ef01925e5c1b925936c1e73b11b2d6cd2a6a5 (CHG-HSL-053). Files: current-walking-skeleton-status.md, safe-live-readonly-observation-ec368a4.md, CHG-HSL-053.yaml, test_runner_l1_campaign_reconciliation.py, test_change_record_observation_consistency.py. No runtime/live/systemd/network/Docker/target/trust/signer mutation; campaign BLOCKED/HOLD, promotion_allowed false, observations BLOCKED/OPEN unchanged.'
+affectedRelease: jds-002-adoption-candidate
+targetRelease: null
+risk: LOW
+versionEffect: NONE
+branch: chg-hsl-053/rta-003-bridge-sha-safe-live-reconcile
+issue: null
+pr: null
+validation:
+  targeted: PASS
+  regression: PASS
+  security: PASS
+  runtime: NOT_APPLICABLE
+promotion:
+  commit: null
+  artifactDigest: null
+  previousRelease: null
+deferredTo: null
+timestamps:
+  discoveredAt: '2026-08-14T22:00:00Z'
+  updatedAt: '2026-08-14T22:00:00Z'
+  closedAt: null

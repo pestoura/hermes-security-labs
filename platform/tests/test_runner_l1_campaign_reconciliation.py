@@ -15,7 +15,7 @@ CANONICAL_OBSERVATION_ID = re.compile(r"^OBS-[A-Z0-9]+(?:-[A-Z0-9]+)*$")
 CAMPAIGN_PATH = ROOT / "validation" / "VAL-HSL-RUNNER-L1-LIVE-PROMOTION.yaml"
 STATUS_PATH = ROOT / "docs" / "roadmap" / "current-walking-skeleton-status.md"
 EPIC_PATH = ROOT / "docs" / "roadmap" / "epics" / "EPIC-10-evidence-plane.md"
-BASELINE = "c36fa8551ed4ae2b347b3b68e4343cbe3e7b592c"
+BASELINE = "a63ef01925e5c1b925936c1e73b11b2d6cd2a6a5"
 
 
 def _campaign() -> dict:
@@ -314,21 +314,25 @@ def test_chg_hsl_048_reserves_hardening_record_without_resolving_live_state() ->
 
 def test_chg_hsl_052_status_and_campaign_track_authoritative_head() -> None:
     # Both the status doc and the campaign candidate must reflect the exact
-    # authoritative origin/main at reconciliation time (CHG-042..050, PR #378).
+    # authoritative origin/main at reconciliation time (CHG-042..050, PR #378;
+    # CHG-HSL-053 then re-pinned the campaign to a63ef019...).
     text = STATUS_PATH.read_text(encoding="utf-8")
-    assert "c36fa8551ed4ae2b347b3b68e4343cbe3e7b592c" in text
-    # The stale baseline must no longer be declared as the current baseline (the
-    # historical #352 merge SHA may still appear in the checkpoint table).
+    assert "a63ef01925e5c1b925936c1e73b11b2d6cd2a6a5" in text
+    # The stale baselines must no longer be declared as the current baseline.
     assert (
         "**Current Labs baseline:** `6a77921ec2079aa6689d11e2d7118f948ccb3a60`"
         not in text
     )
     assert (
-        "**Current Labs baseline:** `c36fa8551ed4ae2b347b3b68e4343cbe3e7b592c`" in text
+        "**Current Labs baseline:** `c36fa8551ed4ae2b347b3b68e4343cbe3e7b592c`"
+        not in text
+    )
+    assert (
+        "**Current Labs baseline:** `a63ef01925e5c1b925936c1e73b11b2d6cd2a6a5`" in text
     )
 
     campaign = _campaign()
-    assert campaign["candidate"]["commit"] == "c36fa8551ed4ae2b347b3b68e4343cbe3e7b592c"
+    assert campaign["candidate"]["commit"] == "a63ef01925e5c1b925936c1e73b11b2d6cd2a6a5"
 
 
 def test_chg_hsl_052_commit_sha_is_provenance_not_runtime_authority() -> None:
@@ -405,5 +409,128 @@ def test_chg_hsl_052_reconciles_checkpoint_rows_without_promoting_live_state() -
         "d545ccbd4d4def5aeb8793d291adbc0313e69258",  # CHG-048 #376
         "567e143af332b96b37c0a2aaf6cb563a30cad93c",  # CHG-049 #377
         "c36fa8551ed4ae2b347b3b68e4343cbe3e7b592c",  # CHG-050 #378 + CHG-HSL-052
+        "a63ef01925e5c1b925936c1e73b11b2d6cd2a6a5",  # CHG-HSL-053
     ):
         assert sha in text, f"missing checkpoint SHA {sha}"
+
+
+# --- CHG-HSL-053: safe live read-only reobservation reconciliation -----------------
+#
+# These guards keep the run_ec368a4... reconciliation honest: the current live Bridge
+# is 3717bd54..., 7e4b6b1c... is historical-only and must never be claimed as current,
+# the reobserved read-only facts are recorded, and none of the sub-facts may be
+# elevated into an observation PASS or flip BLOCKED/HOLD. No runtime mutation.
+
+
+def test_chg_hsl_053_status_doc_tracks_authoritative_head_and_bridge_divergence() -> None:
+    text = STATUS_PATH.read_text(encoding="utf-8")
+    assert "**Current Labs baseline:** `a63ef01925e5c1b925936c1e73b11b2d6cd2a6a5`" in text
+    assert "**Safe live read-only reobservation:** `run_ec368a4ccc04419e985b1c4d01e0ddea`" in text
+    # RTA-003 divergence resolved: current live Bridge is 3717bd54..., historical 7e4b6b1c retained only.
+    assert "`3717bd5469b061a44294b27e1a7510d477d3752b` is the current live observation" in text
+    # The divergence is resolved as a statement in the status doc (historical SHA also present).
+    assert "7e4b6b1cd70ddda418f840f54ae7ecef30df52e9" in text
+    assert "never promoted to \"current\"" in text or "never be promoted to \"current\"" in text
+
+
+def test_chg_hsl_053_rejects_stale_bridge_current_claim() -> None:
+    # A claim that 7e4b6b1c... is the *current* live Bridge must be rejected
+    # fail-closed: the status doc must never state it as current.
+    text = STATUS_PATH.read_text(encoding="utf-8")
+    assert (
+        "**Accepted/live Hermes MCP Bridge revision:** `7e4b6b1cd70ddda418f840f54ae7ecef30df52e9`"
+        not in text
+    )
+    # The current revision line must still point at 3717bd54... (unchanged).
+    assert (
+        "**Accepted/live Hermes MCP Bridge revision:** `3717bd5469b061a44294b27e1a7510d477d3752b`"
+        in text
+    )
+
+
+def test_chg_hsl_053_records_reobserved_readonly_facts() -> None:
+    text = STATUS_PATH.read_text(encoding="utf-8")
+    # Gateway HOLD / Runner PIDs, socket LISTEN owner/mode.
+    assert "PID identity `4100`" in text
+    assert "PID identity `4101`" in text
+    assert "owner `4101:4110`; mode `0660`" in text
+    assert "Installed artifact parity" in text and "`7/7`" in text
+    # trust store OBSERVED_ABSENT.
+    assert "OBSERVED_ABSENT" in text
+    # uid/gid_map observed full map; ns NOT re-attested.
+    assert "`0 0 4294967295`" in text
+    assert "NOT re-attested" in text and "ns/user dereference denied" in text
+
+
+def test_chg_hsl_053_retains_not_run_sub_facts_without_elevation() -> None:
+    text = STATUS_PATH.read_text(encoding="utf-8")
+    # These sub-facts remain NOT_RUN/UNKNOWN and must not be elevated.
+    assert "signer/provider `NOT_RUN`" in text or "signer/provider NOT_RUN" in text
+    assert "unauthorized-peer negative `NOT_RUN`" in text
+    assert "PRE_PROMOTION`/`POST_EFFECT`) `NOT_RUN`" in text or "packages (`PRE_PROMOTION`" in text
+    assert "NOT_RUN`/`UNKNOWN`" in text or "first authorized effect + reset `NOT_RUN`" in text
+    # Invariant statement present.
+    assert "HOLD`/`NOT_RUN`/`promotion_allowed=false` remain invariant" in text or "promotion_allowed=false` remain invariant" in text
+
+
+def test_chg_hsl_053_ledger_file_is_present_and_explicit() -> None:
+    ledger = (ROOT / "docs" / "roadmap" / "safe-live-readonly-observation-ec368a4.md").read_text(
+        encoding="utf-8"
+    )
+    assert "run_ec368a4ccc04419e985b1c4d01e0ddea" in ledger
+    assert "3717bd5469b061a44294b27e1a7510d474" not in ledger  # safety: no partial/corrupt SHA
+    assert "3717bd5469b061a44294b27e1a7510d477d3752b" in ledger
+    assert "7e4b6b1cd70ddda418f840f54ae7ecef30df52e9" in ledger
+    assert "retained ONLY as historical candidate/evidence" in ledger
+    assert "never** the current runtime" in ledger or "never the current runtime" in ledger
+    assert 'promoted to "current"' in ledger
+    # Reobserved facts.
+    assert "PID identity `4100`" in ledger
+    assert "PID identity `4101`" in ledger
+    assert "owner `4101:4110`; mode `0660`" in ledger
+    assert "`7/7`" in ledger
+    assert "OBSERVED_ABSENT" in ledger
+    assert "`0 0 4294967295`" in ledger
+    assert "NOT re-attested" in ledger
+    # No elevation.
+    assert "NOT_RUN" in ledger
+    assert "promotion_allowed=false" in ledger
+
+
+def test_chg_hsl_053_does_not_change_observation_result_from_blocked_open() -> None:
+    # Reconciliation must NOT flip any live observation from BLOCKED/OPEN, nor
+    # promote the campaign. This is the core HOLD invariant for CHG-HSL-053.
+    campaign = _campaign()
+    assert campaign["state"] == "BLOCKED"
+    assert campaign["promotionRecommendation"] == "HOLD"
+
+    observations = {item["id"]: item for item in campaign["observations"]}
+    for observation_id in (
+        "OBS-TB1-LIVE-DELIVERY",
+        "OBS-RUNNER-POLICY-PROMOTION",
+        "OBS-EVIDENCE-CUSTODY",
+        "OBS-LIVE-EFFECT-RESET",
+    ):
+        assert observations[observation_id]["required"] is True
+        assert observations[observation_id]["result"] == "BLOCKED"
+        assert observations[observation_id]["status"] == "OPEN"
+
+
+def test_chg_hsl_053_rejects_elevating_sub_facts_to_pass() -> None:
+    # The reconciliation must never record any of the reobserved sub-facts as an
+    # observation PASS, nor mark the campaign as anything other than BLOCKED/HOLD.
+    campaign = _campaign()
+    assert campaign["state"] == "BLOCKED"
+    assert campaign["promotionRecommendation"] == "HOLD"
+    # Every observation result must be either BLOCKED (live) or PASS (repo chain,
+    # which was already RESOLVED long before this read-only reobservation).
+    allowed = {"BLOCKED", "PASS"}
+    for observation in campaign["observations"]:
+        assert observation["result"] in allowed, (
+            f"observation {observation['id']} has unexpected result {observation['result']}"
+        )
+    # The repo chain remains the only PASS/RESOLVED observation; its result is not
+    # affected by this read-only reobservation lane.
+    repo_chain = {item["id"]: item for item in campaign["observations"]}["OBS-RUNNER-REPO-CHAIN"]
+    assert repo_chain["result"] == "PASS"
+    assert repo_chain["status"] == "RESOLVED"

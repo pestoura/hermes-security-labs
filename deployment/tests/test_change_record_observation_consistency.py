@@ -136,3 +136,17 @@ def test_chg_hsl_052_points_at_defined_observation() -> None:
         (CHANGES_DIR / "CHG-HSL-052.yaml").read_text(encoding="utf-8")
     )
     assert document["source"]["observation"] in _campaign_observation_ids()
+
+
+def test_chg_hsl_053_points_at_defined_observation() -> None:
+    # CHG-HSL-053 is a SAFE-LIVE-READONLY reconciliation ledger entry; it must obey
+    # the same observation-reference contract as every other change record.
+    document = yaml.safe_load(
+        (CHANGES_DIR / "CHG-HSL-053.yaml").read_text(encoding="utf-8")
+    )
+    assert document["id"] == "CHG-HSL-053"
+    assert document["classification"] == "DOC_ONLY"
+    assert document["source"]["observation"] in _campaign_observation_ids()
+    # No runtime mutation is permitted by the record: the campaign must remain
+    # BLOCKED/HOLD and the referenced observation is the repository chain.
+    assert document["source"]["observation"] == "OBS-RUNNER-REPO-CHAIN"
