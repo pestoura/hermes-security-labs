@@ -16,7 +16,11 @@ The live evidence package fills that gap without turning machine evidence into a
 
 ### `PRE_PROMOTION`
 
-The exact required gate set is:
+The required gate set is composed from the accepted assurance profile
+(`platform/assurance/current-assurance-profile.yaml`, ADR-0011 Option B), resolved through
+`platform/assurance/assurance_profile.py`. It is never hardcoded per phase.
+
+Required under every profile (PROD baseline, never relaxed):
 
 - `GATEWAY_ADMISSION_REOBSERVATION`;
 - `BRIDGE_REVISION_REOBSERVATION`;
@@ -24,11 +28,26 @@ The exact required gate set is:
 - `USER_NAMESPACE_MAPPING`;
 - `SIGNER_PROVIDER_ATTESTATION`;
 - `RECEIPT_DELIVERY`;
-- `UNAUTHORIZED_PEER_NEGATIVE`;
-- `EVIDENCE_BACKEND_CONTROLS`;
-- `EVIDENCE_TENANT_ISOLATION`.
+- `UNAUTHORIZED_PEER_NEGATIVE`.
 
-A complete PRE_PROMOTION package means the referenced evidence artefacts are all `PASS`, their `evidence://` references and SHA-256 digests have been independently verified, and the package is bound to the exact candidate commit currently recorded in the canonical validation campaign.
+Profile-conditional gates:
+
+| Gate | Assurance requirement key | `LAB_L1` | `PROD` |
+| --- | --- | --- | --- |
+| `EVIDENCE_BACKEND_CONTROLS` | `requires_external_worm_backend` | not required | mandatory |
+| `EVIDENCE_TENANT_ISOLATION` | `requires_tenant_isolation` | not required | mandatory |
+
+Under `LAB_L1` those two gates are omissible only. They are still accepted as inputs: when
+present and executed they are integrity-verified like any other gate, and a `FAIL` still
+blocks completion. They can only tighten the outcome, never relax it.
+
+An absent, invalid or unparsable profile declaration resolves to `PROD` (fail-closed), so a
+broken profile document can never remove a required gate.
+
+A complete PRE_PROMOTION package means the referenced evidence artefacts required by the
+resolved profile are all `PASS`, their `evidence://` references and SHA-256 digests have been
+independently verified, and the package is bound to the exact candidate commit currently
+recorded in the canonical validation campaign.
 
 The only next state exposed by the verifier is:
 
@@ -38,7 +57,7 @@ It never returns promotion authority.
 
 ### `POST_EFFECT`
 
-The exact required gate set is:
+The required gate set is profile-invariant (no POST_EFFECT gate is omissible under `LAB_L1`):
 
 - `HITL_PROMOTION_DECISION`;
 - `PROMOTED_POLICY_SET`;
@@ -100,7 +119,11 @@ Real evidence packages should not be committed to source control.
 
 ## Fail-closed properties
 
-- phase gate sets are exact; missing or extra gates are rejected;
+- gate composition is resolved from the accepted assurance profile; an absent/invalid profile
+  resolves to `PROD` and therefore to the strictest gate set;
+- `PROD` always requires the external WORM/durable evidence-backend and tenant-isolation gates;
+- `LAB_L1` omits only those two, and a present-but-failing omitted gate still blocks;
+- required gates are exact; missing required gates or undeclared extra gates are rejected;
 - duplicate gates are rejected;
 - a `NOT_RUN` package cannot contain an executed gate;
 - an assembled package must match the exact campaign candidate commit;
@@ -112,6 +135,22 @@ Real evidence packages should not be committed to source control.
 - recommendation remains `HOLD` always;
 - no policy or campaign mutation exists in this module;
 - no network, provider client, subprocess or target execution path exists.
+
+## Phase 2 — evidence hash-chain seal (NOT wired)
+
+The frozen evidence hash-chain seal interface (`platform/evidence-plane/seal.py`) is
+deliberately **not** wired into gate composition in this phase. Wiring it would change the
+exact gate set of already-accepted `LAB_L1`/`PROD` packages, so it must land as its own
+deliberate change with its own change record.
+
+The deterministic hook is declared and tested as inert:
+
+- `PHASE2_SEAL_GATE_HOOK = "EVIDENCE_HASH_CHAIN_SEAL"`;
+- `PHASE2_SEAL_GATE_REQUIREMENT_KEY = "requires_hash_chain"`;
+- `PHASE2_SEAL_GATE_ENABLED = False`.
+
+`test_phase2_seal_gate_hook_is_declared_but_not_wired` asserts the hook appears in no resolved
+gate set for either profile or phase.
 
 ## Non-claims
 
