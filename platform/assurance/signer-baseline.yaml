@@ -1,0 +1,51 @@
+schema_version: signer-baseline/v1
+# Accepted provider-neutral signer baseline (R1-R8), source-of-truth.
+# This file encodes docs/architecture/lab-assurance-signer-requirements.md as machine-checkable
+# truth. It selects NO supplier and performs NO live mutation, trust binding or promotion.
+signer_baseline:
+  accepted: true
+  provider_neutral: true
+  allows_automatic_supplier_choice: false
+  supplier_selection: NO_SELECTION
+  requires_external_signer: true
+  requires_non_exportable_private_key: true
+  requires_purpose_bound_key_identity: true
+  requires_explicit_trust_store: true
+  requires_trust_store_digest_binding: true
+  requires_provider_observation_attestation: true
+  requires_signing_enabled_active: true
+  requires_auditability: true
+  requires_revocation_rotation_fail_closed: true
+  requires_cost_proportional_bring_up: true
+  requires_evidence_separation: true
+# Evaluation-only candidate classes. No class may be marked selected automatically.
+# PKCS11 is an interface class: is_custody_proof is always false for it.
+candidate_classes:
+  - class: KMS
+    is_custody_proof: false
+    evaluation_status: NOT_EVALUATED
+    capability_evidence: null
+    notes: >-
+      Provider-managed, non-exportable keys; strong R1/R5/R6. Introduces an external
+      dependency and, in shared deployments, a tenancy question relevant to PROD.
+  - class: HSM
+    is_custody_proof: false
+    evaluation_status: NOT_EVALUATED
+    capability_evidence: null
+    notes: >-
+      Hardware-backed, strongest custody (R1); heaviest R7; disproportionate for a first
+      isolated L1 lab effect.
+  - class: VAULT
+    is_custody_proof: false
+    evaluation_status: NOT_EVALUATED
+    capability_evidence: null
+    notes: >-
+      Software isolation, service-mediated signing; satisfies R1-R6 if signing stays
+      server-side. Needs its own availability story for R4.
+  - class: PKCS11
+    is_custody_proof: false
+    evaluation_status: NOT_EVALUATED
+    capability_evidence: null
+    notes: >-
+      Interface class, not a product. Standardizes access (R2, R6 portability) but asserts
+      nothing about custody by itself; cannot satisfy R1 alone.

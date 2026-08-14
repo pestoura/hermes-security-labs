@@ -24,6 +24,7 @@ def _doc(profile: str, **overrides: Any) -> dict[str, Any]:
         "requires_purpose_bound_trust_store": True,
         "requires_non_exportable_private_key": True,
         "requires_explicit_trust_store": True,
+        "requires_accepted_signer_baseline": True,
         "requires_so_peerccred_with_audit": True,
         "requires_audit_sink": True,
         "requires_tamper_evident_evidence": True,
@@ -187,6 +188,47 @@ def test_committed_current_assurance_profile_is_valid() -> None:
     result = load_profile(PROFILE_PATH)
     assert result.resolved_profile == LAB_L1
     assert result.failures == ()
+
+
+def test_committed_lab_l1_requires_accepted_signer_baseline_and_trust_store() -> None:
+    doc = yaml.safe_load(PROFILE_PATH.read_text(encoding="utf-8"))
+    assert doc["evaluation"]["requires_accepted_signer_baseline"] is True
+    assert doc["evaluation"]["requires_explicit_trust_store"] is True
+
+
+def test_committed_prod_assurance_profile_requires_signer_baseline() -> None:
+    prod_path = ASSURANCE_DIR / "prod-assurance-profile.yaml"
+    assert prod_path.is_file()
+    doc = yaml.safe_load(prod_path.read_text(encoding="utf-8"))
+    validate_profile_schema(doc)
+    result = load_profile(prod_path)
+    assert result.resolved_profile == PROD
+    assert result.failures == ()
+    assert doc["evaluation"]["requires_accepted_signer_baseline"] is True
+    assert doc["evaluation"]["requires_explicit_trust_store"] is True
+    assert doc["evaluation"]["requires_external_worm_backend"] is True
+    assert doc["evaluation"]["requires_tenant_isolation"] is True
+
+
+def test_schema_requires_signer_baseline_and_trust_store_on_either_profile() -> None:
+    # Both profiles must declare the signer baseline + explicit trust store as true.
+    for profile in (LAB_L1, PROD):
+        doc = _doc(profile)
+        validate_profile_schema(doc)
+        assert doc["evaluation"]["requires_accepted_signer_baseline"] is True
+        assert doc["evaluation"]["requires_explicit_trust_store"] is True
+
+
+def test_schema_rejects_signer_baseline_false() -> None:
+    doc = _doc(LAB_L1, requires_accepted_signer_baseline=False)
+    with pytest.raises(AssuranceProfileError):
+        validate_profile_schema(doc)
+
+
+def test_schema_rejects_explicit_trust_store_false() -> None:
+    doc = _doc(PROD, requires_explicit_trust_store=False)
+    with pytest.raises(AssuranceProfileError):
+        validate_profile_schema(doc)
 
 
 def test_schema_rejects_unknown_profile_value() -> None:

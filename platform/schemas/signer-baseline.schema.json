@@ -1,0 +1,86 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Provider-neutral lab/prod signer baseline (R1-R8) source-of-truth",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "signer_baseline",
+    "candidate_classes"
+  ],
+  "properties": {
+    "schema_version": {"const": "signer-baseline/v1"},
+    "signer_baseline": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "accepted",
+        "provider_neutral",
+        "allows_automatic_supplier_choice",
+        "requires_external_signer",
+        "requires_non_exportable_private_key",
+        "requires_purpose_bound_key_identity",
+        "requires_explicit_trust_store",
+        "requires_trust_store_digest_binding",
+        "requires_provider_observation_attestation",
+        "requires_signing_enabled_active",
+        "requires_auditability",
+        "requires_revocation_rotation_fail_closed",
+        "requires_cost_proportional_bring_up",
+        "requires_evidence_separation"
+      ],
+      "properties": {
+        "accepted": {"type": "boolean", "const": true, "description": "R1-R8 accepted as the provider-neutral signer baseline."},
+        "provider_neutral": {"type": "boolean", "const": true, "description": "Baseline expresses security properties, never vendor names."},
+        "allows_automatic_supplier_choice": {"type": "boolean", "const": false, "description": "No provider/product is ever selected automatically."},
+        "supplier_selection": {
+          "type": "string",
+          "enum": ["NO_SELECTION", "PENDING", "SELECTED"],
+          "description": "Explicit human supplier-selection state. Remains NO_SELECTION until a recorded decision."
+        },
+        "requires_external_signer": {"type": "boolean", "const": true, "description": "R1: private key never in repo/Runner; signing performed by signer; caller gets signature only."},
+        "requires_non_exportable_private_key": {"type": "boolean", "const": true, "description": "R1: private key non-exportable at the provider."},
+        "requires_purpose_bound_key_identity": {"type": "boolean", "const": true, "description": "R2: domain hex0r.tb1.authorization.v1 + purpose tb1-authorization bound to one key_id."},
+        "requires_explicit_trust_store": {"type": "boolean", "const": true, "description": "R3: explicit public trust store under /etc|/run|/var/run with path/key_id/algorithm/digest binding."},
+        "requires_trust_store_digest_binding": {"type": "boolean", "const": true, "description": "R3: SHA-256 of committed public material bound to trust-store key_id+algorithm."},
+        "requires_provider_observation_attestation": {"type": "boolean", "const": true, "description": "R4: a fresh, evidence-verified OBSERVED attestation is required for any passed signer observation."},
+        "requires_signing_enabled_active": {"type": "boolean", "const": true, "description": "R4/R6: observed key must be active and enabled for signing; stale/future timestamps fail closed."},
+        "requires_auditability": {"type": "boolean", "const": true, "description": "R5: signer outputs are attributable; absence of audit record for a signature fails closed."},
+        "requires_revocation_rotation_fail_closed": {"type": "boolean", "const": true, "description": "R6: revocation invalidates future verification deterministically; rotation is trust-store content + expected hash."},
+        "requires_cost_proportional_bring_up": {"type": "boolean", "const": true, "description": "R7: reproducible from non-secret descriptor; lab profile must not require a hardware procurement cycle."},
+        "requires_evidence_separation": {"type": "boolean", "const": true, "description": "R8: signer outputs are evidence inputs; no key material/token/header in sanitized evidence."}
+      }
+    },
+    "candidate_classes": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Evaluation-only candidate classes. Never auto-selects a winner.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "class",
+          "is_custody_proof",
+          "evaluation_status"
+        ],
+        "properties": {
+          "class": {"type": "string", "enum": ["KMS", "HSM", "VAULT", "PKCS11"]},
+          "is_custody_proof": {
+            "type": "boolean",
+            "description": "False for PKCS11 (interface, not custody). True only for an actual custody backend once proven."
+          },
+          "evaluation_status": {
+            "type": "string",
+            "enum": ["NOT_EVALUATED", "EVIDENCE_MISSING", "EVIDENCE_UNVERIFIED", "EVIDENCE_VERIFIED_PENDING_DECISION"],
+            "description": "No status may mean SELECTED."
+          },
+          "capability_evidence": {
+            "type": ["object", "null"],
+            "description": "Recorded capability evidence references (evidence:// refs + digests). Null when not captured."
+          },
+          "notes": {"type": "string", "maxLength": 500}
+        }
+      }
+    }
+  }
+}

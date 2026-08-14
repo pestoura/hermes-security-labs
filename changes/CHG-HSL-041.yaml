@@ -1,0 +1,34 @@
+schemaVersion: jds.change/v1
+kind: ChangeRecord
+id: CHG-HSL-041
+product: hermes-security-labs
+classification: DOC_ONLY
+state: ACCEPTED
+disposition: FIX_NOW
+summary: 'Formalize user-approved R1-R8 signer baseline as Accepted source-of-truth (provider-neutral). Add signer-baseline schema + evaluator (candidate-class KMS/HSM/VAULT/PKCS11, no auto-selection, PKCS11 not custody). Wire LAB_L1 and PROD profiles to require accepted signer baseline + explicit trust store. Add NO_SELECTION decision packet. No live mutation, key/trust-store creation, provider install, or promotion; campaign stays BLOCKED/HOLD, promotion_allowed false.'
+source:
+  type: ENGINEERING_REVIEW
+  campaign: VAL-HSL-RUNNER-L1-LIVE-PROMOTION
+  observation: OBS-RUNNER-POLICY-PROMOTION
+  reference: 'repo-only governance lane on base 0eeb2d82b1bbcb1e50e59578e89fdbcca0675862; R1-R8 accepted as source-of-truth (supplier withheld). Files: lab-assurance-signer-requirements.md, lab-assurance-signer-decision-packet.md, signer-baseline.schema.json, signer-baseline.yaml, signer_selection.py, assurance-profile.schema.json, assurance_profile.py, current-assurance-profile.yaml, prod-assurance-profile.yaml. No live mutation, trust binding, key/provider creation, target interaction, blocker closed.'
+affectedRelease: jds-002-adoption-candidate
+targetRelease: null
+risk: LOW
+versionEffect: NONE
+branch: lane/signer-baseline-r1r8
+issue: null
+pr: null
+validation:
+  targeted: PASS
+  regression: PASS
+  security: PASS
+  runtime: NOT_APPLICABLE
+promotion:
+  commit: null
+  artifactDigest: null
+  previousRelease: null
+deferredTo: null
+timestamps:
+  discoveredAt: '2026-08-14T17:00:00Z'
+  updatedAt: '2026-08-14T17:30:00Z'
+  closedAt: null
