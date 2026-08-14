@@ -1,0 +1,35 @@
+schemaVersion: jds.change/v1
+kind: ChangeRecord
+id: CHG-HSL-046
+product: hermes-security-labs
+classification: HARDENING
+state: ACCEPTED
+disposition: FIX_NOW
+summary: >-
+  Wire the LAB_L1 HASH_CHAIN_SEAL integrity gate into the profile-aware phased live-promotion evidence package verifier.
+source:
+  type: ENGINEERING_REVIEW
+  campaign: VAL-HSL-RUNNER-L1-LIVE-PROMOTION
+  observation: OBS-EVIDENCE-CUSTODY
+  reference: 'deployment/runtime-promotion/runtime_live_promotion_evidence.py; schema live-promotion-evidence-package.schema.json; template example.yaml; platform/evidence-plane/seal.py; platform/schemas/evidence-chain.schema.json; reserved CHG-HSL-046 (no driving GitHub issue)'
+affectedRelease: jds-002-adoption-candidate
+targetRelease: null
+risk: LOW
+versionEffect: NONE
+branch: lane/hsl-046-profile-aware-hashchain
+issue: null
+pr: null
+validation:
+  targeted: PASS
+  regression: PASS
+  security: PASS
+  runtime: NOT_APPLICABLE
+promotion:
+  commit: null
+  artifactDigest: null
+  previousRelease: null
+deferredTo: null
+timestamps:
+  discoveredAt: '2026-08-14T17:00:00Z'
+  updatedAt: '2026-08-14T17:00:00Z'
+  closedAt: null

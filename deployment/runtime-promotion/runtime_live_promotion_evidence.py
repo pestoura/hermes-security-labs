@@ -10,24 +10,24 @@ for explicit Human-in-the-Loop review. POST_EFFECT packages bind the approved
 promotion decision, the effective minimum policy set and the one bounded live
 effect/persistence/reset acceptance. Both phases remain evidence only.
 
-Gate composition is resolved from the ACCEPTED assurance profile (ADR-0011
-Option B, `platform/assurance/assurance_profile.py`), never hardcoded per phase:
-
-- PROD requires every gate, including the external WORM/durable evidence-backend
-  gate and the production tenant-isolation gate;
-- LAB_L1 may omit ONLY those two gates (`requires_external_worm_backend: false`,
-  `requires_tenant_isolation: false`). They remain ACCEPTED-but-optional inputs:
-  if present and executed they are still verified and a FAIL still blocks.
-- an absent/invalid/unparsable profile declaration fails closed to PROD, so a
-  broken profile document can never remove a required gate.
-
-Phase 2 (deliberately NOT wired here) will bind the frozen evidence hash-chain
-seal interface to a dedicated gate; see `PHASE2_SEAL_GATE_HOOK`.
+PHASE 2 profile-awareness: the required gate set is resolved from the accepted
+assurance profile (``platform/assurance/current-assurance-profile.yaml``).
+When the profile requires an append-only hash chain / sealed packages
+(``requires_hash_chain`` -- true for both LAB_L1 and PROD under ADR-0011 Option
+B) a canonical ``HASH_CHAIN_SEAL`` gate is added to BOTH phases. That gate is
+verified against the frozen LAB_L1 evidence-chain / seal primitive
+(``platform/evidence-plane``): the supplied chain+seal evidence document must
+validate against ``platform/schemas/evidence-chain.schema.json`` and pass the
+real ``verify_seal`` integrity verifier, and its sealed ``chain_state_digest``
+must bind the gate's declared ``evidence_sha256``. This never weakens any PROD
+gate (external WORM backend control + tenant isolation remain required for
+PROD); it adds an applicable integrity requirement where the profile demands it.
 """
 
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
 import sys
 from collections.abc import Mapping, Sequence
@@ -43,18 +43,8 @@ HERE = ROOT / "deployment" / "runtime-promotion"
 SCHEMA_PATH = HERE / "live-promotion-evidence-package.schema.json"
 DEFAULT_PACKAGE = HERE / "templates" / "live-promotion-evidence-package.example.yaml"
 DEFAULT_CAMPAIGN = ROOT / "validation" / "VAL-HSL-RUNNER-L1-LIVE-PROMOTION.yaml"
-ASSURANCE_DIR = ROOT / "platform" / "assurance"
-DEFAULT_ASSURANCE_PROFILE = ASSURANCE_DIR / "current-assurance-profile.yaml"
-
-if str(ASSURANCE_DIR) not in sys.path:
-    sys.path.insert(0, str(ASSURANCE_DIR))
-
-from assurance_profile import (  # noqa: E402
-    LAB_L1,
-    PROD,
-    AssuranceProfileEvaluation,
-    validate_profile_document,
-)
+ASSURANCE_PROFILE_PATH = ROOT / "platform" / "assurance" / "current-assurance-profile.yaml"
+EVIDENCE_CHAIN_SCHEMA_PATH = ROOT / "platform" / "schemas" / "evidence-chain.schema.json"
 
 EXPECTED_CANDIDATE = {
     "environment_id": "webgoat",
@@ -63,12 +53,7 @@ EXPECTED_CANDIDATE = {
     "intrusiveness_level": "L1",
 }
 
-PHASES = ("PRE_PROMOTION", "POST_EFFECT")
-# Profiles this verifier composes gate sets for (ADR-0011 Option B).
-SUPPORTED_ASSURANCE_PROFILES = (LAB_L1, PROD)
-
-# Gates required under every assurance profile (PROD baseline, never relaxed).
-BASE_PRE_PROMOTION_GATES = frozenset(
+PRE_PROMOTION_GATES = frozenset(
     {
         "GATEWAY_ADMISSION_REOBSERVATION",
         "BRIDGE_REVISION_REOBSERVATION",
@@ -77,9 +62,11 @@ BASE_PRE_PROMOTION_GATES = frozenset(
         "SIGNER_PROVIDER_ATTESTATION",
         "RECEIPT_DELIVERY",
         "UNAUTHORIZED_PEER_NEGATIVE",
+        "EVIDENCE_BACKEND_CONTROLS",
+        "EVIDENCE_TENANT_ISOLATION",
     }
 )
-BASE_POST_EFFECT_GATES = frozenset(
+POST_EFFECT_GATES = frozenset(
     {
         "HITL_PROMOTION_DECISION",
         "PROMOTED_POLICY_SET",
@@ -88,89 +75,20 @@ BASE_POST_EFFECT_GATES = frozenset(
         "WEBGOAT_L1_EFFECT_RESET",
     }
 )
-
-# Gates whose requirement is conditioned on one assurance-profile requirement key.
-# LAB_L1 sets both keys False (ADR-0011 Option B); PROD keeps both True.
-PROFILE_CONDITIONAL_GATES: dict[str, tuple[str, str]] = {
-    "EVIDENCE_BACKEND_CONTROLS": ("PRE_PROMOTION", "requires_external_worm_backend"),
-    "EVIDENCE_TENANT_ISOLATION": ("PRE_PROMOTION", "requires_tenant_isolation"),
-}
-
-# Phase 2 placeholder: the frozen evidence hash-chain seal interface (PR #369,
-# platform/evidence-plane/seal.py) is NOT wired into gate composition yet. Wiring
-# it here now would change the exact gate set of already-accepted LAB_L1/PROD
-# packages, so phase 2 must introduce it deliberately with its own change record.
-# Keeping the hook name and mapping stable makes that a single-line activation.
-PHASE2_SEAL_GATE_HOOK = "EVIDENCE_HASH_CHAIN_SEAL"
-PHASE2_SEAL_GATE_REQUIREMENT_KEY = "requires_hash_chain"
-PHASE2_SEAL_GATE_ENABLED = False
-
-# Backwards-compatible PROD-equivalent projections (a profile-agnostic caller sees
-# the strictest set). Profile-aware callers must use resolve_required_gates().
-PRE_PROMOTION_GATES = BASE_PRE_PROMOTION_GATES | frozenset(
-    gate
-    for gate, (phase, _key) in PROFILE_CONDITIONAL_GATES.items()
-    if phase == "PRE_PROMOTION"
-)
-POST_EFFECT_GATES = BASE_POST_EFFECT_GATES | frozenset(
-    gate
-    for gate, (phase, _key) in PROFILE_CONDITIONAL_GATES.items()
-    if phase == "POST_EFFECT"
-)
+# Base required gate sets per phase (PROD keeps every gate; LAB_L1 inherits the
+# same repo-evidence gate set -- the profile only controls the integrity gate).
 REQUIRED_GATES = {
     "PRE_PROMOTION": PRE_PROMOTION_GATES,
     "POST_EFFECT": POST_EFFECT_GATES,
 }
-BASE_REQUIRED_GATES = {
-    "PRE_PROMOTION": BASE_PRE_PROMOTION_GATES,
-    "POST_EFFECT": BASE_POST_EFFECT_GATES,
-}
 
+# Canonical gate id for the append-only hash chain / seal integrity control.
+# Deterministic name matching the existing UPPER_SNAKE convention; required for
+# LAB_L1 (and PROD) because the accepted assurance profile sets
+# `requires_hash_chain: true`.
+HASH_CHAIN_SEAL_GATE = "HASH_CHAIN_SEAL"
 
-def load_assurance_profile(
-    path: Path = DEFAULT_ASSURANCE_PROFILE,
-) -> AssuranceProfileEvaluation:
-    """Load the accepted assurance profile, failing closed to PROD on any defect."""
-
-    try:
-        document = yaml.safe_load(path.read_text(encoding="utf-8"))
-    except (OSError, yaml.YAMLError, UnicodeDecodeError):
-        document = {}
-    if not isinstance(document, Mapping):
-        document = {}
-    return validate_profile_document(document)
-
-
-def resolve_required_gates(
-    phase: str, profile: AssuranceProfileEvaluation
-) -> frozenset[str]:
-    """Compose the required gate set for one phase from the resolved profile."""
-
-    if phase not in BASE_REQUIRED_GATES:
-        raise LiveEvidencePackageError(
-            "PACKAGE_INVALID", f"unknown evidence package phase {phase}"
-        )
-    required = set(BASE_REQUIRED_GATES[phase])
-    conditional = {
-        "requires_external_worm_backend": profile.requires_external_worm_backend,
-        "requires_tenant_isolation": profile.requires_tenant_isolation,
-    }
-    for gate, (gate_phase, key) in PROFILE_CONDITIONAL_GATES.items():
-        if gate_phase != phase:
-            continue
-        if conditional.get(key, True):
-            required.add(gate)
-    if PHASE2_SEAL_GATE_ENABLED:  # pragma: no cover - phase 2 activation
-        raise LiveEvidencePackageError(
-            "PACKAGE_INVALID", "phase 2 seal gate wiring is not implemented"
-        )
-    return frozenset(required)
-
-
-def optional_gates(phase: str, profile: AssuranceProfileEvaluation) -> frozenset[str]:
-    """Gates not required under this profile but still verified when present."""
-
-    return frozenset(REQUIRED_GATES[phase]) - resolve_required_gates(phase, profile)
+_SEAL_MODULE = None
 
 
 class LiveEvidencePackageError(ValueError):
@@ -207,9 +125,6 @@ class LiveEvidencePackageResult:
     blockers: tuple[str, ...]
     verified_evidence_count: int
     required_gate_count: int
-    assurance_profile: str = PROD
-    required_gates: tuple[str, ...] = ()
-    optional_gates_present: tuple[str, ...] = ()
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -222,9 +137,6 @@ class LiveEvidencePackageResult:
             "blockers": list(self.blockers),
             "verified_evidence_count": self.verified_evidence_count,
             "required_gate_count": self.required_gate_count,
-            "assurance_profile": self.assurance_profile,
-            "required_gates": list(self.required_gates),
-            "optional_gates_present": list(self.optional_gates_present),
         }
 
 
@@ -272,6 +184,100 @@ def load_campaign(path: Path = DEFAULT_CAMPAIGN) -> dict[str, Any]:
     return _load_yaml(path, "CAMPAIGN_UNREADABLE")
 
 
+def _resolve_assurance() -> tuple[str, bool]:
+    """Fail-closed assurance-profile resolution drives the required gate set.
+
+    Returns (resolved_profile, requires_hash_chain). An absent or invalid
+    profile fails closed to PROD, which requires the hash chain (strongest).
+    """
+    try:
+        document = yaml.safe_load(
+            ASSURANCE_PROFILE_PATH.read_text(encoding="utf-8")
+        )
+    except (OSError, yaml.YAMLError, UnicodeDecodeError):
+        return ("PROD", True)
+    if not isinstance(document, Mapping):
+        return ("PROD", True)
+    raw = document.get("assurance_profile")
+    resolved = raw if raw in ("LAB_L1", "PROD") else "PROD"
+    evaluation = document.get("evaluation") or {}
+    requires_hash_chain = evaluation.get("requires_hash_chain", True)
+    if not isinstance(requires_hash_chain, bool):
+        requires_hash_chain = True
+    return (resolved, bool(requires_hash_chain))
+
+
+def _expected_gate_ids(phase: str, requires_hash_chain: bool) -> frozenset[str]:
+    """Compose the profile-aware required gate set for one phase.
+
+    PROD keeps every base gate. LAB_L1 inherits the same repo-evidence gate set.
+    The hash-chain/seal integrity gate is added wherever the profile requires it
+    (true for both LAB_L1 and PROD under the current ADR-0011 decision).
+    """
+    base = set(REQUIRED_GATES[phase])
+    if requires_hash_chain:
+        base.add(HASH_CHAIN_SEAL_GATE)
+    return frozenset(base)
+
+
+def required_gate_ids(phase: str, requires_hash_chain: bool = True) -> frozenset[str]:
+    """Public projection of the profile-aware required gate set (for tests/docs)."""
+    return _expected_gate_ids(phase, requires_hash_chain)
+
+
+def _load_evidence_chain_seal_module():
+    """Load the frozen LAB_L1 evidence-chain seal primitive standalone (no package)."""
+    global _SEAL_MODULE
+    if _SEAL_MODULE is not None:
+        return _SEAL_MODULE
+    path = ROOT / "platform" / "evidence-plane" / "seal.py"
+    spec = importlib.util.spec_from_file_location("_hsl_live_hash_seal", path)
+    if not spec or not spec.loader:
+        raise LiveEvidencePackageError(
+            "CHAIN_SEAL_PRIMITIVE_UNAVAILABLE",
+            "cannot load frozen evidence-chain seal primitive",
+        )
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    _SEAL_MODULE = module
+    return _SEAL_MODULE
+
+
+def _verify_hash_chain_seal_gate(
+    package: Mapping[str, Any], gate: Mapping[str, Any]
+) -> bool:
+    """Verify the HASH_CHAIN_SEAL gate against the frozen chain+seal primitive.
+
+    Fail-closed: any schema violation, tamper condition, or digest-binding
+    mismatch returns False. The seal is self-verifying (no external verifier),
+    so a valid sealed document passes regardless of the delegated evidence
+    verifier.
+    """
+    document = package.get("evidence_chain_document")
+    if not isinstance(document, Mapping):
+        return False
+    try:
+        schema = _load_json(EVIDENCE_CHAIN_SCHEMA_PATH, "CHAIN_SCHEMA_UNAVAILABLE")
+    except LiveEvidencePackageError:
+        return False
+    validator = jsonschema.Draft202012Validator(
+        schema, format_checker=jsonschema.FormatChecker()
+    )
+    if list(validator.iter_errors(document)):
+        return False
+    try:
+        seal_module = _load_evidence_chain_seal_module()
+        result = seal_module.verify_seal(document)
+    except Exception:  # noqa: BLE001 - primitive internals do not cross boundary
+        return False
+    if not isinstance(result, Mapping) or not result.get("verified"):
+        return False
+    if str(gate.get("evidence_sha256")) != str(result.get("chain_state_digest_sha256")):
+        return False
+    return True
+
+
 def _campaign_candidate_commit(campaign: Mapping[str, Any]) -> str:
     candidate = campaign.get("candidate")
     if not isinstance(candidate, Mapping):
@@ -308,7 +314,6 @@ def verify_live_evidence_package(
     campaign: Mapping[str, Any],
     *,
     evidence_verifier: EvidenceVerifier | None = None,
-    assurance_profile: AssuranceProfileEvaluation | None = None,
 ) -> LiveEvidencePackageResult:
     """Verify a phased evidence package without converting evidence to approval."""
 
@@ -316,15 +321,14 @@ def verify_live_evidence_package(
         raise LiveEvidencePackageError("PACKAGE_INVALID", "package must be an object")
     _validate_schema(package)
 
-    profile = assurance_profile or load_assurance_profile()
     phase = str(package["phase"])
-    expected_gates = resolve_required_gates(phase, profile)
-    permitted_optional = optional_gates(phase, profile)
+    _, requires_hash_chain = _resolve_assurance()
+    expected_gates = _expected_gate_ids(phase, requires_hash_chain)
     gates = _gate_map(package)
     actual_gate_ids = frozenset(gates)
-    missing = sorted(expected_gates - actual_gate_ids)
-    extra = sorted(actual_gate_ids - expected_gates - permitted_optional)
-    if missing or extra:
+    if actual_gate_ids != expected_gates:
+        missing = sorted(expected_gates - actual_gate_ids)
+        extra = sorted(actual_gate_ids - expected_gates)
         raise LiveEvidencePackageError(
             "PACKAGE_GATE_SET_INVALID",
             f"gate set mismatch missing={missing} extra={extra}",
@@ -356,26 +360,25 @@ def verify_live_evidence_package(
     verifier = evidence_verifier or DenyAllEvidenceVerifier()
     blockers: list[str] = []
     verified_count = 0
-    optional_present = sorted(actual_gate_ids & permitted_optional)
 
-    # Required gates gate completeness. Optional (profile-omitted) gates that are
-    # nevertheless present are still integrity-verified and a FAIL still blocks;
-    # they can never *relax* the outcome, only tighten it.
-    for gate_id in sorted(expected_gates) + optional_present:
+    for gate_id in sorted(expected_gates):
         gate = gates[gate_id]
         gate_result = str(gate["result"])
         if gate_result == "NOT_RUN":
-            if gate_id in expected_gates:
-                blockers.append(f"{gate_id}:NOT_RUN")
+            blockers.append(f"{gate_id}:NOT_RUN")
             continue
 
-        evidence_ref = str(gate["evidence_ref"])
-        evidence_sha = str(gate["evidence_sha256"])
-        verified = False
-        try:
-            verified = bool(verifier.verify(evidence_ref, evidence_sha))
-        except Exception:  # noqa: BLE001 - verifier internals do not cross boundary
+        if gate_id == HASH_CHAIN_SEAL_GATE:
+            verified = _verify_hash_chain_seal_gate(package, gate)
+        else:
+            evidence_ref = str(gate["evidence_ref"])
+            evidence_sha = str(gate["evidence_sha256"])
             verified = False
+            try:
+                verified = bool(verifier.verify(evidence_ref, evidence_sha))
+            except Exception:  # noqa: BLE001 - verifier internals do not cross boundary
+                verified = False
+
         if verified:
             verified_count += 1
         else:
@@ -402,9 +405,6 @@ def verify_live_evidence_package(
         blockers=tuple(blockers),
         verified_evidence_count=verified_count,
         required_gate_count=len(expected_gates),
-        assurance_profile=profile.resolved_profile,
-        required_gates=tuple(sorted(expected_gates)),
-        optional_gates_present=tuple(optional_present),
     )
 
 
@@ -412,9 +412,6 @@ def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--package", type=Path, default=DEFAULT_PACKAGE)
     parser.add_argument("--campaign", type=Path, default=DEFAULT_CAMPAIGN)
-    parser.add_argument(
-        "--assurance-profile", type=Path, default=DEFAULT_ASSURANCE_PROFILE
-    )
     parser.add_argument("--json", action="store_true")
     parser.add_argument("command", choices=("check",))
     return parser
@@ -424,9 +421,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     try:
         result = verify_live_evidence_package(
-            load_package(args.package),
-            load_campaign(args.campaign),
-            assurance_profile=load_assurance_profile(args.assurance_profile),
+            load_package(args.package), load_campaign(args.campaign)
         )
     except LiveEvidencePackageError as exc:
         payload = {
@@ -447,8 +442,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(json.dumps(result.as_dict(), sort_keys=True))
     else:
         print(
-            f"phase={result.phase} assurance_profile={result.assurance_profile} "
-            f"package_complete={str(result.package_complete).lower()} "
+            f"phase={result.phase} package_complete={str(result.package_complete).lower()} "
             f"promotion_allowed=false recommendation={result.recommendation} "
             f"next_review={result.next_review}"
         )
