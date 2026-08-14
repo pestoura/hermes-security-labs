@@ -163,7 +163,82 @@ def test_chg_hsl_047_records_merged_green_repo_capability_tokens_without_resolvi
     assert "CHG-HSL-047 reconciles" in evidence["summary"]
 
 
+def test_chg_hsl_050_execution_gateway_holds_are_implemented_green_repo_but_unpromoted() -> None:
+    campaign = _campaign()
+    observations = {item["id"]: item for item in campaign["observations"]}
+
+    # Issues #359 (runtime HOLD) and #361 (deployment controller) are part of
+    # the repository chain as fail-closed, NOT-promoted capabilities. They must
+    # be recorded as IMPLEMENTED/GREEN-REPO and explicitly UNPROMOTED.
+    repo_chain = observations["OBS-RUNNER-REPO-CHAIN"]
+    assert "execution-gateway-hold:IMPLEMENTED(CHG-036;issue#359:GREEN-REPO)" in repo_chain["evidence"]
+    assert "execution-gateway-deployment:IMPLEMENTED(CHG-037;issue#361:GREEN-REPO)" in repo_chain["evidence"]
+    assert "execution-gateway-boundary:UNPROMOTED(promotion_allowed=false;HOLD)" in repo_chain["evidence"]
+
+    # The live observation is still unpromoted: the campaign stays BLOCKED/HOLD
+    # and the #359/#361 observations remain OPEN (not closed by this record).
+    assert campaign["state"] == "BLOCKED"
+    assert campaign["promotionRecommendation"] == "HOLD"
+    assert repo_chain["result"] == "PASS"
+    assert repo_chain["status"] == "RESOLVED"
+
+
+def test_chg_hsl_050_records_merged_green_repo_capability_tokens_042_047() -> None:
+    campaign = _campaign()
+    observations = {item["id"]: item for item in campaign["observations"]}
+
+    # CHG-042..047 merged LAB_L1 capabilities reconciled as GREEN-REPO (no live
+    # promotion). Every token must be present in OBS-EVIDENCE-CUSTODY evidence.
+    evidence = observations["OBS-EVIDENCE-CUSTODY"]["evidence"]
+    tokens = (
+        "hash-chain-seal:GREEN-REPO(CHG-042)",
+        "audit-sink:GREEN-REPO(CHG-043)",
+        "profile-aware-pre-post:GREEN-REPO(CHG-044)",
+        "peer-identity-audit:GREEN-REPO(CHG-045)",
+        "package-composition:GREEN-REPO(CHG-046)",
+    )
+    for token in tokens:
+        assert token in evidence
+    # CHG-047 is the record that performed the reconciliation; it is cited too.
+    assert "CHG-HSL-047 reconciles" in observations["OBS-EVIDENCE-CUSTODY"]["summary"]
+    # HASH_CHAIN_SEAL stays NOT_RUN for live evidence (GREEN-REPO != live seal).
+    assert "HASH_CHAIN_SEAL:NOT_RUN" in evidence
+
+
+def test_chg_hsl_050_assurance_profile_invariants_stay_locked_in() -> None:
+    campaign = _campaign()
+    observations = {item["id"]: item for item in campaign["observations"]}
+
+    # The live promotion observations must NOT be flipped to PASS/RESOLVED by the
+    # merged repo capabilities: they remain required/BLOCKED/OPEN.
+    for observation_id in (
+        "OBS-TB1-LIVE-DELIVERY",
+        "OBS-RUNNER-POLICY-PROMOTION",
+        "OBS-EVIDENCE-CUSTODY",
+        "OBS-LIVE-EFFECT-RESET",
+    ):
+        assert observations[observation_id]["required"] is True
+        assert observations[observation_id]["result"] == "BLOCKED"
+        assert observations[observation_id]["status"] == "OPEN"
+
+
 def test_chg_hsl_047_preserves_blocked_hold_invariants() -> None:
+    campaign = _campaign()
+    assert campaign["state"] == "BLOCKED"
+    assert campaign["promotionRecommendation"] == "HOLD"
+
+    observations = {item["id"]: item for item in campaign["observations"]}
+    for observation_id in (
+        "OBS-TB1-LIVE-DELIVERY",
+        "OBS-RUNNER-POLICY-PROMOTION",
+        "OBS-EVIDENCE-CUSTODY",
+        "OBS-LIVE-EFFECT-RESET",
+    ):
+        assert observations[observation_id]["result"] == "BLOCKED"
+        assert observations[observation_id]["status"] == "OPEN"
+
+
+def test_chg_hsl_050_preserves_blocked_hold_invariants() -> None:
     campaign = _campaign()
     assert campaign["state"] == "BLOCKED"
     assert campaign["promotionRecommendation"] == "HOLD"

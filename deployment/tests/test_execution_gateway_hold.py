@@ -323,3 +323,69 @@ def test_systemd_analyze_verify_passes_for_service_unit() -> None:
     # systemd-analyze prints to stderr; a clean unit yields an empty result.
     assert not completed.stdout.strip()
     assert not completed.stderr.strip()
+
+
+# ----------------------------------------- CHG-HSL-050 extended HOLD invariants
+
+
+def test_gateway_descriptor_is_repo_only_fail_closed_hold_boundary() -> None:
+    descriptor = _descriptor()
+    # The Execution Gateway HOLD boundary is repository-only and fail-closed:
+    # no live promotion, no target effect, client role on the AF_UNIX surface.
+    assert descriptor["policy"]["promotion_allowed"] is False
+    assert descriptor["promotion_allowed"] is False
+    assert descriptor["runtime_status"] == "NOT_RUN"
+    assert descriptor["gateway_client"]["role"] == "client"
+    assert descriptor["listener"]["mode"] == "HOLD"
+    # The gateway is the client side of the AF_UNIX dispatch surface and never
+    # promotes or enables a policy; promotion stays disabled and NOT_RUN.
+    assert descriptor["policy"]["state"] == "DISABLED"
+
+
+def test_gateway_descriptor_never_declares_a_target_or_trust_effect() -> None:
+    descriptor = _descriptor()
+    # Every target effect slot must be a no-op; the gateway binds no trust.
+    tb = descriptor["trust_binding"]
+    assert tb["enabled"] is False
+    assert tb["source"] is None
+    assert tb["expected_sha256"] is None
+    for effect in descriptor["target_effects"].values():
+        assert effect in (None, "none")
+    assert descriptor["listener"]["mode"] == "HOLD"
+
+
+def test_gateway_module_exposes_no_target_trust_or_payload_surface() -> None:
+    # PROHIBITED_EFFECTS names (e.g. send_runner_payload) are declared as a
+    # fail-closed tuple; the module must expose NO method/attribute of those
+    # names that would let a caller perform a payload/target/trust effect.
+    for forbidden in ("send_runner_payload", "touch_target", "bind_trust", "apply_policy",
+                      "do_send_runner_payload", "do_touch_target", "do_bind_trust", "do_apply_policy"):
+        assert not hasattr(gateway, forbidden)
+    tree = ast.parse(GATEWAY_MODULE.read_text(encoding="utf-8"))
+    called = {ast.unparse(n.func) for n in ast.walk(tree) if isinstance(n, ast.Call)}
+    # No outbound effect call of any prohibited verb (dispatch/auth/touch/trust).
+    # `DispatchObservation` is a data class, not a call, so match only real
+    # trailing calls like `something.dispatch(` / `authorize(` / `apply_policy(`.
+    called_tail = {c.split(".")[-1] for c in called}
+    for verb in ("dispatch", "authorize", "apply_policy", "bind_trust", "touch_target"):
+        assert verb not in called_tail
+    # The gateway only CONNECTS/RECVs/CLOSEs; it never SENDs a payload.
+    source = ast.unparse(tree)
+    assert "send(" not in source
+    assert "sendall(" not in source
+
+
+def test_gateway_module_never_mutates_target_or_trust_state() -> None:
+    tree = ast.parse(GATEWAY_MODULE.read_text(encoding="utf-8"))
+    source = ast.unparse(tree)
+    assert "write_text(" not in source
+    assert "unlink(" not in source
+    called = {ast.unparse(n.func) for n in ast.walk(tree) if isinstance(n, ast.Call)}
+    assert not any("chmod" in c or "chown" in c for c in called)
+
+
+def test_gateway_descriptor_mirrors_canonical_gateway_identity_ids() -> None:
+    descriptor = _descriptor()
+    assert descriptor["identities"]["gateway"]["uid"] == 4100
+    assert descriptor["identities"]["gateway"]["gid"] == 4100
+    assert descriptor["identities"]["dispatch_group"]["gid"] == 4110
