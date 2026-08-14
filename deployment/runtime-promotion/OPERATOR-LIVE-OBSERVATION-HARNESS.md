@@ -132,7 +132,10 @@ That child is an **INDEPENDENT, self-contained `stdlib`-only**
 `jsonschema`, no repository source and no home paths, and it writes **no
 evidence**. It connects to the socket, observes `recv`/EOF/refusal (it NEVER
 calls `send`/`sendall`), emits exactly one prefixed JSON result line
-(`PEER_CHILD_RESULT {json}`), and exits. An AST guard test proves the child
+(`PEER_CHILD_RESULT {json}`) from its self-contained `/usr/bin/python3 -c`
+source, and exits. The parent parses that one line fail-closed (rejecting
+zero, two, or more marker lines, non-JSON, or a non-mapping payload). An AST
+guard test proves the child
 source imports only `errno`/`json`/`socket`/`struct`/`sys` and contains none of
 `send`/`sendall`/`jsonschema`/`yaml`/`harness`/`runtime_userns_evidence`/`open(`
 or any home path. The parent parses that one line fail-closed (rejecting zero,
