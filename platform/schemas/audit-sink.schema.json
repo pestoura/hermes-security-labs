@@ -1,0 +1,171 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hex0r.local/schemas/audit-sink-v1.json",
+  "title": "LAB_L1 Local Append-Only Audit Sink (Evidence-Plane)",
+  "description": "Repository-only, fail-closed, append-only/hash-linked audit sink built on the frozen LAB_L1 evidence_chain/seal primitives (PR #369). Each audit record is bound into the tamper-evident evidence chain; the sink adds explicit campaign/run/step/attempt/principal/decision/correlation fields and a sealed chain envelope. No external delivery, no secrets, no live system/runtime/network/Docker/target effect. Integrity != authenticity/durability.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "profile",
+    "sink_id",
+    "chain_id",
+    "worm_migration_compatible",
+    "entries",
+    "seal"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "profile": {"const": "LAB_L1"},
+    "sink_id": {"type": "string", "pattern": "^audit_sink_[a-f0-9]{32,64}$"},
+    "chain_id": {"type": "string", "pattern": "^chain_[a-f0-9]{32,64}$"},
+    "worm_migration_compatible": {"const": true},
+    "no_external_delivery": {"const": true},
+    "no_secrets": {"const": true},
+    "no_runtime_effect": {"const": true},
+    "entries": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/audit_event"}
+    },
+    "seal": {"$ref": "#/$defs/chain_seal"}
+  },
+  "$defs": {
+    "audit_event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "index",
+        "entry_id",
+        "object_kind",
+        "object_ref",
+        "object_digest_sha256",
+        "object_size_bytes",
+        "object_media_type",
+        "correlation",
+        "evidence_ref",
+        "prev_entry_digest",
+        "canonical_payload_sha256",
+        "created_at",
+        "audit"
+      ],
+      "properties": {
+        "index": {"type": "integer", "minimum": 0},
+        "entry_id": {"type": "string", "pattern": "^evc_[a-f0-9]{32,64}$"},
+        "object_kind": {"enum": ["evidence_record", "exec_manifest", "raw_object", "migration_bundle"]},
+        "object_ref": {"type": "string", "pattern": "^evidence://[A-Za-z0-9._/-]+$|^object://sha256/[a-f0-9]{64}$"},
+        "object_digest_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "object_size_bytes": {"type": "integer", "minimum": 0},
+        "object_media_type": {"type": "string", "minLength": 1, "maxLength": 128},
+        "correlation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["campaign_id", "run_id", "step_id", "attempt_id"],
+          "properties": {
+            "campaign_id": {"type": "string", "minLength": 1, "maxLength": 128},
+            "run_id": {"type": "string", "minLength": 1, "maxLength": 128},
+            "step_id": {"type": "string", "minLength": 1, "maxLength": 128},
+            "attempt_id": {"type": "string", "minLength": 1, "maxLength": 128}
+          }
+        },
+        "evidence_ref": {
+          "type": ["string", "null"],
+          "pattern": "^ev_[a-f0-9]{32}$"
+        },
+        "prev_entry_digest": {
+          "type": ["string", "null"],
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "canonical_payload_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "created_at": {"type": "string", "format": "date-time"},
+        "audit": {"$ref": "#/$defs/audit_payload"}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"index": {"const": 0}}},
+          "then": {"properties": {"prev_entry_digest": {"type": "null"}}}
+        },
+        {
+          "if": {"not": {"properties": {"index": {"const": 0}}}},
+          "then": {"properties": {"prev_entry_digest": {"type": "string", "pattern": "^[a-f0-9]{64}$"}}}
+        }
+      ]
+    },
+    "audit_payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "campaign_id",
+        "run_id",
+        "step_id",
+        "attempt_id",
+        "principal",
+        "decision",
+        "correlation_id"
+      ],
+      "properties": {
+        "campaign_id": {"type": "string", "minLength": 1, "maxLength": 128},
+        "run_id": {"type": "string", "minLength": 1, "maxLength": 128},
+        "step_id": {"type": "string", "minLength": 1, "maxLength": 128},
+        "attempt_id": {"type": "string", "minLength": 1, "maxLength": 128},
+        "principal": {"type": "string", "minLength": 1, "maxLength": 256},
+        "decision": {"type": "string", "minLength": 1, "maxLength": 256},
+        "correlation_id": {"type": "string", "minLength": 1, "maxLength": 256},
+        "outcome": {
+          "type": "string",
+          "enum": ["observed", "recorded", "denied", "error", "unknown"]
+        },
+        "notes": {"type": "string", "maxLength": 2000},
+        "redacted": {"type": "boolean"}
+      }
+    },
+    "chain_seal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "seal_id",
+        "sealed_at",
+        "chain_state_digest_sha256",
+        "entry_count",
+        "genesis_digest_sha256",
+        "head_digest_sha256",
+        "bindings",
+        "kind"
+      ],
+      "properties": {
+        "seal_id": {"type": "string", "pattern": "^seal_[a-f0-9]{32,64}$"},
+        "sealed_at": {"type": "string", "format": "date-time"},
+        "chain_state_digest_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "entry_count": {"type": "integer", "minimum": 1},
+        "genesis_digest_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "head_digest_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "kind": {"const": "integrity_hash_binding"},
+        "bindings": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "profile",
+            "chain_id",
+            "entries_digest",
+            "canonical_serialization_digest"
+          ],
+          "properties": {
+            "profile": {"const": "LAB_L1"},
+            "chain_id": {"type": "string", "pattern": "^chain_[a-f0-9]{32,64}$"},
+            "entries_digest": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+            "canonical_serialization_digest": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+            "worm_ingest_contract_ref": {"type": "string", "maxLength": 256},
+            "signer": {"const": null},
+            "authenticity": {"const": false},
+            "durability": {"const": false}
+          }
+        },
+        "note": {
+          "type": "string",
+          "maxLength": 400,
+          "description": "Integrity/tamper-evidence only. Not a signer, not a WORM claim."
+        }
+      }
+    }
+  }
+}

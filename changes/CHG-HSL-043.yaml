@@ -1,0 +1,38 @@
+schemaVersion: jds.change/v1
+kind: ChangeRecord
+id: CHG-HSL-043
+product: hermes-security-labs
+classification: HARDENING
+state: ACCEPTED
+disposition: FIX_NOW
+summary: >-
+  Add LAB_L1 local append-only hash-linked audit sink built on the frozen
+  evidence_chain/seal API (PR #369). Fail-closed reads/writes, ordered replay,
+  explicit campaign/run/step/attempt/principal/decision/correlation fields, no
+  external delivery, no secrets, no runtime effect. promotion_allowed false.
+source:
+  type: ENGINEERING_REVIEW
+  campaign: VAL-HSL-RUNNER-L1-LIVE-PROMOTION
+  observation: OBS-EVIDENCE-CUSTODY
+  reference: 'Repo-only Lane 1 on base 1236667779f0a7b55e7b2fcd394b57680e070eac (PR #369 merge commit). Files: platform/evidence-plane/audit_sink.py, platform/schemas/audit-sink.schema.json, platform/tests/test_audit_sink.py. Reuses EvidenceChain.append_object + seal_chain/verify_seal; no chain-logic duplication, no keys/signer/trust store, no live mutation/Docker/target effect. Campaign stays BLOCKED/HOLD; promotion_allowed false.'
+affectedRelease: jds-002-adoption-candidate
+targetRelease: null
+risk: LOW
+versionEffect: NONE
+branch: lane/lab-l1-audit-sink
+issue: 369
+pr: null
+validation:
+  targeted: PASS
+  regression: PASS
+  security: PASS
+  runtime: NOT_APPLICABLE
+promotion:
+  commit: null
+  artifactDigest: null
+  previousRelease: null
+deferredTo: null
+timestamps:
+  discoveredAt: '2026-08-15T00:00:00Z'
+  updatedAt: '2026-08-15T00:30:00Z'
+  closedAt: null
