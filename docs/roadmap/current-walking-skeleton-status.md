@@ -1,12 +1,14 @@
 # Hermes Security Labs — current walking-skeleton status
 
-**Reconciled:** 2026-08-13 08:45 UTC  
-**Current Labs baseline:** `6a77921ec2079aa6689d11e2d7118f948ccb3a60`  
+**Reconciled:** 2026-08-14 21:00 UTC  
+**Current Labs baseline:** `c36fa8551ed4ae2b347b3b68e4343cbe3e7b592c`  
 **Accepted/live Hermes MCP Bridge revision:** `3717bd5469b061a44294b27e1a7510d477d3752b`
 
 This is the concise current-state view of the walking skeleton. Repository/CI proof and live Hermes runtime proof are separate evidence classes. Historical evidence remains in [`runtime-acceptance-checkpoint-2026-08-09.md`](runtime-acceptance-checkpoint-2026-08-09.md); the governed Runner promotion campaign is [`../../validation/VAL-HSL-RUNNER-L1-LIVE-PROMOTION.yaml`](../../validation/VAL-HSL-RUNNER-L1-LIVE-PROMOTION.yaml).
 
 > **GREEN-REPO is not live acceptance.** It means the contract/code exists and passed repository gates. It does not grant execution authority, activate a policy, prove host deployment or prove target interaction.
+
+> **The commit SHA is reconciliation provenance, not a runtime authority.** The value above is the exact authoritative `origin/main` at the time of the CHG-HSL-052 reconciliation (after CHG-042..050, PR #378). It is recorded so a reader can pin the tree state; it is not read by any runtime, gate, policy or promotion path. Git and `validation/VAL-HSL-RUNNER-L1-LIVE-PROMOTION.yaml` remain the only sources of truth. A SHA must never be used to assert that a capability is live, that a policy is enabled, or that promotion authority exists.
 
 ## Assurance profile decision (ADR-0011, Accepted)
 
@@ -218,6 +220,39 @@ When the Hermes connector and authorized deployment evidence are usable again:
 
 No target-interacting action is authorized merely because repository contracts or CI are GREEN.
 
+## Lifecycle matrix (repository vs live vs deferred)
+
+This matrix is the explicit mapping required by CHG-HSL-052. It separates three
+non-interchangeable states and forbids promoting one into another:
+
+- **GREEN-REPO** — repository/CI state only. The contract, code or verifier exists and
+  passed repository gates. It is *not* a live claim.
+- **NOT_RUN / HOLD** — live runtime state is absent, disabled, or deliberately held. No
+  execution authority exists.
+- **Deferred signer / Vault dependency** — a capability is present in the repository but
+  its live realization depends on an external signer provider and/or the external purpose-bound
+  trust store (Vault) that are not configured, observed or selected. The dependency is
+  explicitly named; its absence keeps the capability `NOT_RUN`.
+
+| Capability (repository) | Repository/CI state | Live runtime state | Deferred dependency |
+| --- | --- | --- | --- |
+| Evidence chain + hash seal (LAB_L1) | `GREEN-REPO`, CHG-042 (#369) | `HASH_CHAIN_SEAL: NOT_RUN` for live evidence | none repo-side; signer=None on seal (authenticity=false/durability=false) |
+| Local append-only audit sink | `GREEN-REPO`, CHG-043 (#370) | `audit-sink: GREEN-REPO`; live persistence `NOT_RUN` | external durable audit sink (PROD only) |
+| Profile-aware PRE/POST gate composition | `GREEN-REPO`, CHG-044 (#371) | gate composition `GREEN-REPO`; packages `NOT_RUN` | external signer + trust store for real effect |
+| SO_PEERCRED auth audit integration | `GREEN-REPO`, CHG-045 (#373/#374) | transport `DISABLED`; peer identity `NOT_RUN` | enabled transport + authorized live identity mapping |
+| HASH_CHAIN_SEAL wired into phased package | `GREEN-REPO`, CHG-046 (#372) | phase-2 seal gate inert hook; `NOT_RUN` | signed/sealed live package evidence |
+| Deterministic reset attestation contracts | `GREEN-REPO`, CHG-049 (#377) | `production_lab_runtime: NOT_RUN` | live reset/zero-residue execution |
+| ADR-0011 assurance profiles (LAB_L1/PROD) | `ACCEPTED`, fail-closed to PROD | structural only; `runtime_status: NOT_RUN` | external signer + WORM + tenant isolation for PROD |
+| External signer + purpose-bound trust store (Vault) | verifier `GREEN-REPO` (#342/#331) | `signer-provider-observation: NOT_RUN`; `trust-store: ABSENT` | **deferred**: no provider selected, Vault/trust store unconfigured |
+| Durable Evidence Plane backend (WORM) | verifier `GREEN-REPO` (#345) | `production-backend: NOT_IMPLEMENTED / NOT_RUN` | **deferred**: no backend selected/deployed |
+| Backend tenant isolation | verifier `GREEN-REPO` (#348) | `tenant-isolation: NOT_RUN` | **deferred**: no tenant config/negatives observed |
+| Execution Gateway HOLD boundary (#359/#361) | `GREEN-REPO`, CHG-036/037 | `UNPROMOTED`; `promotion_allowed=false`; HOLD | none; intentionally non-executing |
+| Full walking skeleton live completion | repository candidate complete | `HOLD / BLOCKED-ON-LIVE-PROMOTION-EVIDENCE-AND-CONNECTOR` | **deferred**: signer/Vault/WORM/tenant/peer-negative/HITL |
+
+Rule: a `GREEN-REPO` row never implies the live row is `PASS`; a deferred dependency
+row never implies the dependency is satisfied. `UNKNOWN` is fail-safe: missing or
+unverifiable observation is never converted to `IN_SYNC` or `DRIFT_DETECTED`.
+
 ## Recent engineering checkpoints
 
 | Change | PR | Merge SHA | Outcome |
@@ -239,6 +274,15 @@ No target-interacting action is authorized merely because repository contracts o
 | Runner L1 tenant-isolation source-of-truth reconciliation | #350 | `d136bbfc7bad7aa9d94f8616c28e6b771f234b59` | DOC_ONLY, tenant live evidence remains NOT_RUN |
 | Phased live-promotion evidence package | #351 | `49cd0bd945fa4315a7faacba095fbb83318900ce` | GREEN-REPO, exact candidate/evidence binding; no promotion authority |
 | Live-package promotion-bundle reconciliation | #352 | `6a77921ec2079aa6689d11e2d7118f948ccb3a60` | GREEN-REPO, verifier/schema required; live packages NOT_RUN |
+| LAB_L1 evidence chain + hash seal | #369 | `1236667779f0a7b55e7b2fcd394b57680e070eac` | GREEN-REPO, signer=None; HASH_CHAIN_SEAL NOT_RUN live |
+| LAB_L1 local append-only audit sink | #370 | `47a3ea8c97f146cb5869540b6c9ec8e2d56a8e2a` | GREEN-REPO, live persistence NOT_RUN |
+| Live-promotion PRE/POST profile-aware composition | #371 | `970b3a38d5b9a909a554e11c3e495d33cbc8d699` | GREEN-REPO, packages NOT_RUN; PROD keeps WORM/tenant |
+| LAB_L1 HASH_CHAIN_SEAL wired into phased package | #372 | `59d212ee09ea5e746b873462ca4b32f9d1add2d9` | GREEN-REPO, phase-2 seal hook inert; NOT_RUN |
+| SO_PEERCRED auth audit integration | #373/#374 | `9bdc59409ea14ed238915ff6356b76fe91849add` | GREEN-REPO, transport DISABLED; peer identity NOT_RUN |
+| Fail-closed observation/change consistency guards | #376 | `d545ccbd4d4def5aeb8793d291adbc0313e69258` | HARDENING, BLOCKED/HOLD + promotion_allowed false preserved |
+| Deterministic reset attestation contracts | #377 | `567e143af332b96b37c0a2aaf6cb563a30cad93c` | GREEN-REPO, production_lab_runtime NOT_RUN |
+| Regression coverage for LAB_L1 + Execution Gateway HOLD | #378 | `c36fa8551ed4ae2b347b3b68e4343cbe3e7b592c` | GREEN-REPO, #359/#361 UNPROMOTED; HOLD preserved |
+| Walking-skeleton reconciliation (CHG-042..050) | CHG-HSL-052 | `c36fa8551ed4ae2b347b3b68e4343cbe3e7b592c` | DOC_ONLY, baseline re-pinned; BLOCKED/HOLD preserved |
 
 ## Decision record
 

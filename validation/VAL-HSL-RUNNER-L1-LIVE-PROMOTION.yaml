@@ -6,7 +6,7 @@ objective: Govern promotion of the current WebGoat L1 Runner repository chain in
 state: BLOCKED
 candidate:
   version: runner-webgoat-l1-repo-candidate
-  commit: 6a77921ec2079aa6689d11e2d7118f948ccb3a60
+  commit: c36fa8551ed4ae2b347b3b68e4343cbe3e7b592c
   artifactDigest: null
 environment: Hermes Security Labs / WebGoat isolated lab runtime
 observations:

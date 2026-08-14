@@ -1,0 +1,41 @@
+schemaVersion: jds.change/v1
+kind: ChangeRecord
+id: CHG-HSL-052
+product: hermes-security-labs
+classification: DOC_ONLY
+state: ACCEPTED
+disposition: FIX_NOW
+summary: 'Repository-only walking-skeleton reconciliation after CHG-042..050. Re-pin status doc from stale 6a77921e (PR #352) to origin/main c36fa8551; Bridge 3717bd54 unchanged. Add lifecycle matrix (GREEN-REPO vs NOT_RUN/HOLD vs deferred signer/Vault). SHA is provenance only, not runtime authority; Git + campaign stay source of truth. Extend validators to reject stale status, keep UNKNOWN fail-safe and BLOCKED/HOLD; promotion_allowed false. Issues #359/#361/#364/#368/#53 not closed.'
+source:
+  type: ENGINEERING_REVIEW
+  campaign: VAL-HSL-RUNNER-L1-LIVE-PROMOTION
+  observation: OBS-RUNNER-REPO-CHAIN
+  reference: >-
+    Repo-only lane at exact origin/main
+    c36fa8551ed4ae2b347b3b68e4343cbe3e7b592c (CHG-042..050, PR #378). Files:
+    docs/roadmap/current-walking-skeleton-status.md, changes/CHG-HSL-052.yaml,
+    platform/tests/test_runner_l1_campaign_reconciliation.py,
+    deployment/tests/test_change_record_observation_consistency.py. No
+    runtime/live/systemd/network/Docker/target/trust/provider mutation; campaign
+    BLOCKED/HOLD, promotion_allowed false, runtime NOT_RUN unchanged.
+affectedRelease: jds-002-adoption-candidate
+targetRelease: null
+risk: LOW
+versionEffect: NONE
+branch: chg-hsl-052/walking-skeleton-reconciliation
+issue: null
+pr: null
+validation:
+  targeted: PASS
+  regression: PASS
+  security: PASS
+  runtime: NOT_APPLICABLE
+promotion:
+  commit: null
+  artifactDigest: null
+  previousRelease: null
+deferredTo: null
+timestamps:
+  discoveredAt: '2026-08-14T21:00:00Z'
+  updatedAt: '2026-08-14T21:00:00Z'
+  closedAt: null

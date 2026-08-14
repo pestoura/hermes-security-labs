@@ -15,7 +15,7 @@ CANONICAL_OBSERVATION_ID = re.compile(r"^OBS-[A-Z0-9]+(?:-[A-Z0-9]+)*$")
 CAMPAIGN_PATH = ROOT / "validation" / "VAL-HSL-RUNNER-L1-LIVE-PROMOTION.yaml"
 STATUS_PATH = ROOT / "docs" / "roadmap" / "current-walking-skeleton-status.md"
 EPIC_PATH = ROOT / "docs" / "roadmap" / "epics" / "EPIC-10-evidence-plane.md"
-BASELINE = "6a77921ec2079aa6689d11e2d7118f948ccb3a60"
+BASELINE = "c36fa8551ed4ae2b347b3b68e4343cbe3e7b592c"
 
 
 def _campaign() -> dict:
@@ -302,3 +302,108 @@ def test_chg_hsl_048_reserves_hardening_record_without_resolving_live_state() ->
             "OBS-LIVE-EFFECT-RESET",
         )
     )
+
+
+# --- CHG-HSL-052: repository-only walking-skeleton reconciliation -----------------
+#
+# These guards keep the reconciliation honest: the walking-skeleton status doc and the
+# campaign must track the authoritative Git HEAD, must NOT treat a commit SHA as a
+# runtime authority, must preserve UNKNOWN/BLOCKED/HOLD fail-safe semantics, and must
+# keep Git + the campaign as the only sources of truth. No runtime/live mutation.
+
+
+def test_chg_hsl_052_status_and_campaign_track_authoritative_head() -> None:
+    # Both the status doc and the campaign candidate must reflect the exact
+    # authoritative origin/main at reconciliation time (CHG-042..050, PR #378).
+    text = STATUS_PATH.read_text(encoding="utf-8")
+    assert "c36fa8551ed4ae2b347b3b68e4343cbe3e7b592c" in text
+    # The stale baseline must no longer be declared as the current baseline (the
+    # historical #352 merge SHA may still appear in the checkpoint table).
+    assert (
+        "**Current Labs baseline:** `6a77921ec2079aa6689d11e2d7118f948ccb3a60`"
+        not in text
+    )
+    assert (
+        "**Current Labs baseline:** `c36fa8551ed4ae2b347b3b68e4343cbe3e7b592c`" in text
+    )
+
+    campaign = _campaign()
+    assert campaign["candidate"]["commit"] == "c36fa8551ed4ae2b347b3b68e4343cbe3e7b592c"
+
+
+def test_chg_hsl_052_commit_sha_is_provenance_not_runtime_authority() -> None:
+    text = STATUS_PATH.read_text(encoding="utf-8")
+    # The doc must explicitly forbid treating the SHA as a runtime authority.
+    assert "commit SHA is reconciliation provenance, not a runtime authority" in text
+    assert "not read by any runtime, gate, policy or promotion path" in text
+    # Git + the campaign remain the only sources of truth.
+    assert "Git and `validation/VAL-HSL-RUNNER-L1-LIVE-PROMOTION.yaml` remain the only sources of truth" in text
+
+
+def test_chg_hsl_052_lifecycle_matrix_is_present_and_explicit() -> None:
+    text = STATUS_PATH.read_text(encoding="utf-8")
+    assert "## Lifecycle matrix (repository vs live vs deferred)" in text
+    # Three-state separation must be explicit.
+    assert "GREEN-REPO" in text
+    assert "NOT_RUN / HOLD" in text
+    assert "Deferred signer / Vault dependency" in text
+    # The forbidden promotion rule must be stated.
+    assert "GREEN-REPO` row never implies the live row is `PASS`" in text
+    # UNKNOWN fail-safe must be preserved in the matrix contract.
+    assert "UNKNOWN` is fail-safe" in text
+    # Deferred signer/Vault dependency must be named for the key live blockers.
+    assert "trust-store: ABSENT" in text
+    assert "production-backend: NOT_IMPLEMENTED / NOT_RUN" in text
+    assert "tenant-isolation: NOT_RUN" in text
+
+
+def test_chg_hsl_052_git_and_campaign_remain_only_sources_of_truth() -> None:
+    # The reconciliation re-pins to Git HEAD and the campaign; it does not introduce
+    # any new source-of-truth authority (no SHA-derived runtime claim).
+    campaign = _campaign()
+    # Campaign stays the governed source for promotion state.
+    assert campaign["state"] == "BLOCKED"
+    assert campaign["promotionRecommendation"] == "HOLD"
+    assert campaign["candidate"]["commit"] == BASELINE
+    # The status doc still refuses to equate GREEN-REPO with live acceptance.
+    text = STATUS_PATH.read_text(encoding="utf-8")
+    assert "GREEN-REPO is not live acceptance" in text
+
+
+def test_chg_hsl_052_preserves_unknown_fail_safe_and_blocked_hold() -> None:
+    # Re-pinning the baseline must not resolve any live observation or flip BLOCKED/HOLD.
+    campaign = _campaign()
+    assert campaign["state"] == "BLOCKED"
+    assert campaign["promotionRecommendation"] == "HOLD"
+
+    observations = {item["id"]: item for item in campaign["observations"]}
+    for observation_id in (
+        "OBS-TB1-LIVE-DELIVERY",
+        "OBS-RUNNER-POLICY-PROMOTION",
+        "OBS-EVIDENCE-CUSTODY",
+        "OBS-LIVE-EFFECT-RESET",
+    ):
+        assert observations[observation_id]["required"] is True
+        assert observations[observation_id]["result"] == "BLOCKED"
+        assert observations[observation_id]["status"] == "OPEN"
+
+    # UNKNOWN stays fail-safe: the post-fix WebGoat rerun is still UNKNOWN, not PASS/FAIL.
+    reset = observations["OBS-LIVE-EFFECT-RESET"]
+    assert "result=UNKNOWN" in reset["evidence"]
+    assert "live-runner-effect:NOT_RUN" in reset["evidence"]
+
+
+def test_chg_hsl_052_reconciles_checkpoint_rows_without_promoting_live_state() -> None:
+    text = STATUS_PATH.read_text(encoding="utf-8")
+    # CHG-042..050 merge SHAs must appear in the engineering-checkpoint table.
+    for sha in (
+        "1236667779f0a7b55e7b2fcd394b57680e070eac",  # CHG-042 #369
+        "47a3ea8c97f146cb5869540b6c9ec8e2d56a8e2a",  # CHG-043 #370
+        "970b3a38d5b9a909a554e11c3e495d33cbc8d699",  # CHG-044 #371
+        "59d212ee09ea5e746b873462ca4b32f9d1add2d9",  # CHG-046 #372
+        "9bdc59409ea14ed238915ff6356b76fe91849add",  # CHG-045 #373/#374
+        "d545ccbd4d4def5aeb8793d291adbc0313e69258",  # CHG-048 #376
+        "567e143af332b96b37c0a2aaf6cb563a30cad93c",  # CHG-049 #377
+        "c36fa8551ed4ae2b347b3b68e4343cbe3e7b592c",  # CHG-050 #378 + CHG-HSL-052
+    ):
+        assert sha in text, f"missing checkpoint SHA {sha}"
