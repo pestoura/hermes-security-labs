@@ -89,7 +89,7 @@ class LocalEvidenceStore:
             raise LocalEvidenceStoreError("store root must be a directory")
         self.objects = self.root / "objects" / "sha256"
         self.records = self.root / "records"
-        for path in (self.root, self.objects, self.records):
+        for path in (self.root, self.root / "objects", self.objects, self.records):
             path.mkdir(parents=True, exist_ok=True)
             os.chmod(path, 0o700)
 
