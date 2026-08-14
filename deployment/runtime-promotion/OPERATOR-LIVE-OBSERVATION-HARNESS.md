@@ -1,4 +1,4 @@
-# Operator harness — remaining non-Vault SAFE-LIVE observations (CHG-HSL-057)
+# Operator harness — remaining non-Vault SAFE-LIVE observations (CHG-HSL-057, privilege flow fixed in CHG-HSL-058)
 
 Deterministic, fail-closed operator harness for the two remaining non-Vault
 SAFE-LIVE observations of `VAL-HSL-RUNNER-L1-LIVE-PROMOTION`:
@@ -62,16 +62,26 @@ authorized peer. Anything else is rejected as `IDENTITY_ASSUMPTION_REJECTED`.
 ## Step 2 — collect (read-only observation)
 
 ```bash
-python3 deployment/runtime-promotion/operator_live_observation_harness.py \
-  --output-directory /var/tmp/hsl-057-evidence \
+sudo python3 deployment/runtime-promotion/operator_live_observation_harness.py \
+  --output-directory /var/tmp/hsl-058-evidence \
   --unauthorized-uid <EPHEMERAL_UID> \
   collect
 ```
 
+`sudo` is required whenever `--unauthorized-uid` is supplied: the parent must hold
+effective root for the privileged userns re-attestation and to drop the peer child.
+Without root the run fails closed with `ROOT_REQUIRED` before any observation. The
+harness executes the userns observation FIRST under root, then spawns the peer
+child — never the reverse. The harness internally drops ONLY the peer child; the
+whole harness is never wrapped in `setpriv`.
+
 ### Observation 1: `USER_NAMESPACE_MAPPING`
 
 1. PIDs come from `systemctl show -p MainPID --value` for
-   `hexor-execution-gateway.service` and `hexor-runner-dispatch.service` only.
+   `hexor-execution-gateway.service` and `hexor-runner.service` only (the
+   canonical socket-activated Runner unit shipped in
+   `deployment/runner-runtime/systemd/hexor-runner.service`, matching
+   `runtime_boundaries.SYSTEMD_SERVICE_UNIT`).
    No process list is scanned; no unit is started, stopped, reloaded or enabled.
 2. Each PID is bound to its `/proc/<pid>/stat` start time. A PID rebound between
    discovery and observation invalidates the re-attestation (fail-closed finding
@@ -87,20 +97,66 @@ python3 deployment/runtime-promotion/operator_live_observation_harness.py \
 The probe runs under a temporary identity carrying supplementary GID `4110`
 (`hexor-dispatch`) **solely** so `/run/hexor/runner-dispatch.sock` (mode `0660`,
 owner `hexor-runner:hexor-dispatch`) is reachable at the DAC layer, while its UID
-is unauthorized. Recommended ephemeral invocation shape:
+is unauthorized.
+
+#### Canonical live form (CHG-HSL-058)
 
 ```bash
-sudo setpriv --reuid <EPHEMERAL_UID> --regid <EPHEMERAL_UID> \
-  --groups 4110 --no-new-privs -- \
-  python3 deployment/runtime-promotion/operator_live_observation_harness.py \
-    --output-directory /var/tmp/hsl-057-evidence \
-    --unauthorized-uid <EPHEMERAL_UID> collect
+sudo python3 deployment/runtime-promotion/operator_live_observation_harness.py \
+  --output-directory /var/tmp/hsl-058-evidence \
+  --unauthorized-uid <EPHEMERAL_UID> \
+  collect
 ```
 
-`setpriv` assumes an identity for the lifetime of that one process; it creates no
-user and no group, so zero persistent state remains. If `setpriv` is absent the
-harness returns `EPHEMERAL_IDENTITY_UNAVAILABLE` and the observation stays
-`NOT_RUN` — it never falls back to a privileged or authorized identity.
+**The harness internally drops ONLY the peer child.** The parent process stays
+privileged (effective root) for the whole run, because dereferencing
+`/proc/<pid>/ns/user` of the Gateway/Runner processes for
+`USER_NAMESPACE_MAPPING` requires root. Only after the userns observation has
+completed under root does the parent spawn one dedicated child:
+
+```text
+/usr/bin/setpriv --reuid <EPHEMERAL_UID> --regid <EPHEMERAL_UID> \
+  --groups 4110 --no-new-privs -- \
+  <python3> <harness.py> peer-child \
+    --socket-path /run/hexor/runner-dispatch.sock \
+    --unauthorized-uid <EPHEMERAL_UID> --dispatch-gid 4110
+```
+
+That child performs the socket connect/observe **only**. It runs no userns
+collection, sends no payload, writes no evidence, and returns its outcome to the
+parent as a single deterministic machine-readable line
+(`HSL058_PEER_CHILD_RESULT {json}`), which the parent decodes into the evidence
+envelope. `--unauthorized-uid` is required for the peer-negative observation; when
+it is supplied, `collect` **fails closed with `ROOT_REQUIRED`** if the parent is
+not effective root.
+
+#### Rejected: wrapping the whole harness in `setpriv`
+
+The pre-CHG-HSL-058 recipe that wrapped the **entire** harness —
+
+```text
+# REJECTED — do not use
+sudo setpriv --reuid <UID> --regid <UID> --groups 4110 --no-new-privs -- \
+  python3 .../operator_live_observation_harness.py ... collect
+```
+
+— is **invalid and must not be used**. Dropping the outer process destroys the
+parent's ability to dereference `/proc/<pid>/ns/user`, so the
+`USER_NAMESPACE_MAPPING` re-attestation cannot be performed and would fail or be
+silently degraded. The privileged read must stay in the outer process; only the
+peer probe is dropped.
+
+`setpriv` assumes an identity for the lifetime of that one child process; it
+creates no user and no group, so zero persistent state remains (no `useradd`,
+`groupadd`, `usermod`, `gpasswd`, and no persistent group membership). If
+`setpriv` is absent the harness returns `EPHEMERAL_IDENTITY_UNAVAILABLE`, no child
+is spawned and the observation stays `NOT_RUN` — it never falls back to a
+privileged or authorized identity.
+
+The `--unauthorized-uid` must be a positive, non-root UID that is **not** a
+canonical boundary identity (`0`, `4100` gateway, `4101` runner) and **not** an
+authorized peer. The child's primary GID is the numeric UID itself and the
+supplementary GID set is exactly `{4110}`.
 
 ### Outcome codes
 

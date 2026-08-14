@@ -1,0 +1,34 @@
+schemaVersion: jds.change/v1
+kind: ChangeRecord
+id: CHG-HSL-058
+product: hermes-security-labs
+classification: HARDENING
+state: ACCEPTED
+disposition: FIX_NOW
+summary: 'Repo-only privilege-flow fix of the operator live-observation harness: RUNNER_UNIT corrected to canonical hexor-runner.service; UNAUTHORIZED_PEER_NEGATIVE now runs in a dedicated internal child dropped via setpriv --reuid/--regid <uid> --groups 4110 --no-new-privs while the parent stays root for the /proc/<pid>/ns/user read. Userns runs first under root, then the child (connect/observe only; no userns, no payload). Non-root collect fails closed ROOT_REQUIRED. HOLD/NOT_RUN invariant.'
+source:
+  type: ENGINEERING_REVIEW
+  campaign: VAL-HSL-RUNNER-L1-LIVE-PROMOTION
+  observation: OBS-RUNNER-POLICY-PROMOTION
+  reference: 'Repo-only lane at origin/main 7e599206ca882d5f1456635b12fd81e69061d707 (after CHG-HSL-057). Files: operator_live_observation_harness.py, OPERATOR-LIVE-OBSERVATION-HARNESS.md, test_operator_live_observation_harness.py, changes/CHG-HSL-058.yaml. Canonical live form: sudo python3 <harness> --unauthorized-uid <UID> collect; old whole-harness setpriv wrapper rejected (destroys the privileged userns read). No live collect, no sudo, no runtime/policy/trust mutation; campaign BLOCKED/HOLD unchanged.'
+affectedRelease: jds-002-adoption-candidate
+targetRelease: null
+risk: LOW
+versionEffect: NONE
+branch: chg-hsl-058/operator-harness-privilege-flow-fix
+issue: null
+pr: null
+validation:
+  targeted: PASS
+  regression: PASS
+  security: PASS
+  runtime: NOT_APPLICABLE
+promotion:
+  commit: null
+  artifactDigest: null
+  previousRelease: null
+deferredTo: null
+timestamps:
+  discoveredAt: '2026-08-15T00:10:00Z'
+  updatedAt: '2026-08-15T00:10:00Z'
+  closedAt: null
