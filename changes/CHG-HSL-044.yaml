@@ -1,0 +1,43 @@
+schemaVersion: jds.change/v1
+kind: ChangeRecord
+id: CHG-HSL-044
+product: hermes-security-labs
+classification: HARDENING
+state: ACCEPTED
+disposition: FIX_NOW
+summary: >
+  Live-promotion PRE/POST evidence gate composition is resolved from the accepted
+  ADR-0011 assurance profile instead of hardcoded phase sets; LAB_L1 no longer
+  requires the external WORM and tenant-isolation gates while PROD keeps both
+  mandatory, an absent or invalid profile fails closed to PROD, profile-omitted
+  gates stay verified when present, and the phase 2 hash-chain seal gate remains
+  an inert declared hook. Promotion stays HOLD.
+source:
+  type: ENGINEERING_REVIEW
+  campaign: VAL-HSL-RUNNER-L1-LIVE-PROMOTION
+  observation: OBS-EVIDENCE-CUSTODY
+  reference: >
+    ADR-0011 Option B assurance profiles; deployment/runtime-promotion/runtime_live_promotion_evidence.py;
+    deployment/runtime-promotion/LIVE-PROMOTION-EVIDENCE-PACKAGE.md;
+    deployment/tests/test_runtime_live_promotion_evidence.py; platform/assurance/assurance_profile.py
+affectedRelease: jds-002-adoption-candidate
+targetRelease: null
+risk: LOW
+versionEffect: NONE
+branch: lane/live-promotion-profile-aware-gates
+issue: null
+pr: null
+validation:
+  targeted: PASS
+  regression: PASS
+  security: PASS
+  runtime: NOT_APPLICABLE
+promotion:
+  commit: null
+  artifactDigest: null
+  previousRelease: null
+deferredTo: null
+timestamps:
+  discoveredAt: '2026-08-14T00:00:00Z'
+  updatedAt: '2026-08-14T00:00:00Z'
+  closedAt: null
