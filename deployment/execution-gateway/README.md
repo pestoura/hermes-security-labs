@@ -83,13 +83,36 @@ a known expected SHA-256, validated fail-closed (the runner boundary's
 ## Validation
 
     python3 -m pytest -q deployment/tests/test_execution_gateway_hold.py -p no:cacheprovider
+    python3 -m pytest -q deployment/tests/test_execution_gateway_deployment.py -p no:cacheprovider
     python3 deployment/execution-gateway/execution_gateway_hold.py --check
-    python3 deployment/execution-gateway/execution_gateway_hold.py --probe
+    python3 deployment/execution-gateway/execution_gateway_deployment.py --json plan
+    python3 deployment/execution-gateway/execution_gateway_deployment.py --json install-base --no-root-required
+    python3 deployment/execution-gateway/execution_gateway_deployment.py --json rollback-base --no-root-required
     python3 -m ruff check --config security/pyproject.toml deployment/execution-gateway
     python3 -c "import yaml; yaml.safe_load(open('deployment/execution-gateway/execution-gateway-deployment.yaml'))"
     systemd-analyze verify deployment/execution-gateway/systemd/hexor-execution-gateway.service
 
-No live deployment, socket bind, user/group creation or trust-store write is
-performed by these commands: they are GREEN-REPO only. Live runtime status remains
-`NOT_RUN` until an explicit future promotion installs and observes the gateway on a
-host.
+## Deployment controller (repository-only)
+
+`execution_gateway_deployment.py` is the fail-closed deployment controller for
+this boundary. It exposes `plan`, `install-base --live` and `rollback-base
+--live`, patterned after the Runner runtime HOLD boundary controller (`#354`)
+but scoped strictly to gateway-owned artifacts. It:
+
+- preflights dependencies, identity/group exactness and artifact drift before
+  any mutation;
+- relies on the `#354` canonical identities: it asserts they are EXACT and fails
+  closed on ABSENT/CONFLICT; it never silently creates conflicting IDs;
+- installs only the gateway-owned files under `/opt/hexor/execution-gateway`
+  (supervisor, README, descriptor), the systemd service unit and the inert
+  tmpfiles.d declaration, all root-owned with exact modes;
+- daemon-reload / tmpfiles / enable --now the gateway service fail-closed, then
+  re-probes the installed files;
+- rollback removes only gateway-owned artifacts and preserves the shared
+  identities, `/run/hexor`, the Runner dispatcher socket and runtime, the trust
+  store and all policy state.
+
+No live deployment, socket bind, user/group creation, trust-store write or target
+effect is performed: these commands are GREEN-REPO only. Live runtime status
+remains `NOT_RUN` until an explicit future promotion installs and observes the
+gateway on a host.
