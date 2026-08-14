@@ -170,3 +170,11 @@ Remaining blockers include:
    events with the same Runner correlation IDs;
 7. live Runner terminal outcome custody into the Evidence Plane;
 8. explicit request-bound Human-in-the-Loop approval for the exact candidate and policy set.
+
+Blocker 2 (live negative test from an unauthorized UID/GID against the real Runner socket) is
+now **observed** for the HOLD boundary and recorded in
+[`../runner-runtime/LIVE-RUNTIME-ACCEPTANCE-EVIDENCE.md`](../runner-runtime/LIVE-RUNTIME-ACCEPTANCE-EVIDENCE.md),
+together with the observed identity/socket exactness and systemd activation. That record is
+deployment/runtime acceptance evidence only: it closes no other blocker in this list and changes
+no promotion semantics, which remain `runtime_status=NOT_RUN`, `execution_authority=none`,
+`promotion_allowed=false`.

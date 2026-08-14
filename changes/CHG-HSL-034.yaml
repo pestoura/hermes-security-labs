@@ -10,7 +10,7 @@ source:
   type: ENGINEERING_REVIEW
   campaign: null
   observation: OBS-RUNNER-RUNTIME-DEPLOYMENT-BASE
-  reference: 'issue #354; runtime-deployment.yaml; runtime_deployment.py; runner_hold_listener.py'
+  reference: 'issue #354; runtime-deployment.yaml; runtime_deployment.py; runner_hold_listener.py; LIVE-RUNTIME-ACCEPTANCE-EVIDENCE.md'
 affectedRelease: jds-002-adoption-candidate
 targetRelease: null
 risk: LOW
@@ -22,7 +22,7 @@ validation:
   targeted: PASS
   regression: PASS
   security: PASS
-  runtime: NOT_APPLICABLE
+  runtime: PASS
 promotion:
   commit: null
   artifactDigest: null
@@ -30,5 +30,5 @@ promotion:
 deferredTo: null
 timestamps:
   discoveredAt: '2026-08-13T19:00:00Z'
-  updatedAt: '2026-08-13T19:00:00Z'
+  updatedAt: '2026-08-14T09:00:00Z'
   closedAt: null
