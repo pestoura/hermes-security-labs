@@ -127,3 +127,12 @@ def test_chg_hsl_034_points_at_defined_observation() -> None:
         (CHANGES_DIR / "CHG-HSL-034.yaml").read_text(encoding="utf-8")
     )
     assert document["source"]["observation"] in _campaign_observation_ids()
+
+
+def test_chg_hsl_052_points_at_defined_observation() -> None:
+    # CHG-HSL-052 is a repository-only reconciliation ledger entry; it must obey the
+    # same observation-reference contract as every other change record (CHG-HSL-048).
+    document = yaml.safe_load(
+        (CHANGES_DIR / "CHG-HSL-052.yaml").read_text(encoding="utf-8")
+    )
+    assert document["source"]["observation"] in _campaign_observation_ids()
