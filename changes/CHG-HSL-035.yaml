@@ -1,0 +1,34 @@
+schemaVersion: jds.change/v1
+kind: ChangeRecord
+id: CHG-HSL-035
+product: hermes-security-labs
+classification: HARDENING
+state: ACCEPTED
+disposition: FIX_NOW
+summary: Correct the dangling JDS-002 source-of-truth reference in CHG-HSL-034. CHG-HSL-034 pointed at a non-existent observation OBS-RUNNER-RUNTIME-DEPLOYMENT-BASE; the Runner HOLD runtime boundary is a repository-chain capability of the merged promotion candidate, so the reference is corrected to the existing campaign VAL-HSL-RUNNER-L1-LIVE-PROMOTION and observation OBS-RUNNER-REPO-CHAIN. No runtime, policy, trust or promotion semantics are changed.
+source:
+  type: ENGINEERING_REVIEW
+  campaign: VAL-HSL-RUNNER-L1-LIVE-PROMOTION
+  observation: OBS-RUNNER-REPO-CHAIN
+  reference: 'CHG-HSL-034 referenced OBS-RUNNER-RUNTIME-DEPLOYMENT-BASE which is not defined in VAL-HSL-RUNNER-L1-LIVE-PROMOTION; the only defined observations are OBS-RUNNER-REPO-CHAIN, OBS-TB1-LIVE-DELIVERY, OBS-RUNNER-POLICY-PROMOTION, OBS-EVIDENCE-CUSTODY, OBS-LIVE-EFFECT-RESET'
+affectedRelease: jds-002-adoption-candidate
+targetRelease: null
+risk: LOW
+versionEffect: NONE
+branch: fix/chg-hsl-034-observation-reference
+issue: 354
+pr: null
+validation:
+  targeted: PASS
+  regression: PASS
+  security: PASS
+  runtime: NOT_APPLICABLE
+promotion:
+  commit: null
+  artifactDigest: null
+  previousRelease: null
+deferredTo: null
+timestamps:
+  discoveredAt: '2026-08-14T01:00:00Z'
+  updatedAt: '2026-08-14T01:00:00Z'
+  closedAt: null
