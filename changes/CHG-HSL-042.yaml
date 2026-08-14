@@ -1,0 +1,34 @@
+schemaVersion: jds.change/v1
+kind: ChangeRecord
+id: CHG-HSL-042
+product: hermes-security-labs
+classification: DOC_ONLY
+state: ACCEPTED
+disposition: FIX_NOW
+summary: 'Add LAB_L1 tamper-evident content-addressed evidence chain + hash seal (ADR-0011 Option B; subset of PROD WORM ingest). Reuses LocalEvidenceStore/evidence_plane canonical serialization. Entries bind object digest, prev digest, monotonic index, correlation/evidence ids. Seal hashes chain state WITHOUT signing key (signer=None/authenticity=false/durability=false). Fails closed on bad linkage, index gap, digest mismatch, tamper, replay, missing object. No keys/provider. promotion_allowed false.'
+source:
+  type: ENGINEERING_REVIEW
+  campaign: VAL-HSL-RUNNER-L1-LIVE-PROMOTION
+  observation: OBS-EVIDENCE-CUSTODY
+  reference: 'repo-only Lane 1 on base 4bae0ab22187378a341e1e635362e65756df24b1 (PR #367). Files: platform/evidence-plane/evidence_chain.py, platform/evidence-plane/seal.py, platform/schemas/evidence-chain.schema.json, platform/tests/test_lab_l1_evidence_chain_seal.py (34 tests). Reuses LocalEvidenceStore + evidence_plane canonical JSON. No live mutation, key/trust/provider creation, Docker, target interaction. Linked to OBS-EVIDENCE-CUSTODY without resolving it; campaign stays BLOCKED/HOLD.'
+affectedRelease: jds-002-adoption-candidate
+targetRelease: null
+risk: LOW
+versionEffect: NONE
+branch: lane/lab-l1-evidence-chain-seal
+issue: 368
+pr: null
+validation:
+  targeted: PASS
+  regression: PASS
+  security: PASS
+  runtime: NOT_APPLICABLE
+promotion:
+  commit: null
+  artifactDigest: null
+  previousRelease: null
+deferredTo: null
+timestamps:
+  discoveredAt: '2026-08-14T18:00:00Z'
+  updatedAt: '2026-08-14T18:30:00Z'
+  closedAt: null
