@@ -1,0 +1,41 @@
+schemaVersion: jds.change/v1
+kind: ChangeRecord
+id: CHG-HSL-051
+product: hermes-security-labs
+classification: HARDENING
+state: ACCEPTED
+disposition: FIX_NOW
+summary: >-
+  Repository-only offline HOLD evidence-package assembler for PRE_PROMOTION and
+  POST_EFFECT. Reuses the live-promotion verifier, accepted LAB_L1 profile,
+  evidence-chain/seal and audit-sink contracts. Accepts only already-collected
+  or explicit evidence, composes the profile-resolved required gate set,
+  computes/validates digests, marks unavailable live gates NOT_RUN, never
+  fabricates PASS, emits a schema-valid HOLD package. promotion_allowed stays
+  false; campaign BLOCKED/HOLD preserved.
+source:
+  type: ENGINEERING_REVIEW
+  campaign: VAL-HSL-RUNNER-L1-LIVE-PROMOTION
+  observation: OBS-RUNNER-REPO-CHAIN
+  reference: 'Offline evidence-package assembler at base c36fa85; adds deployment/runtime-promotion/offline_evidence_package_assembler.py and deployment/tests/test_offline_evidence_package_assembler.py (27 tests). Reuses verifier required_gate_ids, LAB_L1 profile, evidence-chain seal, audit-sink contracts. No runtime/systemd/network/Docker/target/trust/signer/provider mutation; campaign BLOCKED/HOLD, promotion_allowed false unchanged.'
+affectedRelease: jds-002-adoption-candidate
+targetRelease: null
+risk: LOW
+versionEffect: NONE
+branch: lane/chg-hsl-051-offline-evidence-assembler
+issue: null
+pr: null
+validation:
+  targeted: PASS
+  regression: PASS
+  security: PASS
+  runtime: NOT_APPLICABLE
+promotion:
+  commit: null
+  artifactDigest: null
+  previousRelease: null
+deferredTo: null
+timestamps:
+  discoveredAt: '2026-08-14T18:30:00Z'
+  updatedAt: '2026-08-14T18:30:00Z'
+  closedAt: null
