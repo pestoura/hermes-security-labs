@@ -9,6 +9,10 @@ candidate:
   capability_id: web.discovery.headers
   intrusiveness_level: L1
   repository_commit: "0000000000000000000000000000000000000000"
+# Frozen LAB_L1 evidence-chain + seal document for the HASH_CHAIN_SEAL gate.
+# Null until real sealed evidence is supplied. Never fabricate; the verifier
+# validates against platform/schemas/evidence-chain.schema.json and verify_seal.
+evidence_chain_document: null
 gates:
   - gate_id: GATEWAY_ADMISSION_REOBSERVATION
     result: NOT_RUN
@@ -51,6 +55,11 @@ gates:
     evidence_ref: null
     evidence_sha256: null
   - gate_id: EVIDENCE_TENANT_ISOLATION
+    result: NOT_RUN
+    observed_at: null
+    evidence_ref: null
+    evidence_sha256: null
+  - gate_id: HASH_CHAIN_SEAL
     result: NOT_RUN
     observed_at: null
     evidence_ref: null

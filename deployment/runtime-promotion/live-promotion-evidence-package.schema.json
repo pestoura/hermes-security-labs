@@ -42,6 +42,10 @@
         "repository_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"}
       }
     },
+    "evidence_chain_document": {
+      "type": ["object", "null"],
+      "description": "Frozen LAB_L1 evidence-chain + seal document (platform/schemas/evidence-chain.schema.json) supplied for the HASH_CHAIN_SEAL gate. Null until real sealed evidence is provided; must NOT be fabricated."
+    },
     "gates": {
       "type": "array",
       "minItems": 1,
