@@ -1,10 +1,17 @@
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
+
+# Canonical observation identifier contract (shared with the change-record guard):
+# OBS- followed by one or more uppercase alphanumeric segments separated by single
+# hyphens. Free-form ids (lowercase, underscores, spaces, stray punctuation) are
+# rejected fail-closed.
+CANONICAL_OBSERVATION_ID = re.compile(r"^OBS-[A-Z0-9]+(?:-[A-Z0-9]+)*$")
 CAMPAIGN_PATH = ROOT / "validation" / "VAL-HSL-RUNNER-L1-LIVE-PROMOTION.yaml"
 STATUS_PATH = ROOT / "docs" / "roadmap" / "current-walking-skeleton-status.md"
 EPIC_PATH = ROOT / "docs" / "roadmap" / "epics" / "EPIC-10-evidence-plane.md"
@@ -170,3 +177,53 @@ def test_chg_hsl_047_preserves_blocked_hold_invariants() -> None:
     ):
         assert observations[observation_id]["result"] == "BLOCKED"
         assert observations[observation_id]["status"] == "OPEN"
+
+
+def test_val_observation_ids_are_schema_valid() -> None:
+    campaign = _campaign()
+    observations = {item["id"]: item for item in campaign["observations"]}
+    invalid = [
+        observation_id
+        for observation_id in observations
+        if not CANONICAL_OBSERVATION_ID.match(str(observation_id))
+    ]
+    assert not invalid, f"campaign defines non-canonical observation ids: {invalid}"
+
+
+def test_val_observation_change_records_reference_defined_change_records() -> None:
+    campaign = _campaign()
+    change_records = {
+        document["id"]
+        for document in (
+            yaml.safe_load(path.read_text(encoding="utf-8"))
+            for path in sorted((ROOT / "changes").glob("CHG-HSL-*.yaml"))
+        )
+        if isinstance(document, dict) and document.get("id")
+    }
+    observations = {item["id"]: item for item in campaign["observations"]}
+    dangling = [
+        (observation_id, observations[observation_id].get("changeRecord"))
+        for observation_id, observation in observations.items()
+        if observation.get("changeRecord")
+        and observation["changeRecord"] not in change_records
+    ]
+    assert not dangling, f"observations reference undefined change records: {dangling}"
+
+
+def test_chg_hsl_048_reserves_hardening_record_without_resolving_live_state() -> None:
+    # CHG-HSL-048 hardens the observation/change consistency contract. The campaign
+    # itself must remain BLOCKED/HOLD and no live observation may be resolved by it.
+    campaign = _campaign()
+    assert campaign["state"] == "BLOCKED"
+    assert campaign["promotionRecommendation"] == "HOLD"
+
+    observations = {item["id"]: item for item in campaign["observations"]}
+    assert all(
+        observations[observation_id]["result"] == "BLOCKED"
+        for observation_id in (
+            "OBS-TB1-LIVE-DELIVERY",
+            "OBS-RUNNER-POLICY-PROMOTION",
+            "OBS-EVIDENCE-CUSTODY",
+            "OBS-LIVE-EFFECT-RESET",
+        )
+    )

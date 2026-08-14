@@ -1,0 +1,34 @@
+schemaVersion: jds.change/v1
+kind: ChangeRecord
+id: CHG-HSL-048
+product: hermes-security-labs
+classification: HARDENING
+state: ACCEPTED
+disposition: FIX_NOW
+summary: 'Harden JDS-002 observation/change consistency: every ChangeRecord source.observation must reference an existing VAL observation id; all campaign and referenced observation ids must be schema-valid under the OBS- uppercase lexical contract; free-form observation ids are rejected fail-closed. Campaign reconciliation validates VAL observation id schema validity. BLOCKED/HOLD, promotion_allowed false, runtime NOT_RUN preserved.'
+source:
+  type: ENGINEERING_REVIEW
+  campaign: VAL-HSL-RUNNER-L1-LIVE-PROMOTION
+  observation: OBS-RUNNER-REPO-CHAIN
+  reference: 'Repo-only hardening lane on base f8c3cdb; extends deployment/tests/test_change_record_observation_consistency.py and platform/tests/test_runner_l1_campaign_reconciliation.py with fail-closed guards for dangling, free-form and schema-invalid observation references; adds changes/CHG-HSL-048.yaml. No runtime/live/systemd/network/Docker/trust/provider change; campaign BLOCKED/HOLD, promotion_allowed false, runtime NOT_RUN unchanged.'
+affectedRelease: jds-002-adoption-candidate
+targetRelease: null
+risk: LOW
+versionEffect: NONE
+branch: lane/chg-hsl-048-hardening
+issue: null
+pr: null
+validation:
+  targeted: PASS
+  regression: PASS
+  security: PASS
+  runtime: NOT_APPLICABLE
+promotion:
+  commit: null
+  artifactDigest: null
+  previousRelease: null
+deferredTo: null
+timestamps:
+  discoveredAt: '2026-08-14T20:00:00Z'
+  updatedAt: '2026-08-14T20:00:00Z'
+  closedAt: null
