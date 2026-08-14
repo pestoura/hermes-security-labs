@@ -1,0 +1,34 @@
+schemaVersion: jds.change/v1
+kind: ChangeRecord
+id: CHG-HSL-056
+product: hermes-security-labs
+classification: HARDENING
+state: ACCEPTED
+disposition: FIX_NOW
+summary: 'Repo-only LAB_L1 custody->promotion bridge: SAFE observations (CHG-HSL-054) custodized via LocalEvidenceStore/Verifier (CHG-HSL-055) into real refs/digests, fed to offline PRE_PROMOTION assembler (CHG-HSL-051) with LocalEvidenceVerifier so GATEWAY_ADMISSION_REOBSERVATION/BRIDGE_REVISION_REOBSERVATION/HASH_CHAIN_SEAL become VERIFIED; HOST_IDENTITY_SOCKET_TRUST NOT_RUN; others NOT_RUN/OBSERVED_ABSENT; promotion HOLD invariant.'
+source:
+  type: ENGINEERING_REVIEW
+  campaign: VAL-HSL-RUNNER-L1-LIVE-PROMOTION
+  observation: OBS-EVIDENCE-CUSTODY
+  reference: 'Repo-only lane at origin/main 6db67f809b092c7500bbd7a48491b2c76a142a12 (CHG-HSL-056). Files: platform/evidence-plane/runtime_promotion_evidence_custody_bridge.py + test, CHG-HSL-056.yaml. Integrates CHG-HSL-054 adapter + CHG-HSL-055 custody/verifier + CHG-HSL-051 assembler. No live collection/runtime/systemd/network/Docker/target/trust/signer; campaign BLOCKED/HOLD; promotion_allowed=false; candidate.commit a63ef01... bound verbatim, never auto-repinned.'
+affectedRelease: jds-002-adoption-candidate
+targetRelease: null
+risk: LOW
+versionEffect: NONE
+branch: chg-hsl-056/runtime-promotion-evidence-custody-bridge
+issue: null
+pr: null
+validation:
+  targeted: PASS
+  regression: PASS
+  security: PASS
+  runtime: NOT_APPLICABLE
+promotion:
+  commit: null
+  artifactDigest: null
+  previousRelease: null
+deferredTo: null
+timestamps:
+  discoveredAt: '2026-08-14T22:45:00Z'
+  updatedAt: '2026-08-14T22:45:00Z'
+  closedAt: null
