@@ -35,9 +35,9 @@ observations:
     required: true
     result: BLOCKED
     status: OPEN
-    summary: 'Terminal outcomes and dispatch audit events have GREEN-REPO custody. Backend-control, tenant-isolation and phased live-evidence package verifiers are also GREEN-REPO, but no production durable/WORM backend or tenant configuration is deployed/observed, no live package is assembled and live persistence remains NOT_RUN.'
+    summary: 'Terminal outcomes and dispatch audit events have GREEN-REPO custody; backend-control, tenant-isolation and phased live-evidence package verifiers are also GREEN-REPO. CHG-HSL-047 reconciles merged LAB_L1 capabilities (CHG-042/043/044/045/046) as GREEN-REPO; HASH_CHAIN_SEAL stays NOT_RUN for live evidence. No production durable/WORM backend or tenant config deployed/observed, no live package assembled, live persistence NOT_RUN.'
     changeRecord: CHG-HSL-002
-    evidence: 'pr:321 outcome custody; pr:335 audit custody; pr:345 backend verifier; pr:348 tenant verifier; pr:351 phased package; durable-backend-verifier:GREEN-REPO; tenant-isolation-verifier:GREEN-REPO; live-evidence-package-verifier:GREEN-REPO; production-WORM-backend:NOT_IMPLEMENTED/NOT_RUN; backend-provider-observation:NOT_RUN; backend-tenant-config:NOT_RUN; cross-tenant-negatives:NOT_RUN; pre-promotion-package:NOT_RUN; post-effect-package:NOT_RUN; live-persistence:NOT_RUN'
+    evidence: 'durable-backend-verifier:GREEN-REPO;tenant-isolation-verifier:GREEN-REPO;live-evidence-package-verifier:GREEN-REPO;production-WORM-backend:NOT_IMPLEMENTED/NOT_RUN;backend-tenant-config:NOT_RUN;cross-tenant-negatives:NOT_RUN;pre-promotion-package:NOT_RUN;post-effect-package:NOT_RUN;hash-chain-seal:GREEN-REPO(CHG-042);audit-sink:GREEN-REPO(CHG-043);profile-aware-pre-post:GREEN-REPO(CHG-044);package-composition:GREEN-REPO(CHG-046);peer-identity-audit:GREEN-REPO(CHG-045);HASH_CHAIN_SEAL:NOT_RUN'
   - id: OBS-LIVE-EFFECT-RESET
     required: true
     result: BLOCKED
