@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import stat
 import sys
 from pathlib import Path
@@ -587,3 +588,386 @@ def test_cli_plan_requires_absolute_output_directory() -> None:
 
 
 
+
+# ---------------------------------------------------------------------------
+# CHG-HSL-058: canonical Runner unit + internal peer-child privilege flow
+# ---------------------------------------------------------------------------
+
+DOC_PATH = (
+    ROOT / "deployment" / "runtime-promotion" / "OPERATOR-LIVE-OBSERVATION-HARNESS.md"
+)
+RUNNER_UNIT_FILE = (
+    ROOT / "deployment" / "runner-runtime" / "systemd" / "hexor-runner.service"
+)
+
+
+def test_runner_unit_is_the_canonical_live_unit() -> None:
+    """RUNNER_UNIT must be the unit the repository actually ships."""
+
+    assert harness.RUNNER_UNIT == "hexor-runner.service"
+    assert RUNNER_UNIT_FILE.exists()
+    assert "hexor-runner-dispatch.service" not in MODULE_PATH.read_text(
+        encoding="utf-8"
+    )
+
+
+def test_runner_unit_matches_runtime_boundaries_source_of_truth() -> None:
+    boundaries = (
+        ROOT / "deployment" / "runner-runtime" / "runtime_boundaries.py"
+    ).read_text(encoding="utf-8")
+    assert f'SYSTEMD_SERVICE_UNIT = "{harness.RUNNER_UNIT}"' in boundaries
+
+
+def _plan() -> Any:
+    return harness.plan_ephemeral_identity(
+        unauthorized_uid=6001, which=_which_setpriv
+    )
+
+
+def test_peer_child_argv_is_exact_setpriv_no_new_privs_form() -> None:
+    argv = harness.build_peer_child_argv(
+        _plan(),
+        unauthorized_uid=6001,
+        socket_path="/run/hexor/runner-dispatch.sock",
+        python_executable="/usr/bin/python3",
+        module_path="/repo/harness.py",
+    )
+    assert argv[:10] == [
+        "/usr/bin/setpriv",
+        "--reuid",
+        "6001",
+        "--regid",
+        "6001",
+        "--groups",
+        "4110",
+        "--no-new-privs",
+        "--",
+        "/usr/bin/python3",
+    ]
+    assert argv[10] == "/repo/harness.py"
+    assert argv[11] == harness.PEER_CHILD_SUBCOMMAND
+
+
+def test_peer_child_argv_supplementary_gid_is_exactly_dispatch() -> None:
+    plan = _plan()
+    assert plan.supplementary_gids == (4110,)
+    assert plan.primary_gid == plan.unauthorized_uid == 6001
+    argv = harness.build_peer_child_argv(plan, unauthorized_uid=6001)
+    groups = argv[argv.index("--groups") + 1]
+    assert groups == "4110"
+    assert "," not in groups
+
+
+def test_peer_child_argv_creates_no_persistent_identity() -> None:
+    argv = harness.build_peer_child_argv(_plan(), unauthorized_uid=6001)
+    joined = " ".join(argv)
+    for forbidden in (
+        "useradd",
+        "groupadd",
+        "usermod",
+        "gpasswd",
+        "adduser",
+        "addgroup",
+        "chown",
+        "chmod",
+    ):
+        assert forbidden not in joined
+
+
+@pytest.mark.parametrize("uid", (0, 4100, 4101))
+def test_unauthorized_uid_rejects_root_and_boundary_identities(uid: int) -> None:
+    assert uid in harness.RESERVED_PROBE_UIDS
+    with pytest.raises(harness.HarnessError) as excinfo:
+        harness.plan_ephemeral_identity(unauthorized_uid=uid, which=_which_setpriv)
+    assert excinfo.value.code == "IDENTITY_ASSUMPTION_REJECTED"
+
+
+def test_require_effective_root_fails_closed_for_non_root() -> None:
+    with pytest.raises(harness.HarnessError) as excinfo:
+        harness.require_effective_root(getuid=lambda: 1000)
+    assert excinfo.value.code == "ROOT_REQUIRED"
+    assert "setpriv" in str(excinfo.value)
+
+
+def test_require_effective_root_accepts_root() -> None:
+    assert harness.require_effective_root(getuid=lambda: 0) is None
+
+
+def test_collect_with_peer_child_requires_root(tmp_path: Path, capsys: Any) -> None:
+    """Non-root collect + --unauthorized-uid fails closed before observing."""
+
+    code = harness.main(
+        [
+            "--output-directory",
+            str(tmp_path / "evidence"),
+            "--unauthorized-uid",
+            "6001",
+            "collect",
+        ]
+    )
+    if os.geteuid() == 0:  # pragma: no cover - CI runs unprivileged
+        pytest.skip("test asserts the non-root path")
+    assert code == 2
+    payload = json.loads(capsys.readouterr().out.strip())
+    assert payload["code"] == "ROOT_REQUIRED"
+    assert not (tmp_path / "evidence").exists()
+
+
+def test_peer_child_result_roundtrip_is_deterministic() -> None:
+    result, _probe = _observe(
+        {
+            "connected": True,
+            "dac_blocked": False,
+            "server_pid": 4242,
+            "server_uid": 4101,
+            "server_gid": harness.DISPATCH_GID,
+            "closed_without_response": True,
+        }
+    )
+    line = harness._emit_peer_child_result(result)
+    assert line.startswith(harness.PEER_CHILD_RESULT_MARKER)
+    parsed = harness._parse_peer_child_result("noise\n" + line + "\nmore noise\n")
+    assert parsed is not None
+    assert parsed["outcome"] == harness.PEER_HOLD_REFUSAL_OBSERVED
+    assert parsed["canonical_proof"] is True
+    assert parsed["payload_sent"] is False
+
+
+def test_parent_spawns_child_and_decodes_result() -> None:
+    captured: list[list[str]] = []
+    child = harness.PeerNegativeResult(
+        outcome=harness.PEER_HOLD_REFUSAL_OBSERVED,
+        canonical_proof=True,
+        socket={"path": "/run/hexor/runner-dispatch.sock", "present": True},
+        identity_plan=None,
+        peer_credentials={"server_pid": 4242, "server_uid": 4101, "server_gid": 4110},
+        detail="child observed HOLD refusal",
+    )
+
+    def runner(command: list[str]) -> str:
+        captured.append(list(command))
+        return harness._emit_peer_child_result(child) + "\n"
+
+    result = harness.observe_peer_negative_via_child(
+        unauthorized_uid=6001,
+        which=_which_setpriv,
+        stat_fn=_socket_stat(),
+        runner=runner,
+    )
+    assert result.outcome == harness.PEER_HOLD_REFUSAL_OBSERVED
+    assert result.canonical_proof is True
+    assert result.payload_sent is False
+    assert captured and captured[0][0] == "/usr/bin/setpriv"
+    assert harness.PEER_CHILD_SUBCOMMAND in captured[0]
+
+
+def test_peer_child_argv_never_requests_userns_collection() -> None:
+    """The dropped child runs only the peer-child subcommand, never collect."""
+
+    argv = harness.build_peer_child_argv(_plan(), unauthorized_uid=6001)
+    assert "collect" not in argv
+    assert "plan" not in argv
+    assert argv.count(harness.PEER_CHILD_SUBCOMMAND) == 1
+
+
+def test_peer_child_cli_performs_no_userns_and_writes_no_evidence(
+    tmp_path: Path, monkeypatch: Any, capsys: Any
+) -> None:
+    """peer-child must never call the userns re-attestation nor write evidence."""
+
+    def _forbidden(*_args: Any, **_kwargs: Any) -> Any:
+        raise AssertionError("peer child must not re-attest the user namespace")
+
+    def _forbidden_write(*_args: Any, **_kwargs: Any) -> Any:
+        raise AssertionError("peer child must not write evidence")
+
+    monkeypatch.setattr(harness, "reattest_user_namespace_mapping", _forbidden)
+    monkeypatch.setattr(harness, "write_evidence", _forbidden_write)
+    monkeypatch.setattr(
+        harness,
+        "observe_unauthorized_peer_negative",
+        lambda **_kwargs: harness.PeerNegativeResult(
+            outcome=harness.PEER_SOCKET_ABSENT,
+            canonical_proof=False,
+            socket={"path": "x", "present": False},
+            identity_plan=None,
+            peer_credentials=None,
+            detail="absent",
+        ),
+    )
+    code = harness.main(
+        [harness.PEER_CHILD_SUBCOMMAND, "--unauthorized-uid", "6001"]
+    )
+    assert code == 0
+    out = capsys.readouterr().out
+    assert harness.PEER_CHILD_RESULT_MARKER in out
+    assert not list(tmp_path.iterdir())
+
+
+def test_peer_child_requires_unauthorized_uid(capsys: Any) -> None:
+    code = harness.main([harness.PEER_CHILD_SUBCOMMAND])
+    assert code == 2
+    payload = json.loads(capsys.readouterr().out.strip())
+    assert payload["code"] == "IDENTITY_ASSUMPTION_REJECTED"
+
+
+def test_absent_socket_never_spawns_a_child() -> None:
+    calls: list[list[str]] = []
+
+    def runner(command: list[str]) -> str:
+        calls.append(list(command))
+        return ""
+
+    def missing(_path: str) -> Any:
+        raise FileNotFoundError(2, "missing")
+
+    result = harness.observe_peer_negative_via_child(
+        unauthorized_uid=6001,
+        which=_which_setpriv,
+        stat_fn=missing,
+        runner=runner,
+    )
+    assert result.outcome == harness.PEER_SOCKET_ABSENT
+    assert calls == []
+
+
+def test_rejected_identity_never_spawns_a_child() -> None:
+    calls: list[list[str]] = []
+
+    def runner(command: list[str]) -> str:
+        calls.append(list(command))
+        return ""
+
+    result = harness.observe_peer_negative_via_child(
+        unauthorized_uid=0,
+        which=_which_setpriv,
+        stat_fn=_socket_stat(),
+        runner=runner,
+    )
+    assert result.outcome == harness.PEER_ASSUMPTION_REJECTED
+    assert calls == []
+
+
+def test_missing_setpriv_never_spawns_a_child() -> None:
+    calls: list[list[str]] = []
+
+    def runner(command: list[str]) -> str:
+        calls.append(list(command))
+        return ""
+
+    result = harness.observe_peer_negative_via_child(
+        unauthorized_uid=6001,
+        which=lambda _name: None,
+        stat_fn=_socket_stat(),
+        runner=runner,
+    )
+    assert result.outcome == harness.PEER_IDENTITY_UNAVAILABLE
+    assert calls == []
+
+
+def test_child_without_marker_is_fail_closed() -> None:
+    result = harness.observe_peer_negative_via_child(
+        unauthorized_uid=6001,
+        which=_which_setpriv,
+        stat_fn=_socket_stat(),
+        runner=lambda _command: "garbage output\n",
+    )
+    assert result.outcome == harness.PEER_NO_REFUSAL_SIGNAL
+    assert result.canonical_proof is False
+
+
+def test_collect_runs_userns_before_spawning_the_peer_child(
+    tmp_path: Path, monkeypatch: Any, capsys: Any
+) -> None:
+    """Ordering invariant: privileged userns observation precedes the child."""
+
+    order: list[str] = []
+    output = tmp_path / "evidence"
+
+    def fake_userns(**kwargs: Any) -> Any:
+        order.append("userns")
+        return harness.UserNamespaceReattestation(
+            re_attested=True,
+            descriptor_path=str(tmp_path / "descriptor.yaml"),
+            descriptor_sha256="0" * 64,
+            identities={},
+            findings=(),
+            observations={},
+        )
+
+    def fake_child(**kwargs: Any) -> Any:
+        order.append("peer-child")
+        return harness.PeerNegativeResult(
+            outcome=harness.PEER_HOLD_REFUSAL_OBSERVED,
+            canonical_proof=True,
+            socket={"path": "s", "present": True},
+            identity_plan=None,
+            peer_credentials=None,
+            detail="ok",
+        )
+
+    monkeypatch.setattr(harness, "require_effective_root", lambda **_k: None)
+    monkeypatch.setattr(harness, "reattest_user_namespace_mapping", fake_userns)
+    monkeypatch.setattr(harness, "observe_peer_negative_via_child", fake_child)
+    monkeypatch.setattr(
+        harness, "observe_unauthorized_peer_negative", lambda **_k: _forbid_direct()
+    )
+
+    code = harness.main(
+        [
+            "--output-directory",
+            str(output),
+            "--unauthorized-uid",
+            "6001",
+            "collect",
+        ]
+    )
+    assert code == 0
+    capsys.readouterr()
+    assert order == ["userns", "peer-child"]
+
+
+def _forbid_direct() -> Any:
+    raise AssertionError("collect must route the peer probe through the child")
+
+
+def test_collect_requires_an_output_directory(capsys: Any) -> None:
+    code = harness.main(["collect"])
+    assert code == 2
+    payload = json.loads(capsys.readouterr().out.strip())
+    assert payload["code"] == "OUTPUT_DIRECTORY_INVALID"
+
+
+# ---------------------------------------------------------------------------
+# Documentation contract (CHG-HSL-058)
+# ---------------------------------------------------------------------------
+
+
+def test_docs_document_the_canonical_sudo_collect_form() -> None:
+    doc = DOC_PATH.read_text(encoding="utf-8")
+    assert (
+        "sudo python3 deployment/runtime-promotion/operator_live_observation_harness.py"
+        in doc
+    )
+    assert "--unauthorized-uid <EPHEMERAL_UID>" in doc
+
+
+def test_docs_reject_the_old_whole_harness_setpriv_wrapper() -> None:
+    """The pre-058 recipe must be explicitly rejected, never recommended."""
+
+    doc = DOC_PATH.read_text(encoding="utf-8")
+    assert "REJECTED — do not use" in doc
+    assert "Rejected: wrapping the whole harness in `setpriv`" in doc
+    assert "sudo setpriv --reuid <EPHEMERAL_UID>" not in doc
+
+
+def test_docs_state_only_the_peer_child_is_dropped() -> None:
+    doc = DOC_PATH.read_text(encoding="utf-8")
+    assert "internally drops ONLY the peer child" in doc
+    assert "ROOT_REQUIRED" in doc
+
+
+def test_docs_reference_the_canonical_runner_unit_only() -> None:
+    doc = DOC_PATH.read_text(encoding="utf-8")
+    assert "hexor-runner.service" in doc
+    assert "hexor-runner-dispatch.service" not in doc
