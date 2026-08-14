@@ -1,0 +1,34 @@
+schemaVersion: jds.change/v1
+kind: ChangeRecord
+id: CHG-HSL-039
+product: hermes-security-labs
+classification: DOC_ONLY
+state: ACCEPTED
+disposition: FIX_NOW
+summary: 'Add a non-operative Em validacao proposal (ADR-0011) comparing strict promotion gate, split LAB_L1/PROD assurance profiles and simulation-only before the first isolated L1 lab effect, plus a provider-neutral signer requirements analysis with no vendor selected. Documentation only: no policy, template, gate, runtime code or campaign state changed; promotion_allowed false, runtime_status NOT_RUN, execution_authority none, VAL-HSL-RUNNER-L1-LIVE-PROMOTION remains BLOCKED/HOLD.'
+source:
+  type: ENGINEERING_REVIEW
+  campaign: VAL-HSL-RUNNER-L1-LIVE-PROMOTION
+  observation: OBS-RUNNER-POLICY-PROMOTION
+  reference: 'repository-only architecture/governance lane on base 7e686f896f81949de91ae28fa7aa1bf7e224fe24 (PR #363); files docs/architecture/adr/ADR-0011-assurance-profiles-for-first-live-lab-promotion.md, docs/architecture/lab-assurance-signer-requirements.md, docs/architecture/adr/README.md, docs/README.md; no live mutation, no target interaction, no trust binding, no policy enablement, no blocker closed'
+affectedRelease: jds-002-adoption-candidate
+targetRelease: null
+risk: LOW
+versionEffect: NONE
+branch: lane/assurance-profile-proposal
+issue: null
+pr: null
+validation:
+  targeted: PASS
+  regression: PASS
+  security: NOT_APPLICABLE
+  runtime: NOT_APPLICABLE
+promotion:
+  commit: null
+  artifactDigest: null
+  previousRelease: null
+deferredTo: null
+timestamps:
+  discoveredAt: '2026-08-14T15:00:00Z'
+  updatedAt: '2026-08-14T15:00:00Z'
+  closedAt: null
