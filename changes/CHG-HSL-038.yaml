@@ -5,7 +5,7 @@ product: hermes-security-labs
 classification: DOC_ONLY
 state: ACCEPTED
 disposition: FIX_NOW
-summary: Reconcile the canonical first-live promotion campaign with sanitized live OBSERVATION evidence only. Records runtime user-namespace observation PASS for the two reviewed PIDs and host identity/socket observation as OBSERVED with the Runner authorization trust store ABSENT (single fail-closed finding). No observation is resolved, no policy is enabled, no trust is bound, no signer/WORM backend/tenant isolation/unauthorized-peer test/live audit sink/live effect is claimed. promotion_allowed stays false, runtime_status NOT_RUN, execution_authority none, recommendation HOLD.
+summary: 'Reconcile the canonical first-live promotion campaign with sanitized live OBSERVATION evidence only: userns observation PASS on the two reviewed PIDs, host identity/socket observation OBSERVED with the Runner authorization trust store ABSENT (single fail-closed finding). No observation resolved, no policy enabled, no trust bound, no signer/backend/tenant/peer-test/audit-sink/live-effect claimed. promotion_allowed false, runtime_status NOT_RUN, execution_authority none, HOLD.'
 source:
   type: ENGINEERING_REVIEW
   campaign: VAL-HSL-RUNNER-L1-LIVE-PROMOTION

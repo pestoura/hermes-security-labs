@@ -70,7 +70,13 @@ def test_campaign_records_current_repo_capabilities_as_non_live_evidence() -> No
     policy = observations["OBS-RUNNER-POLICY-PROMOTION"]
     assert "tenant-isolation verification" in policy["summary"]
     assert "phased live-evidence package verification" in policy["summary"]
-    assert "userns:NOT_RUN" in policy["evidence"]
+    # The user-namespace observation collector has now been run live and PASSED
+    # for the two reviewed PIDs (CHG-HSL-038). That is an observation class only:
+    # the Runner authorization trust store is still ABSENT, so promotion stays
+    # blocked and the observation remains BLOCKED/OPEN.
+    assert "userns:PASS" in policy["evidence"]
+    assert "trust-store:ABSENT" in policy["evidence"]
+    assert "live-observation-CHG-HSL-038.yaml" in policy["evidence"]
     assert "production-backend:NOT_IMPLEMENTED/NOT_RUN" in policy["evidence"]
     assert "tenant-isolation:NOT_RUN" in policy["evidence"]
     assert "live-evidence-package-verifier:GREEN-REPO" in policy["evidence"]
