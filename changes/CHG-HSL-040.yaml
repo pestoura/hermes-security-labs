@@ -1,0 +1,34 @@
+schemaVersion: jds.change/v1
+kind: ChangeRecord
+id: CHG-HSL-040
+product: hermes-security-labs
+classification: DOC_ONLY
+state: ACCEPTED
+disposition: FIX_NOW
+summary: 'Accept ADR-0011 Option B: split assurance profiles LAB_L1 (narrow) and PROD (prod-equivalent), fail-closed to PROD if absent/invalid. Adds neutral schema, evaluator and canonical LAB_L1 declaration. LAB_L1 omits only external WORM backend and multi-tenant isolation; keeps signer/trust, SO_PEERCRED+audit, evidence integrity/hash-chain, PRE/POST packages, reset and request-bound HITL. No live promotion path added; VAL-HSL-RUNNER-L1-LIVE-PROMOTION stays BLOCKED/HOLD, no observation resolved.'
+source:
+  type: ENGINEERING_REVIEW
+  campaign: VAL-HSL-RUNNER-L1-LIVE-PROMOTION
+  observation: OBS-RUNNER-POLICY-PROMOTION
+  reference: 'repo-only governance/engineering lane on base ffca07da15cc9b00f5dcd52ab930986cd80608b2; files ADR-0011 + adr/README.md, current-walking-skeleton-status.md, VAL-HSL-RUNNER-L1-LIVE-PROMOTION.yaml, platform/schemas/assurance-profile.schema.json, platform/assurance/assurance_profile.py + current-assurance-profile.yaml, platform/tests/test_assurance_profile.py; Decision/Accepted recorded, risks accepted; no live mutation, target interaction, trust binding, policy enablement, blocker closed'
+affectedRelease: jds-002-adoption-candidate
+targetRelease: null
+risk: LOW
+versionEffect: NONE
+branch: lane/adr-0011-assurance-profile-accept
+issue: null
+pr: null
+validation:
+  targeted: PASS
+  regression: PASS
+  security: PASS
+  runtime: NOT_APPLICABLE
+promotion:
+  commit: null
+  artifactDigest: null
+  previousRelease: null
+deferredTo: null
+timestamps:
+  discoveredAt: '2026-08-14T16:00:00Z'
+  updatedAt: '2026-08-14T16:30:00Z'
+  closedAt: null

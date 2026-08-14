@@ -1,0 +1,19 @@
+schema_version: assurance-profile/v1
+assurance_profile: LAB_L1
+derived_from: ADR-0011
+evaluation:
+  requires_external_signer: true
+  requires_purpose_bound_trust_store: true
+  requires_non_exportable_private_key: true
+  requires_explicit_trust_store: true
+  requires_so_peerccred_with_audit: true
+  requires_audit_sink: true
+  requires_tamper_evident_evidence: true
+  requires_hash_chain: true
+  requires_pre_promotion_package: true
+  requires_post_effect_package: true
+  requires_mandatory_reset: true
+  requires_request_bound_hitl: true
+  allows_automatic_supplier_choice: false
+  requires_external_worm_backend: false
+  requires_tenant_isolation: false
