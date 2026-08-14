@@ -1,0 +1,91 @@
+# Execution Gateway runtime deployment boundary — repository-only (HOLD).
+#
+# This descriptor declares the execution-gateway SIDE of the AF_UNIX dispatch
+# boundary. It is NOT live deployment state and never creates users, groups,
+# sockets, services or trust stores. All policies are DISABLED / default-deny /
+# NOT_RUN / execution_authority=none / promotion_allowed=false. No target effect
+# (WebGoat/Kali) is possible.
+#
+# The gateway runs as the dedicated hexor-gateway identity (4100), is a member of
+# the shared hexor-dispatch group (4110), and connects as a CLIENT to the
+# dispatcher socket /run/hexor/runner-dispatch.sock. In HOLD it never sends a
+# Runner payload: it connects, observes the dispatcher's HOLD refusal and closes.
+schema_version: "1.0"
+descriptor_id: hexor.execution-gateway.runtime-deployment.hold-boundary
+issue: 79
+phase: base-hold-deployment
+runtime_status: NOT_RUN
+promotion_allowed: false
+
+# Declared OS identities mirror the canonical example descriptor
+# (runner-identity-descriptor.example.yaml): hexor-gateway 4100, hexor-runner 4101,
+# hexor-dispatch 4110. They are declared only; nothing here provisions them.
+identities:
+  gateway:
+    principal_id: hexor.execution-gateway
+    user: hexor-gateway
+    uid: 4100
+    gid: 4100
+    shell: /usr/sbin/nologin
+  runner:
+    principal_id: hexor.runner
+    user: hexor-runner
+    uid: 4101
+    gid: 4101
+    shell: /usr/sbin/nologin
+  dispatch_group:
+    group: hexor-dispatch
+    gid: 4110
+    members:
+      - hexor-gateway
+      - hexor-runner
+
+# The gateway is the AF_UNIX CLIENT. The socket itself is owned by the runner
+# side (hexor-runner:hexor-dispatch 0660) under /run/hexor; the gateway only
+# connects to it. The runtime directory is created by tmpfiles on the runner side.
+gateway_client:
+  transport: unix-peer
+  identity_source: linux-so-peercred
+  socket_path: /run/hexor/runner-dispatch.sock
+  socket_directory: /run/hexor
+  role: client
+
+# Fail-closed policy envelope for the base boundary.
+policy:
+  state: DISABLED
+  default: deny
+  runtime_status: NOT_RUN
+  execution_authority: none
+  promotion_allowed: false
+
+# Gateway HOLD behavior. The gateway observes the dispatcher's refusal; it never
+# sends a Runner payload in HOLD.
+listener:
+  mode: HOLD
+  transport: unix-peer
+  identity_source: linux-so-peercred
+  role: client
+  refuse_on_any:
+    - send_runner_payload
+    - authorize_execution
+    - create_receipt
+    - call_router
+    - call_adapter
+    - touch_evidence_plane
+    - touch_target
+    - enable_trust_store
+
+# Phase B trust binding: absent by default. Only an explicit external source with
+# a public trust store and an expected SHA-256 is ever accepted (mirrors the
+# runner runtime boundary).
+trust_binding:
+  enabled: false
+  source: null
+  public_source: false
+  expected_sha256: null
+  trust_store_path: /etc/hexor/runner/authorization-trust-store.json
+
+# Explicitly no target effects.
+target_effects:
+  webgoat: none
+  kali: none
