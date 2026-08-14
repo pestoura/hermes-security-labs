@@ -55,6 +55,7 @@ mantidos em Git e são a fonte de verdade. Issues do GitHub são uma vista de tr
 - [Architecture Decision Records](architecture/adr/README.md)
 - [Canonical architecture contract inventory](architecture/contracts/README.md)
 - [Runtime source-of-truth policy](architecture/runtime-source-of-truth.md)
+- [Lab assurance signer requirements — provider-neutral (Em validação)](architecture/lab-assurance-signer-requirements.md)
 - [Framework crosswalk](architecture/framework-crosswalk.md)
 - [Security knowledge fabric](architecture/security-knowledge-fabric.md)
 - [Continuous content factories](architecture/continuous-content-factories.md)
