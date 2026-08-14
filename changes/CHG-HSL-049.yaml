@@ -1,0 +1,34 @@
+schemaVersion: jds.change/v1
+kind: ChangeRecord
+id: CHG-HSL-049
+product: hermes-security-labs
+classification: HARDENING
+state: ACCEPTED
+disposition: FIX_NOW
+summary: "Add deterministic repository-only reset attestation contracts (CHG-HSL-049): canonical reset-state digest, known-state proof, zero-residue invariant, fail-closed partial/ambiguous reset, and replay/tamper checks over existing lab_lifecycle.py, controlled reset CI, orphan detector and reset attestation. No Docker, target, network, systemd, trust, signer or provider invoked."
+source:
+  type: ENGINEERING_REVIEW
+  campaign: VAL-HSL-RUNNER-L1-LIVE-PROMOTION
+  observation: OBS-RUNNER-REPO-CHAIN
+  reference: "Existing repository-chain capability under VAL-HSL-RUNNER-L1-LIVE-PROMOTION observation OBS-RUNNER-REPO-CHAIN (CHG-HSL-036); hardens platform/lab-registry-v2/reset_attestation.py, controlled_reset_ci.py and reset_attestation_contracts.py; repository-only, NOT a live promotion; production_lab_runtime NOT_RUN; LAB_L1 BLOCKED/HOLD preserved; promotion_allowed=false."
+affectedRelease: jds-002-adoption-candidate
+targetRelease: null
+risk: LOW
+versionEffect: NONE
+branch: lane/chg-hsl-049-reset-attestation-contracts
+issue: null
+pr: null
+validation:
+  targeted: PASS
+  regression: PASS
+  security: PASS
+  runtime: NOT_APPLICABLE
+promotion:
+  commit: null
+  artifactDigest: null
+  previousRelease: null
+deferredTo: null
+timestamps:
+  discoveredAt: '2026-08-14T17:00:00Z'
+  updatedAt: '2026-08-14T17:00:00Z'
+  closedAt: null
