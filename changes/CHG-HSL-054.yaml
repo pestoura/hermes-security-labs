@@ -1,0 +1,34 @@
+schemaVersion: jds.change/v1
+kind: ChangeRecord
+id: CHG-HSL-054
+product: hermes-security-labs
+classification: HARDENING
+state: ACCEPTED
+disposition: FIX_NOW
+summary: 'Repo-only fail-closed adapter: SAFE live-observation artifacts (safe-live-readonly-observation-ec368a4.md + evidence/*.yaml) -> EvidenceInput. Allowlist: only GATEWAY_ADMISSION_REOBSERVATION/BRIDGE_REVISION_REOBSERVATION PASS when exactly observed; HOST_IDENTITY_SOCKET_TRUST never PASS while trust OBSERVED_ABSENT; USER_NAMESPACE_MAPPING + signer/receipt/peer-negative + POST_EFFECT NOT_RUN; LAB_L1 backend/tenant OBSERVED_ABSENT tombstone. Ephemeral preview outside repo. HOLD invariant.'
+source:
+  type: ENGINEERING_REVIEW
+  campaign: VAL-HSL-RUNNER-L1-LIVE-PROMOTION
+  observation: OBS-RUNNER-REPO-CHAIN
+  reference: 'Repo-only lane at origin/main 62a690de9fa925be9ab0686c53cfe1e620cc6f40 (CHG-HSL-054). Files: deployment/runtime-promotion/safe_live_observation_to_evidence_adapter.py, deployment/tests/test_safe_live_observation_to_evidence_adapter.py, CHG-HSL-054.yaml. No runtime/live/systemd/network/Docker/target/trust/signer mutation; strict allowlist, anti-fabrication, candidate-commit provenance (ancestor bound verbatim, never auto-repinned); campaign BLOCKED/HOLD unchanged.'
+affectedRelease: jds-002-adoption-candidate
+targetRelease: null
+risk: LOW
+versionEffect: NONE
+branch: chg-hsl-054/safe-live-observation-to-evidence-adapter
+issue: null
+pr: null
+validation:
+  targeted: PASS
+  regression: PASS
+  security: PASS
+  runtime: NOT_APPLICABLE
+promotion:
+  commit: null
+  artifactDigest: null
+  previousRelease: null
+deferredTo: null
+timestamps:
+  discoveredAt: '2026-08-14T22:30:00Z'
+  updatedAt: '2026-08-14T22:30:00Z'
+  closedAt: null
