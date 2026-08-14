@@ -20,21 +20,37 @@ import sys
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Protocol, runtime_checkable
 
 import yaml
 
 
+@runtime_checkable
+class AuditSinkProtocol(Protocol):
+    """Minimal audit sink contract for authentication decisions.
+
+    Any sink (the in-memory ``AuthenticatorAuditSink`` test double, the canonical
+    evidence-plane adapter, or a future durable backend) implements only
+    ``record_decision``. The authenticator depends on THIS protocol, not on a
+    concrete sink -- so it does not own a second production audit sink. It emits
+    ALLOW/DENY through the injected contract only on the ENABLED path and
+    otherwise produces no authorization-admission audit.
+    """
+
+    def record_decision(
+        self, *, decision: str, reason_code: str, detail: Mapping[str, Any]
+    ) -> None:
+        ...
+
+
 class AuthenticatorAuditSink:
-    """Repository-only in-memory audit sink for Unix peer authentication.
+    """Repository-only in-memory test double for ``AuditSinkProtocol``.
 
-    This is not a durable, append-only or external audit backend. It records
-    exactly the authentication decisions made by ``authenticate_unix_peer`` for
-    repository tests and local inspection. No filesystem, network or process
-    I/O occurs here.
-
-    The sink is fail-closed relative to the transport policy: it is only
-    consulted when the transport policy is ENABLED, and a DISABLED policy fails
+    This is NOT a production audit sink. It implements the minimal protocol purely
+    for repository tests and local inspection: it records exactly the
+    authentication decisions made by ``authenticate_unix_peer``. No filesystem,
+    network or process I/O occurs here. It is fail-closed relative to the
+    transport policy -- consulted only when ENABLED, and a DISABLED policy fails
     closed without producing any authorization-admission audit record. Callers
     cannot influence the emitted identity (principal/uid/gid) because those
     values are derived exclusively from the kernel ``SO_PEERCRED`` tuple inside
@@ -75,7 +91,7 @@ class AuthenticatorAuditSink:
 
 
 def _emit_decision(
-    sink: AuthenticatorAuditSink | None,
+    sink: AuditSinkProtocol | None,
     *,
     decision: str,
     reason_code: str,
@@ -268,7 +284,7 @@ def authenticate_unix_peer(
     peer_socket: socket.socket,
     policy: Mapping[str, Any],
     *,
-    audit_sink: AuthenticatorAuditSink | None = None,
+    audit_sink: AuditSinkProtocol | None = None,
 ) -> AuthenticatedPeer:
     """Authenticate one accepted Unix peer using exact kernel UID/GID mapping.
 

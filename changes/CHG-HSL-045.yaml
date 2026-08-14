@@ -6,17 +6,12 @@ classification: HARDENING
 state: ACCEPTED
 disposition: FIX_NOW
 summary: >-
-  Add a repository-only, in-memory SO_PEERCRED authentication audit sink to the
-  Unix peer authenticator, built on the merged AuditSink/evidence-chain
-  (#369/#370). An optional injected AuthenticatorAuditSink records ALLOW/DENY
-  decisions for the ENABLED transport only; a DISABLED policy fails closed with
-  no authorization-admission audit. Identity stays exclusively kernel-derived
-  from SO_PEERCRED with no caller-injectable principal/uid/gid path. New
-  repo-only socketpair/in-memory-policy tests cover authorized, unauthorized,
-  disabled, caller-supplied bypass impossible and AuditSink tamper integrity.
-  No runtime/systemd/network/Docker/target/trust/provider state changed;
-  transport-policy.yaml and routing-policy.yaml untouched. Campaign stays
-  BLOCKED/HOLD, promotion_allowed false.
+  Repo-only SO_PEERCRED Unix peer authenticator audit integration. An optional
+  injected sink records ALLOW/DENY for the ENABLED transport; DISABLED fails
+  closed with no authorization-admission audit. Identity stays exclusively
+  kernel-derived from SO_PEERCRED with no caller-injectable principal/uid/gid.
+  Campaign BLOCKED/HOLD; promotion_allowed false; no runtime/trust/target state
+  changed.
 source:
   type: ENGINEERING_REVIEW
   campaign: VAL-HSL-RUNNER-L1-LIVE-PROMOTION
