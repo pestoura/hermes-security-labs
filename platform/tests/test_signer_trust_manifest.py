@@ -110,6 +110,10 @@ def _inputs(tmp_path: Path):
         "algorithm": "Ed25519",
         "public_key_spki_sha256": spki_sha,
         "source_evidence_verified": True,
+        "attestation_id": "attestation-001",
+        "observed_at": "2026-08-15T21:59:45Z",
+        "source_evidence_ref": "evidence://signer/provider-observation.json",
+        "source_evidence_sha256": "a" * 64,
     }
     attestation = {
         "schema_version": "1.0",
