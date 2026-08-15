@@ -103,6 +103,10 @@ class SignerAttestationResult:
     algorithm: str
     public_key_spki_sha256: str
     source_evidence_verified: bool
+    attestation_id: str
+    observed_at: str | None
+    source_evidence_ref: str | None
+    source_evidence_sha256: str | None
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -117,6 +121,10 @@ class SignerAttestationResult:
             "algorithm": self.algorithm,
             "public_key_spki_sha256": self.public_key_spki_sha256,
             "source_evidence_verified": self.source_evidence_verified,
+            "attestation_id": self.attestation_id,
+            "observed_at": self.observed_at,
+            "source_evidence_ref": self.source_evidence_ref,
+            "source_evidence_sha256": self.source_evidence_sha256,
         }
 
 
@@ -332,6 +340,10 @@ def verify_signer_attestation(
         if not source_verified:
             findings.append("source provider observation evidence is not verified")
 
+    observed_at_value = attestation.get("observed_at")
+    evidence_ref_value = attestation.get("source_evidence_ref")
+    evidence_sha_value = attestation.get("source_evidence_sha256")
+
     return SignerAttestationResult(
         signer_attestation_checks_passed=not findings,
         promotion_allowed=False,
@@ -344,6 +356,14 @@ def verify_signer_attestation(
         algorithm=str(attestation["algorithm"]),
         public_key_spki_sha256=str(attestation["public_key_spki_sha256"]),
         source_evidence_verified=source_verified,
+        attestation_id=str(attestation["attestation_id"]),
+        observed_at=(str(observed_at_value) if observed_at_value is not None else None),
+        source_evidence_ref=(
+            str(evidence_ref_value) if evidence_ref_value is not None else None
+        ),
+        source_evidence_sha256=(
+            str(evidence_sha_value) if evidence_sha_value is not None else None
+        ),
     )
 
 
