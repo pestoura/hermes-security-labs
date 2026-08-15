@@ -19,6 +19,8 @@ ROOT = Path(__file__).resolve().parents[2]
 ASSURANCE_DIR = ROOT / "platform" / "assurance"
 MODULE_PATH = ASSURANCE_DIR / "signing_service.py"
 ADAPTER_PATH = ASSURANCE_DIR / "test_signer_adapter.py"
+CANONICAL_DOMAIN = "hex0r.tb1.authorization.v1"
+CANONICAL_PURPOSE = "tb1-authorization"
 
 
 def _reuse_loaded(path: Path):
@@ -65,8 +67,8 @@ def _load_adapter():
 def _valid_request(module):
     return module.SigningRequest(
         digest_sha256="a" * 64,
-        purpose="tb1-authorization-receipt",
-        domain="hermes-security-labs/lab-l1",
+        purpose=CANONICAL_PURPOSE,
+        domain=CANONICAL_DOMAIN,
         correlation_id="corr-001",
     )
 
@@ -99,9 +101,11 @@ def test_valid_request_is_accepted_unchanged() -> None:
         ("purpose", ""),
         ("purpose", "p" * 129),
         ("purpose", "tb1\nreceipt"),
+        ("purpose", "tb1-authorization-receipt"),
         ("domain", ""),
         ("domain", "d" * 257),
         ("domain", "lab\rprod"),
+        ("domain", "hermes-security-labs/lab-l1"),
         ("correlation_id", ""),
         ("correlation_id", "c" * 129),
         ("correlation_id", "corr\x00bad"),
