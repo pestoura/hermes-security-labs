@@ -5,10 +5,10 @@ This module is deliberately provider-agnostic. It defines only the bounded data
 contract that a future external custody backend must implement. It performs no
 networking, process execution, provider access, trust installation or key handling.
 
-The boundary accepts an already-computed SHA-256 digest plus explicit purpose/domain
-metadata. Raw commands, evidence payloads and arbitrary content do not cross this
-contract. Runtime/provider attestation, custody evidence and trust verification remain
-separate canonical gates.
+The boundary accepts an already-computed SHA-256 digest for the single canonical TB1
+authorization purpose/domain plus bounded correlation metadata. Raw commands, evidence
+payloads and arbitrary content do not cross this contract. Runtime/provider attestation,
+custody evidence and trust verification remain separate canonical gates.
 """
 
 from __future__ import annotations
@@ -23,6 +23,8 @@ _MAX_DOMAIN = 256
 _MAX_CORRELATION_ID = 128
 _MAX_RESULT_TEXT = 500
 _MAX_SIGNATURE_B64 = 8192
+_CANONICAL_DOMAIN = "hex0r.tb1.authorization.v1"
+_CANONICAL_PURPOSE = "tb1-authorization"
 _LAB_L1_CUSTODY_CLASSES = frozenset({"VAULT", "KMS", "HSM"})
 _LAB_L1_ALGORITHMS = frozenset({"Ed25519", "ECDSA-P256-SHA256"})
 _NON_AUTHORITATIVE_MARKERS = ("CI_ONLY", "NON_AUTHORITATIVE", "TEST")
@@ -94,7 +96,7 @@ def _bounded_result_text(value: object, *, field: str, maximum: int = _MAX_RESUL
 
 
 def validate_signing_request(request: SigningRequest) -> SigningRequest:
-    """Validate a bounded digest-only signing request and return it unchanged."""
+    """Validate a canonical TB1 digest-only signing request and return it unchanged."""
 
     if not isinstance(request, SigningRequest):
         raise SigningServiceError(
@@ -112,8 +114,19 @@ def validate_signing_request(request: SigningRequest) -> SigningRequest:
             "digest_sha256 must be exactly 64 lowercase hexadecimal characters",
         )
 
-    _bounded_text(request.purpose, field="purpose", maximum=_MAX_PURPOSE)
-    _bounded_text(request.domain, field="domain", maximum=_MAX_DOMAIN)
+    purpose = _bounded_text(request.purpose, field="purpose", maximum=_MAX_PURPOSE)
+    domain = _bounded_text(request.domain, field="domain", maximum=_MAX_DOMAIN)
+    if purpose != _CANONICAL_PURPOSE:
+        raise SigningServiceError(
+            "SIGNING_REQUEST_INVALID",
+            f"purpose must equal canonical TB1 purpose {_CANONICAL_PURPOSE!r}",
+        )
+    if domain != _CANONICAL_DOMAIN:
+        raise SigningServiceError(
+            "SIGNING_REQUEST_INVALID",
+            f"domain must equal canonical TB1 domain {_CANONICAL_DOMAIN!r}",
+        )
+
     _bounded_text(
         request.correlation_id,
         field="correlation_id",
