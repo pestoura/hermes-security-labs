@@ -1,0 +1,34 @@
+schemaVersion: jds.change/v1
+kind: ChangeRecord
+id: CHG-HSL-065
+product: hermes-security-labs
+classification: HARDENING
+state: ACCEPTED
+disposition: FIX_NOW
+summary: 'Persist the fresh governed DVWA/MariaDB live lifecycle acceptance. Exact tested revision dd3677b6fb531c72ec7c5ea6fb5f82da94a27f37 passed start, status, smoke, reset, second status/smoke, destroy and idempotent second destroy on loopback port 14280; MariaDB stayed unpublished, dvwa-db remained internal, Kali disconnected and zero project-owned residue remained.'
+source:
+  type: ENGINEERING_REVIEW
+  campaign: VAL-HSL-DVWA-LIVE-LIFECYCLE
+  observation: OBS-DVWA-LIVE-LIFECYCLE
+  reference: 'runtime:run_bda5b78321d641b8ba24fc15c3a39970;manifest-run:run_63fe5b16b393481d90ce1cc079ba62ec;manifest-sha256:78043138d448fe5a8cafda259e643145546ffe8c8d5bae15c4847d7739351b70;scope:lifecycle-only-no-kali-no-scan'
+affectedRelease: jds-002-adoption-candidate
+targetRelease: null
+risk: LOW
+versionEffect: NONE
+branch: chg-hsl-065/dvwa-live-lifecycle-acceptance
+issue: null
+pr: null
+validation:
+  targeted: PASS
+  regression: PASS
+  security: PASS
+  runtime: PASS
+promotion:
+  commit: null
+  artifactDigest: null
+  previousRelease: null
+deferredTo: null
+timestamps:
+  discoveredAt: '2026-08-15T12:22:47Z'
+  updatedAt: '2026-08-15T12:28:43Z'
+  closedAt: null
