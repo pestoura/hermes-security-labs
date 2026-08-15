@@ -99,8 +99,9 @@ remaining_lab_l1_blockers:
   - FIRST_AUTHORIZED_EFFECT_RESET_NOT_RUN
 
 prod_only_deferred_readiness:
-  - EVIDENCE_BACKEND_CONTROLS
-  - EVIDENCE_TENANT_ISOLATION
+  controls:
+    - EVIDENCE_BACKEND_CONTROLS
+    - EVIDENCE_TENANT_ISOLATION
   note: these remain PROD-only readiness under LAB_L1 and are not LAB_L1 blockers
 
 out_of_scope:
