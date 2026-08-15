@@ -28,16 +28,16 @@ observations:
     required: true
     result: BLOCKED
     status: OPEN
-    summary: 'Host/userns observation, audit custody, backend-control and tenant-isolation verification, service composition and phased live-evidence package verification are GREEN-REPO. CHG-HSL-038 records userns observation PASS and host identity/socket observation OBSERVED, still fail-closed because the Runner trust store is ABSENT. Promotion stays blocked: signer, peer-negative, WORM backend, tenant isolation, audit sink, persistence and phased packages are not accepted; policies DISABLED/NOT_RUN.'
+    summary: 'Host/userns observation, audit custody, service composition and phased live-evidence verification are GREEN-REPO. CHG-HSL-038 records userns observation PASS and host identity/socket observation OBSERVED, still fail-closed because the Runner trust store is ABSENT. Under the accepted LAB_L1 profile, external production WORM-backend control and production tenant isolation are PROD-only and are not current L1 blockers. Promotion remains blocked by signer/trust, unauthorized-peer negative proof, required live evidence packages/persistence and policies still DISABLED/NOT_RUN.'
     changeRecord: CHG-HSL-012
-    evidence: 'evidence:deployment/runtime-promotion/evidence/live-observation-CHG-HSL-038.yaml; userns:PASS(pids=3649254,3367226;ns=4026531837); host-socket:OBSERVED(gw=4100,runner=4101,dispatch=4110,socket=0660); trust-store:ABSENT; signer:NOT_OBSERVED; peer-negative:NOT_RUN; production-backend:NOT_IMPLEMENTED/NOT_RUN; tenant-isolation:NOT_RUN; live-evidence-package-verifier:GREEN-REPO; pre-promotion-package:NOT_RUN; post-effect-package:NOT_RUN; policies:DISABLED/NOT_RUN'
+    evidence: 'evidence:deployment/runtime-promotion/evidence/live-observation-CHG-HSL-038.yaml; userns:PASS(pids=3649254,3367226;ns=4026531837); host-socket:OBSERVED(gw=4100,runner=4101,dispatch=4110,socket=0660); trust-store:ABSENT; signer:NOT_OBSERVED; peer-negative:NOT_RUN; production-backend:NOT_IMPLEMENTED/NOT_RUN; tenant-isolation:NOT_RUN; lab-l1-profile:PROD_ONLY_GATES_NOT_REQUIRED(EVIDENCE_BACKEND_CONTROLS,EVIDENCE_TENANT_ISOLATION); live-evidence-package-verifier:GREEN-REPO; pre-promotion-package:NOT_RUN; post-effect-package:NOT_RUN; policies:DISABLED/NOT_RUN'
   - id: OBS-EVIDENCE-CUSTODY
     required: true
     result: BLOCKED
     status: OPEN
-    summary: 'Terminal outcomes and dispatch audit events have GREEN-REPO custody; backend-control, tenant-isolation and phased live-evidence package verifiers are also GREEN-REPO. CHG-HSL-047 reconciles merged LAB_L1 capabilities (CHG-042/043/044/045/046) as GREEN-REPO; HASH_CHAIN_SEAL stays NOT_RUN for live evidence. No production durable/WORM backend or tenant config deployed/observed, no live package assembled, live persistence NOT_RUN.'
+    summary: 'Terminal outcomes and dispatch audit events have GREEN-REPO custody; backend-control, tenant-isolation and phased live-evidence package verifiers are also GREEN-REPO. CHG-HSL-047 reconciles merged LAB_L1 capabilities (CHG-042/043/044/045/046) as GREEN-REPO. ADR-0011 LAB_L1 does not require the external production WORM backend or production tenant-isolation negative tests; those remain visible as PROD-only readiness work, not L1 blockers. The current L1 custody observation remains blocked because live HASH_CHAIN_SEAL, live audit/outcome persistence and PRE/POST evidence packages are not yet accepted.'
     changeRecord: CHG-HSL-002
-    evidence: 'durable-backend-verifier:GREEN-REPO;tenant-isolation-verifier:GREEN-REPO;live-evidence-package-verifier:GREEN-REPO;production-WORM-backend:NOT_IMPLEMENTED/NOT_RUN;backend-tenant-config:NOT_RUN;cross-tenant-negatives:NOT_RUN;pre-promotion-package:NOT_RUN;post-effect-package:NOT_RUN;hash-chain-seal:GREEN-REPO(CHG-042);audit-sink:GREEN-REPO(CHG-043);profile-aware-pre-post:GREEN-REPO(CHG-044);package-composition:GREEN-REPO(CHG-046);peer-identity-audit:GREEN-REPO(CHG-045);HASH_CHAIN_SEAL:NOT_RUN'
+    evidence: 'durable-backend-verifier:GREEN-REPO;tenant-isolation-verifier:GREEN-REPO;live-evidence-package-verifier:GREEN-REPO;production-WORM-backend:NOT_IMPLEMENTED/NOT_RUN;backend-tenant-config:NOT_RUN;cross-tenant-negatives:NOT_RUN;lab-l1-profile:PROD_ONLY_GATES_NOT_REQUIRED(EVIDENCE_BACKEND_CONTROLS,EVIDENCE_TENANT_ISOLATION);pre-promotion-package:NOT_RUN;post-effect-package:NOT_RUN;hash-chain-seal:GREEN-REPO(CHG-042);audit-sink:GREEN-REPO(CHG-043);profile-aware-pre-post:GREEN-REPO(CHG-044);package-composition:GREEN-REPO(CHG-046);peer-identity-audit:GREEN-REPO(CHG-045);HASH_CHAIN_SEAL:NOT_RUN'
   - id: OBS-LIVE-EFFECT-RESET
     required: true
     result: BLOCKED
@@ -48,5 +48,5 @@ observations:
 promotionRecommendation: HOLD
 timestamps:
   startedAt: '2026-08-09T21:12:00Z'
-  updatedAt: '2026-08-15T12:30:00Z'
+  updatedAt: '2026-08-15T13:25:00Z'
   closedAt: null
