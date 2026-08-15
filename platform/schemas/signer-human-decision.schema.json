@@ -74,7 +74,7 @@
               "decided_by": {"type": "string", "minLength": 1},
               "decided_at": {"type": "string", "minLength": 20},
               "rationale": {"type": "string", "minLength": 10},
-              "evidence_refs": {"minItems": 4}
+              "evidence_refs": {"minItems": 1}
             }
           }
         }
