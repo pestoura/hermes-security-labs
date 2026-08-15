@@ -12,6 +12,12 @@ It deliberately:
 - treats PKCS11 as an interface class, never as proof of key custody;
 - fails closed when the baseline is missing/unaccepted, or when any candidate is
   marked SELECTED, or when candidate evidence is missing/unverified;
+- permits an APPROVED human decision to be staged while the baseline remains
+  NO_SELECTION, preserving the deliberate separation between decision and transition;
+- requires that explicit CHG-HSL-062 human decision for any future PENDING/SELECTED
+  supplier-selection contract;
+- keeps trust binding disabled and grants no runtime/promotion authority even when a
+  future human selection contract is internally coherent;
 - never imports or calls a provider client, key generator, trust-store installer,
   network API or live promotion path.
 
@@ -36,6 +42,7 @@ SCHEMAS_DIR = ROOT / "schemas"
 ASSURANCE_DIR = ROOT / "assurance"
 BASELINE_SCHEMA = SCHEMAS_DIR / "signer-baseline.schema.json"
 BASELINE_YAML = ASSURANCE_DIR / "signer-baseline.yaml"
+SIGNER_HUMAN_DECISION_PATH = ASSURANCE_DIR / "signer_human_decision.py"
 TB1_PREFILIGHT_PATH = (
     ROOT.parent
     / "deployment"
@@ -58,11 +65,14 @@ RUNTIME_DEPLOYMENT_YAML = (
 CANDIDATE_CLASSES = ("KMS", "HSM", "VAULT", "PKCS11")
 # PKCS11 is an interface standard, not a custody backend.
 INTERFACE_CLASSES = ("PKCS11",)
+SELECTABLE_CUSTODY_CLASSES = ("KMS", "HSM", "VAULT")
 # A class is only ever a custody proof once explicitly proven by verified evidence.
 AUTO_SELECTION_FORBIDDEN = True
-# Repository-only baseline with no human supplier decision made yet. Fail-closed
-# default for supplier_selection until an explicit decision is recorded.
+# Repository-only baseline with no supplier transition made yet. A human decision may
+# be staged while this remains NO_SELECTION, but it grants no trust/runtime authority.
 NO_SELECTION = "NO_SELECTION"
+PENDING = "PENDING"
+SELECTED = "SELECTED"
 
 _FORBIDDEN_RUNTIME_IMPORTS = {
     "subprocess",
@@ -96,6 +106,9 @@ def _load_module(name: str, path: Path) -> Any:
 
 tb1_preflight = _load_module(
     "signer_selection_tb1_preflight", TB1_PREFILIGHT_PATH
+)
+signer_human_decision = _load_module(
+    "signer_selection_human_decision", SIGNER_HUMAN_DECISION_PATH
 )
 
 
@@ -141,15 +154,37 @@ class SignerBaselineEvaluation:
         }
 
 
+@dataclass(frozen=True)
+class SignerSelectionTransitionEvaluation:
+    supplier_selection: str
+    decision_state: str
+    selected_class: str | None
+    human_decision_id: str | None
+    candidate_evidence_ready: bool
+    transition_contract_valid: bool
+    trust_binding_allowed: bool
+    promotion_allowed: bool
+    runtime_status: str
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "supplier_selection": self.supplier_selection,
+            "decision_state": self.decision_state,
+            "selected_class": self.selected_class,
+            "human_decision_id": self.human_decision_id,
+            "candidate_evidence_ready": self.candidate_evidence_ready,
+            "transition_contract_valid": self.transition_contract_valid,
+            "trust_binding_allowed": self.trust_binding_allowed,
+            "promotion_allowed": self.promotion_allowed,
+            "runtime_status": self.runtime_status,
+        }
+
+
 def load_baseline_schema() -> dict[str, Any]:
     return yaml.safe_load(BASELINE_SCHEMA.read_text(encoding="utf-8"))
 
 
-def load_baseline(path: Path = BASELINE_YAML) -> dict[str, Any]:
-    """Load and JSON-schema validate the accepted signer baseline declaration."""
-    document = yaml.safe_load(path.read_text(encoding="utf-8"))
-    if not isinstance(document, dict):
-        raise SignerBaselineError("signer baseline document must be a mapping")
+def _validate_baseline_document(document: Mapping[str, Any]) -> None:
     schema = load_baseline_schema()
     errors = sorted(
         jsonschema.Draft7Validator(schema).iter_errors(document),
@@ -161,6 +196,14 @@ def load_baseline(path: Path = BASELINE_YAML) -> dict[str, Any]:
         raise SignerBaselineError(
             f"signer baseline schema violation at {location}: {first.message}"
         )
+
+
+def load_baseline(path: Path = BASELINE_YAML) -> dict[str, Any]:
+    """Load and JSON-schema validate the accepted signer baseline declaration."""
+    document = yaml.safe_load(path.read_text(encoding="utf-8"))
+    if not isinstance(document, dict):
+        raise SignerBaselineError("signer baseline document must be a mapping")
+    _validate_baseline_document(document)
     return document
 
 
@@ -195,7 +238,7 @@ def _evaluate_candidate(entry: Mapping[str, Any]) -> CandidateClassEvaluation:
 def evaluate_signer_baseline(
     document: Mapping[str, Any] | None = None,
 ) -> SignerBaselineEvaluation:
-    """Evaluate the accepted R1-R8 baseline and the candidate classes, fail closed."""
+    """Evaluate the CURRENT R1-R8 baseline; never accepts a selection transition."""
     if document is None:
         document = load_baseline()
 
@@ -205,16 +248,14 @@ def evaluate_signer_baseline(
     accepted = baseline.get("accepted") is True
     provider_neutral = baseline.get("provider_neutral") is True
     allows_auto = baseline.get("allows_automatic_supplier_choice") is True
-    supplier_selection = str(baseline.get("supplier_selection", "NO_SELECTION"))
+    supplier_selection = str(baseline.get("supplier_selection", NO_SELECTION))
 
     if supplier_selection != NO_SELECTION:
-        # Any transition out of NO_SELECTION to PENDING/SELECTED requires an
-        # explicit human decision plus a deliberate contract/guard update. This
-        # evaluator must not accept a selection transition automatically.
+        # Selection transitions are evaluated only by the explicit transition guard
+        # below, which also requires the CHG-HSL-062 human-decision record.
         failures.append(
-            "supplier selection is not NO_SELECTION; a transition to "
-            "PENDING/SELECTED requires an explicit human decision and a "
-            "deliberate contract/guard update, not automatic acceptance"
+            "supplier selection is not NO_SELECTION; use the explicit human decision "
+            "selection transition contract, never automatic baseline acceptance"
         )
 
     if not accepted:
@@ -252,51 +293,27 @@ def evaluate_signer_baseline(
         provider_neutral=provider_neutral,
         allows_automatic_supplier_choice=allows_auto,
         supplier_selection=supplier_selection,
-        selected_class=None,  # never selected by this evaluator
+        selected_class=None,
         promotion_allowed=False,
         failures=(),
         candidates=candidates,
     )
 
 
-def validate_no_selection_trust_guard(
-    document: Mapping[str, Any] | None = None,
-    runtime_deployment: Mapping[str, Any] | None = None,
-) -> None:
-    """Fail-closed trust-bearing guard for the CURRENT NO_SELECTION contract.
-
-    Repository-only. This reads committed YAML when arguments are omitted; it
-    MUST NOT write, install, bind, generate keys, import trust_binding.py, or
-    invoke network/process/runtime, and it must not inspect ``/etc``.
-
-    Safe state (NO_SELECTION) requires *exactly* these facts on the
-    ``trust_binding`` mapping:
-      - enabled is False
-      - source is None
-      - public_source is False
-      - expected_sha256 is None
-    The ``trust_store_path`` value is permitted because it only declares the
-    canonical destination, not a binding.
-    """
-    if document is None:
-        document = load_baseline()
-    baseline = document.get("signer_baseline") or {}
-    supplier_selection = str(baseline.get("supplier_selection", NO_SELECTION))
-    if supplier_selection != NO_SELECTION:
-        raise SignerBaselineError(
-            "supplier selection is not NO_SELECTION; a transition to "
-            "PENDING/SELECTED requires an explicit human decision and a "
-            "deliberate contract/guard update, not automatic acceptance"
-        )
-
+def _load_runtime_deployment(
+    runtime_deployment: Mapping[str, Any] | None,
+) -> Mapping[str, Any]:
     if runtime_deployment is None:
         text = RUNTIME_DEPLOYMENT_YAML.read_text(encoding="utf-8")
         runtime_deployment = yaml.safe_load(text)
     if not isinstance(runtime_deployment, Mapping):
-        raise SignerBaselineError(
-            "runtime deployment document must be a mapping"
-        )
+        raise SignerBaselineError("runtime deployment document must be a mapping")
+    return runtime_deployment
 
+
+def _validate_inactive_trust_binding(
+    runtime_deployment: Mapping[str, Any], *, context: str
+) -> None:
     trust_binding = runtime_deployment.get("trust_binding")
     if not isinstance(trust_binding, Mapping):
         raise SignerBaselineError(
@@ -306,30 +323,177 @@ def validate_no_selection_trust_guard(
     violations: list[str] = []
     if trust_binding.get("enabled") is not False:
         violations.append(
-            f"trust_binding.enabled must be False under NO_SELECTION, "
+            f"trust_binding.enabled must be False under {context}, "
             f"got {trust_binding.get('enabled')!r}"
         )
     if trust_binding.get("source") is not None:
         violations.append(
-            f"trust_binding.source must be None under NO_SELECTION, "
+            f"trust_binding.source must be None under {context}, "
             f"got {trust_binding.get('source')!r}"
         )
     if trust_binding.get("public_source") is not False:
         violations.append(
-            f"trust_binding.public_source must be False under NO_SELECTION, "
+            f"trust_binding.public_source must be False under {context}, "
             f"got {trust_binding.get('public_source')!r}"
         )
     if trust_binding.get("expected_sha256") is not None:
         violations.append(
-            f"trust_binding.expected_sha256 must be None under NO_SELECTION, "
+            f"trust_binding.expected_sha256 must be None under {context}, "
             f"got {trust_binding.get('expected_sha256')!r}"
         )
 
     if violations:
         raise SignerBaselineError(
-            "NO_SELECTION trust guard failed closed: " + "; ".join(violations)
+            f"{context} trust guard failed closed: " + "; ".join(violations)
         )
+
+
+def validate_no_selection_trust_guard(
+    document: Mapping[str, Any] | None = None,
+    runtime_deployment: Mapping[str, Any] | None = None,
+) -> None:
+    """Fail-closed trust-bearing guard for the CURRENT NO_SELECTION contract."""
+    if document is None:
+        document = load_baseline()
+    baseline = document.get("signer_baseline") or {}
+    supplier_selection = str(baseline.get("supplier_selection", NO_SELECTION))
+    if supplier_selection != NO_SELECTION:
+        raise SignerBaselineError(
+            "supplier selection is not NO_SELECTION; use the explicit human decision "
+            "selection transition contract"
+        )
+
+    loaded_runtime = _load_runtime_deployment(runtime_deployment)
+    _validate_inactive_trust_binding(loaded_runtime, context=NO_SELECTION)
     return None
+
+
+def validate_selection_transition_contract(
+    document: Mapping[str, Any] | None = None,
+    human_decision: Mapping[str, Any] | None = None,
+    runtime_deployment: Mapping[str, Any] | None = None,
+) -> SignerSelectionTransitionEvaluation:
+    """Validate selection-state/decision/evidence coherence without granting authority.
+
+    This is a repository-only *contract* gate. It never chooses a class and it never
+    verifies provider evidence itself. An APPROVED human decision may be staged while
+    the baseline remains NO_SELECTION; this is deliberately separate from changing the
+    baseline to PENDING/SELECTED. A future PENDING/SELECTED state is coherent only after
+    that human decision is APPROVED and the matching custody candidate has already
+    reached EVIDENCE_VERIFIED_PENDING_DECISION with capability evidence.
+
+    Even then, CHG-HSL-063 requires trust_binding to remain inactive. Trust binding and
+    live promotion are separate later changes with their own evidence and approval.
+    """
+    if document is None:
+        document = load_baseline()
+    if not isinstance(document, Mapping):
+        raise SignerBaselineError("signer baseline document must be a mapping")
+    _validate_baseline_document(document)
+
+    if human_decision is None:
+        human_decision = signer_human_decision.load_decision()
+    try:
+        decision_eval = signer_human_decision.evaluate_human_decision(human_decision)
+    except signer_human_decision.SignerHumanDecisionError as exc:
+        raise SignerBaselineError(
+            f"human signer decision failed closed: {exc}"
+        ) from exc
+
+    baseline = document.get("signer_baseline") or {}
+    supplier_selection = str(baseline.get("supplier_selection", NO_SELECTION))
+    selected_class = baseline.get("selected_class")
+    human_decision_id = baseline.get("human_decision_id")
+    loaded_runtime = _load_runtime_deployment(runtime_deployment)
+
+    if supplier_selection == NO_SELECTION:
+        # Both NO_DECISION and APPROVED are legitimate staging states here. The baseline
+        # remains intentionally unbound until a separate PENDING/SELECTED transition.
+        if decision_eval.state not in (
+            signer_human_decision.NO_DECISION,
+            signer_human_decision.APPROVED,
+        ):
+            raise SignerBaselineError(
+                f"unsupported signer human decision state under NO_SELECTION: {decision_eval.state}"
+            )
+        _validate_inactive_trust_binding(loaded_runtime, context=NO_SELECTION)
+        return SignerSelectionTransitionEvaluation(
+            supplier_selection=NO_SELECTION,
+            decision_state=decision_eval.state,
+            selected_class=None,
+            human_decision_id=None,
+            candidate_evidence_ready=False,
+            transition_contract_valid=True,
+            trust_binding_allowed=False,
+            promotion_allowed=False,
+            runtime_status="NOT_RUN",
+        )
+
+    if supplier_selection not in (PENDING, SELECTED):
+        raise SignerBaselineError(
+            f"unsupported supplier_selection state: {supplier_selection}"
+        )
+    if decision_eval.state != signer_human_decision.APPROVED:
+        raise SignerBaselineError(
+            f"{supplier_selection} requires an APPROVED human signer decision"
+        )
+    if selected_class not in SELECTABLE_CUSTODY_CLASSES:
+        raise SignerBaselineError(
+            f"selected_class is not an approved custody class: {selected_class!r}"
+        )
+    if decision_eval.selected_class != selected_class:
+        raise SignerBaselineError(
+            "baseline selected_class does not match the APPROVED human decision"
+        )
+    if decision_eval.decision_id != human_decision_id:
+        raise SignerBaselineError(
+            "baseline human_decision_id does not match the APPROVED human decision"
+        )
+
+    matching = [
+        c for c in document.get("candidate_classes", [])
+        if c.get("class") == selected_class
+    ]
+    if len(matching) != 1:
+        raise SignerBaselineError(
+            f"expected exactly one candidate record for selected_class {selected_class}"
+        )
+    raw_candidate = matching[0]
+    candidate = _evaluate_candidate(raw_candidate)
+    if candidate.disqualified:
+        raise SignerBaselineError(
+            f"selected candidate {selected_class} is disqualified: "
+            + "; ".join(candidate.findings)
+        )
+    if candidate.evaluation_status != "EVIDENCE_VERIFIED_PENDING_DECISION":
+        raise SignerBaselineError(
+            f"selected candidate {selected_class} evidence is not verified pending decision"
+        )
+    if not candidate.is_custody_proof:
+        raise SignerBaselineError(
+            f"selected candidate {selected_class} has no verified custody proof"
+        )
+    if raw_candidate.get("capability_evidence") is None:
+        raise SignerBaselineError(
+            f"selected candidate {selected_class} has no capability_evidence record"
+        )
+
+    # Selection metadata never performs or implicitly authorizes trust binding.
+    _validate_inactive_trust_binding(
+        loaded_runtime, context=f"{supplier_selection}_SELECTION_CONTRACT"
+    )
+
+    return SignerSelectionTransitionEvaluation(
+        supplier_selection=supplier_selection,
+        decision_state=decision_eval.state,
+        selected_class=str(selected_class),
+        human_decision_id=str(human_decision_id),
+        candidate_evidence_ready=True,
+        transition_contract_valid=True,
+        trust_binding_allowed=False,
+        promotion_allowed=False,
+        runtime_status="NOT_RUN",
+    )
 
 
 def _module_has_no_provider_or_runtime_imports() -> bool:

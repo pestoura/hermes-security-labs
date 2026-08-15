@@ -1,0 +1,34 @@
+schemaVersion: jds.change/v1
+kind: ChangeRecord
+id: CHG-HSL-063
+product: hermes-security-labs
+classification: HARDENING
+state: ACCEPTED
+disposition: FIX_NOW
+summary: 'Repository-only fail-closed signer selection transition guard. The current source-of-truth remains NO_SELECTION/NO_DECISION. Future PENDING/SELECTED states must explicitly bind selected_class and human_decision_id to an APPROVED CHG-HSL-062 human decision and to a matching custody candidate already at EVIDENCE_VERIFIED_PENDING_DECISION with capability evidence. Even a coherent selection contract keeps trust_binding inactive and grants no runtime or promotion authority.'
+source:
+  type: ENGINEERING_REVIEW
+  campaign: VAL-HSL-RUNNER-L1-LIVE-PROMOTION
+  observation: OBS-TB1-LIVE-DELIVERY
+  reference: 'CHG-HSL-063 extends the provider-neutral signer baseline schema with selected_class/human_decision_id identity binding and adds validate_selection_transition_contract in platform/assurance/signer_selection.py. No supplier is selected, no provider is called, no trust store is created/installed, and runtime remains NOT_RUN/HOLD.'
+affectedRelease: jds-002-adoption-candidate
+targetRelease: null
+risk: LOW
+versionEffect: NONE
+branch: chg-hsl-063/signer-selection-transition-guard
+issue: null
+pr: null
+validation:
+  targeted: PASS
+  regression: PASS
+  security: PASS
+  runtime: NOT_APPLICABLE
+promotion:
+  commit: null
+  artifactDigest: null
+  previousRelease: null
+deferredTo: null
+timestamps:
+  discoveredAt: '2026-08-15T12:05:00Z'
+  updatedAt: '2026-08-15T12:05:00Z'
+  closedAt: null

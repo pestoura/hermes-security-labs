@@ -17,6 +17,9 @@
         "accepted",
         "provider_neutral",
         "allows_automatic_supplier_choice",
+        "supplier_selection",
+        "selected_class",
+        "human_decision_id",
         "requires_external_signer",
         "requires_non_exportable_private_key",
         "requires_purpose_bound_key_identity",
@@ -36,7 +39,17 @@
         "supplier_selection": {
           "type": "string",
           "enum": ["NO_SELECTION", "PENDING", "SELECTED"],
-          "description": "Explicit human supplier-selection state. Remains NO_SELECTION until a recorded decision."
+          "description": "Explicit human supplier-selection lifecycle state."
+        },
+        "selected_class": {
+          "type": ["string", "null"],
+          "enum": [null, "KMS", "HSM", "VAULT"],
+          "description": "Explicit selected custody class. Null while supplier_selection is NO_SELECTION. PKCS11 is never a custody selection."
+        },
+        "human_decision_id": {
+          "type": ["string", "null"],
+          "maxLength": 80,
+          "description": "Decision identifier binding any PENDING/SELECTED state to the explicit human-decision record."
         },
         "requires_external_signer": {"type": "boolean", "const": true, "description": "R1: private key never in repo/Runner; signing performed by signer; caller gets signature only."},
         "requires_non_exportable_private_key": {"type": "boolean", "const": true, "description": "R1: private key non-exportable at the provider."},
@@ -49,7 +62,27 @@
         "requires_revocation_rotation_fail_closed": {"type": "boolean", "const": true, "description": "R6: revocation invalidates future verification deterministically; rotation is trust-store content + expected hash."},
         "requires_cost_proportional_bring_up": {"type": "boolean", "const": true, "description": "R7: reproducible from non-secret descriptor; lab profile must not require a hardware procurement cycle."},
         "requires_evidence_separation": {"type": "boolean", "const": true, "description": "R8: signer outputs are evidence inputs; no key material/token/header in sanitized evidence."}
-      }
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"supplier_selection": {"const": "NO_SELECTION"}}},
+          "then": {
+            "properties": {
+              "selected_class": {"const": null},
+              "human_decision_id": {"const": null}
+            }
+          }
+        },
+        {
+          "if": {"properties": {"supplier_selection": {"enum": ["PENDING", "SELECTED"]}}},
+          "then": {
+            "properties": {
+              "selected_class": {"type": "string", "enum": ["KMS", "HSM", "VAULT"]},
+              "human_decision_id": {"type": "string", "minLength": 3}
+            }
+          }
+        }
+      ]
     },
     "candidate_classes": {
       "type": "array",
