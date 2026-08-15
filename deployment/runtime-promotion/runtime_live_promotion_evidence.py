@@ -10,18 +10,21 @@ for explicit Human-in-the-Loop review. POST_EFFECT packages bind the approved
 promotion decision, the effective minimum policy set and the one bounded live
 effect/persistence/reset acceptance. Both phases remain evidence only.
 
-PHASE 2 profile-awareness: the required gate set is resolved from the accepted
-assurance profile (``platform/assurance/current-assurance-profile.yaml``).
-When the profile requires an append-only hash chain / sealed packages
-(``requires_hash_chain`` -- true for both LAB_L1 and PROD under ADR-0011 Option
-B) a canonical ``HASH_CHAIN_SEAL`` gate is added to BOTH phases. That gate is
-verified against the frozen LAB_L1 evidence-chain / seal primitive
-(``platform/evidence-plane``): the supplied chain+seal evidence document must
-validate against ``platform/schemas/evidence-chain.schema.json`` and pass the
-real ``verify_seal`` integrity verifier, and its sealed ``chain_state_digest``
-must bind the gate's declared ``evidence_sha256``. This never weakens any PROD
-gate (external WORM backend control + tenant isolation remain required for
-PROD); it adds an applicable integrity requirement where the profile demands it.
+The required gate contract is resolved from the accepted assurance profile
+(``platform/assurance/current-assurance-profile.yaml`` / ADR-0011 Option B):
+
+- LAB_L1 requires the common signer/trust/peer/evidence-integrity controls but
+  may omit only the external production WORM backend and production tenant-
+  isolation gates;
+- PROD requires those two additional gates;
+- an absent, invalid or internally inconsistent profile fails closed to PROD;
+- when ``requires_hash_chain`` is true, ``HASH_CHAIN_SEAL`` is required for both
+  phases and is verified with the frozen Evidence Plane seal primitive.
+
+For backward evidence compatibility, LAB_L1 packages may still carry the two
+PROD-only gates. They are optional under LAB_L1: an absent/NOT_RUN optional gate
+does not block completion, while a supplied FAIL or unverified optional gate
+still blocks. PROD never treats them as optional.
 """
 
 from __future__ import annotations
@@ -44,6 +47,7 @@ SCHEMA_PATH = HERE / "live-promotion-evidence-package.schema.json"
 DEFAULT_PACKAGE = HERE / "templates" / "live-promotion-evidence-package.example.yaml"
 DEFAULT_CAMPAIGN = ROOT / "validation" / "VAL-HSL-RUNNER-L1-LIVE-PROMOTION.yaml"
 ASSURANCE_PROFILE_PATH = ROOT / "platform" / "assurance" / "current-assurance-profile.yaml"
+ASSURANCE_PROFILE_MODULE_PATH = ROOT / "platform" / "assurance" / "assurance_profile.py"
 EVIDENCE_CHAIN_SCHEMA_PATH = ROOT / "platform" / "schemas" / "evidence-chain.schema.json"
 
 EXPECTED_CANDIDATE = {
@@ -53,7 +57,7 @@ EXPECTED_CANDIDATE = {
     "intrusiveness_level": "L1",
 }
 
-PRE_PROMOTION_GATES = frozenset(
+COMMON_PRE_PROMOTION_GATES = frozenset(
     {
         "GATEWAY_ADMISSION_REOBSERVATION",
         "BRIDGE_REVISION_REOBSERVATION",
@@ -62,10 +66,17 @@ PRE_PROMOTION_GATES = frozenset(
         "SIGNER_PROVIDER_ATTESTATION",
         "RECEIPT_DELIVERY",
         "UNAUTHORIZED_PEER_NEGATIVE",
+    }
+)
+PROD_ONLY_PRE_PROMOTION_GATES = frozenset(
+    {
         "EVIDENCE_BACKEND_CONTROLS",
         "EVIDENCE_TENANT_ISOLATION",
     }
 )
+# Historical/accepted superset retained for callers and previously assembled
+# packages. The verifier below resolves the actual required subset by profile.
+PRE_PROMOTION_GATES = COMMON_PRE_PROMOTION_GATES | PROD_ONLY_PRE_PROMOTION_GATES
 POST_EFFECT_GATES = frozenset(
     {
         "HITL_PROMOTION_DECISION",
@@ -75,20 +86,17 @@ POST_EFFECT_GATES = frozenset(
         "WEBGOAT_L1_EFFECT_RESET",
     }
 )
-# Base required gate sets per phase (PROD keeps every gate; LAB_L1 inherits the
-# same repo-evidence gate set -- the profile only controls the integrity gate).
 REQUIRED_GATES = {
     "PRE_PROMOTION": PRE_PROMOTION_GATES,
     "POST_EFFECT": POST_EFFECT_GATES,
 }
 
-# Canonical gate id for the append-only hash chain / seal integrity control.
-# Deterministic name matching the existing UPPER_SNAKE convention; required for
-# LAB_L1 (and PROD) because the accepted assurance profile sets
-# `requires_hash_chain: true`.
 HASH_CHAIN_SEAL_GATE = "HASH_CHAIN_SEAL"
+LAB_L1 = "LAB_L1"
+PROD = "PROD"
 
 _SEAL_MODULE = None
+_ASSURANCE_MODULE = None
 
 
 class LiveEvidencePackageError(ValueError):
@@ -184,35 +192,90 @@ def load_campaign(path: Path = DEFAULT_CAMPAIGN) -> dict[str, Any]:
     return _load_yaml(path, "CAMPAIGN_UNREADABLE")
 
 
-def _resolve_assurance() -> tuple[str, bool]:
-    """Fail-closed assurance-profile resolution drives the required gate set.
+def _load_assurance_profile_module():
+    """Load the canonical ADR-0011 evaluator instead of duplicating its rules."""
+    global _ASSURANCE_MODULE
+    if _ASSURANCE_MODULE is not None:
+        return _ASSURANCE_MODULE
+    spec = importlib.util.spec_from_file_location(
+        "_hsl_live_assurance_profile", ASSURANCE_PROFILE_MODULE_PATH
+    )
+    if not spec or not spec.loader:
+        raise RuntimeError("cannot load canonical assurance-profile evaluator")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    _ASSURANCE_MODULE = module
+    return module
 
-    Returns (resolved_profile, requires_hash_chain). An absent or invalid
-    profile fails closed to PROD, which requires the hash chain (strongest).
-    """
+
+def _resolve_assurance() -> tuple[str, bool]:
+    """Resolve the accepted profile, failing closed to PROD on any inconsistency."""
     try:
         document = yaml.safe_load(
             ASSURANCE_PROFILE_PATH.read_text(encoding="utf-8")
         )
-    except (OSError, yaml.YAMLError, UnicodeDecodeError):
-        return ("PROD", True)
-    if not isinstance(document, Mapping):
-        return ("PROD", True)
-    raw = document.get("assurance_profile")
-    resolved = raw if raw in ("LAB_L1", "PROD") else "PROD"
-    evaluation = document.get("evaluation") or {}
-    requires_hash_chain = evaluation.get("requires_hash_chain", True)
-    if not isinstance(requires_hash_chain, bool):
-        requires_hash_chain = True
-    return (resolved, bool(requires_hash_chain))
+        if not isinstance(document, Mapping):
+            return (PROD, True)
+
+        assurance = _load_assurance_profile_module()
+        assurance.validate_profile_schema(document)
+        evaluation = assurance.validate_profile_document(document)
+        if evaluation.failures:
+            return (PROD, True)
+
+        declared = document.get("evaluation")
+        if not isinstance(declared, Mapping):
+            return (PROD, True)
+        requires_hash_chain = declared.get("requires_hash_chain")
+        if not isinstance(requires_hash_chain, bool):
+            return (PROD, True)
+
+        resolved = str(evaluation.resolved_profile)
+        if resolved not in (LAB_L1, PROD):
+            return (PROD, True)
+        return (resolved, requires_hash_chain)
+    except Exception:  # noqa: BLE001 - profile defects must only strengthen gates
+        return (PROD, True)
+
+
+def profile_required_gate_ids(
+    phase: str,
+    assurance_profile: str,
+    requires_hash_chain: bool = True,
+) -> frozenset[str]:
+    """Return the true mandatory gate set for one explicit assurance profile."""
+    if phase not in REQUIRED_GATES:
+        raise LiveEvidencePackageError("PACKAGE_INVALID", f"unsupported phase {phase}")
+
+    # Explicit invalid profile is also fail-closed to PROD.
+    resolved = assurance_profile if assurance_profile in (LAB_L1, PROD) else PROD
+    if phase == "PRE_PROMOTION":
+        base = set(COMMON_PRE_PROMOTION_GATES)
+        if resolved == PROD:
+            base.update(PROD_ONLY_PRE_PROMOTION_GATES)
+    else:
+        base = set(POST_EFFECT_GATES)
+
+    if requires_hash_chain:
+        base.add(HASH_CHAIN_SEAL_GATE)
+    return frozenset(base)
+
+
+def profile_optional_gate_ids(phase: str, assurance_profile: str) -> frozenset[str]:
+    """Return accepted-but-not-required gates for backward-compatible LAB evidence."""
+    resolved = assurance_profile if assurance_profile in (LAB_L1, PROD) else PROD
+    if phase == "PRE_PROMOTION" and resolved == LAB_L1:
+        return PROD_ONLY_PRE_PROMOTION_GATES
+    return frozenset()
 
 
 def _expected_gate_ids(phase: str, requires_hash_chain: bool) -> frozenset[str]:
-    """Compose the profile-aware required gate set for one phase.
+    """Backward-compatible accepted gate superset used by historical callers.
 
-    PROD keeps every base gate. LAB_L1 inherits the same repo-evidence gate set.
-    The hash-chain/seal integrity gate is added wherever the profile requires it
-    (true for both LAB_L1 and PROD under the current ADR-0011 decision).
+    New profile-aware code must use ``profile_required_gate_ids``. Keeping this
+    superset avoids invalidating already-assembled LAB_L1 evidence packages that
+    carried the two PROD-only gates before CHG-HSL-066.
     """
     base = set(REQUIRED_GATES[phase])
     if requires_hash_chain:
@@ -221,7 +284,7 @@ def _expected_gate_ids(phase: str, requires_hash_chain: bool) -> frozenset[str]:
 
 
 def required_gate_ids(phase: str, requires_hash_chain: bool = True) -> frozenset[str]:
-    """Public projection of the profile-aware required gate set (for tests/docs)."""
+    """Legacy public projection of the accepted gate superset (compatibility)."""
     return _expected_gate_ids(phase, requires_hash_chain)
 
 
@@ -241,7 +304,7 @@ def _load_evidence_chain_seal_module():
     sys.modules[spec.name] = module
     spec.loader.exec_module(module)
     _SEAL_MODULE = module
-    return _SEAL_MODULE
+    return module
 
 
 def _verify_hash_chain_seal_gate(
@@ -322,13 +385,18 @@ def verify_live_evidence_package(
     _validate_schema(package)
 
     phase = str(package["phase"])
-    _, requires_hash_chain = _resolve_assurance()
-    expected_gates = _expected_gate_ids(phase, requires_hash_chain)
+    assurance_profile, requires_hash_chain = _resolve_assurance()
+    required_gates = profile_required_gate_ids(
+        phase, assurance_profile, requires_hash_chain
+    )
+    optional_gates = profile_optional_gate_ids(phase, assurance_profile)
+    allowed_gates = required_gates | optional_gates
+
     gates = _gate_map(package)
     actual_gate_ids = frozenset(gates)
-    if actual_gate_ids != expected_gates:
-        missing = sorted(expected_gates - actual_gate_ids)
-        extra = sorted(actual_gate_ids - expected_gates)
+    missing = sorted(required_gates - actual_gate_ids)
+    extra = sorted(actual_gate_ids - allowed_gates)
+    if missing or extra:
         raise LiveEvidencePackageError(
             "PACKAGE_GATE_SET_INVALID",
             f"gate set mismatch missing={missing} extra={extra}",
@@ -361,11 +429,16 @@ def verify_live_evidence_package(
     blockers: list[str] = []
     verified_count = 0
 
-    for gate_id in sorted(expected_gates):
+    # Evaluate every supplied allowed gate. Optional LAB_L1 gates are ignored only
+    # when explicitly NOT_RUN; supplied evidence can only tighten the outcome.
+    for gate_id in sorted(actual_gate_ids):
         gate = gates[gate_id]
         gate_result = str(gate["result"])
+        is_optional = gate_id in optional_gates
+
         if gate_result == "NOT_RUN":
-            blockers.append(f"{gate_id}:NOT_RUN")
+            if not is_optional:
+                blockers.append(f"{gate_id}:NOT_RUN")
             continue
 
         if gate_id == HASH_CHAIN_SEAL_GATE:
@@ -395,6 +468,11 @@ def verify_live_evidence_package(
     else:
         next_review = "EVIDENCE_COLLECTION_REQUIRED"
 
+    # Compatibility: count all supplied allowed gates. For a minimal LAB_L1
+    # package this equals the true required count; historical superset packages
+    # continue to report their evaluated gate count without being invalidated.
+    evaluated_gate_count = len(actual_gate_ids)
+
     return LiveEvidencePackageResult(
         phase=phase,
         package_valid=True,
@@ -404,7 +482,7 @@ def verify_live_evidence_package(
         next_review=next_review,
         blockers=tuple(blockers),
         verified_evidence_count=verified_count,
-        required_gate_count=len(expected_gates),
+        required_gate_count=evaluated_gate_count,
     )
 
 
