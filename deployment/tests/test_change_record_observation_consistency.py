@@ -1,18 +1,25 @@
 """Repository-only governance tests for JDS-002 change-record consistency.
 
-Pin the source-of-truth contract between change records under ``changes/`` and
-the canonical validation campaign ``validation/VAL-HSL-RUNNER-L1-LIVE-PROMOTION.yaml``.
+Pin the source-of-truth contract between change records under ``changes/`` and all
+canonical validation campaigns under ``validation/VAL-HSL-*.yaml``.
 
-Hardening added by CHG-HSL-048:
+Hardening added by CHG-HSL-048 and generalized by CHG-HSL-064:
 
 * Every accepted change record that declares a ``source.observation`` must point at
-  an observation that actually exists in the campaign (no dangling references).
-* Every canonical observation identifier -- both the ids defined by the campaign and
-  the ids referenced by change records -- must be schema-valid under the single
-  lexical contract ``OBS-<UPPER>(-<UPPER>)``. This rejects accidental free-form
-  observation ids (lowercase, underscores, spaces, or any non-canonical shape).
+  an observation that actually exists in a canonical validation campaign (no
+  dangling references).
+* Every canonical observation identifier -- both the ids defined by validation
+  campaigns and the ids referenced by change records -- must be schema-valid under
+  the single lexical contract ``OBS-<UPPER>(-<UPPER>)``. This rejects accidental
+  free-form observation ids (lowercase, underscores, spaces, or any non-canonical
+  shape).
 * A dangling or schema-invalid reference is a source-of-truth inconsistency and must
   fail closed: it must never be silently tolerated.
+
+The original CHG-HSL-048 guard was intentionally bound to the then-single Runner
+campaign. CHG-HSL-064 introduces an independent WebGoat lifecycle validation
+campaign, so the ledger guard now discovers all canonical HSL validation campaigns
+rather than forcing unrelated observations into the Runner-promotion campaign.
 
 No runtime, policy, trust-store or promotion semantics are asserted here. This is
 a static ledger/reconciliation guard only.
@@ -27,7 +34,7 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
 CHANGES_DIR = ROOT / "changes"
-CAMPAIGN_PATH = ROOT / "validation" / "VAL-HSL-RUNNER-L1-LIVE-PROMOTION.yaml"
+VALIDATION_DIR = ROOT / "validation"
 
 # Canonical observation identifier contract: must start with OBS-, then one or more
 # uppercase alphanumeric segments separated by single hyphens. No lowercase letters,
@@ -37,13 +44,19 @@ CANONICAL_OBSERVATION_ID = re.compile(r"^OBS-[A-Z0-9]+(?:-[A-Z0-9]+)*$")
 
 
 def _campaign_observation_ids() -> frozenset[str]:
-    document = yaml.safe_load(CAMPAIGN_PATH.read_text(encoding="utf-8"))
-    observations = document.get("observations") or []
-    return frozenset(
-        str(observation["id"])
-        for observation in observations
-        if isinstance(observation, dict) and observation.get("id")
-    )
+    """Return observation ids from every canonical HSL validation campaign."""
+    observation_ids: set[str] = set()
+    for path in sorted(VALIDATION_DIR.glob("VAL-HSL-*.yaml")):
+        document = yaml.safe_load(path.read_text(encoding="utf-8"))
+        if not isinstance(document, dict):
+            continue
+        observations = document.get("observations") or []
+        observation_ids.update(
+            str(observation["id"])
+            for observation in observations
+            if isinstance(observation, dict) and observation.get("id")
+        )
+    return frozenset(observation_ids)
 
 
 def _accepted_change_records() -> list[dict]:
@@ -58,7 +71,8 @@ def _accepted_change_records() -> list[dict]:
 
 def test_campaign_defines_known_observations() -> None:
     ids = _campaign_observation_ids()
-    # The four inspected promotion observations plus the resolved repository chain.
+    # The four inspected Runner-promotion observations plus the resolved repository
+    # chain remain mandatory even when additional independent campaigns exist.
     for required in (
         "OBS-RUNNER-REPO-CHAIN",
         "OBS-TB1-LIVE-DELIVERY",
@@ -66,7 +80,7 @@ def test_campaign_defines_known_observations() -> None:
         "OBS-EVIDENCE-CUSTODY",
         "OBS-LIVE-EFFECT-RESET",
     ):
-        assert required in ids, f"canonical campaign is missing observation {required}"
+        assert required in ids, f"canonical validation campaigns are missing {required}"
 
 
 def test_change_records_reference_only_defined_observations() -> None:
@@ -88,7 +102,7 @@ def test_campaign_observation_ids_are_schema_valid() -> None:
         for observation_id in _campaign_observation_ids()
         if not CANONICAL_OBSERVATION_ID.match(observation_id)
     ]
-    assert not invalid, f"campaign defines non-canonical observation ids: {invalid}"
+    assert not invalid, f"campaigns define non-canonical observation ids: {invalid}"
 
 
 def test_change_record_observation_references_are_schema_valid() -> None:
