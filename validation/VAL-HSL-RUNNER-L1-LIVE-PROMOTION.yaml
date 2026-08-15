@@ -28,16 +28,16 @@ observations:
     required: true
     result: BLOCKED
     status: OPEN
-    summary: 'Host/userns, service, tenant-isolation verification and phased live-evidence package verification are GREEN-REPO, but trust is absent. Under LAB_L1, production WORM-backend and tenant-isolation gates are PROD-only, not L1 blockers. Promotion remains blocked by signer/trust, peer-negative proof, live packages/persistence and DISABLED/NOT_RUN policies.'
+    summary: 'CHG-HSL-038 retains historical userns PASS for reviewed PIDs; current Runner PID re-attestation is BLOCKED/ROOT_REQUIRED. Trust/signing remain absent. CHG-HSL-071 verifies produced PRE_PROMOTION as ASSEMBLED/HOLD/INCOMPLETE. LAB_L1 excludes PROD-only WORM/tenant gates. Remaining blockers: signer/trust, receipt delivery, peer-negative/current userns, live audit/outcome persistence, incomplete PRE_PROMOTION, POST_EFFECT and disabled policies.'
     changeRecord: CHG-HSL-012
-    evidence: 'evidence:deployment/runtime-promotion/evidence/live-observation-CHG-HSL-038.yaml;userns:PASS;trust-store:ABSENT;signer:NOT_OBSERVED;peer-negative:NOT_RUN;production-backend:NOT_IMPLEMENTED/NOT_RUN;tenant-isolation:NOT_RUN;live-evidence-package-verifier:GREEN-REPO;pre-promotion-package:NOT_RUN;post-effect-package:NOT_RUN;policies:DISABLED/NOT_RUN'
+    evidence: 'evidence:deployment/runtime-promotion/evidence/live-observation-CHG-HSL-038.yaml;userns:PASS(HISTORICAL-CHG-HSL-038;current=BLOCKED/ROOT_REQUIRED);trust-store:ABSENT;signer:NOT_OBSERVED;peer-negative:NOT_PROVEN/BLOCKED;production-backend:NOT_IMPLEMENTED/NOT_RUN(PROD_ONLY);tenant-isolation:NOT_RUN(PROD_ONLY);live-evidence-package-verifier:GREEN-REPO;pre-promotion-package:NOT_RUN(HISTORICAL-CHG-HSL-038)->ASSEMBLED/HOLD/INCOMPLETE(CHG-HSL-071);post-effect-package:NOT_RUN;policies:DISABLED/NOT_RUN'
   - id: OBS-EVIDENCE-CUSTODY
     required: true
     result: BLOCKED
     status: OPEN
-    summary: 'CHG-HSL-047 reconciles LAB_L1 custody capabilities; phased live-evidence package verifiers are also GREEN-REPO. External production WORM and production tenant-isolation negatives are PROD-only, not L1 blockers. Current L1 blockers are live HASH_CHAIN_SEAL, audit/outcome persistence and PRE/POST evidence packages.'
+    summary: 'CHG-HSL-071 reconciles already-produced custody evidence from run_5dbe72a070ed4ffa95ce6fc1c8c3b088: HASH_CHAIN_SEAL VERIFIED; Gateway/Bridge reobservations PASS; PRE_PROMOTION ASSEMBLED/HOLD/INCOMPLETE. Campaign remains BLOCKED/OPEN. LAB_L1 blockers are signer/trust, receipt delivery, peer-negative/current userns, live audit/outcome persistence, remaining PRE gates and POST_EFFECT. WORM/tenant controls remain PROD-only.'
     changeRecord: CHG-HSL-002
-    evidence: 'durable-backend-verifier:GREEN-REPO;tenant-isolation-verifier:GREEN-REPO;live-evidence-package-verifier:GREEN-REPO;production-WORM-backend:NOT_IMPLEMENTED/NOT_RUN;backend-tenant-config:NOT_RUN;cross-tenant-negatives:NOT_RUN;pre-promotion-package:NOT_RUN;post-effect-package:NOT_RUN;hash-chain-seal:GREEN-REPO(CHG-042);audit-sink:GREEN-REPO(CHG-043);profile-aware-pre-post:GREEN-REPO(CHG-044);package-composition:GREEN-REPO(CHG-046);peer-identity-audit:GREEN-REPO(CHG-045);HASH_CHAIN_SEAL:NOT_RUN'
+    evidence: 'hash-chain-seal:GREEN-REPO(CHG-042);audit-sink:GREEN-REPO(CHG-043);profile-aware-pre-post:GREEN-REPO(CHG-044);peer-identity-audit:GREEN-REPO(CHG-045);package-composition:GREEN-REPO(CHG-046);HASH_CHAIN_SEAL:VERIFIED(CHG-HSL-071);GATEWAY_ADMISSION_REOBSERVATION:PASS(CHG-HSL-071);BRIDGE_REVISION_REOBSERVATION:PASS(CHG-HSL-071);pre-promotion-package:ASSEMBLED/HOLD/INCOMPLETE(CHG-HSL-071);post-effect-package:NOT_RUN'
   - id: OBS-LIVE-EFFECT-RESET
     required: true
     result: BLOCKED
@@ -48,5 +48,5 @@ observations:
 promotionRecommendation: HOLD
 timestamps:
   startedAt: '2026-08-09T21:12:00Z'
-  updatedAt: '2026-08-15T14:00:00Z'
+  updatedAt: '2026-08-15T19:31:03Z'
   closedAt: null

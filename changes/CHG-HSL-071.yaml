@@ -1,0 +1,34 @@
+schemaVersion: jds.change/v1
+kind: ChangeRecord
+id: CHG-HSL-071
+product: hermes-security-labs
+classification: DOC_ONLY
+state: ACCEPTED
+disposition: FIX_NOW
+summary: 'Repo-only reconcile run_5dbe72a070ed4ffa95ce6fc1c8c3b088 custody evidence into source-of-truth. HASH_CHAIN_SEAL VERIFIED(CHG-HSL-071) from custodized offline evidence; GATEWAY_ADMISSION_REOBSERVATION/BRIDGE_REVISION_REOBSERVATION PASS; PRE_PROMOTION ASSEMBLED/HOLD/INCOMPLETE. Campaign BLOCKED/HOLD, promotion_allowed false. No runtime/live/systemd/network/Docker/target/trust/signer/policy mutation. Historical CHG-HSL-038 userns PASS retained; fresh re-attestation BLOCKED(ROOT_REQUIRED).'
+source:
+  type: ENGINEERING_REVIEW
+  campaign: VAL-HSL-RUNNER-L1-LIVE-PROMOTION
+  observation: OBS-EVIDENCE-CUSTODY
+  reference: 'Repo-only evidence reconciliation on base cea6cf867cb2e8dc3fcdec522269f78dab9e7bca. Files: validation/VAL-HSL-RUNNER-L1-LIVE-PROMOTION.yaml, deployment/runtime-promotion/evidence/live-custody-verification-CHG-HSL-071.yaml, CHG-HSL-071.yaml, platform/tests/test_runner_l1_campaign_reconciliation.py. Verified run_5dbe72a070ed4ffa95ce6fc1c8c3b088; campaign BLOCKED/HOLD, promotion_allowed false, observations BLOCKED/OPEN unchanged.'
+affectedRelease: jds-002-adoption-candidate
+targetRelease: null
+risk: LOW
+versionEffect: NONE
+branch: chg-hsl-071/reconcile-custody-hash-chain-evidence
+issue: null
+pr: null
+validation:
+  targeted: PASS
+  regression: PASS
+  security: PASS
+  runtime: NOT_APPLICABLE
+promotion:
+  commit: null
+  artifactDigest: null
+  previousRelease: null
+deferredTo: null
+timestamps:
+  discoveredAt: '2026-08-15T19:31:03Z'
+  updatedAt: '2026-08-15T19:31:03Z'
+  closedAt: null
