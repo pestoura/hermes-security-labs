@@ -261,7 +261,8 @@ def test_status_doc_tracks_current_lifecycle_and_connector_state() -> None:
     assert "**DVWA live lifecycle acceptance:** `run_8f2174dc4c87452098b700ff556ac978`" in text
     assert "**Juice Shop live lifecycle acceptance:** `run_cc3cd41e85c44d9182305960ea816f18`" in text
     assert "The Hermes MCP control surface is currently **callable**" in text
-    assert "CONNECTOR-CALLABLE / DVWA-AND-JUICE-LIFECYCLES-ACCEPTED" in text
+    assert "CONNECTOR-LAST-ACCEPTED-CALLABLE / DVWA-AND-JUICE-LIFECYCLES-ACCEPTED" in text
+    assert "ChatGPT connector exposure is an execution-context concern" in text
     assert "#393 DVWA and #394 Juice Shop are already accepted/closed" in text
     assert "execute issue #393" not in text
     assert "if #393 is PASS" not in text
