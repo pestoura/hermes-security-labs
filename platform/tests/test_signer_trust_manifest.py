@@ -38,6 +38,26 @@ def _bridge():
     return _load(BRIDGE_PATH, "chg_hsl_074_signer_trust_manifest")
 
 
+def _generation_seed(generation: dict) -> dict:
+    return {
+        "sequence": generation["sequence"],
+        "generated_at": generation["generated_at"],
+        "previous_generation_id": generation["previous_generation_id"],
+        "trust_store_sha256": generation["trust_store_sha256"],
+        "keys": generation["keys"],
+        "source": generation["source"],
+    }
+
+
+def _recontent_address_generation(generation: dict) -> dict:
+    changed = deepcopy(generation)
+    encoded = json.dumps(
+        _generation_seed(changed), sort_keys=True, separators=(",", ":"), ensure_ascii=True
+    ).encode()
+    changed["generation_id"] = f"tsg_{hashlib.sha256(encoded).hexdigest()[:32]}"
+    return changed
+
+
 def _write_store(path: Path, *, key_id: str = "vault-key-1", state: str = "active", material: bytes = b"spki-one") -> Path:
     path.write_text(
         json.dumps(
@@ -264,7 +284,6 @@ def test_refuses_missing_inactive_or_mismatched_key_in_generation(tmp_path: Path
 
     missing = deepcopy(generation)
     missing["keys"][0]["key_id"] = "other-key"
-    # Preserve a schema-valid but content-address-invalid generation: canonical validation must fail closed.
     with pytest.raises(bridge.SignerTrustManifestError) as exc:
         bridge.build_signer_trust_manifest(
             signer_result=signer_result,
@@ -281,7 +300,7 @@ def test_refuses_missing_inactive_or_mismatched_key_in_generation(tmp_path: Path
     ):
         changed = deepcopy(generation)
         changed["keys"][0][field] = value
-        changed = bridge.recontent_address_generation_for_test(changed)
+        changed = _recontent_address_generation(changed)
         changed_assessment = deepcopy(assessment)
         changed_assessment["current_generation_id"] = changed["generation_id"]
         with pytest.raises(bridge.SignerTrustManifestError) as exc:
