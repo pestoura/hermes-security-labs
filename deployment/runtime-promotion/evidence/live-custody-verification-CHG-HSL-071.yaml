@@ -3,7 +3,7 @@
 # Reconciliation of ALREADY-PRODUCED evidence from read-only verification run
 # run_5dbe72a070ed4ffa95ce6fc1c8c3b088 against existing artifact preview.json plus
 # .ephemeral-local-evidence-store, using canonical exact-main evidence-plane verifier
-# code. Contains ONLY identifiers / hashes / sizes / verdicts above. The raw ephemeral
+# code. Contains ONLY identifiers / hashes / sizes / verdicts. The raw ephemeral
 # artifact is NOT committed; its cryptographic identifiers are persisted instead.
 #
 # This is NOT a new live effect and NOT authority to promote.
@@ -86,17 +86,22 @@ promotion_invariants:
   state: BLOCKED
   note: reconciliation of produced evidence is NOT authority to promote
 
-remaining_blockers:
+remaining_lab_l1_blockers:
   - SIGNER_PROVIDER_ATTESTATION_NOT_OBSERVED
   - TRUST_STORE_ABSENT
   - RECEIPT_DELIVERY_NOT_CONFIGURED
   - UNAUTHORIZED_PEER_NEGATIVE_NOT_PROVEN
   - CURRENT_RUNNER_USERNS_REATTESTATION_BLOCKED
   - LIVE_AUDIT_OUTCOME_PERSISTENCE_NOT_OBSERVED
-  - COMPLETE_PRE_POST_PACKAGES_NOT_RUN
+  - COMPLETE_PRE_PROMOTION_REQUIRED_GATES_NOT_SATISFIED
+  - POST_EFFECT_PACKAGE_NOT_RUN
   - HITL_PROMOTION_NOT_RUN
   - FIRST_AUTHORIZED_EFFECT_RESET_NOT_RUN
-  - PROD_ONLY_EXCLUDED: EVIDENCE_BACKEND_CONTROLS, EVIDENCE_TENANT_ISOLATION (not L1 blockers)
+
+prod_only_deferred_readiness:
+  - EVIDENCE_BACKEND_CONTROLS
+  - EVIDENCE_TENANT_ISOLATION
+  note: these remain PROD-only readiness under LAB_L1 and are not LAB_L1 blockers
 
 out_of_scope:
   - no live/runtime/systemd/network/Docker/target mutation
@@ -105,8 +110,8 @@ out_of_scope:
   - raw ephemeral artifact NOT committed
 
 validation_corroboration:
-  change_record_schema: pending-external (length-only local check)
+  change_record_schema: PASS
   yaml_parse: PASS
   source_of_truth: PASS
-  jds_static_gate: pending-CI
+  jds_static_gate: PASS
   runtime_promotion_evidence_gate: HOLD
