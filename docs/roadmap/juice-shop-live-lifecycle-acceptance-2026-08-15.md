@@ -107,7 +107,7 @@ The runtime produced eighteen sanitised local evidence files under `/tmp/hsl-iss
 | `sequence-results.txt` | 293 | `cd50071e2997deb1553b4c860eebc81078c97b73ee86beb23c57135eb809ea2c` |
 | `smoke-summary.txt` | 299 | `6512603e4ddfb14387661f0ca298fd7108cc437bfb7dd6fec7192475b00e4b8c` |
 
-These hashes bind this audit record to the evidence set observed by the Hermes runtime. The `/tmp` files remain ephemeral local evidence and are not asserted to be durable/WORM custody. The custom aggregate `aggregate.sha256` value `f38d784e...` is NOT persisted as the manifest hash.
+These hashes bind this audit record to the evidence set observed by the Hermes runtime. The `/tmp` files remain ephemeral local evidence and are not asserted to be durable/WORM custody. The authoritative manifest hash is the sha256sum of the `manifest.txt` file contents stated above; no raw auxiliary aggregate value is an authority for this record.
 
 ## Acceptance boundary
 
