@@ -129,6 +129,20 @@ def _validate_signer(
         code="SIGNER_SOURCE_EVIDENCE_INVALID",
         label="source_evidence_sha256",
     )
+
+    provenance_fields = (
+        "attestation_id",
+        "observed_at",
+        "source_evidence_ref",
+        "source_evidence_sha256",
+    )
+    for field in provenance_fields:
+        if signer_attestation.get(field) != signer_result.get(field):
+            raise SignerTrustManifestError(
+                "SIGNER_PROVENANCE_MISMATCH",
+                f"signer attestation/result provenance mismatch for {field}",
+            )
+
     spki_sha = _require_sha256(
         signer_result.get("public_key_spki_sha256"),
         code="SIGNER_IDENTITY_INVALID",
@@ -145,6 +159,17 @@ def _validate_signer(
     if algorithm not in {"Ed25519", "ECDSA-P256-SHA256"}:
         raise SignerTrustManifestError("SIGNER_IDENTITY_INVALID", "algorithm is invalid")
 
+    attestation_id = signer_result.get("attestation_id")
+    observed_at = signer_result.get("observed_at")
+    if not isinstance(attestation_id, str) or not attestation_id:
+        raise SignerTrustManifestError(
+            "SIGNER_PROVENANCE_INVALID", "verified attestation_id is invalid"
+        )
+    if not isinstance(observed_at, str) or not observed_at:
+        raise SignerTrustManifestError(
+            "SIGNER_PROVENANCE_INVALID", "verified observed_at is invalid"
+        )
+
     return {
         "provider_kind": str(provider_kind),
         "provider_ref": provider_ref,
@@ -153,8 +178,8 @@ def _validate_signer(
         "public_key_spki_sha256": spki_sha,
         "source_evidence_ref": evidence_ref,
         "source_evidence_sha256": evidence_sha,
-        "attestation_id": str(signer_attestation.get("attestation_id", "")),
-        "observed_at": str(signer_attestation.get("observed_at", "")),
+        "attestation_id": attestation_id,
+        "observed_at": observed_at,
     }
 
 
