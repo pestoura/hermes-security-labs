@@ -1,0 +1,34 @@
+schemaVersion: jds.change/v1
+kind: ChangeRecord
+id: CHG-HSL-064
+product: hermes-security-labs
+classification: HARDENING
+state: ACCEPTED
+disposition: FIX_NOW
+summary: 'Persist the fresh governed WebGoat/WebWolf live lifecycle acceptance after the historical post-fix run remained unrecoverable. Exact origin/main dd3677b6fb531c72ec7c5ea6fb5f82da94a27f37 passed start, status, smoke, reset, second status/smoke, destroy and idempotent second destroy on localhost override ports 18080/19090, with zero project-owned residue and unrelated Docker resources preserved.'
+source:
+  type: ENGINEERING_REVIEW
+  campaign: VAL-HSL-WEBGOAT-LIVE-LIFECYCLE
+  observation: OBS-WEBGOAT-LIVE-LIFECYCLE
+  reference: 'Accepted runtime run run_f3ecec54f9464366aa1edfb32ac58b33; read-only evidence-manifest run run_57c6a33bad4a42ea97780d5c17b8644a; deterministic evidence-manifest SHA-256 0530018208cbcded9498dcf9afa96be26cf5ce1893f2f1f90caa626a5028e323. Historical run run_73cd8ef359ff486f93faeb7c2dc46290 remains UNKNOWN and is not reused as acceptance evidence.'
+affectedRelease: jds-002-adoption-candidate
+targetRelease: null
+risk: LOW
+versionEffect: NONE
+branch: chg-hsl-064/webgoat-live-lifecycle-acceptance
+issue: null
+pr: null
+validation:
+  targeted: PASS
+  regression: PASS
+  security: PASS
+  runtime: PASS
+promotion:
+  commit: null
+  artifactDigest: null
+  previousRelease: null
+deferredTo: null
+timestamps:
+  discoveredAt: '2026-08-15T12:07:19Z'
+  updatedAt: '2026-08-15T12:22:00Z'
+  closedAt: null

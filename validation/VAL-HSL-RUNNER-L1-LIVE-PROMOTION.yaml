@@ -42,11 +42,11 @@ observations:
     required: true
     result: BLOCKED
     status: OPEN
-    summary: The first WebGoat lifecycle proved start, readiness and smoke, exposed a reset race and then proved destroy/zero-residue cleanup. PR #327 fixed the dual-service health gate. The post-fix full lifecycle result remains UNKNOWN because it was not recoverable through the Hermes connector. No authorized WebGoat L1 Runner effect plus terminal/audit evidence, POST_EFFECT package and reset proof is accepted live.
+    summary: The first WebGoat lifecycle proved start, readiness and smoke, exposed a reset race and then proved destroy/zero-residue cleanup; PR #327 fixed the dual-service health gate. CHG-HSL-064 now records a fresh standalone lifecycle acceptance on exact revision dd3677b6fb531c72ec7c5ea6fb5f82da94a27f37: start, status, smoke, reset, second status/smoke and two destroys all passed with zero project-owned residue. Historical run run_73cd8ef359ff486f93faeb7c2dc46290 remains UNKNOWN. No authorized WebGoat L1 Runner dispatch/effect, terminal/audit custody, POST_EFFECT package or governed effect-reset proof has been accepted live, so this observation remains BLOCKED/OPEN.
     changeRecord: CHG-HSL-008
-    evidence: 'pre-fix:start=PASS,readiness=PASS,smoke=PASS,reset=FAIL,destroy-zero-residue=PASS; pr:327; post-fix-run:run_73cd8ef359ff486f93faeb7c2dc46290 result=UNKNOWN; live-runner-effect:NOT_RUN; live-terminal-evidence:NOT_RUN; live-audit-custody:NOT_RUN; post-effect-package:NOT_RUN'
+    evidence: 'pre-fix:reset=FAIL,destroy-zero-residue=PASS;pr:327;post-fix-run:run_73cd8ef359ff486f93faeb7c2dc46290 result=UNKNOWN;standalone-lifecycle:run_f3ecec54f9464366aa1edfb32ac58b33=PASS;tested-sha:dd3677b6fb531c72ec7c5ea6fb5f82da94a27f37;manifest-sha256:0530018208cbcded9498dcf9afa96be26cf5ce1893f2f1f90caa626a5028e323;live-runner-effect:NOT_RUN;live-terminal-evidence:NOT_RUN;live-audit-custody:NOT_RUN;post-effect-package:NOT_RUN'
 promotionRecommendation: HOLD
 timestamps:
   startedAt: '2026-08-09T21:12:00Z'
-  updatedAt: '2026-08-14T22:00:00Z'
+  updatedAt: '2026-08-15T12:30:00Z'
   closedAt: null
