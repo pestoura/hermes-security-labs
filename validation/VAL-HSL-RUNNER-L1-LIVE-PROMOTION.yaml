@@ -28,7 +28,7 @@ observations:
     required: true
     result: BLOCKED
     status: OPEN
-    summary: 'Host/userns, service and tenant-isolation verification are GREEN-REPO, but trust is absent. Under LAB_L1, production WORM-backend and tenant-isolation gates are PROD-only, not L1 blockers. Promotion remains blocked by signer/trust, peer-negative proof, live packages/persistence and DISABLED/NOT_RUN policies.'
+    summary: 'Host/userns, service, tenant-isolation verification and phased live-evidence package verification are GREEN-REPO, but trust is absent. Under LAB_L1, production WORM-backend and tenant-isolation gates are PROD-only, not L1 blockers. Promotion remains blocked by signer/trust, peer-negative proof, live packages/persistence and DISABLED/NOT_RUN policies.'
     changeRecord: CHG-HSL-012
     evidence: 'evidence:deployment/runtime-promotion/evidence/live-observation-CHG-HSL-038.yaml;userns:PASS;trust-store:ABSENT;signer:NOT_OBSERVED;peer-negative:NOT_RUN;production-backend:NOT_IMPLEMENTED/NOT_RUN;tenant-isolation:NOT_RUN;live-evidence-package-verifier:GREEN-REPO;pre-promotion-package:NOT_RUN;post-effect-package:NOT_RUN;policies:DISABLED/NOT_RUN'
   - id: OBS-EVIDENCE-CUSTODY
@@ -48,5 +48,5 @@ observations:
 promotionRecommendation: HOLD
 timestamps:
   startedAt: '2026-08-09T21:12:00Z'
-  updatedAt: '2026-08-15T13:50:00Z'
+  updatedAt: '2026-08-15T13:55:00Z'
   closedAt: null
