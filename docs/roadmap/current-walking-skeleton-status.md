@@ -1,7 +1,7 @@
 # Hermes Security Labs — current walking-skeleton status
 
 **Reconciled:** 2026-08-15 UTC
-**Current Labs baseline:** `cf89c4eb564a3e4643feb1c6828b78ff988a93ba`
+**Current Labs baseline:** `8c654379afb2114e34d6e748bb558b3ad5b8fb4b`
 **Repository reconciliation base before CHG-HSL-064:** `dd3677b6fb531c72ec7c5ea6fb5f82da94a27f37` (the exact revision exercised by the accepted WebGoat live lifecycle run; reconciliation provenance only, never a runtime authority — the eventual CHG-HSL-064 merge SHA is likewise not a runtime authority)
 **Accepted/live Hermes MCP Bridge revision:** `3717bd5469b061a44294b27e1a7510d477d3752b`  
 **Safe live read-only reobservation:** `run_ec368a4ccc04419e985b1c4d01e0ddea` (CHG-HSL-053)
@@ -12,7 +12,7 @@ This is the concise current-state view of the walking skeleton. Repository/CI pr
 
 > **GREEN-REPO is not live acceptance.** It means the contract/code exists and passed repository gates. It does not grant execution authority, activate a policy, prove host deployment or prove target interaction.
 
-> **The commit SHA is reconciliation provenance, not a runtime authority.** The value `a63ef01925e5c1b925936c1e73b11b2d6cd2a6a5` is *historical* CHG-HSL-053 reconciliation provenance (the exact authoritative `origin/main` at the time of that reconciliation); it is not read by any runtime, gate, policy or promotion path. The current reconciliation provenance is **CHG-HSL-060 (`cf89c4eb564a3e4643feb1c6828b78ff988a93ba`)**, recorded so a reader can pin the present tree state. Git and `validation/VAL-HSL-RUNNER-L1-LIVE-PROMOTION.yaml` remain the only sources of truth. A SHA must never be used to assert that a capability is live, that a policy is enabled, or that promotion authority exists.
+> **The commit SHA is reconciliation provenance, not a runtime authority.** The value `a63ef01925e5c1b925936c1e73b11b2d6cd2a6a5` is *historical* CHG-HSL-053 reconciliation provenance (the exact authoritative `origin/main` at the time of that reconciliation); it is not read by any runtime, gate, policy or promotion path. The current reconciliation provenance is **CHG-HSL-068 (`8c654379afb2114e34d6e748bb558b3ad5b8fb4b`)**, recorded so a reader can pin the exact authoritative tree reconciled by CHG-HSL-068. Git and `validation/VAL-HSL-RUNNER-L1-LIVE-PROMOTION.yaml` remain the only sources of truth. A SHA must never be used to assert that a capability is live, that a policy is enabled, or that promotion authority exists.
 
 ## Assurance profile decision (ADR-0011, Accepted)
 

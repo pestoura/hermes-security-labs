@@ -16,7 +16,7 @@ CAMPAIGN_PATH = ROOT / "validation" / "VAL-HSL-RUNNER-L1-LIVE-PROMOTION.yaml"
 STATUS_PATH = ROOT / "docs" / "roadmap" / "current-walking-skeleton-status.md"
 EPIC_PATH = ROOT / "docs" / "roadmap" / "epics" / "EPIC-10-evidence-plane.md"
 BASELINE = "a63ef01925e5c1b925936c1e73b11b2d6cd2a6a5"
-STATUS_BASELINE = "cf89c4eb564a3e4643feb1c6828b78ff988a93ba"
+STATUS_BASELINE = "8c654379afb2114e34d6e748bb558b3ad5b8fb4b"
 
 
 def _campaign() -> dict:
@@ -338,10 +338,9 @@ def test_chg_hsl_048_reserves_hardening_record_without_resolving_live_state() ->
 
 
 def test_chg_hsl_052_status_and_campaign_track_authoritative_head() -> None:
-    # Both the status doc and the campaign candidate must reflect the exact
-    # authoritative origin/main at reconciliation time (CHG-042..050, PR #378;
-    # CHG-HSL-053 historical provenance remains a63ef019...;
-    # CHG-HSL-060 re-pins the status document to STATUS_BASELINE/cf89c4e.
+    # Both the status doc and the campaign candidate must reflect their distinct
+    # governed provenance: the campaign candidate remains a63ef019..., while
+    # CHG-HSL-068 re-pins the status document to STATUS_BASELINE/8c65437.
     text = STATUS_PATH.read_text(encoding="utf-8")
     assert "a63ef01925e5c1b925936c1e73b11b2d6cd2a6a5" in text
     assert STATUS_BASELINE in text
