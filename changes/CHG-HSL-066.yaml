@@ -1,0 +1,34 @@
+schemaVersion: jds.change/v1
+kind: ChangeRecord
+id: CHG-HSL-066
+product: hermes-security-labs
+classification: HARDENING
+state: ACCEPTED
+disposition: FIX_NOW
+summary: 'Correct the executable live-promotion evidence gate to honor the accepted ADR-0011 Option B assurance profile. LAB_L1 now requires the common signer/trust/peer/evidence-integrity controls and may omit only EVIDENCE_BACKEND_CONTROLS and EVIDENCE_TENANT_ISOLATION; PROD continues to require both. Historical LAB_L1 packages may retain those PROD-only gates as optional evidence: NOT_RUN does not block, while FAIL or unverified executed evidence still blocks. Invalid/inconsistent profile declarations fail closed to PROD. No runtime, policy, signer/trust or promotion state is changed; the campaign remains BLOCKED/HOLD.'
+source:
+  type: ENGINEERING_REVIEW
+  campaign: VAL-HSL-RUNNER-L1-LIVE-PROMOTION
+  observation: OBS-RUNNER-POLICY-PROMOTION
+  reference: 'ADR-0011 and platform/assurance/assurance_profile.py define requires_external_worm_backend=false and requires_tenant_isolation=false for LAB_L1, but runtime_live_promotion_evidence.py previously treated EVIDENCE_BACKEND_CONTROLS and EVIDENCE_TENANT_ISOLATION as mandatory under every profile. CHG-HSL-066 reconciles the verifier with the canonical profile while preserving PROD strictness and backward-compatible evidence package shapes.'
+affectedRelease: jds-002-adoption-candidate
+targetRelease: null
+risk: LOW
+versionEffect: NONE
+branch: chg-hsl-066/profile-aware-live-promotion-gates
+issue: null
+pr: null
+validation:
+  targeted: PASS
+  regression: PASS
+  security: PASS
+  runtime: NOT_APPLICABLE
+promotion:
+  commit: null
+  artifactDigest: null
+  previousRelease: null
+deferredTo: null
+timestamps:
+  discoveredAt: '2026-08-15T13:20:00Z'
+  updatedAt: '2026-08-15T13:25:00Z'
+  closedAt: null
