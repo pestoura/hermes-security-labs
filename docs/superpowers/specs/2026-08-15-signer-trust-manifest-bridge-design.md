@@ -19,20 +19,21 @@ The missing piece is a repository-only evidence composition proving that the *sa
 Add `platform/assurance/signer_trust_manifest.py` producing a content-addressed public manifest only when all supplied canonical outputs agree.
 
 Inputs:
-- canonical signer verifier result as a safe mapping;
-- the original normalized signer attestation carrying source evidence ref/digest;
+- canonical signer verifier result as a safe mapping, including the exact public provenance (`attestation_id`, `observed_at`, source evidence ref/digest) that the verifier evaluated;
+- the original normalized signer attestation carrying the same public provenance;
 - one canonical trust-store generation;
 - its canonical lifecycle assessment.
 
 Acceptance requires:
 - signer verifier result has `signer_attestation_checks_passed=true` and `source_evidence_verified=true`;
 - provider class is one of `VAULT`, `KMS`, `HSM` (never standalone `PKCS11`);
-- original attestation is `OBSERVED`, active, signing enabled, non-exportable and exactly matches the verifier result identity;
+- provider references remain opaque canonical descriptor values; the bridge must not invent provider-specific URI schemes;
+- original attestation is `OBSERVED`, active, signing enabled, non-exportable and exactly matches the verifier result on signer identity **and** verified public provenance;
 - generation passes the existing lifecycle validator;
 - assessment is `ACCEPT_FOR_REVIEW`, has no codes, refers to the exact generation, and has no activation/authorization/execution effect;
 - the exact signer `key_id` occurs once in the generation, is `active`, and has matching algorithm + `public_key_sha256 == public_key_spki_sha256`.
 
-Output fields are public/auditable only: manifest id, provider kind/ref, key identity/algorithm/SPKI hash, signer source evidence ref/digest, generation id/sequence/trust-store digest and explicit no-authority flags.
+Output fields are public/auditable only: manifest id, provider kind/ref, key identity/algorithm/SPKI hash, signer attestation id/timestamp/source evidence ref/digest, generation id/sequence/trust-store digest and explicit no-authority flags.
 
 The manifest always carries:
 - `trust_binding_allowed=false`;
