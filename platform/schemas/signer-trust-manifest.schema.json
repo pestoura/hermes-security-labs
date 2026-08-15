@@ -116,19 +116,5 @@
     "runtime_status": {
       "const": "NOT_RUN"
     }
-  },
-  "allOf": [
-    {
-      "if": {"properties": {"provider_kind": {"const": "VAULT"}}},
-      "then": {"properties": {"provider_ref": {"pattern": "^vault://"}}}
-    },
-    {
-      "if": {"properties": {"provider_kind": {"const": "KMS"}}},
-      "then": {"properties": {"provider_ref": {"pattern": "^kms://"}}}
-    },
-    {
-      "if": {"properties": {"provider_kind": {"const": "HSM"}}},
-      "then": {"properties": {"provider_ref": {"pattern": "^hsm://"}}}
-    }
-  ]
+  }
 }
