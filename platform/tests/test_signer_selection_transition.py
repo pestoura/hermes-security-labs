@@ -90,6 +90,22 @@ def test_committed_no_selection_is_consistent_and_never_promotes() -> None:
     assert result.runtime_status == "NOT_RUN"
 
 
+def test_approved_human_decision_can_be_staged_while_selection_remains_no_selection() -> None:
+    result = validate_selection_transition_contract(
+        human_decision=_approved_decision(),
+        runtime_deployment=_safe_runtime(),
+    )
+    assert result.supplier_selection == "NO_SELECTION"
+    assert result.decision_state == "APPROVED"
+    assert result.selected_class is None
+    assert result.human_decision_id is None
+    assert result.candidate_evidence_ready is False
+    assert result.transition_contract_valid is True
+    assert result.trust_binding_allowed is False
+    assert result.promotion_allowed is False
+    assert result.runtime_status == "NOT_RUN"
+
+
 @pytest.mark.parametrize("state", ["PENDING", "SELECTED"])
 def test_future_human_transition_can_be_contract_valid_but_never_promotes(state: str) -> None:
     result = validate_selection_transition_contract(
@@ -106,16 +122,6 @@ def test_future_human_transition_can_be_contract_valid_but_never_promotes(state:
     assert result.trust_binding_allowed is False
     assert result.promotion_allowed is False
     assert result.runtime_status == "NOT_RUN"
-
-
-def test_no_selection_rejects_hidden_approved_human_decision() -> None:
-    with pytest.raises(SignerBaselineError) as exc:
-        validate_selection_transition_contract(
-            human_decision=_approved_decision(),
-            runtime_deployment=_safe_runtime(),
-        )
-    assert "NO_SELECTION" in str(exc.value)
-    assert "NO_DECISION" in str(exc.value)
 
 
 def test_transition_requires_matching_selected_class() -> None:
@@ -190,6 +196,18 @@ def test_selection_contract_never_allows_implicit_trust_binding() -> None:
         )
     assert "trust guard failed closed" in str(exc.value)
     assert "enabled" in str(exc.value)
+
+
+def test_staged_approved_decision_never_allows_implicit_trust_binding() -> None:
+    runtime = _safe_runtime()
+    runtime["trust_binding"]["source"] = "repository://unexpected"
+    with pytest.raises(SignerBaselineError) as exc:
+        validate_selection_transition_contract(
+            human_decision=_approved_decision(),
+            runtime_deployment=runtime,
+        )
+    assert "NO_SELECTION trust guard failed closed" in str(exc.value)
+    assert "source" in str(exc.value)
 
 
 def test_pkcs11_cannot_be_encoded_as_selected_custody_class() -> None:
