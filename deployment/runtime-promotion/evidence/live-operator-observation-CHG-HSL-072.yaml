@@ -1,0 +1,130 @@
+# Sanitized reconciliation of the authorized root-capable operator harness run
+# for issue #402. This is evidence input only and never grants promotion.
+schema_version: "1.0"
+evidence_id: EVD-HSL-L1-OPERATOR-OBSERVATION-CHG-072
+change_record: CHG-HSL-072
+campaign: VAL-HSL-RUNNER-L1-LIVE-PROMOTION
+observation: OBS-RUNNER-POLICY-PROMOTION
+observed_at: '2026-08-15T22:11:00+01:00'
+repository_sha: 9448817e436ee096e0f839b6bb8b9bf9e06d8d6d
+harness: deployment/runtime-promotion/operator_live_observation_harness.py
+issue: 402
+
+source_artifacts:
+  operator_evidence_path: /var/tmp/hsl-059-evidence/operator-live-observation-evidence.json
+  operator_evidence_sha256: bf7a2b498cd9a547852d594b8c2cc43bbefbe73ee4eddc5c7ca3b7ad5d11a2a8
+  descriptor_path: /var/tmp/hsl-059-evidence/reviewed-userns-descriptor.generated.yaml
+  descriptor_sha256: e10cdbe95e58f5ffde74c000bb660415eb945ae93e48be863397e7c3ba4257d5
+
+preflight:
+  exact_repository_sha: PASS
+  unauthorized_uid: 2000
+  unauthorized_uid_unassigned: true
+  unauthorized_uid_inactive: true
+  gateway_service:
+    unit: hexor-execution-gateway.service
+    active: true
+    pid: 3649254
+  runner_service:
+    unit: hexor-runner.service
+    active: true
+    pid: 409235
+  socket:
+    path: /run/hexor/runner-dispatch.sock
+    present: true
+    kind: socket
+    uid: 4101
+    gid: 4110
+    mode: "0660"
+
+user_namespace_mapping:
+  result: PASS
+  re_attested: true
+  findings: []
+  gateway:
+    pid: 3649254
+    process_start_time_ticks: 334245705
+    user_namespace_inode: 4026531837
+    uid_map:
+      - inside_start: 0
+        outside_start: 0
+        length: 4294967295
+    gid_map:
+      - inside_start: 0
+        outside_start: 0
+        length: 4294967295
+    declared_host_uid_covered: true
+    declared_host_gid_covered: true
+  runner:
+    pid: 409235
+    process_start_time_ticks: 338949789
+    user_namespace_inode: 4026531837
+    uid_map:
+      - inside_start: 0
+        outside_start: 0
+        length: 4294967295
+    gid_map:
+      - inside_start: 0
+        outside_start: 0
+        length: 4294967295
+    declared_host_uid_covered: true
+    declared_host_gid_covered: true
+  user_namespace_relationship: same
+
+unauthorized_peer_negative:
+  result: PASS
+  outcome: HOLD_REFUSAL_OBSERVED
+  canonical_proof: true
+  payload_sent: false
+  peer_credentials: null
+  identity_plan:
+    tool: setpriv
+    unauthorized_uid: 2000
+    primary_gid: 2000
+    supplementary_gids:
+      - 4110
+    creates_persistent_identity: false
+  socket:
+    path: /run/hexor/runner-dispatch.sock
+    present: true
+    uid: 4101
+    gid: 4110
+    mode_decimal: 432
+
+promotion_invariants:
+  campaign_state: BLOCKED
+  promotion_recommendation: HOLD
+  promotion_allowed: false
+  runtime_status: NOT_RUN
+  execution_authority: none
+  payload_sent: false
+  persistent_state_created: false
+
+remaining_lab_l1_blockers:
+  - SIGNER_PROVIDER_ATTESTATION_NOT_OBSERVED
+  - RUNNER_AUTHORIZATION_TRUST_STORE_ABSENT
+  - AUTHENTICATED_RECEIPT_DELIVERY_NOT_PROVEN
+  - LIVE_RUNNER_AUDIT_TERMINAL_PERSISTENCE_NOT_PROVEN
+  - PRE_PROMOTION_REQUIRED_GATE_SET_INCOMPLETE
+  - HUMAN_PROMOTION_APPROVAL_REQUIRED
+  - LIVE_RUNNER_EFFECT_NOT_RUN
+  - POST_EFFECT_EVIDENCE_PACKAGE_NOT_RUN
+
+resolved_by_this_evidence:
+  - CURRENT_PID_USER_NAMESPACE_MAPPING
+  - UNAUTHORIZED_PEER_NEGATIVE
+
+sanitization:
+  secrets_found: false
+  tokens_found: false
+  passwords_found: false
+  cookies_found: false
+  private_keys_found: false
+
+out_of_scope:
+  bind_trust: not performed
+  select_signer_provider: not performed
+  enable_policy: not performed
+  send_runner_payload: not performed
+  touch_target: not performed
+  promote_runner: not performed
