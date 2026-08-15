@@ -160,7 +160,7 @@ PRs #325-#327 fixed readiness host-port parity, smoke publication ownership and 
 
 `start PASS -> readiness PASS -> smoke PASS -> reset FAIL`
 
-Canonical destroy then proved zero residue. A post-fix full rerun was started as `run_73cd8ef359ff486f93faeb7c2dc46290`, but its result was not recoverable through the available Hermes control surface. Its status remains **UNKNOWN**, not PASS and not FAIL. Recover that run before duplicating it.
+Canonical destroy then proved zero residue. A post-fix full rerun was started as `run_73cd8ef359ff486f93faeb7c2dc46290`, but its result was not recoverable through the available Hermes control surface. Its status remains **UNKNOWN**, not PASS and not FAIL. It is retained only as historical provenance; current acceptance comes from the fresh, independently evidenced CHG-HSL-064 run below.
 
 **Accepted live lifecycle (CHG-HSL-064): `PASS / ACCEPTED-LIVE-LIFECYCLE`.** Full record: [`webgoat-live-lifecycle-acceptance-2026-08-15.md`](webgoat-live-lifecycle-acceptance-2026-08-15.md). Accepted run `run_f3ecec54f9464366aa1edfb32ac58b33` exercised the exact repository revision `dd3677b6fb531c72ec7c5ea6fb5f82da94a27f37` from a clean temporary export, with localhost host-port overrides `WEBGOAT_HOST_PORT=18080` and `WEBWOLF_HOST_PORT=19090` (container-internal ports unchanged at `8080`/`9090`). The exact sequence completed with exit code `0` at every step:
 
