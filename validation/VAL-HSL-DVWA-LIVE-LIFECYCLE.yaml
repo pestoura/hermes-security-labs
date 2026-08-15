@@ -1,0 +1,24 @@
+schemaVersion: jds.validation/v1
+kind: ValidationCampaign
+id: VAL-HSL-DVWA-LIVE-LIFECYCLE
+product: hermes-security-labs
+objective: Validate the canonical DVWA/MariaDB local Docker lifecycle on an exact repository revision, including readiness, smoke, reset, destroy idempotence, loopback-only DVWA publication, unpublished MariaDB, internal database network, Kali disconnection, non-interference and zero project-owned residue, without granting offensive or Runner promotion authority.
+state: PASSED
+candidate:
+  version: dvwa-live-lifecycle-dd3677b6
+  commit: dd3677b6fb531c72ec7c5ea6fb5f82da94a27f37
+  artifactDigest: null
+environment: Hermes Security Labs / local DVWA-MariaDB isolated Docker lifecycle
+observations:
+  - id: OBS-DVWA-LIVE-LIFECYCLE
+    required: true
+    result: PASS
+    status: RESOLVED
+    summary: Exact revision dd3677b6 completed start, status, smoke, reset, second status/smoke and idempotent double destroy on localhost 14280; DVWA and MariaDB were healthy, MariaDB was not published on the host, dvwa-db remained internal, Kali stayed disconnected and final project-owned residue was zero.
+    changeRecord: CHG-HSL-065
+    evidence: 'run:run_bda5b78321d641b8ba24fc15c3a39970;manifest-run:run_63fe5b16b393481d90ce1cc079ba62ec;manifest-sha256:78043138d448fe5a8cafda259e643145546ffe8c8d5bae15c4847d7739351b70;port:127.0.0.1:14280;db:unpublished;dvwa-db:internal;kali:DISCONNECTED;lifecycle:PASS;zero-residue:PASS'
+promotionRecommendation: ACCEPT
+timestamps:
+  startedAt: '2026-08-15T12:22:47Z'
+  updatedAt: '2026-08-15T12:28:43Z'
+  closedAt: '2026-08-15T12:28:43Z'
