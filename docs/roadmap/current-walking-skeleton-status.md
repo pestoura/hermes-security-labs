@@ -1,7 +1,7 @@
 # Hermes Security Labs — current walking-skeleton status
 
 **Reconciled:** 2026-08-14 22:00 UTC  
-**Current Labs baseline:** `a63ef01925e5c1b925936c1e73b11b2d6cd2a6a5`  
+**Current Labs baseline:** `cf89c4eb564a3e4643feb1c6828b78ff988a93ba`
 **Accepted/live Hermes MCP Bridge revision:** `3717bd5469b061a44294b27e1a7510d477d3752b`  
 **Safe live read-only reobservation:** `run_ec368a4ccc04419e985b1c4d01e0ddea` (CHG-HSL-053)
 
@@ -9,7 +9,7 @@ This is the concise current-state view of the walking skeleton. Repository/CI pr
 
 > **GREEN-REPO is not live acceptance.** It means the contract/code exists and passed repository gates. It does not grant execution authority, activate a policy, prove host deployment or prove target interaction.
 
-> **The commit SHA is reconciliation provenance, not a runtime authority.** The value above is the exact authoritative `origin/main` at the time of the CHG-HSL-053 reconciliation (`a63ef01925e5c1b925936c1e73b11b2d6cd2a6a5`). It is recorded so a reader can pin the tree state; it is not read by any runtime, gate, policy or promotion path. Git and `validation/VAL-HSL-RUNNER-L1-LIVE-PROMOTION.yaml` remain the only sources of truth. A SHA must never be used to assert that a capability is live, that a policy is enabled, or that promotion authority exists.
+> **The commit SHA is reconciliation provenance, not a runtime authority.** The value `a63ef01925e5c1b925936c1e73b11b2d6cd2a6a5` is *historical* CHG-HSL-053 reconciliation provenance (the exact authoritative `origin/main` at the time of that reconciliation); it is not read by any runtime, gate, policy or promotion path. The current reconciliation provenance is **CHG-HSL-060 (`cf89c4eb564a3e4643feb1c6828b78ff988a93ba`)**, recorded so a reader can pin the present tree state. Git and `validation/VAL-HSL-RUNNER-L1-LIVE-PROMOTION.yaml` remain the only sources of truth. A SHA must never be used to assert that a capability is live, that a policy is enabled, or that promotion authority exists.
 
 ## Assurance profile decision (ADR-0011, Accepted)
 
@@ -130,6 +130,17 @@ Read-only reobservation only; no mutation, no promotion. See the dedicated ledge
 | Namespace relationship | **NOT re-attested** — ns/user dereference denied; no ns relationship derived or claimed |
 
 Explicitly retained `NOT_RUN` (not elevated): signer/provider `NOT_RUN`; unauthorized-peer negative `NOT_RUN`; phased live-evidence packages (`PRE_PROMOTION`/`POST_EFFECT`) `NOT_RUN`; first authorized effect + reset `NOT_RUN`/`UNKNOWN`. `HOLD`/`NOT_RUN`/`promotion_allowed=false` remain invariant.
+
+### Repository-only progression after CHG-HSL-053 (CHG-HSL-054..059)
+
+- `CHG-HSL-054` — SAFE live-observation adapter into `EvidenceInput`; fail-closed, and `HOST_IDENTITY_SOCKET_TRUST` cannot become `PASS` while the trust store is absent.
+- `CHG-HSL-055` — LAB_L1 local evidence custody/verifier using content-addressed evidence plus hash-chain integrity; no WORM, tenant-isolation or signer claim.
+- `CHG-HSL-056` — custody-to-promotion bridge feeds offline `PRE_PROMOTION`; Gateway/Bridge observations and `HASH_CHAIN_SEAL` can be verified from custodized repository evidence while host trust remains `NOT_RUN`.
+- `CHG-HSL-057` — repository-only operator harness for `USER_NAMESPACE_MAPPING` and `UNAUTHORIZED_PEER_NEGATIVE`; no live execution performed.
+- `CHG-HSL-058` — privilege-flow correction with privileged parent and `setpriv` child; still no live execution performed.
+- `CHG-HSL-059` — stdlib-only independent peer-child probe; retained as temporary LAB operational debt; no live execution performed.
+
+Current invariants remain: `LAB_L1`, `BLOCKED`, `HOLD`, `promotion_allowed=false`, `runtime_status=NOT_RUN`, `execution_authority=none`, `supplier_selection=NO_SELECTION`, `trust-store=ABSENT`. GREEN-REPO is not live acceptance.
 
 ## Lifecycle/readiness
 

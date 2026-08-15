@@ -16,6 +16,7 @@ CAMPAIGN_PATH = ROOT / "validation" / "VAL-HSL-RUNNER-L1-LIVE-PROMOTION.yaml"
 STATUS_PATH = ROOT / "docs" / "roadmap" / "current-walking-skeleton-status.md"
 EPIC_PATH = ROOT / "docs" / "roadmap" / "epics" / "EPIC-10-evidence-plane.md"
 BASELINE = "a63ef01925e5c1b925936c1e73b11b2d6cd2a6a5"
+STATUS_BASELINE = "cf89c4eb564a3e4643feb1c6828b78ff988a93ba"
 
 
 def _campaign() -> dict:
@@ -105,7 +106,7 @@ def test_campaign_records_current_repo_capabilities_as_non_live_evidence() -> No
 
 def test_walking_skeleton_status_uses_same_baseline_and_hold_state() -> None:
     text = STATUS_PATH.read_text(encoding="utf-8")
-    assert f"**Current Labs baseline:** `{BASELINE}`" in text
+    assert f"**Current Labs baseline:** `{STATUS_BASELINE}`" in text
     assert "GREEN-REPO is not live acceptance" in text
     assert "Evidence Plane backend tenant-isolation verifier" in text
     assert "Tenant-isolation promotion reconciliation" in text
@@ -116,6 +117,30 @@ def test_walking_skeleton_status_uses_same_baseline_and_hold_state() -> None:
     assert "PRE_PROMOTION and POST_EFFECT packages `NOT_RUN`" in text
     assert "promotion_allowed=false" in text
     assert "HOLD / BLOCKED-ON-LIVE-PROMOTION-EVIDENCE-AND-CONNECTOR" in text
+
+    # CHG-HSL-054..059 change records must be cited in the status doc.
+    for changelog_id in (
+        "CHG-HSL-054",
+        "CHG-HSL-055",
+        "CHG-HSL-056",
+        "CHG-HSL-057",
+        "CHG-HSL-058",
+        "CHG-HSL-059",
+    ):
+        assert changelog_id in text, f"status doc missing {changelog_id}"
+
+    # Locked promotion invariants must be stated literally.
+    for invariant in (
+        "LAB_L1",
+        "BLOCKED",
+        "HOLD",
+        "promotion_allowed=false",
+        "runtime_status=NOT_RUN",
+        "execution_authority=none",
+        "supplier_selection=NO_SELECTION",
+        "trust-store=ABSENT",
+    ):
+        assert invariant in text, f"status doc missing invariant {invariant}"
 
 
 def test_epic10_records_tenant_verifier_without_claiming_live_isolation() -> None:
@@ -315,9 +340,11 @@ def test_chg_hsl_048_reserves_hardening_record_without_resolving_live_state() ->
 def test_chg_hsl_052_status_and_campaign_track_authoritative_head() -> None:
     # Both the status doc and the campaign candidate must reflect the exact
     # authoritative origin/main at reconciliation time (CHG-042..050, PR #378;
-    # CHG-HSL-053 then re-pinned the campaign to a63ef019...).
+    # CHG-HSL-053 historical provenance remains a63ef019...;
+    # CHG-HSL-060 re-pins the status document to STATUS_BASELINE/cf89c4e.
     text = STATUS_PATH.read_text(encoding="utf-8")
     assert "a63ef01925e5c1b925936c1e73b11b2d6cd2a6a5" in text
+    assert STATUS_BASELINE in text
     # The stale baselines must no longer be declared as the current baseline.
     assert (
         "**Current Labs baseline:** `6a77921ec2079aa6689d11e2d7118f948ccb3a60`"
@@ -327,9 +354,8 @@ def test_chg_hsl_052_status_and_campaign_track_authoritative_head() -> None:
         "**Current Labs baseline:** `c36fa8551ed4ae2b347b3b68e4343cbe3e7b592c`"
         not in text
     )
-    assert (
-        "**Current Labs baseline:** `a63ef01925e5c1b925936c1e73b11b2d6cd2a6a5`" in text
-    )
+    assert f"**Current Labs baseline:** `{STATUS_BASELINE}`" in text
+    assert "**Current Labs baseline:** `a63ef01925e5c1b925936c1e73b11b2d6cd2a6a5`" not in text
 
     campaign = _campaign()
     assert campaign["candidate"]["commit"] == "a63ef01925e5c1b925936c1e73b11b2d6cd2a6a5"
@@ -424,7 +450,8 @@ def test_chg_hsl_052_reconciles_checkpoint_rows_without_promoting_live_state() -
 
 def test_chg_hsl_053_status_doc_tracks_authoritative_head_and_bridge_divergence() -> None:
     text = STATUS_PATH.read_text(encoding="utf-8")
-    assert "**Current Labs baseline:** `a63ef01925e5c1b925936c1e73b11b2d6cd2a6a5`" in text
+    assert f"**Current Labs baseline:** `{STATUS_BASELINE}`" in text
+    assert "a63ef01925e5c1b925936c1e73b11b2d6cd2a6a5" in text
     assert "**Safe live read-only reobservation:** `run_ec368a4ccc04419e985b1c4d01e0ddea`" in text
     # RTA-003 divergence resolved: current live Bridge is 3717bd54..., historical 7e4b6b1c retained only.
     assert "`3717bd5469b061a44294b27e1a7510d477d3752b` is the current live observation" in text
