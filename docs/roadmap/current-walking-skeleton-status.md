@@ -6,6 +6,7 @@
 **Accepted/live Hermes MCP Bridge revision:** `3717bd5469b061a44294b27e1a7510d477d3752b`  
 **Safe live read-only reobservation:** `run_ec368a4ccc04419e985b1c4d01e0ddea` (CHG-HSL-053)
 **WebGoat live lifecycle acceptance:** `run_f3ecec54f9464366aa1edfb32ac58b33` (CHG-HSL-064)
+**Profile-aware live-promotion gate correction:** CHG-HSL-066 / PR #396 (`b742d2dd91d5e0c2766a5ee5dc48a1e43309b6e1`; reconciliation provenance only)
 
 This is the concise current-state view of the walking skeleton. Repository/CI proof and live Hermes runtime proof are separate evidence classes. Historical evidence remains in [`runtime-acceptance-checkpoint-2026-08-09.md`](runtime-acceptance-checkpoint-2026-08-09.md); the governed Runner promotion campaign is [`../../validation/VAL-HSL-RUNNER-L1-LIVE-PROMOTION.yaml`](../../validation/VAL-HSL-RUNNER-L1-LIVE-PROMOTION.yaml).
 
@@ -32,8 +33,10 @@ only**; it authorizes no live effect, policy enablement, trust binding or target
 *accepted profile decision* and the *current* campaign profile. It does **not** mark any unresolved
 observation in `validation/VAL-HSL-RUNNER-L1-LIVE-PROMOTION.yaml` as resolved and adds **no** live
 promotion path. `promotion_allowed` remains `false`; the campaign remains `HOLD` until the remaining
-`LAB_L1` prerequisites (signer/trust store, `SO_PEERCRED` negative test, WORM/tenant observation,
-PRE/POST packages, one authorized effect + reset evidence) are actually observed.
+`LAB_L1` prerequisites (signer/trust store, authenticated receipt delivery, `SO_PEERCRED` negative
+proof, live hash-chain/audit/outcome evidence, PRE/POST packages, explicit HITL promotion and one
+authorized effect + reset evidence) are actually observed. External production WORM-backend and
+production tenant-isolation observations remain **PROD-only readiness**, not current LAB_L1 blockers.
 
 ## Current summary
 
@@ -45,8 +48,8 @@ PRE/POST packages, one authorized effect + reset evidence) are actually observed
 | RTA-003 Bridge approval handoff | `RESOLVED-RUNTIME / GREEN` on Bridge `3717bd5469...` |
 | WebGoat/WebWolf repository lifecycle/readiness | `PASS / READY-REPO`; publication and dual-health races fixed in #325-#327 |
 | WebGoat live lifecycle | `PASS / ACCEPTED-LIVE-LIFECYCLE` for the exact tested revision `dd3677b6fb531c72ec7c5ea6fb5f82da94a27f37`, accepted run `run_f3ecec54f9464366aa1edfb32ac58b33` (CHG-HSL-064); pre-fix history retained (`start/readiness/smoke PASS`, reset race found, cleanup/destroy `PASS / ZERO-RESIDUE`); historical run `run_73cd8ef359ff486f93faeb7c2dc46290` remains `UNKNOWN` and is never reclassified |
-| DVWA repository lifecycle/readiness | `PASS / READY-REPO`; host-port parity merged #329; live acceptance pending |
-| Juice Shop repository lifecycle/readiness | `PASS / READY-REPO`; readiness/smoke/reset publication parity merged #329; live acceptance pending |
+| DVWA repository lifecycle/readiness | `PASS / READY-REPO`; host-port parity merged #329; live acceptance pending (#393) |
+| Juice Shop repository lifecycle/readiness | `PASS / READY-REPO`; readiness/smoke/reset publication parity merged #329; live acceptance pending (#394, after #393) |
 | WebGoat L1 real adapter | `GREEN-REPO`; typed target-bound effect exists; live dispatch not accepted |
 | Runner outcome -> Evidence Plane custody | `GREEN-REPO`, #321; policy `DISABLED / NOT_RUN` |
 | TB1 receipt delivery boundary | `GREEN-REPO`, #322; policy `DISABLED / NOT_RUN` |
@@ -55,7 +58,7 @@ PRE/POST packages, one authorized effect + reset evidence) are actually observed
 | TB1 signer + Runner trust-store deployment preflight | `GREEN-REPO`, #331; runtime `NOT_RUN` |
 | Authenticated-principal dispatch audit contract | `GREEN-REPO`, #332 |
 | Promotion evidence gate | `GREEN-REPO`, #334; structurally `promotion_allowed=false` |
-| Dispatch audit Evidence Plane custody | `GREEN-REPO`, #335; production durable/WORM backend not proven |
+| Dispatch audit Evidence Plane custody | `GREEN-REPO`, #335; production durable/WORM backend not proven (PROD readiness) |
 | Read-only Runner host evidence | `GREEN-REPO`, #336; host execution `NOT_RUN` |
 | Runner service composition | `GREEN-REPO`, #337; no listener/daemon; policy `DISABLED / NOT_RUN` |
 | Promotion bundle reconciliation | `GREEN-REPO`, #338; audit/host/service prerequisites pinned |
@@ -63,12 +66,13 @@ PRE/POST packages, one authorized effect + reset evidence) are actually observed
 | User-namespace promotion reconciliation | `GREEN-REPO`, #341; verifier required by bundle, live observation `NOT_RUN` |
 | Evidence-bound signer-attestation verifier | `GREEN-REPO`, #342; real provider observation/source evidence `NOT_RUN` |
 | Signer-attestation promotion reconciliation | `GREEN-REPO`, #343; verifier required by bundle, no live attestation claim |
-| Durable Evidence Plane backend attestation verifier | `GREEN-REPO`, #345; no backend selected/deployed; provider observation `NOT_RUN` |
-| Durable-backend promotion reconciliation | `GREEN-REPO`, #346; verifier required by bundle; production backend still `NOT_IMPLEMENTED / NOT_RUN` |
-| Evidence Plane backend tenant-isolation verifier | `GREEN-REPO`, #348; live tenant configuration/negative tests `NOT_RUN` |
-| Tenant-isolation promotion reconciliation | `GREEN-REPO`, #349; verifier required by bundle; no live isolation claim |
+| Durable Evidence Plane backend attestation verifier | `GREEN-REPO`, #345; production backend `NOT_IMPLEMENTED / NOT_RUN`; PROD-only live requirement under current LAB_L1 profile |
+| Durable-backend promotion reconciliation | `GREEN-REPO`, #346; verifier required by bundle; production backend still `NOT_IMPLEMENTED / NOT_RUN` (PROD readiness) |
+| Evidence Plane backend tenant-isolation verifier | `GREEN-REPO`, #348; real tenant config/evidence and cross-tenant negatives `NOT_RUN`; PROD-only live requirement under current LAB_L1 profile |
+| Tenant-isolation promotion reconciliation | `GREEN-REPO`, #349; verifier required by bundle; no live isolation claim; PROD readiness, not LAB_L1 blocker |
 | Phased live-promotion evidence package | `GREEN-REPO`, #351; PRE_PROMOTION/POST_EFFECT live packages `NOT_RUN`; `promotion_allowed=false` |
 | Live-package promotion reconciliation | `GREEN-REPO`, #352; verifier/schema required by bundle; committed example is not live evidence |
+| Profile-aware live-promotion gate | `GREEN-REPO`, CHG-HSL-066/#396; LAB_L1 omits only production backend + tenant-isolation gates, PROD still requires both; invalid profile fails closed to PROD |
 | Full walking skeleton live completion | `HOLD / BLOCKED-ON-LIVE-PROMOTION-EVIDENCE-AND-CONNECTOR` |
 
 ## Walking skeleton
@@ -89,10 +93,10 @@ Target path:
 | Host identity/trust | host-evidence collector #336 `GREEN-REPO` | explicit host observation `NOT_RUN` |
 | User namespace | explicit-PID read-only observer #340 `GREEN-REPO` | gateway/Runner mapping observation `NOT_RUN` |
 | Signer attestation | evidence-bound verifier #342 `GREEN-REPO` | provider metadata capture + source-evidence verification `NOT_RUN` |
-| Evidence backend controls | durable-backend control verifier #345 `GREEN-REPO` | production backend `NOT_IMPLEMENTED / NOT_RUN`; provider observation `NOT_RUN` |
-| Evidence tenant isolation | provider-neutral tenant-isolation verifier #348 `GREEN-REPO` | real tenant config/evidence and cross-tenant negatives `NOT_RUN` |
+| Evidence backend controls | durable-backend control verifier #345 `GREEN-REPO` | production backend `NOT_IMPLEMENTED / NOT_RUN`; provider observation `NOT_RUN` — PROD readiness, optional under current LAB_L1 |
+| Evidence tenant isolation | provider-neutral tenant-isolation verifier #348 `GREEN-REPO` | real tenant config/evidence and cross-tenant negatives `NOT_RUN` — PROD readiness, optional under current LAB_L1 |
 | Evidence custody | terminal/audit custody use the existing Evidence Plane `GREEN-REPO` | live terminal/audit persistence `NOT_RUN` |
-| Live promotion evidence package | phased PRE_PROMOTION/POST_EFFECT verifier #351 `GREEN-REPO`, pinned by #352 | PRE_PROMOTION and POST_EFFECT packages `NOT_RUN`; even complete packages remain review evidence only |
+| Live promotion evidence package | phased PRE_PROMOTION/POST_EFFECT verifier #351 + profile-aware correction CHG-HSL-066 `GREEN-REPO` | PRE_PROMOTION and POST_EFFECT packages `NOT_RUN`; even complete packages remain review evidence only |
 | Reset/cleanup | bounded reset/destroy governance exists | first failure cleanup proved zero residue; WebGoat reset/destroy `PASS` live for the exact tested revision with zero project-owned residue; historical run `run_73cd8ef3...` stays `UNKNOWN` |
 
 ## Runtime acceptance already closed
@@ -152,6 +156,18 @@ Current invariants remain: `LAB_L1`, `BLOCKED`, `HOLD`, `promotion_allowed=false
 
 No live signer, provider, trust store or promotion effect is granted by this progression. The current campaign stays `LAB_L1`, `BLOCKED` / `HOLD`, with `promotion_allowed=false`.
 
+### Profile-aware promotion reconciliation (CHG-HSL-066)
+
+- the executable phased package verifier now derives the true mandatory gate set from the canonical ADR-0011 assurance profile;
+- `LAB_L1` omits only `EVIDENCE_BACKEND_CONTROLS` and `EVIDENCE_TENANT_ISOLATION` from mandatory PRE_PROMOTION gates;
+- a LAB_L1 package may retain those PROD-only gates as optional evidence: absent/`NOT_RUN` does not block, but an executed `FAIL` or unverified result still blocks;
+- `PROD` always requires both gates;
+- an absent, invalid or inconsistent assurance profile fails closed to `PROD`;
+- POST_EFFECT requirements are unchanged and profile-invariant;
+- no runtime, policy, signer/trust or campaign state was promoted by CHG-HSL-066.
+
+The campaign remains `LAB_L1`, `BLOCKED / HOLD`, with `promotion_allowed=false`.
+
 ## Lifecycle/readiness
 
 ### WebGoat/WebWolf
@@ -172,7 +188,7 @@ Provenance is retained and not rewritten: the first pre-fix failure history abov
 
 ### DVWA and Juice Shop
 
-Both are `PASS / READY-REPO` after #329. DVWA follows `DVWA_HOST_PORT`; Juice Shop follows `JUICE_SHOP_HOST_PORT`, smoke resolves the actual publication and reset uses the canonical `juice-shop-lab` network. Their live lifecycle acceptance remains pending.
+Both are `PASS / READY-REPO` after #329 and the governed lifecycle pattern is documented by CHG-HSL-065. DVWA follows `DVWA_HOST_PORT`; Juice Shop follows `JUICE_SHOP_HOST_PORT`, smoke resolves the actual publication and reset uses the canonical `juice-shop-lab` network. Issue #393 is `READY-FOR-LIVE`; #394 follows after #393. Previous connector-side submission attempts failed before an execution ID was created, so no DVWA/Juice mutation or acceptance evidence exists yet.
 
 ## Authorization / Runner chain
 
@@ -190,9 +206,9 @@ The repository contains a complete **promotion candidate**, not an enabled runti
 - aggregate EVIDENCE_ONLY promotion gate/bundle (#334/#338);
 - explicit-PID read-only Linux user-namespace observation boundary (#340), required by the bundle after #341;
 - provider-neutral, evidence-bound external signer observation verifier (#342), required by the bundle after #343;
-- provider-neutral durable Evidence Plane backend-control verifier (#345), required by the promotion bundle after #346;
-- provider-neutral backend tenant-isolation verifier using only opaque tenant hashes and DENIED cross-tenant list/read/write evidence (#348), required by the bundle after #349;
-- phased, candidate-bound live-evidence package verifier with exact PRE_PROMOTION/POST_EFFECT gate sets and independently verified evidence references (#351);
+- provider-neutral durable Evidence Plane backend-control verifier (#345), retained as PROD readiness under LAB_L1;
+- provider-neutral backend tenant-isolation verifier using only opaque tenant hashes and DENIED cross-tenant list/read/write evidence (#348), retained as PROD readiness under LAB_L1;
+- phased, candidate-bound live-evidence package verifier with profile-resolved PRE_PROMOTION gates and independently verified evidence references (#351 + CHG-HSL-066);
 - promotion bundle requirement for the #351 verifier/schema, while explicitly excluding the inert committed example as live evidence (#352).
 
 The service composition sequence is:
@@ -201,7 +217,7 @@ The service composition sequence is:
 
 It intentionally provides no listener, daemon, generic execution path or implicit promotion.
 
-### Durable backend boundary
+### Durable backend boundary — PROD readiness
 
 PR #345 defines the **acceptance contract**, not the production storage implementation. A future `OBSERVED` backend attestation must prove production scope, active state, encryption at rest, `WORM_COMPLIANCE`, enforced retention, legal-hold support, no privileged delete bypass, blocked public access, overwrite protection and independently verified source evidence. The verifier is provider-neutral and performs no provisioning or storage mutation.
 
@@ -209,62 +225,74 @@ PR #348 adds a separate **tenant-isolation acceptance contract**. It carries no 
 
 The production backend itself remains **unselected, undeployed and unobserved**. Real tenant configuration and cross-tenant negative acceptance remain `NOT_RUN`. `LocalEvidenceStore` remains a controlled CI reference and is not reclassified as production durable/WORM or multi-tenant storage.
 
+Under the accepted current `LAB_L1` profile, these production backend and tenant-isolation observations are **not mandatory PRE_PROMOTION gates**. They remain visible, testable PROD readiness work. Switching to `PROD`, or falling back to `PROD` because the profile is absent/invalid/inconsistent, makes them mandatory again.
+
 ### Phased live-evidence package boundary
 
-PR #351 defines a candidate-bound package around already-collected evidence. `PRE_PROMOTION` requires the exact prerequisite gate set before Human-in-the-Loop review. `POST_EFFECT` binds the Human-in-the-Loop decision, promoted minimum policy set, terminal/audit persistence and bounded WebGoat L1 effect/reset evidence. Every executed gate requires an `evidence://` reference and SHA-256 verified through an injected `EvidenceVerifier`; the default verifier denies all references.
+PR #351 defines a candidate-bound package around already-collected evidence. `PRE_PROMOTION` requires the exact prerequisite gate set resolved from the accepted assurance profile before Human-in-the-Loop review. `POST_EFFECT` binds the Human-in-the-Loop decision, promoted minimum policy set, terminal/audit persistence and bounded WebGoat L1 effect/reset evidence. Every executed gate requires an `evidence://` reference and SHA-256 verified through an injected `EvidenceVerifier`; the default verifier denies all references.
+
+CHG-HSL-066 corrected the executable PRE_PROMOTION composition: under `LAB_L1`, `EVIDENCE_BACKEND_CONTROLS` and `EVIDENCE_TENANT_ISOLATION` are optional PROD evidence; under `PROD` both are mandatory. Supplied optional evidence can only tighten the outcome: `FAIL` or unverified executed evidence still blocks.
 
 A complete package never grants promotion. It returns only the next review state while retaining `promotion_allowed=false` and recommendation `HOLD`. PR #352 makes only the verifier and schema promotion-bundle prerequisites. Live packages remain external evidence and are not committed as proof.
 
-### Still missing for live promotion
+### Still missing for current LAB_L1 live promotion
 
-- actual protected signer provider observation with independently verified source evidence;
+- actual protected signer provider observation with independently verified source evidence, after an explicit human signer decision;
 - host-observed Runner authorization trust store with approved digest and owner/mode;
 - configured receipt-delivery AF_UNIX endpoint and authenticated live delivery;
-- live host evidence for gateway/Runner identities and socket;
-- live user-namespace mapping evidence for the explicitly reviewed gateway/Runner PIDs;
+- current host identity/socket evidence for the exact reviewed candidate where re-observation is required;
+- current user-namespace evidence where drift or exact-candidate review requires it;
 - unauthorized-peer negative test against the real Runner socket;
-- selected/deployed production durable/append-only/WORM Evidence Plane backend;
-- live backend provider/control observation accepted through #345;
-- live backend tenant configuration and cross-tenant isolation negatives accepted through #348;
-- live Runner/audit/terminal persistence;
-- assembled and verified PRE_PROMOTION package for the exact candidate;
+- live `HASH_CHAIN_SEAL` evidence plus Runner/audit/terminal persistence;
+- assembled and verified PRE_PROMOTION package for the exact candidate using the LAB_L1 required gate subset;
+- explicit Human-in-the-Loop promotion approval for the exact candidate;
 - explicit promotion of only the minimum resolver/delivery/transport/routing/service/custody policy set;
-- Human-in-the-Loop approval for the exact promoted candidate;
 - one authorized WebGoat L1 effect, terminal/audit persistence and reset/known-state proof;
 - assembled and verified POST_EFFECT package before campaign acceptance review.
+
+### PROD-only readiness still open
+
+These items remain deliberately visible and `NOT_RUN`, but are not current LAB_L1 blockers after CHG-HSL-066:
+
+- selected/deployed production durable/append-only/WORM Evidence Plane backend;
+- live backend provider/control observation accepted through #345; production backend `NOT_IMPLEMENTED / NOT_RUN`;
+- live backend tenant configuration and cross-tenant isolation negatives accepted through #348; real tenant config/evidence and cross-tenant negatives `NOT_RUN`.
 
 The canonical promotion gate remains `EVIDENCE_ONLY`, `HOLD`, `runtime_status: NOT_RUN`, `execution_authority: none`, and `promotion_allowed=false` even if all machine evidence becomes complete. Human promotion is a separate decision.
 
 ## Current connector state
 
-The Hermes connector required to recover `run_73cd8ef359ff486f93faeb7c2dc46290` is not currently available through this control surface. This is **not** evidence that the Hermes gateway itself is unhealthy.
+The ChatGPT-side Hermes control surface is currently intermittent: tool discovery may succeed while submission can fail before the bridge creates an execution ID. The most recent DVWA submission attempts failed at that control boundary, before any execution ID or Docker mutation existed. This is **not** evidence that the Hermes gateway, DVWA or Docker runtime is unhealthy.
+
+The historical WebGoat run `run_73cd8ef359ff486f93faeb7c2dc46290` remains `UNKNOWN` as provenance, but recovery of that run is no longer a prerequisite for WebGoat lifecycle acceptance because CHG-HSL-064 established a fresh independent `PASS / ACCEPTED-LIVE-LIFECYCLE` run.
 
 Classification:
 
-`CONNECTOR-UNAVAILABLE / LIVE-RUN-RECOVERY-PENDING`
+`CONNECTOR-CONTROL-SURFACE-UNAVAILABLE / DVWA-LIVE-LANE-NOT_STARTED`
 
 ## Automatic continuation order
 
-When the Hermes connector and authorized deployment evidence are usable again:
+When the Hermes control surface and the required explicitly authorized live dependencies are usable again, continue the current `LAB_L1` path in this order:
 
-1. recover `run_73cd8ef359ff486f93faeb7c2dc46290` before starting another WebGoat lifecycle;
-2. re-observe gateway admission and Bridge revision `3717bd5469b061a44294b27e1a7510d477d3752b`;
-3. verify the Kali profile remains disabled + sentinel;
-4. resolve/repeat only a failed WebGoat lifecycle gate, preserving known-state cleanup;
-5. execute bounded DVWA and Juice Shop lifecycle/readiness acceptance;
-6. run #336 host evidence against an explicitly reviewed descriptor;
-7. run #340 user-namespace evidence against explicitly reviewed PIDs;
-8. capture real external signer metadata, custody its source evidence and verify it through #342;
-9. select/deploy a production Evidence Plane backend, capture read-only controls and validate them through #345;
-10. capture tenant-isolation configuration and bounded cross-tenant negative results and verify them through #348;
-11. prove installed trust store, live Runner/Evidence handoff and live audit/terminal persistence;
-12. execute the unauthorized-peer negative acceptance against the real Runner socket;
-13. assemble and verify the exact-candidate PRE_PROMOTION package through #351; completeness leads only to `HUMAN_PROMOTION_REVIEW_REQUIRED`;
-14. request and record explicit Human-in-the-Loop promotion for the exact candidate;
-15. promote only the minimum WebGoat L1 policy set;
-16. execute one bounded read-only WebGoat L1 effect, persist terminal/audit evidence, reset/destroy and prove known state;
-17. assemble and verify the POST_EFFECT package through #351; completeness leads only to `CAMPAIGN_ACCEPTANCE_REVIEW_REQUIRED`;
-18. on any RED, restore fail-closed state for the affected lane while unrelated repo-only work may continue.
+1. re-observe gateway admission and Bridge revision `3717bd5469b061a44294b27e1a7510d477d3752b` before the next relevant live mutating Runner lane;
+2. verify the Kali profile remains disabled + sentinel;
+3. execute issue #393 DVWA lifecycle/readiness/reset/zero-residue acceptance from an exact clean revision export;
+4. if #393 is PASS and persisted, execute #394 Juice Shop under the same governed lifecycle pattern;
+5. refresh #336 host identity/socket/trust evidence for the exact candidate where required;
+6. refresh/reuse #340 user-namespace evidence only when drift or exact-candidate review requires it;
+7. after an explicit human signer decision, capture real external signer metadata, custody its source evidence and verify it through #342;
+8. install and verify the approved Runner trust store through a separate governed change;
+9. configure and prove authenticated receipt delivery without broadening policy scope;
+10. execute the unauthorized-peer negative acceptance against the real Runner socket;
+11. prove live `HASH_CHAIN_SEAL` plus Runner/audit/terminal persistence;
+12. assemble and verify the exact-candidate PRE_PROMOTION package through #351/CHG-HSL-066; completeness leads only to `HUMAN_PROMOTION_REVIEW_REQUIRED`;
+13. request and record explicit Human-in-the-Loop promotion for the exact candidate;
+14. promote only the minimum WebGoat L1 policy set;
+15. execute one bounded read-only WebGoat L1 effect, persist terminal/audit evidence, reset/destroy and prove known state;
+16. assemble and verify the POST_EFFECT package through #351; completeness leads only to `CAMPAIGN_ACCEPTANCE_REVIEW_REQUIRED`;
+17. on any RED, restore fail-closed state for the affected lane while unrelated repo-only work may continue.
+
+**Separate PROD-readiness lane:** production WORM/backend observation (#345) and tenant-isolation configuration/negative evidence (#348) may progress independently, but they are not inserted into the current LAB_L1 critical path. They become mandatory if/when the profile is `PROD` or fail-closes to `PROD`.
 
 No target-interacting action is authorized merely because repository contracts or CI are GREEN.
 
@@ -286,16 +314,16 @@ non-interchangeable states and forbids promoting one into another:
 | --- | --- | --- | --- |
 | Evidence chain + hash seal (LAB_L1) | `GREEN-REPO`, CHG-042 (#369) | `HASH_CHAIN_SEAL: NOT_RUN` for live evidence | none repo-side; signer=None on seal (authenticity=false/durability=false) |
 | Local append-only audit sink | `GREEN-REPO`, CHG-043 (#370) | `audit-sink: GREEN-REPO`; live persistence `NOT_RUN` | external durable audit sink (PROD only) |
-| Profile-aware PRE/POST gate composition | `GREEN-REPO`, CHG-044 (#371) | gate composition `GREEN-REPO`; packages `NOT_RUN` | external signer + trust store for real effect |
+| Profile-aware PRE/POST gate composition | `GREEN-REPO`, CHG-044/#371 + CHG-HSL-066/#396 | gate composition `GREEN-REPO`; packages `NOT_RUN` | external signer + trust store for real LAB_L1 effect; WORM/tenant only for PROD |
 | SO_PEERCRED auth audit integration | `GREEN-REPO`, CHG-045 (#373/#374) | transport `DISABLED`; peer identity `NOT_RUN` | enabled transport + authorized live identity mapping |
 | HASH_CHAIN_SEAL wired into phased package | `GREEN-REPO`, CHG-046 (#372) | phase-2 seal gate inert hook; `NOT_RUN` | signed/sealed live package evidence |
 | Deterministic reset attestation contracts | `GREEN-REPO`, CHG-049 (#377) | `production_lab_runtime: NOT_RUN` | live reset/zero-residue execution |
 | ADR-0011 assurance profiles (LAB_L1/PROD) | `ACCEPTED`, fail-closed to PROD | structural only; `runtime_status: NOT_RUN` | external signer + WORM + tenant isolation for PROD |
 | External signer + purpose-bound trust store (Vault) | verifier `GREEN-REPO` (#342/#331) | `signer-provider-observation: NOT_RUN`; `trust-store: ABSENT` | **deferred**: no provider selected, Vault/trust store unconfigured |
-| Durable Evidence Plane backend (WORM) | verifier `GREEN-REPO` (#345) | `production-backend: NOT_IMPLEMENTED / NOT_RUN` | **deferred**: no backend selected/deployed |
-| Backend tenant isolation | verifier `GREEN-REPO` (#348) | `tenant-isolation: NOT_RUN` | **deferred**: no tenant config/negatives observed |
+| Durable Evidence Plane backend (WORM) | verifier `GREEN-REPO` (#345) | `production-backend: NOT_IMPLEMENTED / NOT_RUN` | **PROD-only deferred readiness**: no backend selected/deployed |
+| Backend tenant isolation | verifier `GREEN-REPO` (#348) | `tenant-isolation: NOT_RUN` | **PROD-only deferred readiness**: no tenant config/negatives observed |
 | Execution Gateway HOLD boundary (#359/#361) | `GREEN-REPO`, CHG-036/037 | `UNPROMOTED`; `promotion_allowed=false`; HOLD | none; intentionally non-executing |
-| Full walking skeleton live completion | repository candidate complete | `HOLD / BLOCKED-ON-LIVE-PROMOTION-EVIDENCE-AND-CONNECTOR` | **deferred**: signer/Vault/WORM/tenant/peer-negative/HITL |
+| Full walking skeleton live completion | repository candidate complete | `HOLD / BLOCKED-ON-LIVE-PROMOTION-EVIDENCE-AND-CONNECTOR` | **LAB_L1 deferred**: signer/Vault, receipt delivery, peer-negative, live persistence/packages and HITL; WORM/tenant are PROD-only |
 
 Rule: a `GREEN-REPO` row never implies the live row is `PASS`; a deferred dependency
 row never implies the dependency is satisfied. `UNKNOWN` is fail-safe: missing or
@@ -332,13 +360,16 @@ unverifiable observation is never converted to `IN_SYNC` or `DRIFT_DETECTED`.
 | Regression coverage for LAB_L1 + Execution Gateway HOLD | #378 | `c36fa8551ed4ae2b347b3b68e4343cbe3e7b592c` | GREEN-REPO, #359/#361 UNPROMOTED; HOLD preserved |
 | Walking-skeleton reconciliation (CHG-042..050) | CHG-HSL-052 | `c36fa8551ed4ae2b347b3b68e4343cbe3e7b592c` | DOC_ONLY, baseline re-pinned; BLOCKED/HOLD preserved |
 | Safe live read-only reobservation (run_ec368a4) + RTA-003 SHA reconciliation | CHG-HSL-053 | `a63ef01925e5c1b925936c1e73b11b2d6cd2a6a5` | DOC_ONLY, SAFE-LIVE-READONLY; Bridge current `3717bd54`, historical `7e4b6b1c` retained; HOLD/NOT_RUN preserved |
+| WebGoat governed live lifecycle acceptance | #392 / CHG-HSL-064 | `7c468c4a8991d6348f8b3c27413140fbe4128d60` | PASS / ACCEPTED-LIVE-LIFECYCLE for exact tested revision; Runner promotion unchanged |
+| Governed lab lifecycle runbook + Juice Shop docs | #395 / CHG-HSL-065 | `5cc24452416571e6851e936e74721e559d2e442d` | DOC_ONLY; #393 DVWA and #394 Juice Shop prepared for live acceptance |
+| LAB_L1 profile-aware live-promotion gate correction | #396 / CHG-HSL-066 | `b742d2dd91d5e0c2766a5ee5dc48a1e43309b6e1` | GREEN-REPO; removes false PROD-only blockers from LAB_L1 while preserving PROD strictness and HOLD |
 
 ## Decision record
 
-**Decision:** keep promotion on HOLD until live identity/trust/signer/backend/tenant-isolation/audit/evidence prerequisites, a verified PRE_PROMOTION package and explicit Human-in-the-Loop promotion are proven; campaign acceptance additionally requires verified POST_EFFECT evidence.
+**Decision:** keep LAB_L1 promotion on HOLD until live signer/trust, authenticated receipt delivery, peer-negative proof, live hash-chain/audit/outcome persistence, a verified PRE_PROMOTION package, exact-candidate Human-in-the-Loop approval, minimum-policy promotion, one bounded effect/reset proof and verified POST_EFFECT evidence are complete. Production WORM/backend and tenant-isolation evidence remain separate PROD-only readiness requirements.
 
-**Context:** the repository now contains host, user-namespace, signer-attestation, durable-backend-control, tenant-isolation and phased live-evidence package verification boundaries, but these remain repository capabilities. No production backend or tenant configuration has been selected/deployed and the related live observations/packages have not run.
+**Context:** the repository contains host, user-namespace, signer-attestation, durable-backend-control, tenant-isolation and phased live-evidence package verification boundaries. CHG-HSL-066 reconciled the executable gate with ADR-0011: WORM/backend and tenant-isolation remain mandatory for PROD but are not current LAB_L1 blockers. Their live observations still remain `NOT_RUN` and must not be misrepresented as completed.
 
-**Risks accepted:** continued implementation may proceed repo-side while connector/live prerequisites are unavailable, provided no repository result or package schema/example is promoted to a live claim.
+**Risks accepted:** continued implementation may proceed repo-side while connector/live prerequisites are unavailable, provided no repository result or package schema/example is promoted to a live claim and PROD-only omissions are never generalized beyond the explicit LAB_L1 profile.
 
 **State:** `HOLD / BLOCKED-ON-LIVE-PROMOTION-EVIDENCE-AND-CONNECTOR`.
