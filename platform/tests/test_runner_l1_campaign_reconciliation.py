@@ -100,7 +100,9 @@ def test_campaign_records_current_repo_capabilities_as_non_live_evidence() -> No
     assert "production-WORM-backend:NOT_IMPLEMENTED/NOT_RUN" in evidence["evidence"]
     assert "backend-tenant-config:NOT_RUN" in evidence["evidence"]
     assert "cross-tenant-negatives:NOT_RUN" in evidence["evidence"]
-    assert "pre-promotion-package:NOT_RUN" in evidence["evidence"]
+    # CHG-HSL-071 reconciles the produced PRE_PROMOTION package as ASSEMBLED/HOLD/INCOMPLETE
+    # (no longer the old NOT_RUN live state); POST_EFFECT stays NOT_RUN.
+    assert "pre-promotion-package:ASSEMBLED/HOLD/INCOMPLETE(CHG-HSL-071)" in evidence["evidence"]
     assert "post-effect-package:NOT_RUN" in evidence["evidence"]
 
 
@@ -184,7 +186,14 @@ def test_chg_hsl_047_records_merged_green_repo_capability_tokens_without_resolvi
     assert "profile-aware-pre-post:GREEN-REPO(CHG-044)" in evidence["evidence"]
     assert "package-composition:GREEN-REPO(CHG-046)" in evidence["evidence"]
     assert "peer-identity-audit:GREEN-REPO(CHG-045)" in evidence["evidence"]
-    assert "HASH_CHAIN_SEAL:NOT_RUN" in evidence["evidence"]
+    # CHG-HSL-071 reconciles already-produced custody evidence: HASH_CHAIN_SEAL is
+    # now VERIFIED (not NOT_RUN), but only as reconciliation of produced evidence —
+    # the campaign stays BLOCKED/HOLD. PRE_PROMOTION is ASSEMBLED/HOLD/INCOMPLETE.
+    assert "HASH_CHAIN_SEAL:VERIFIED(CHG-HSL-071)" in evidence["evidence"]
+    assert "GATEWAY_ADMISSION_REOBSERVATION:PASS(CHG-HSL-071)" in evidence["evidence"]
+    assert "BRIDGE_REVISION_REOBSERVATION:PASS(CHG-HSL-071)" in evidence["evidence"]
+    assert "pre-promotion-package:ASSEMBLED/HOLD/INCOMPLETE(CHG-HSL-071)" in evidence["evidence"]
+    assert "CHG-HSL-071-reconciles:run_5dbe72a070ed4ffa95ce6fc1c8c3b088" in evidence["evidence"]
     assert "CHG-HSL-047 reconciles" in evidence["summary"]
 
 
@@ -226,8 +235,10 @@ def test_chg_hsl_050_records_merged_green_repo_capability_tokens_042_047() -> No
         assert token in evidence
     # CHG-047 is the record that performed the reconciliation; it is cited too.
     assert "CHG-HSL-047 reconciles" in observations["OBS-EVIDENCE-CUSTODY"]["summary"]
-    # HASH_CHAIN_SEAL stays NOT_RUN for live evidence (GREEN-REPO != live seal).
-    assert "HASH_CHAIN_SEAL:NOT_RUN" in evidence
+    # HASH_CHAIN_SEAL is now VERIFIED via CHG-HSL-071 reconciliation of produced
+    # evidence; it must NOT be represented as the old NOT_RUN live state.
+    assert "HASH_CHAIN_SEAL:VERIFIED(CHG-HSL-071)" in evidence
+    assert "HASH_CHAIN_SEAL:NOT_RUN" not in evidence
 
 
 def test_chg_hsl_050_assurance_profile_invariants_stay_locked_in() -> None:
@@ -560,3 +571,91 @@ def test_chg_hsl_053_rejects_elevating_sub_facts_to_pass() -> None:
     repo_chain = {item["id"]: item for item in campaign["observations"]}["OBS-RUNNER-REPO-CHAIN"]
     assert repo_chain["result"] == "PASS"
     assert repo_chain["status"] == "RESOLVED"
+
+
+# --- CHG-HSL-071: repository-only custody / hash-chain evidence reconciliation -----
+#
+# CHG-HSL-071 reconciles ALREADY-PRODUCED custody evidence (run_5dbe72a070ed4ffa95ce6fc1c8c3b088)
+# into source-of-truth: HASH_CHAIN_SEAL verified, the two re-observation gates PASS, and the
+# PRE_PROMOTION package ASSEMBLED/HOLD/INCOMPLETE. It does NOT promote, does NOT resolve any live
+# observation, and does NOT claim a live effect. No runtime/trust/signer/policy mutation.
+
+def test_chg_hsl_071_reconciles_custody_evidence_without_promoting_live_state() -> None:
+    campaign = _campaign()
+    assert campaign["state"] == "BLOCKED"
+    assert campaign["promotionRecommendation"] == "HOLD"
+    assert campaign["candidate"]["commit"] == BASELINE
+
+    observations = {item["id"]: item for item in campaign["observations"]}
+    custody = observations["OBS-EVIDENCE-CUSTODY"]
+    assert custody["required"] is True
+    # The live observation stays BLOCKED/OPEN; only the produced evidence is reconciled.
+    assert custody["result"] == "BLOCKED"
+    assert custody["status"] == "OPEN"
+
+    evidence = custody["evidence"]
+    assert "HASH_CHAIN_SEAL:VERIFIED(CHG-HSL-071)" in evidence
+    assert "GATEWAY_ADMISSION_REOBSERVATION:PASS(CHG-HSL-071)" in evidence
+    assert "BRIDGE_REVISION_REOBSERVATION:PASS(CHG-HSL-071)" in evidence
+    assert "pre-promotion-package:ASSEMBLED/HOLD/INCOMPLETE(CHG-HSL-071)" in evidence
+    assert "post-effect-package:NOT_RUN" in evidence
+    # The old NOT_RUN live seal state must no longer be claimed.
+    assert "HASH_CHAIN_SEAL:NOT_RUN" not in evidence
+    # PROD-only gates remain excluded from L1 blockers.
+    assert "production-WORM-backend:NOT_IMPLEMENTED/NOT_RUN" in evidence
+    assert "cross-tenant-negatives:NOT_RUN" in evidence
+
+
+def test_chg_hsl_071_records_sanitized_evidence_record_and_change_record() -> None:
+    import glob
+
+    # The sanitized repository evidence record exists and carries only identifiers/hashes.
+    evidence_paths = glob.glob(
+        str(ROOT / "deployment" / "runtime-promotion" / "evidence" / "live-custody-verification-CHG-HSL-071.yaml")
+    )
+    assert evidence_paths, "sanitized CHG-HSL-071 evidence record missing"
+    evidence = yaml.safe_load(Path(evidence_paths[0]).read_text(encoding="utf-8"))
+    assert evidence["change_record"] == "CHG-HSL-071"
+    assert evidence["verdicts"]["hash_chain_seal"]["result"] == "PASS"
+    assert evidence["verdicts"]["hash_chain_seal"]["integrity"] is True
+    assert evidence["promotion_invariants"]["promotion_allowed"] is False
+    assert evidence["promotion_invariants"]["state"] == "BLOCKED"
+    # The raw ephemeral artifact is NOT committed; only its cryptographic identifiers persist.
+    assert "raw ephemeral artifact NOT committed" in read_text_if_present(evidence_paths[0])
+
+    # The change record exists and obeys the journal contract.
+    record = yaml.safe_load(
+        (ROOT / "changes" / "CHG-HSL-071.yaml").read_text(encoding="utf-8")
+    )
+    assert record["id"] == "CHG-HSL-071"
+    assert record["source"]["observation"] == "OBS-EVIDENCE-CUSTODY"
+    assert "OBS-EVIDENCE-CUSTODY" in _campaign_observation_ids_071()
+
+
+def _campaign_observation_ids_071() -> frozenset[str]:
+    from deployment.tests.test_change_record_observation_consistency import (
+        _campaign_observation_ids as _ids,
+    )
+
+    return _ids()
+
+
+def read_text_if_present(path: str) -> str:
+    return Path(path).read_text(encoding="utf-8")
+
+
+def test_chg_hsl_071_preserves_blocked_hold_invariants() -> None:
+    campaign = _campaign()
+    assert campaign["state"] == "BLOCKED"
+    assert campaign["promotionRecommendation"] == "HOLD"
+
+    observations = {item["id"]: item for item in campaign["observations"]}
+    for observation_id in (
+        "OBS-TB1-LIVE-DELIVERY",
+        "OBS-RUNNER-POLICY-PROMOTION",
+        "OBS-EVIDENCE-CUSTODY",
+        "OBS-LIVE-EFFECT-RESET",
+    ):
+        assert observations[observation_id]["required"] is True
+        assert observations[observation_id]["result"] == "BLOCKED"
+        assert observations[observation_id]["status"] == "OPEN"

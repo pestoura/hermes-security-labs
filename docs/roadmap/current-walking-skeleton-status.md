@@ -146,6 +146,7 @@ Explicitly retained `NOT_RUN` (not elevated): signer/provider `NOT_RUN`; unautho
 - `CHG-HSL-057` — repository-only operator harness for `USER_NAMESPACE_MAPPING` and `UNAUTHORIZED_PEER_NEGATIVE`; no live execution performed.
 - `CHG-HSL-058` — privilege-flow correction with privileged parent and `setpriv` child; still no live execution performed.
 - `CHG-HSL-059` — stdlib-only independent peer-child probe; retained as temporary LAB operational debt; no live execution performed.
+- `CHG-HSL-071` — repository-only custody/hash-chain evidence reconciliation of already-produced evidence (run `run_5dbe72a070ed4ffa95ce6fc1c8c3b088`): `HASH_CHAIN_SEAL` VERIFIED, `GATEWAY_ADMISSION_REOBSERVATION`/`BRIDGE_REVISION_REOBSERVATION` PASS, PRE_PROMOTION ASSEMBLED/HOLD/INCOMPLETE. No live observation resolved; campaign stays `BLOCKED`/`HOLD`, `promotion_allowed=false`; historical CHG-HSL-038 userns PASS retained, fresh current-PID re-attestation BLOCKED(ROOT_REQUIRED); Runner socket confirmed present.
 
 Current invariants remain: `LAB_L1`, `BLOCKED`, `HOLD`, `promotion_allowed=false`, `runtime_status=NOT_RUN`, `execution_authority=none`, `supplier_selection=NO_SELECTION`, `trust-store=ABSENT`. GREEN-REPO is not live acceptance.
 

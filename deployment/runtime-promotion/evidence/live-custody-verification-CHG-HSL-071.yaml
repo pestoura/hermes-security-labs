@@ -1,0 +1,112 @@
+# Sanitized repository evidence record — CHG-HSL-071 custody / hash-chain verification
+#
+# Reconciliation of ALREADY-PRODUCED evidence from read-only verification run
+# run_5dbe72a070ed4ffa95ce6fc1c8c3b088 against existing artifact preview.json plus
+# .ephemeral-local-evidence-store, using canonical exact-main evidence-plane verifier
+# code. Contains ONLY identifiers / hashes / sizes / verdicts above. The raw ephemeral
+# artifact is NOT committed; its cryptographic identifiers are persisted instead.
+#
+# This is NOT a new live effect and NOT authority to promote.
+schema_version: "1.0"
+evidence_id: EVD-HSL-L1-CUSTODY-VERIFICATION-CHG-HSL-071
+change_record: CHG-HSL-071
+campaign: VAL-HSL-RUNNER-L1-LIVE-PROMOTION
+observation: OBS-EVIDENCE-CUSTODY
+phase: repository-evidence-reconciliation
+
+verification_basis:
+  verification_run: run_5dbe72a070ed4ffa95ce6fc1c8c3b088
+  verification_started_at: '2026-08-15T19:28:35Z'
+  verification_completed_at: '2026-08-15T19:31:03Z'
+  verification_method: canonical exact-main evidence-plane verifier code (read-only)
+  source_artifact:
+    provenance_label: /home/estourpm/tmp.UhcUuKZfWu/preview.json
+    sha256: 69d9ccea15c90e58f506f6e612ecd98b15a39b5c028010662af36fb516c12804
+    size_bytes: 7352
+    note: ephemeral artifact; cryptographic identifiers persisted, raw payload NOT committed
+  candidate_binding:
+    runner_candidate_commit: a63ef01925e5c1b925936c1e73b11b2d6cd2a6a5
+
+verdicts:
+  package_phase: PRE_PROMOTION
+  package_status: ASSEMBLED
+  package_recommendation: HOLD
+  promotion_allowed: false
+  authorized_effect_claimed: false
+  read_only_package_validator:
+    package_valid: true
+    package_complete: false
+    verified_evidence_count: 3
+    required_gate_count: 10
+    next_review: EVIDENCE_COLLECTION_REQUIRED
+  hash_chain_seal:
+    result: PASS
+    seal_status: SEAL_OK
+    integrity: true
+    chain_id: chain_a01169bf06d26864bdacb8d1afa160f4
+    seal_id: seal_e2f7e4422d82b819f2c3ce43d526942b2e8ff23c3fe23e94
+    chain_state_digest_sha256: 70e1ef2477d534f2b595aedbb198e856ccf2582d48f8202674f6ccad3210dae7
+    entry_count: 2
+    signer: null
+    authenticity: false
+    durability: false
+    worm_migration_compatible: true
+  gateway_admission_reobservation:
+    result: PASS
+    custody_ref_resolves: true
+    expected_digest_sha256: a53a50d75a3795e6c0e564d6c9ead91aa00bae8c91be93792c8a6ea2f5336c6f
+  bridge_revision_reobservation:
+    result: PASS
+    custody_ref_resolves: true
+    expected_digest_sha256: 8f89e39563dc04a01126b4ed5f699ec7dbb45f98864dc42064f9641e1e2efaa7
+
+sanitization:
+  secrets_found: false
+  private_keys_found: false
+  tokens_found: false
+  passwords_found: false
+  cookies_found: false
+  scope: preview/records only
+
+historical_context:
+  chg_hsl_038_userns:
+    status: historical PASS (gateway PID 3649254, old runner PID 3367226)
+    current_reattestation: BLOCKED/NOT_RUN (ROOT_REQUIRED) for current runner PID 409235
+    note: do not present historical PASS as fresh current-PID re-attestation
+  socket:
+    status: active/listening at /run/hexor/runner-dispatch.sock (verified run_8069d6240bfc4990aaf6a86ecdeb6f25)
+    note: nonprivileged EACCES had been misreported as absence; socket NOT absent
+  unauthorized_peer_negative: NOT_PROVEN/BLOCKED (privileged parent required; no connection/payload)
+
+promotion_invariants:
+  promotion_allowed: false
+  runtime_status: NOT_RUN
+  execution_authority: none
+  recommendation: HOLD
+  state: BLOCKED
+  note: reconciliation of produced evidence is NOT authority to promote
+
+remaining_blockers:
+  - SIGNER_PROVIDER_ATTESTATION_NOT_OBSERVED
+  - TRUST_STORE_ABSENT
+  - RECEIPT_DELIVERY_NOT_CONFIGURED
+  - UNAUTHORIZED_PEER_NEGATIVE_NOT_PROVEN
+  - CURRENT_RUNNER_USERNS_REATTESTATION_BLOCKED
+  - LIVE_AUDIT_OUTCOME_PERSISTENCE_NOT_OBSERVED
+  - COMPLETE_PRE_POST_PACKAGES_NOT_RUN
+  - HITL_PROMOTION_NOT_RUN
+  - FIRST_AUTHORIZED_EFFECT_RESET_NOT_RUN
+  - PROD_ONLY_EXCLUDED: EVIDENCE_BACKEND_CONTROLS, EVIDENCE_TENANT_ISOLATION (not L1 blockers)
+
+out_of_scope:
+  - no live/runtime/systemd/network/Docker/target mutation
+  - no signer/trust/policy binding
+  - no promotion performed
+  - raw ephemeral artifact NOT committed
+
+validation_corroboration:
+  change_record_schema: pending-external (length-only local check)
+  yaml_parse: PASS
+  source_of_truth: PASS
+  jds_static_gate: pending-CI
+  runtime_promotion_evidence_gate: HOLD
