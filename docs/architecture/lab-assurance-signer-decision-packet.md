@@ -7,8 +7,8 @@ accepted R1–R8 baseline) and to the evaluation-only candidate model in
 `platform/assurance/signer_selection.py`.
 
 > The technology/product choice remains a separate, explicit human-in-the-loop decision. No code
-> path here auto-selects a winner. Until a supplier is recorded, the correct runtime state is:
-> trust store absent, `promotion_allowed: false`, `runtime_status: NOT_RUN`.
+> path here auto-selects a winner. A human decision may be approved while the baseline still stays
+> `NO_SELECTION`; that staged state grants no trust binding, runtime execution or promotion.
 
 ## Current state (deterministic)
 
@@ -22,17 +22,36 @@ accepted R1–R8 baseline) and to the evaluation-only candidate model in
   `platform/assurance/signer_human_decision.py` enforce the repository-only decision contract:
   an `APPROVED` record may name only `KMS`, `HSM` or `VAULT`, must bind the required evidence
   classes by canonical `evidence://` references plus SHA-256, and still grants no promotion.
+- CHG-HSL-063 explicitly permits that `APPROVED` record to be staged while the baseline remains
+  `NO_SELECTION`; `selected_class` and `human_decision_id` remain null until a separate transition.
 - `platform/assurance/signer_selection.py::validate_selection_transition_contract` is the
   CHG-HSL-063 consistency gate. A future `PENDING`/`SELECTED` state is accepted as internally
   coherent only when `selected_class` and `human_decision_id` match that APPROVED human decision
   and the same candidate already has verified custody evidence.
-- CHG-HSL-063 deliberately keeps trust binding inactive even for a coherent selection contract;
-  selection does not imply trust installation or runtime/promotion authority.
+- CHG-HSL-063 deliberately keeps trust binding inactive for the current state, for an APPROVED
+  staged decision, and even for a coherent selection contract; selection does not imply trust
+  installation or runtime/promotion authority.
 - `allows_automatic_supplier_choice: false` under both `LAB_L1` and `PROD`.
 - All four committed candidate classes are `NOT_EVALUATED`; `is_custody_proof: false` for every
   class, including `PKCS11` (interface, not custody).
 - `VAL-HSL-RUNNER-L1-LIVE-PROMOTION` remains `BLOCKED / HOLD`; no campaign observation is resolved
   by this packet, an `APPROVED` decision record, or a coherent selection contract alone.
+
+## Decision and transition sequence
+
+The intended sequence is deliberately staged rather than implicit or automatic:
+
+1. `NO_DECISION + NO_SELECTION` — current state; no class chosen and no authority granted;
+2. `APPROVED + NO_SELECTION` — a human choice has been recorded with evidence references, but the
+   signer baseline is still unbound (`selected_class: null`, `human_decision_id: null`), trust is
+   inactive and runtime remains `NOT_RUN`;
+3. `APPROVED + PENDING/SELECTED` — a separate governed change binds the exact human decision ID and
+   selected custody class after the matching candidate has verified custody evidence;
+4. trust binding and any live promotion remain separate later changes with independent evidence,
+   validation and approval.
+
+There is no valid path that collapses these stages into an automatic provider choice or turns a
+human decision into implicit runtime authority.
 
 ## Decision criteria (must all hold before a supplier may be recorded)
 
@@ -83,7 +102,8 @@ is not evidence verification and does not replace any canonical signer/trust/pro
   duplicate evidence classes, or using non-canonical refs/digests;
 - a baseline `selected_class` or `human_decision_id` that differs from the approved human record;
 - a selected candidate that has not already reached verified-evidence/custody state;
-- any attempt to turn on `trust_binding` as a side effect of supplier selection.
+- any attempt to turn on `trust_binding` as a side effect of a staged decision or supplier
+  selection.
 
 ## Reversibility / migration considerations
 
@@ -99,13 +119,17 @@ is not evidence verification and does not replace any canonical signer/trust/pro
 
 ## Explicit `NO_SELECTION` close
 
-Until a human records an explicit supplier decision referencing this packet and the verified
-evidence above, `supplier_selection` stays `NO_SELECTION`, `selected_class` and
+Before a human decision exists, `supplier_selection` stays `NO_SELECTION`, `selected_class` and
 `human_decision_id` stay `null`, and `platform/assurance/signer-human-decision.yaml` stays
 `NO_DECISION`. The repository must not infer a winner from the candidate table, from cost, from
 availability, or from any other non-security signal.
 
-CHG-HSL-063 now provides the deliberate transition guard that CHG-HSL-062 intentionally left
+Once the human decision is explicitly `APPROVED`, the baseline may **still remain `NO_SELECTION`**
+while the separate governed transition is prepared. In that staged state, `selected_class` and
+`human_decision_id` in the baseline remain null, `trust_binding` stays inactive,
+`promotion_allowed` stays false and runtime stays `NOT_RUN`.
+
+CHG-HSL-063 provides the deliberate transition guard that CHG-HSL-062 intentionally left
 separate: it can validate a future human-selected `PENDING`/`SELECTED` contract, but it **does not
 make the decision**, does not bind trust, and always returns `promotion_allowed: false` /
 `runtime_status: NOT_RUN`. Trust-store installation and live promotion remain later, separately
