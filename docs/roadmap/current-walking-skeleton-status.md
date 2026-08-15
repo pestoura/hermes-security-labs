@@ -50,7 +50,7 @@ production tenant-isolation observations remain **PROD-only readiness**, not cur
 | WebGoat/WebWolf repository lifecycle/readiness | `PASS / READY-REPO`; publication and dual-health races fixed in #325-#327 |
 | WebGoat live lifecycle | `PASS / ACCEPTED-LIVE-LIFECYCLE` for the exact tested revision `dd3677b6fb531c72ec7c5ea6fb5f82da94a27f37`, accepted run `run_f3ecec54f9464366aa1edfb32ac58b33` (CHG-HSL-064); pre-fix history retained (`start/readiness/smoke PASS`, reset race found, cleanup/destroy `PASS / ZERO-RESIDUE`); historical run `run_73cd8ef359ff486f93faeb7c2dc46290` remains `UNKNOWN` and is never reclassified |
 | DVWA repository lifecycle/readiness | `PASS / READY-REPO`; host-port parity merged #329; **live lifecycle `PASS / ACCEPTED-LIVE-LIFECYCLE`** for the exact tested revision `e3fb2554c9a5d354b82a29edfbd0830fa78fc471`, accepted run `run_8f2174dc4c87452098b700ff556ac978` (CHG-HSL-069, Issue #393); unrelated Docker resources preserved, concurrent external m365 recreation documented as a distinct concurrent-external observation within the same CHG-HSL-069 report |
-| Juice Shop repository lifecycle/readiness | `PASS / READY-REPO`; readiness/smoke/reset publication parity merged #329; live acceptance pending (#394, after #393) |
+| Juice Shop repository lifecycle/readiness | `PASS / READY-REPO`; readiness/smoke/reset publication parity merged #329; **live lifecycle `PASS / ACCEPTED-LIVE-LIFECYCLE`** for the exact tested revision `2b793750e95f0d0a9a8ac4b82e1b684cc7732e19`, accepted run `run_cc3cd41e85c44d9182305960ea816f18` (CHG-HSL-070, Issue #394); prior attempt `run_353c8079eca84a90be30d4a3324af451` retained as FAIL (harness dropped `JUICE_SHOP_HOST_PORT`, bound default 127.0.0.1:3000); accepted run supplied `JUICE_SHOP_HOST_PORT=14300` on every canonical invocation, zero Juice Shop residue, unrelated Docker/Runner/Kali unchanged, no Runner promotion |
 | WebGoat L1 real adapter | `GREEN-REPO`; typed target-bound effect exists; live dispatch not accepted |
 | Runner outcome -> Evidence Plane custody | `GREEN-REPO`, #321; policy `DISABLED / NOT_RUN` |
 | TB1 receipt delivery boundary | `GREEN-REPO`, #322; policy `DISABLED / NOT_RUN` |
@@ -88,8 +88,8 @@ Target path:
 | Admission | Bridge exact-SHA + approval contracts accepted | RTA-001 and RTA-003 accepted; Bridge `3717bd5469...` |
 | Kali registration | canonical STDIO contract `GREEN-REPO` | Stage 1 `PASS`; disabled + sentinel retained |
 | Kali health | `kali.mcp.health.read -> server_health`, L0, exact mapping | Stage 2 `PASS`; safe state restored |
-| Provision | WebGoat/DVWA/Juice lifecycle contracts `READY-REPO` | WebGoat lifecycle `PASS` live for the exact tested revision `dd3677b6...` (run `run_f3ecec54f9464366aa1edfb32ac58b33`); DVWA lifecycle `PASS` live for the exact tested revision `e3fb2554...` (run `run_8f2174dc4c87452098b700ff556ac978`, CHG-HSL-069); Juice live acceptance pending (#394) |
-| Readiness | typed loopback readiness adapters with host-port parity `PASS` | WebGoat readiness `PASS` live for that exact revision; historical run `run_73cd8ef3...` stays `UNKNOWN`; DVWA readiness `PASS` live for the exact tested revision `e3fb2554...` (CHG-HSL-069); Juice pending (#394) |
+| Provision | WebGoat/DVWA/Juice lifecycle contracts `READY-REPO` | WebGoat lifecycle `PASS` live for the exact tested revision `dd3677b6...` (run `run_f3ecec54f9464366aa1edfb32ac58b33`); DVWA lifecycle `PASS` live for the exact tested revision `e3fb2554...` (run `run_8f2174dc4c87452098b700ff556ac978`, CHG-HSL-069); Juice Shop lifecycle `PASS` live for the exact tested revision `2b793750...` (run `run_cc3cd41e85c44d9182305960ea816f18`, CHG-HSL-070, Issue #394) |
+| Readiness | typed loopback readiness adapters with host-port parity `PASS` | WebGoat readiness `PASS` live for that exact revision; historical run `run_73cd8ef3...` stays `UNKNOWN`; DVWA readiness `PASS` live for the exact tested revision `e3fb2554...` (CHG-HSL-069); Juice Shop readiness `PASS` live for the exact tested revision `2b793750...` (CHG-HSL-070); no Runner promotion |
 | Dispatch bounded effect | WebGoat L1 adapter + peer identity + router + resolver + audit + service composition `GREEN-REPO` | transport/routing/resolver/delivery/service policies `DISABLED / NOT_RUN`; live effect `NOT_RUN` |
 | Host identity/trust | host-evidence collector #336 `GREEN-REPO` | explicit host observation `NOT_RUN` |
 | User namespace | explicit-PID read-only observer #340 `GREEN-REPO` | gateway/Runner mapping observation `NOT_RUN` |
@@ -98,7 +98,7 @@ Target path:
 | Evidence tenant isolation | provider-neutral tenant-isolation verifier #348 `GREEN-REPO` | real tenant config/evidence and cross-tenant negatives `NOT_RUN` — PROD readiness, optional under current LAB_L1 |
 | Evidence custody | terminal/audit custody use the existing Evidence Plane `GREEN-REPO` | live terminal/audit persistence `NOT_RUN` |
 | Live promotion evidence package | phased PRE_PROMOTION/POST_EFFECT verifier #351 + profile-aware correction CHG-HSL-066 `GREEN-REPO` | PRE_PROMOTION and POST_EFFECT packages `NOT_RUN`; even complete packages remain review evidence only |
-| Reset/cleanup | bounded reset/destroy governance exists | first failure cleanup proved zero residue; WebGoat reset/destroy `PASS` live for the exact tested revision with zero project-owned residue; DVWA reset/destroy `PASS` live for the exact tested revision `e3fb2554...` with zero project-owned residue and idempotent second destroy (CHG-HSL-069); historical run `run_73cd8ef3...` stays `UNKNOWN` |
+| Reset/cleanup | bounded reset/destroy governance exists | first failure cleanup proved zero residue; WebGoat reset/destroy `PASS` live for the exact tested revision with zero project-owned residue; DVWA reset/destroy `PASS` live for the exact tested revision `e3fb2554...` with zero project-owned residue and idempotent second destroy (CHG-HSL-069); Juice Shop reset/destroy `PASS` live for the exact tested revision `2b793750...` with zero project-owned residue and idempotent second destroy (CHG-HSL-070); historical run `run_73cd8ef3...` stays `UNKNOWN` |
 
 ## Runtime acceptance already closed
 
@@ -189,7 +189,15 @@ Provenance is retained and not rewritten: the first pre-fix failure history abov
 
 ### DVWA and Juice Shop
 
-Both are `PASS / READY-REPO` after #329 and the governed lifecycle pattern is documented by CHG-HSL-065. DVWA follows `DVWA_HOST_PORT`; Juice Shop follows `JUICE_SHOP_HOST_PORT`, smoke resolves the actual publication and reset uses the canonical `juice-shop-lab` network. Issue #393 is `READY-FOR-LIVE`; #394 follows after #393. Previous connector-side submission attempts failed before an execution ID was created, so no DVWA/Juice mutation or acceptance evidence exists yet.
+Both are `PASS / READY-REPO` after #329 and the governed lifecycle pattern is documented by CHG-HSL-065. DVWA follows `DVWA_HOST_PORT`; Juice Shop follows `JUICE_SHOP_HOST_PORT`, smoke resolves the actual publication and reset uses the canonical `juice-shop-lab` network.
+
+**Accepted Juice Shop live lifecycle (CHG-HSL-070): `PASS / ACCEPTED-LIVE-LIFECYCLE`.** Full record: [`juice-shop-live-lifecycle-acceptance-2026-08-15.md`](juice-shop-live-lifecycle-acceptance-2026-08-15.md). Accepted run `run_cc3cd41e85c44d9182305960ea816f18` exercised the exact repository revision `2b793750e95f0d0a9a8ac4b82e1b684cc7732e19` from a clean temporary export, with `JUICE_SHOP_HOST_PORT=14300` supplied on every canonical invocation (container-internal port unchanged at `3000`); pre-mutation compose resolved `127.0.0.1:14300:3000` and runtime binding was `127.0.0.1:14300->3000/tcp` after start, before reset and after reset. The canonical digest actually used was `bkimminich/juice-shop@sha256:e68144772ebaaca0ec117b38d44903af92416793230288ef7c5437fc4f26850a`. The exact sequence completed with exit code `0` at every step:
+
+`start PASS -> status1 PASS -> smoke1 PASS -> reset PASS -> status2 PASS -> smoke2 PASS -> destroy1 PASS -> destroy2 PASS (idempotent)`
+
+After the two canonical destroy operations, project-owned Juice Shop containers, volumes and networks were all `0` and high port `14300` was free again: **zero project-owned residue**. Unrelated Docker resources, Runner and Kali were preserved and no concurrent external activity was observed.
+
+Attempt 1 (`run_353c8079eca84a90be30d4a3324af451`, same exact SHA) is retained as **FAIL**: the functional lifecycle and cleanup succeeded, but the sanitized execution harness accidentally omitted `JUICE_SHOP_HOST_PORT`, so the clean rerun bound the default `127.0.0.1:3000` instead of the selected high port `14300`; cleanup remained `PASS`/zero-residue. Attempt 1 is never reclassified as PASS. The source contract already supports `JUICE_SHOP_HOST_PORT` via compose environment substitution — the first failure was an execution-harness omission, not a repository script bug. No Runner, signer, trust-store or promotion authority is granted.
 
 ## Authorization / Runner chain
 

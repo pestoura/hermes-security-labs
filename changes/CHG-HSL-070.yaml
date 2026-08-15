@@ -1,0 +1,34 @@
+schemaVersion: jds.change/v1
+kind: ChangeRecord
+id: CHG-HSL-070
+product: hermes-security-labs
+classification: HARDENING
+state: ACCEPTED
+disposition: FIX_NOW
+summary: 'Persist accepted Issue #394 Juice Shop live lifecycle acceptance at exact SHA 2b793750e95f0d0a9a8ac4b82e1b684cc7732e19: attempt 1 FAIL (harness dropped JUICE_SHOP_HOST_PORT, bound default 127.0.0.1:3000 vs selected 14300; cleanup PASS/zero-residue); accepted attempt 2 PASS with JUICE_SHOP_HOST_PORT=14300 every invocation, all 8 steps exit 0, zero residue, unrelated Docker/Runner/Kali unchanged, no Runner promotion.'
+source:
+  type: ENGINEERING_REVIEW
+  campaign: VAL-HSL-JUICE-SHOP-LIVE-LIFECYCLE
+  observation: OBS-JUICE-SHOP-LIVE-LIFECYCLE
+  reference: 'Accepted run run_cc3cd41e85c44d9182305960ea816f18; prior FAIL run run_353c8079eca84a90be30d4a3324af451 retained; evidence-manifest run run_8fbe0ad257fb4252ad9797c9e913ad6b; deterministic manifest SHA-256 27e15027881a470a455b0c93388dcd9e765a36b1761929e8107a786a6592d307. Runner L1 promotion remains BLOCKED/HOLD; no signer/trust/supplier/LAB_L1/#53 change.'
+affectedRelease: jds-002-adoption-candidate
+targetRelease: null
+risk: LOW
+versionEffect: NONE
+branch: chg-hsl-070/juice-shop-live-lifecycle-acceptance
+issue: 394
+pr: null
+validation:
+  targeted: PASS
+  regression: PASS
+  security: PASS
+  runtime: PASS
+promotion:
+  commit: null
+  artifactDigest: null
+  previousRelease: null
+deferredTo: null
+timestamps:
+  discoveredAt: '2026-08-15T18:53:43Z'
+  updatedAt: '2026-08-15T18:59:08Z'
+  closedAt: null
