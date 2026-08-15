@@ -1,0 +1,12 @@
+schema_version: signer-human-decision/v1
+# Current source-of-truth for the explicit human supplier decision.
+# NO_DECISION is the only accepted current state: no provider/class is selected,
+# no trust is bound, no key is created and no promotion authority is granted.
+decision:
+  state: NO_DECISION
+  decision_id: null
+  selected_class: null
+  decided_by: null
+  decided_at: null
+  rationale: null
+  evidence_refs: []
