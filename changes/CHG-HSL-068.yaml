@@ -1,0 +1,34 @@
+schemaVersion: jds.change/v1
+kind: ChangeRecord
+id: CHG-HSL-068
+product: hermes-security-labs
+classification: DOC_ONLY
+state: ACCEPTED
+disposition: FIX_NOW
+summary: 'Reconcile the current walking-skeleton status baseline and provenance with the exact authoritative main revision already reconciled by CHG-HSL-067. Replace the stale CHG-HSL-060/cf89 provenance with 8c654379afb2114e34d6e748bb558b3ad5b8fb4b and add regression coverage. The governed Runner campaign candidate remains unchanged; no runtime, policy, signer/trust or promotion state changes.'
+source:
+  type: ENGINEERING_REVIEW
+  campaign: VAL-HSL-RUNNER-L1-LIVE-PROMOTION
+  observation: OBS-RUNNER-REPO-CHAIN
+  reference: 'After CHG-HSL-066 and CHG-HSL-067, current-walking-skeleton-status.md still declared cf89c4eb564a3e4643feb1c6828b78ff988a93ba / CHG-HSL-060 as the current repository reconciliation provenance. A new RED regression test proved the mismatch while all unrelated validation jobs stayed GREEN. CHG-HSL-068 re-pins documentary provenance only and preserves the separate campaign candidate a63ef01925e5c1b925936c1e73b11b2d6cd2a6a5.'
+affectedRelease: jds-002-adoption-candidate
+targetRelease: null
+risk: LOW
+versionEffect: NONE
+branch: chg-hsl-068/reconcile-current-baseline
+issue: null
+pr: 398
+validation:
+  targeted: PENDING
+  regression: PENDING
+  security: PENDING
+  runtime: NOT_APPLICABLE
+promotion:
+  commit: null
+  artifactDigest: null
+  previousRelease: null
+deferredTo: null
+timestamps:
+  discoveredAt: '2026-08-15T17:37:00Z'
+  updatedAt: '2026-08-15T17:40:00Z'
+  closedAt: null
