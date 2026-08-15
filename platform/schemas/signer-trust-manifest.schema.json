@@ -1,0 +1,120 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Hermes Security Labs signer trust manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "manifest_id",
+    "schema_version",
+    "provider_kind",
+    "provider_ref",
+    "key_id",
+    "algorithm",
+    "public_key_spki_sha256",
+    "attestation_id",
+    "observed_at",
+    "source_evidence_ref",
+    "source_evidence_sha256",
+    "generation_id",
+    "generation_sequence",
+    "trust_store_sha256",
+    "lifecycle_decision",
+    "trust_binding_allowed",
+    "automatic_activation",
+    "activation_effect",
+    "authorization_effect",
+    "execution_authority",
+    "promotion_allowed",
+    "runtime_status"
+  ],
+  "properties": {
+    "manifest_id": {
+      "type": "string",
+      "pattern": "^stm_[a-f0-9]{32}$"
+    },
+    "schema_version": {
+      "const": "signer-trust-manifest/v1"
+    },
+    "provider_kind": {
+      "type": "string",
+      "enum": ["VAULT", "KMS", "HSM"]
+    },
+    "provider_ref": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512,
+      "pattern": "^[^\\r\\n]+$"
+    },
+    "key_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160,
+      "pattern": "^[^\\r\\n]+$"
+    },
+    "algorithm": {
+      "type": "string",
+      "enum": ["Ed25519", "ECDSA-P256-SHA256"]
+    },
+    "public_key_spki_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "attestation_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9._:-]+$"
+    },
+    "observed_at": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80,
+      "pattern": "^[^\\r\\n]+$"
+    },
+    "source_evidence_ref": {
+      "type": "string",
+      "maxLength": 500,
+      "pattern": "^evidence://[A-Za-z0-9][A-Za-z0-9._:/-]*$"
+    },
+    "source_evidence_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "generation_id": {
+      "type": "string",
+      "pattern": "^tsg_[a-f0-9]{32}$"
+    },
+    "generation_sequence": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "trust_store_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "lifecycle_decision": {
+      "const": "ACCEPT_FOR_REVIEW"
+    },
+    "trust_binding_allowed": {
+      "const": false
+    },
+    "automatic_activation": {
+      "const": false
+    },
+    "activation_effect": {
+      "const": "NONE"
+    },
+    "authorization_effect": {
+      "const": "NONE"
+    },
+    "execution_authority": {
+      "const": "NONE"
+    },
+    "promotion_allowed": {
+      "const": false
+    },
+    "runtime_status": {
+      "const": "NOT_RUN"
+    }
+  }
+}
