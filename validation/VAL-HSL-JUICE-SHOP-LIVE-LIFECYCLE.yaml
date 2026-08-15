@@ -1,0 +1,24 @@
+schemaVersion: jds.validation/v1
+kind: ValidationCampaign
+id: VAL-HSL-JUICE-SHOP-LIVE-LIFECYCLE
+product: hermes-security-labs
+objective: Validate the canonical Juice Shop local Docker lifecycle on an exact repository revision, including readiness, smoke, reset, destroy idempotence, localhost-only high-port publication, non-interference and zero project-owned residue, without implying Runner or signer promotion.
+state: PASSED
+candidate:
+  version: juice-shop-live-lifecycle-2b793750
+  commit: 2b793750e95f0d0a9a8ac4b82e1b684cc7732e19
+  artifactDigest: null
+environment: Hermes Security Labs / local Juice Shop isolated Docker lifecycle
+observations:
+  - id: OBS-JUICE-SHOP-LIVE-LIFECYCLE
+    required: true
+    result: PASS
+    status: RESOLVED
+    summary: Exact revision completed start, status1, smoke1, reset, status2, smoke2, destroy1 and idempotent destroy2 on loopback-only high port 14300 (JUICE_SHOP_HOST_PORT explicitly supplied every canonical invocation), preserving unrelated Docker resources and ending with zero project-owned containers, volumes and networks; prior attempt 353c8079 FAIL retained (harness dropped JUICE_SHOP_HOST_PORT) and not reclassified.
+    changeRecord: CHG-HSL-070
+    evidence: 'run:run_cc3cd41e85c44d9182305960ea816f18;prior-fail-run:run_353c8079eca84a90be30d4a3324af451=FAIL;manifest-run:run_8fbe0ad257fb4252ad9797c9e913ad6b;manifest-sha256:27e15027881a470a455b0c93388dcd9e765a36b1761929e8107a786a6592d307;digest:bkimminich/juice-shop@sha256:e68144772ebaaca0ec117b38d44903af92416793230288ef7c5437fc4f26850a;scope:lifecycle-only-no-runner-promotion;non-interference:unrelated Docker/Runner/Kali resources preserved; no concurrent external activity observed'
+promotionRecommendation: ACCEPT
+timestamps:
+  startedAt: '2026-08-15T18:53:43Z'
+  updatedAt: '2026-08-15T18:59:08Z'
+  closedAt: '2026-08-15T18:59:08Z'
