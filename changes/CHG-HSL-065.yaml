@@ -1,0 +1,34 @@
+schemaVersion: jds.change/v1
+kind: ChangeRecord
+id: CHG-HSL-065
+product: hermes-security-labs
+classification: DOC_ONLY
+state: ACCEPTED
+disposition: FIX_NOW
+summary: 'Generalise the accepted CHG-HSL-064 WebGoat standalone lifecycle method into a deterministic governed runbook for WebGoat, DVWA and Juice Shop, and reconcile stale Juice Shop documentation with the already-versioned JUICE_SHOP_HOST_PORT override, canonical juice-shop-lab network and ownership-checking Kali connection scripts. Repository/documentation only: no Docker mutation, target traffic, Kali connection, signer/trust change or Runner promotion.'
+source:
+  type: ENGINEERING_REVIEW
+  campaign: VAL-HSL-WEBGOAT-LIVE-LIFECYCLE
+  observation: OBS-WEBGOAT-LIVE-LIFECYCLE
+  reference: 'Derived from accepted CHG-HSL-064 lifecycle evidence: exact-revision clean export, free localhost overrides, canonical start/status/smoke/reset/status/smoke/destroy/destroy sequence, deterministic SHA-256 evidence manifest, non-interference and zero project-owned residue. Tracks next independent live acceptances as issues #393 DVWA and #394 Juice Shop. This change creates no live evidence and does not alter VAL-HSL-RUNNER-L1-LIVE-PROMOTION.'
+affectedRelease: jds-002-adoption-candidate
+targetRelease: null
+risk: LOW
+versionEffect: NONE
+branch: chg-hsl-065/lab-live-lifecycle-runbook
+issue: null
+pr: null
+validation:
+  targeted: PASS
+  regression: PASS
+  security: PASS
+  runtime: NOT_APPLICABLE
+promotion:
+  commit: null
+  artifactDigest: null
+  previousRelease: null
+deferredTo: null
+timestamps:
+  discoveredAt: '2026-08-15T13:16:00Z'
+  updatedAt: '2026-08-15T13:16:00Z'
+  closedAt: null
