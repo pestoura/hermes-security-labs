@@ -19,9 +19,9 @@ branch: chg-hsl-068/reconcile-current-baseline
 issue: null
 pr: 398
 validation:
-  targeted: PENDING
-  regression: PENDING
-  security: PENDING
+  targeted: PASS
+  regression: PASS
+  security: PASS
   runtime: NOT_APPLICABLE
 promotion:
   commit: null
@@ -30,5 +30,5 @@ promotion:
 deferredTo: null
 timestamps:
   discoveredAt: '2026-08-15T17:37:00Z'
-  updatedAt: '2026-08-15T17:40:00Z'
+  updatedAt: '2026-08-15T17:49:00Z'
   closedAt: null
