@@ -18,6 +18,8 @@ ROOT = Path(__file__).resolve().parents[2]
 ASSURANCE_DIR = ROOT / "platform" / "assurance"
 SIGNING_SERVICE_PATH = ASSURANCE_DIR / "signing_service.py"
 ADAPTER_PATH = ASSURANCE_DIR / "test_signer_adapter.py"
+CANONICAL_DOMAIN = "hex0r.tb1.authorization.v1"
+CANONICAL_PURPOSE = "tb1-authorization"
 
 
 def _load(path: Path, name: str):
@@ -47,8 +49,8 @@ def _modules():
 def _request(signing):
     return signing.SigningRequest(
         digest_sha256="a" * 64,
-        purpose="tb1-authorization-receipt",
-        domain="hermes-security-labs/lab-l1",
+        purpose=CANONICAL_PURPOSE,
+        domain=CANONICAL_DOMAIN,
         correlation_id="corr-001",
     )
 
@@ -68,18 +70,32 @@ def test_ci_signer_is_deterministic_for_same_request_and_seed() -> None:
     ("field", "value"),
     [
         ("digest_sha256", "b" * 64),
-        ("purpose", "evidence-seal"),
-        ("domain", "hermes-security-labs/other-domain"),
         ("correlation_id", "corr-002"),
     ],
 )
-def test_domain_separated_payload_changes_when_request_binding_changes(field: str, value: str) -> None:
+def test_domain_separated_payload_changes_for_mutable_request_bindings(field: str, value: str) -> None:
     signing, adapter_module = _modules()
     base = _request(signing)
     changed = replace(base, **{field: value})
     assert adapter_module.verification_payload(base) != adapter_module.verification_payload(changed)
     signer = adapter_module.TestSignerAdapter(b"\x22" * 32)
     assert signer.sign(base).signature_b64 != signer.sign(changed).signature_b64
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("purpose", "evidence-seal"),
+        ("domain", "hermes-security-labs/other-domain"),
+    ],
+)
+def test_adapter_rejects_noncanonical_tb1_purpose_or_domain(field: str, value: str) -> None:
+    signing, adapter_module = _modules()
+    signer = adapter_module.TestSignerAdapter(b"\x22" * 32)
+    changed = replace(_request(signing), **{field: value})
+    with pytest.raises(signing.SigningServiceError) as exc:
+        signer.sign(changed)
+    assert exc.value.code == "SIGNING_REQUEST_INVALID"
 
 
 def test_signature_verifies_with_public_spki_and_mutation_is_rejected() -> None:
