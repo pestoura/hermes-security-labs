@@ -12,7 +12,9 @@ It deliberately:
 - treats PKCS11 as an interface class, never as proof of key custody;
 - fails closed when the baseline is missing/unaccepted, or when any candidate is
   marked SELECTED, or when candidate evidence is missing/unverified;
-- requires an explicit CHG-HSL-062 human decision for any future PENDING/SELECTED
+- permits an APPROVED human decision to be staged while the baseline remains
+  NO_SELECTION, preserving the deliberate separation between decision and transition;
+- requires that explicit CHG-HSL-062 human decision for any future PENDING/SELECTED
   supplier-selection contract;
 - keeps trust binding disabled and grants no runtime/promotion authority even when a
   future human selection contract is internally coherent;
@@ -66,8 +68,8 @@ INTERFACE_CLASSES = ("PKCS11",)
 SELECTABLE_CUSTODY_CLASSES = ("KMS", "HSM", "VAULT")
 # A class is only ever a custody proof once explicitly proven by verified evidence.
 AUTO_SELECTION_FORBIDDEN = True
-# Repository-only baseline with no human supplier decision made yet. Fail-closed
-# default for supplier_selection until an explicit decision is recorded.
+# Repository-only baseline with no supplier transition made yet. A human decision may
+# be staged while this remains NO_SELECTION, but it grants no trust/runtime authority.
 NO_SELECTION = "NO_SELECTION"
 PENDING = "PENDING"
 SELECTED = "SELECTED"
@@ -252,7 +254,7 @@ def evaluate_signer_baseline(
         # Selection transitions are evaluated only by the explicit transition guard
         # below, which also requires the CHG-HSL-062 human-decision record.
         failures.append(
-            "supplier selection is not NO_SELECTION; use the explicit human "
+            "supplier selection is not NO_SELECTION; use the explicit human decision "
             "selection transition contract, never automatic baseline acceptance"
         )
 
@@ -357,7 +359,7 @@ def validate_no_selection_trust_guard(
     supplier_selection = str(baseline.get("supplier_selection", NO_SELECTION))
     if supplier_selection != NO_SELECTION:
         raise SignerBaselineError(
-            "supplier selection is not NO_SELECTION; use the explicit human "
+            "supplier selection is not NO_SELECTION; use the explicit human decision "
             "selection transition contract"
         )
 
@@ -374,9 +376,11 @@ def validate_selection_transition_contract(
     """Validate selection-state/decision/evidence coherence without granting authority.
 
     This is a repository-only *contract* gate. It never chooses a class and it never
-    verifies provider evidence itself. A future PENDING/SELECTED state is coherent only
-    after the human-decision record is APPROVED and the matching custody candidate has
-    already reached EVIDENCE_VERIFIED_PENDING_DECISION with capability evidence.
+    verifies provider evidence itself. An APPROVED human decision may be staged while
+    the baseline remains NO_SELECTION; this is deliberately separate from changing the
+    baseline to PENDING/SELECTED. A future PENDING/SELECTED state is coherent only after
+    that human decision is APPROVED and the matching custody candidate has already
+    reached EVIDENCE_VERIFIED_PENDING_DECISION with capability evidence.
 
     Even then, CHG-HSL-063 requires trust_binding to remain inactive. Trust binding and
     live promotion are separate later changes with their own evidence and approval.
@@ -403,9 +407,14 @@ def validate_selection_transition_contract(
     loaded_runtime = _load_runtime_deployment(runtime_deployment)
 
     if supplier_selection == NO_SELECTION:
-        if decision_eval.state != signer_human_decision.NO_DECISION:
+        # Both NO_DECISION and APPROVED are legitimate staging states here. The baseline
+        # remains intentionally unbound until a separate PENDING/SELECTED transition.
+        if decision_eval.state not in (
+            signer_human_decision.NO_DECISION,
+            signer_human_decision.APPROVED,
+        ):
             raise SignerBaselineError(
-                "NO_SELECTION requires signer human decision state NO_DECISION"
+                f"unsupported signer human decision state under NO_SELECTION: {decision_eval.state}"
             )
         _validate_inactive_trust_binding(loaded_runtime, context=NO_SELECTION)
         return SignerSelectionTransitionEvaluation(
