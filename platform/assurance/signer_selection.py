@@ -48,12 +48,21 @@ TB1_ATTESTATION_SCHEMA = (
     / "runtime-promotion"
     / "tb1-signer-attestation.schema.json"
 )
+RUNTIME_DEPLOYMENT_YAML = (
+    ROOT.parent
+    / "deployment"
+    / "runner-runtime"
+    / "runtime-deployment.yaml"
+)
 
 CANDIDATE_CLASSES = ("KMS", "HSM", "VAULT", "PKCS11")
 # PKCS11 is an interface standard, not a custody backend.
 INTERFACE_CLASSES = ("PKCS11",)
 # A class is only ever a custody proof once explicitly proven by verified evidence.
 AUTO_SELECTION_FORBIDDEN = True
+# Repository-only baseline with no human supplier decision made yet. Fail-closed
+# default for supplier_selection until an explicit decision is recorded.
+NO_SELECTION = "NO_SELECTION"
 
 _FORBIDDEN_RUNTIME_IMPORTS = {
     "subprocess",
@@ -198,6 +207,16 @@ def evaluate_signer_baseline(
     allows_auto = baseline.get("allows_automatic_supplier_choice") is True
     supplier_selection = str(baseline.get("supplier_selection", "NO_SELECTION"))
 
+    if supplier_selection != NO_SELECTION:
+        # Any transition out of NO_SELECTION to PENDING/SELECTED requires an
+        # explicit human decision plus a deliberate contract/guard update. This
+        # evaluator must not accept a selection transition automatically.
+        failures.append(
+            "supplier selection is not NO_SELECTION; a transition to "
+            "PENDING/SELECTED requires an explicit human decision and a "
+            "deliberate contract/guard update, not automatic acceptance"
+        )
+
     if not accepted:
         failures.append("signer baseline R1-R8 is not accepted")
     if not provider_neutral:
@@ -238,6 +257,79 @@ def evaluate_signer_baseline(
         failures=(),
         candidates=candidates,
     )
+
+
+def validate_no_selection_trust_guard(
+    document: Mapping[str, Any] | None = None,
+    runtime_deployment: Mapping[str, Any] | None = None,
+) -> None:
+    """Fail-closed trust-bearing guard for the CURRENT NO_SELECTION contract.
+
+    Repository-only. This reads committed YAML when arguments are omitted; it
+    MUST NOT write, install, bind, generate keys, import trust_binding.py, or
+    invoke network/process/runtime, and it must not inspect ``/etc``.
+
+    Safe state (NO_SELECTION) requires *exactly* these facts on the
+    ``trust_binding`` mapping:
+      - enabled is False
+      - source is None
+      - public_source is False
+      - expected_sha256 is None
+    The ``trust_store_path`` value is permitted because it only declares the
+    canonical destination, not a binding.
+    """
+    if document is None:
+        document = load_baseline()
+    baseline = document.get("signer_baseline") or {}
+    supplier_selection = str(baseline.get("supplier_selection", NO_SELECTION))
+    if supplier_selection != NO_SELECTION:
+        raise SignerBaselineError(
+            "supplier selection is not NO_SELECTION; a transition to "
+            "PENDING/SELECTED requires an explicit human decision and a "
+            "deliberate contract/guard update, not automatic acceptance"
+        )
+
+    if runtime_deployment is None:
+        text = RUNTIME_DEPLOYMENT_YAML.read_text(encoding="utf-8")
+        runtime_deployment = yaml.safe_load(text)
+    if not isinstance(runtime_deployment, Mapping):
+        raise SignerBaselineError(
+            "runtime deployment document must be a mapping"
+        )
+
+    trust_binding = runtime_deployment.get("trust_binding")
+    if not isinstance(trust_binding, Mapping):
+        raise SignerBaselineError(
+            "runtime deployment trust_binding must be a mapping"
+        )
+
+    violations: list[str] = []
+    if trust_binding.get("enabled") is not False:
+        violations.append(
+            f"trust_binding.enabled must be False under NO_SELECTION, "
+            f"got {trust_binding.get('enabled')!r}"
+        )
+    if trust_binding.get("source") is not None:
+        violations.append(
+            f"trust_binding.source must be None under NO_SELECTION, "
+            f"got {trust_binding.get('source')!r}"
+        )
+    if trust_binding.get("public_source") is not False:
+        violations.append(
+            f"trust_binding.public_source must be False under NO_SELECTION, "
+            f"got {trust_binding.get('public_source')!r}"
+        )
+    if trust_binding.get("expected_sha256") is not None:
+        violations.append(
+            f"trust_binding.expected_sha256 must be None under NO_SELECTION, "
+            f"got {trust_binding.get('expected_sha256')!r}"
+        )
+
+    if violations:
+        raise SignerBaselineError(
+            "NO_SELECTION trust guard failed closed: " + "; ".join(violations)
+        )
+    return None
 
 
 def _module_has_no_provider_or_runtime_imports() -> bool:

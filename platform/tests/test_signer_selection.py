@@ -267,3 +267,75 @@ def test_module_has_no_provider_client_or_key_generation_imports() -> None:
             raise AssertionError(f"forbidden attribute used as code: .{node.attr}(")
     # The module must reuse the existing canonical modules rather than duplicate them.
     assert "tb1_authorization_preflight" in source
+
+
+# ---------------------------------------------------------------------------
+# CURRENT NO_SELECTION guard (repository-only, fail-closed)
+# ---------------------------------------------------------------------------
+validate_no_selection_trust_guard = module.validate_no_selection_trust_guard
+
+TRUST_STORE_PATH = "/etc/hexor/runner/authorization-trust-store.json"
+
+
+def _safe_runtime_deployment() -> dict[str, Any]:
+    return {
+        "trust_binding": {
+            "enabled": False,
+            "source": None,
+            "public_source": False,
+            "expected_sha256": None,
+            "trust_store_path": TRUST_STORE_PATH,
+        }
+    }
+
+
+@pytest.mark.parametrize("status", ["PENDING", "SELECTED"])
+def test_schema_valid_selection_transition_states_fail_closed(status: str) -> None:
+    doc = load_baseline(BASELINE_PATH)
+    doc["signer_baseline"]["supplier_selection"] = status
+    with pytest.raises(SignerBaselineError) as exc:
+        evaluate_signer_baseline(doc)
+    message = str(exc.value)
+    assert "supplier selection" in message or "supplier_selection" in message
+    assert "human" in message
+    assert "decision" in message
+    assert "contract" in message
+
+
+def test_no_selection_trust_guard_accepts_committed_safe_state() -> None:
+    assert validate_no_selection_trust_guard() is None
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("enabled", True),
+        ("source", "/tmp/unapproved.json"),
+        ("public_source", True),
+        ("expected_sha256", "0" * 64),
+    ],
+)
+def test_no_selection_trust_guard_contradictions_fail_closed(field: str, value: Any) -> None:
+    doc = load_baseline(BASELINE_PATH)
+    runtime_deployment = _safe_runtime_deployment()
+    runtime_deployment["trust_binding"][field] = value
+    with pytest.raises(SignerBaselineError) as exc:
+        validate_no_selection_trust_guard(
+            document=doc, runtime_deployment=runtime_deployment
+        )
+    message = str(exc.value)
+    assert "failed closed" in message
+    assert "trust_binding" in message
+    assert field in message
+
+
+def test_no_selection_guard_allows_canonical_destination_declaration_only() -> None:
+    doc = load_baseline(BASELINE_PATH)
+    runtime_deployment = _safe_runtime_deployment()
+    assert runtime_deployment["trust_binding"]["trust_store_path"] == TRUST_STORE_PATH
+    assert (
+        validate_no_selection_trust_guard(
+            document=doc, runtime_deployment=runtime_deployment
+        )
+        is None
+    )
