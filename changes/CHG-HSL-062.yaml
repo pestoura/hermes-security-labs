@@ -1,0 +1,34 @@
+schemaVersion: jds.change/v1
+kind: ChangeRecord
+id: CHG-HSL-062
+product: hermes-security-labs
+classification: HARDENING
+state: ACCEPTED
+disposition: FIX_NOW
+summary: 'Repository-only explicit human signer-decision contract. The committed state remains NO_DECISION and selects no provider/class. Any future APPROVED decision must name KMS/HSM/VAULT, bind capability, signer-attestation, trust-store and R1-R8 review evidence by canonical evidence:// refs plus SHA-256, and still grants no runtime or promotion authority.'
+source:
+  type: ENGINEERING_REVIEW
+  campaign: VAL-HSL-RUNNER-L1-LIVE-PROMOTION
+  observation: OBS-TB1-LIVE-DELIVERY
+  reference: 'CHG-HSL-062 adds a strict signer-human-decision schema, current NO_DECISION source-of-truth, fail-closed repository-only evaluator and deterministic tests. It selects no supplier, verifies no provider evidence itself, installs no trust, creates no key and leaves promotion_allowed=false/runtime NOT_RUN.'
+affectedRelease: jds-002-adoption-candidate
+targetRelease: null
+risk: LOW
+versionEffect: NONE
+branch: chg-hsl-062/signer-human-decision-contract
+issue: null
+pr: null
+validation:
+  targeted: PASS
+  regression: PASS
+  security: PASS
+  runtime: NOT_APPLICABLE
+promotion:
+  commit: null
+  artifactDigest: null
+  previousRelease: null
+deferredTo: null
+timestamps:
+  discoveredAt: '2026-08-15T11:50:00Z'
+  updatedAt: '2026-08-15T11:50:00Z'
+  closedAt: null

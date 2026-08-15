@@ -1,0 +1,84 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Hermes Security Labs signer human-decision record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "decision"],
+  "properties": {
+    "schema_version": {"const": "signer-human-decision/v1"},
+    "decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state",
+        "decision_id",
+        "selected_class",
+        "decided_by",
+        "decided_at",
+        "rationale",
+        "evidence_refs"
+      ],
+      "properties": {
+        "state": {"type": "string", "enum": ["NO_DECISION", "APPROVED"]},
+        "decision_id": {"type": ["string", "null"], "maxLength": 80},
+        "selected_class": {
+          "type": ["string", "null"],
+          "enum": [null, "KMS", "HSM", "VAULT"]
+        },
+        "decided_by": {"type": ["string", "null"], "maxLength": 160},
+        "decided_at": {"type": ["string", "null"]},
+        "rationale": {"type": ["string", "null"], "maxLength": 1000},
+        "evidence_refs": {
+          "type": "array",
+          "maxItems": 8,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["kind", "ref", "sha256"],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "capability_evidence",
+                  "signer_attestation",
+                  "trust_store_manifest",
+                  "r1_r8_review"
+                ]
+              },
+              "ref": {"type": "string", "pattern": "^evidence://[^\\s]+$", "maxLength": 500},
+              "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+            }
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"state": {"const": "NO_DECISION"}}},
+          "then": {
+            "properties": {
+              "decision_id": {"const": null},
+              "selected_class": {"const": null},
+              "decided_by": {"const": null},
+              "decided_at": {"const": null},
+              "rationale": {"const": null},
+              "evidence_refs": {"maxItems": 0}
+            }
+          }
+        },
+        {
+          "if": {"properties": {"state": {"const": "APPROVED"}}},
+          "then": {
+            "properties": {
+              "decision_id": {"type": "string", "minLength": 3},
+              "selected_class": {"type": "string", "enum": ["KMS", "HSM", "VAULT"]},
+              "decided_by": {"type": "string", "minLength": 1},
+              "decided_at": {"type": "string", "minLength": 1},
+              "rationale": {"type": "string", "minLength": 10},
+              "evidence_refs": {"minItems": 1}
+            }
+          }
+        }
+      ]
+    }
+  }
+}
