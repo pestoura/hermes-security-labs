@@ -1,0 +1,34 @@
+schemaVersion: jds.change/v1
+kind: ChangeRecord
+id: CHG-HSL-073
+product: hermes-security-labs
+classification: HARDENING
+state: ACCEPTED
+disposition: FIX_NOW
+summary: 'Add a provider-neutral external SigningService boundary and deterministic Ed25519 CI-only signer. The test signer is mechanically CI_ONLY, NON_AUTHORITATIVE and NOT_ADMISSIBLE_FOR_LAB_L1_PROMOTION. VAULT is recorded only as the preferred future custody architecture; implementation, provider evidence and trust binding remain deferred. No runtime, key, credential, provider or promotion mutation.'
+source:
+  type: ENGINEERING_REVIEW
+  campaign: VAL-HSL-RUNNER-L1-LIVE-PROMOTION
+  observation: OBS-RUNNER-POLICY-PROMOTION
+  reference: 'Issue #403 architecture-direction discussion and PR #406. TDD proved the provider-neutral contract, deterministic in-memory CI signing and fail-closed LAB_L1 envelope guard. Operational signer decision remains NO_DECISION; supplier_selection remains NO_SELECTION. Passing the envelope guard never substitutes runtime_signer_attestation, EvidenceVerifier, R1-R8 review or trust-store verification.'
+affectedRelease: jds-002-adoption-candidate
+targetRelease: null
+risk: LOW
+versionEffect: NONE
+branch: docs/vault-target-deferred-design
+issue: 403
+pr: 406
+validation:
+  targeted: PASS
+  regression: PASS
+  security: PASS
+  runtime: NOT_RUN
+promotion:
+  commit: null
+  artifactDigest: null
+  previousRelease: null
+deferredTo: null
+timestamps:
+  discoveredAt: '2026-08-15T22:20:00Z'
+  updatedAt: '2026-08-15T22:20:00Z'
+  closedAt: null
