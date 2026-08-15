@@ -1,0 +1,34 @@
+schemaVersion: jds.change/v1
+kind: ChangeRecord
+id: CHG-HSL-072
+product: hermes-security-labs
+classification: HARDENING
+state: ACCEPTED
+disposition: FIX_NOW
+summary: 'Reconcile authorized issue #402 operator-harness evidence on exact repository SHA 9448817e436ee096e0f839b6bb8b9bf9e06d8d6d. Current Gateway PID 3649254 and Runner PID 409235 userns mapping re-attested PASS; ephemeral UID 2000 peer probe observed HOLD_REFUSAL_OBSERVED with canonical_proof true and payload_sent false. No persistent identity, policy, trust, signer, target or promotion mutation. Campaign remains BLOCKED/HOLD.'
+source:
+  type: ENGINEERING_REVIEW
+  campaign: VAL-HSL-RUNNER-L1-LIVE-PROMOTION
+  observation: OBS-RUNNER-POLICY-PROMOTION
+  reference: 'Issue #402. Sanitized evidence deployment/runtime-promotion/evidence/live-operator-observation-CHG-HSL-072.yaml; raw operator envelope remained outside Git at /var/tmp/hsl-059-evidence. Evidence SHA-256 bf7a2b498cd9a547852d594b8c2cc43bbefbe73ee4eddc5c7ca3b7ad5d11a2a8; reviewed descriptor SHA-256 e10cdbe95e58f5ffde74c000bb660415eb945ae93e48be863397e7c3ba4257d5.'
+affectedRelease: jds-002-adoption-candidate
+targetRelease: null
+risk: LOW
+versionEffect: NONE
+branch: chg-hsl-072/reconcile-current-userns-peer-negative
+issue: 402
+pr: null
+validation:
+  targeted: PASS
+  regression: PASS
+  security: PASS
+  runtime: PASS
+promotion:
+  commit: null
+  artifactDigest: null
+  previousRelease: null
+deferredTo: null
+timestamps:
+  discoveredAt: '2026-08-15T21:11:00Z'
+  updatedAt: '2026-08-15T21:11:00Z'
+  closedAt: null
