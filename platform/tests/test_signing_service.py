@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """CHG-HSL-073 tests for the provider-neutral signing-service boundary.
 
-The first TDD commit intentionally lands before the production module. Tests load the
-module dynamically so the RED state is an assertion failure that the contract is absent,
-not an import-time collection error.
+Tests intentionally drive the contract through TDD. Dynamic loading keeps this
+repository-only assurance directory independent from Python package layout decisions.
 """
 
 from __future__ import annotations
@@ -17,12 +16,24 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
-MODULE_PATH = ROOT / "platform" / "assurance" / "signing_service.py"
+ASSURANCE_DIR = ROOT / "platform" / "assurance"
+MODULE_PATH = ASSURANCE_DIR / "signing_service.py"
+ADAPTER_PATH = ASSURANCE_DIR / "test_signer_adapter.py"
 
 
 def _load_module():
     assert MODULE_PATH.exists(), "provider-neutral signing_service.py is not implemented yet"
     spec = importlib.util.spec_from_file_location("signing_service_test", MODULE_PATH)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def _load_adapter():
+    assert ADAPTER_PATH.exists(), "CI-only test_signer_adapter.py is not implemented yet"
+    spec = importlib.util.spec_from_file_location("signer_adapter_guard_test", ADAPTER_PATH)
     assert spec and spec.loader
     module = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = module
@@ -36,6 +47,19 @@ def _valid_request(module):
         purpose="tb1-authorization-receipt",
         domain="hermes-security-labs/lab-l1",
         correlation_id="corr-001",
+    )
+
+
+def _valid_external_result(module):
+    return module.SigningResult(
+        signature_b64="YQ==",
+        key_id="vault-key-1",
+        algorithm="Ed25519",
+        public_key_spki_sha256="b" * 64,
+        signer_class="VAULT",
+        authority="EXTERNAL_CUSTODY",
+        admissible_for_lab_l1=True,
+        audit_ref="evidence://signer/audit-1",
     )
 
 
@@ -72,17 +96,8 @@ def test_invalid_signing_request_fails_closed(field: str, value: str) -> None:
 
 def test_signing_result_contains_only_public_boundary_metadata() -> None:
     module = _load_module()
-    result = module.SigningResult(
-        signature_b64="YQ==",
-        key_id="key-1",
-        algorithm="Ed25519",
-        public_key_spki_sha256="b" * 64,
-        signer_class="VAULT",
-        authority="EXTERNAL_CUSTODY",
-        admissible_for_lab_l1=True,
-        audit_ref="evidence://signer/audit-1",
-    )
-    assert result.key_id == "key-1"
+    result = _valid_external_result(module)
+    assert result.key_id == "vault-key-1"
     assert not hasattr(result, "private_key")
     assert not hasattr(result, "secret")
     assert not hasattr(result, "token")
@@ -118,3 +133,43 @@ def test_signing_service_protocol_exposes_only_sign() -> None:
         if callable(value) and not name.startswith("_")
     }
     assert public_methods == {"sign"}
+
+
+def test_lab_l1_guard_rejects_ci_only_signer_result() -> None:
+    module = _load_module()
+    adapter_module = _load_adapter()
+    ci_result = adapter_module.TestSignerAdapter(b"\x66" * 32).sign(_valid_request(module))
+    with pytest.raises(module.SigningServiceError) as exc:
+        module.require_lab_l1_admissible(ci_result)
+    assert exc.value.code == "SIGNER_NOT_ADMISSIBLE"
+
+
+def test_lab_l1_guard_accepts_structurally_valid_external_custody_envelope_only() -> None:
+    module = _load_module()
+    result = _valid_external_result(module)
+    assert module.require_lab_l1_admissible(result) is result
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "expected_code"),
+    [
+        ("admissible_for_lab_l1", False, "SIGNER_NOT_ADMISSIBLE"),
+        ("signer_class", "TEST", "SIGNER_NOT_ADMISSIBLE"),
+        ("signer_class", "PKCS11", "SIGNER_NOT_ADMISSIBLE"),
+        ("authority", "CI_ONLY/NON_AUTHORITATIVE", "SIGNER_NOT_ADMISSIBLE"),
+        ("algorithm", "RSA", "SIGNER_RESPONSE_INVALID"),
+        ("key_id", "", "SIGNER_RESPONSE_INVALID"),
+        ("public_key_spki_sha256", "B" * 64, "SIGNER_RESPONSE_INVALID"),
+        ("signature_b64", "not base64!", "SIGNER_RESPONSE_INVALID"),
+        ("audit_ref", "", "SIGNER_RESPONSE_INVALID"),
+        ("audit_ref", "ci-test://corr/aaaa", "SIGNER_RESPONSE_INVALID"),
+    ],
+)
+def test_lab_l1_guard_fails_closed_on_inadmissible_or_malformed_results(
+    field: str, value: object, expected_code: str
+) -> None:
+    module = _load_module()
+    result = replace(_valid_external_result(module), **{field: value})
+    with pytest.raises(module.SigningServiceError) as exc:
+        module.require_lab_l1_admissible(result)
+    assert exc.value.code == expected_code
