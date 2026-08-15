@@ -5,7 +5,7 @@ product: hermes-security-labs
 classification: HARDENING
 state: ACCEPTED
 disposition: FIX_NOW
-summary: 'Correct the executable live-promotion evidence gate to honor the accepted ADR-0011 Option B assurance profile. LAB_L1 now requires the common signer/trust/peer/evidence-integrity controls and may omit only EVIDENCE_BACKEND_CONTROLS and EVIDENCE_TENANT_ISOLATION; PROD continues to require both. Historical LAB_L1 packages may retain those PROD-only gates as optional evidence: NOT_RUN does not block, while FAIL or unverified executed evidence still blocks. Invalid/inconsistent profile declarations fail closed to PROD. No runtime, policy, signer/trust or promotion state is changed; the campaign remains BLOCKED/HOLD.'
+summary: 'Align the live-promotion evidence gate with ADR-0011 Option B: LAB_L1 may omit only the production backend and tenant-isolation gates; PROD still requires both. Historical LAB_L1 packages may retain those gates as optional evidence. Invalid profiles fail closed to PROD. Runtime and campaign remain unchanged at BLOCKED/HOLD.'
 source:
   type: ENGINEERING_REVIEW
   campaign: VAL-HSL-RUNNER-L1-LIVE-PROMOTION
@@ -30,5 +30,5 @@ promotion:
 deferredTo: null
 timestamps:
   discoveredAt: '2026-08-15T13:20:00Z'
-  updatedAt: '2026-08-15T13:25:00Z'
+  updatedAt: '2026-08-15T13:40:00Z'
   closedAt: null
