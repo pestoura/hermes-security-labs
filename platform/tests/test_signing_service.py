@@ -21,8 +21,23 @@ MODULE_PATH = ASSURANCE_DIR / "signing_service.py"
 ADAPTER_PATH = ASSURANCE_DIR / "test_signer_adapter.py"
 
 
+def _reuse_loaded(path: Path):
+    resolved = path.resolve()
+    for module in tuple(sys.modules.values()):
+        module_file = getattr(module, "__file__", None)
+        if module_file and Path(module_file).resolve() == resolved:
+            return module
+    return None
+
+
 def _load_module():
     assert MODULE_PATH.exists(), "provider-neutral signing_service.py is not implemented yet"
+    loaded = _reuse_loaded(MODULE_PATH)
+    if loaded is not None:
+        return loaded
+    existing = sys.modules.get("signing_service_test")
+    if existing is not None:
+        return existing
     spec = importlib.util.spec_from_file_location("signing_service_test", MODULE_PATH)
     assert spec and spec.loader
     module = importlib.util.module_from_spec(spec)
@@ -33,6 +48,12 @@ def _load_module():
 
 def _load_adapter():
     assert ADAPTER_PATH.exists(), "CI-only test_signer_adapter.py is not implemented yet"
+    loaded = _reuse_loaded(ADAPTER_PATH)
+    if loaded is not None:
+        return loaded
+    existing = sys.modules.get("signer_adapter_guard_test")
+    if existing is not None:
+        return existing
     spec = importlib.util.spec_from_file_location("signer_adapter_guard_test", ADAPTER_PATH)
     assert spec and spec.loader
     module = importlib.util.module_from_spec(spec)
