@@ -1,0 +1,24 @@
+schemaVersion: jds.validation/v1
+kind: ValidationCampaign
+id: VAL-HSL-DVWA-LIVE-LIFECYCLE
+product: hermes-security-labs
+objective: Validate the canonical DVWA local Docker lifecycle on an exact repository revision, including readiness, smoke, reset, destroy idempotence, localhost-only publication, non-interference and zero project-owned residue, without implying Runner or signer promotion.
+state: PASSED
+candidate:
+  version: dvwa-live-lifecycle-e3fb2554
+  commit: e3fb2554c9a5d354b82a29edfbd0830fa78fc471
+  artifactDigest: null
+environment: Hermes Security Labs / local DVWA isolated Docker lifecycle
+observations:
+  - id: OBS-DVWA-LIVE-LIFECYCLE
+    required: true
+    result: PASS
+    status: RESOLVED
+    summary: Exact revision e3fb2554 completed start, status1, smoke1, reset, status2, smoke2, destroy1 and idempotent destroy2 on loopback-only port 14280, preserving unrelated Docker resources and ending with zero project-owned containers, volumes and networks.
+    changeRecord: CHG-HSL-069
+    evidence: 'run:run_8f2174dc4c87452098b700ff556ac978;manifest-run:run_3174fc965b7b404c9bf842f5c65632ac;manifest-sha256:4360328356b21efc3fdc6e394c413d4add14fc8c2c3fe87af6bd121721f8c504;scope:lifecycle-only-no-runner-promotion;non-interference:m365-ui-mcp containers recreated 86s after dvwa destroy2 by external controller, not dvwa-owned'
+promotionRecommendation: ACCEPT
+timestamps:
+  startedAt: '2026-08-15T18:06:25Z'
+  updatedAt: '2026-08-15T18:13:36Z'
+  closedAt: '2026-08-15T18:13:36Z'

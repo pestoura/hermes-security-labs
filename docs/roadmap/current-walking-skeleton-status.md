@@ -6,6 +6,7 @@
 **Accepted/live Hermes MCP Bridge revision:** `3717bd5469b061a44294b27e1a7510d477d3752b`  
 **Safe live read-only reobservation:** `run_ec368a4ccc04419e985b1c4d01e0ddea` (CHG-HSL-053)
 **WebGoat live lifecycle acceptance:** `run_f3ecec54f9464366aa1edfb32ac58b33` (CHG-HSL-064)
+**DVWA live lifecycle acceptance:** `run_8f2174dc4c87452098b700ff556ac978` (CHG-HSL-069, Issue #393)
 **Profile-aware live-promotion gate correction:** CHG-HSL-066 / PR #396 (`b742d2dd91d5e0c2766a5ee5dc48a1e43309b6e1`; reconciliation provenance only)
 
 This is the concise current-state view of the walking skeleton. Repository/CI proof and live Hermes runtime proof are separate evidence classes. Historical evidence remains in [`runtime-acceptance-checkpoint-2026-08-09.md`](runtime-acceptance-checkpoint-2026-08-09.md); the governed Runner promotion campaign is [`../../validation/VAL-HSL-RUNNER-L1-LIVE-PROMOTION.yaml`](../../validation/VAL-HSL-RUNNER-L1-LIVE-PROMOTION.yaml).
@@ -48,7 +49,7 @@ production tenant-isolation observations remain **PROD-only readiness**, not cur
 | RTA-003 Bridge approval handoff | `RESOLVED-RUNTIME / GREEN` on Bridge `3717bd5469...` |
 | WebGoat/WebWolf repository lifecycle/readiness | `PASS / READY-REPO`; publication and dual-health races fixed in #325-#327 |
 | WebGoat live lifecycle | `PASS / ACCEPTED-LIVE-LIFECYCLE` for the exact tested revision `dd3677b6fb531c72ec7c5ea6fb5f82da94a27f37`, accepted run `run_f3ecec54f9464366aa1edfb32ac58b33` (CHG-HSL-064); pre-fix history retained (`start/readiness/smoke PASS`, reset race found, cleanup/destroy `PASS / ZERO-RESIDUE`); historical run `run_73cd8ef359ff486f93faeb7c2dc46290` remains `UNKNOWN` and is never reclassified |
-| DVWA repository lifecycle/readiness | `PASS / READY-REPO`; host-port parity merged #329; live acceptance pending (#393) |
+| DVWA repository lifecycle/readiness | `PASS / READY-REPO`; host-port parity merged #329; **live lifecycle `PASS / ACCEPTED-LIVE-LIFECYCLE`** for the exact tested revision `e3fb2554c9a5d354b82a29edfbd0830fa78fc471`, accepted run `run_8f2174dc4c87452098b700ff556ac978` (CHG-HSL-069, Issue #393); unrelated Docker resources preserved, concurrent external m365 recreation documented as a distinct concurrent-external observation within the same CHG-HSL-069 report |
 | Juice Shop repository lifecycle/readiness | `PASS / READY-REPO`; readiness/smoke/reset publication parity merged #329; live acceptance pending (#394, after #393) |
 | WebGoat L1 real adapter | `GREEN-REPO`; typed target-bound effect exists; live dispatch not accepted |
 | Runner outcome -> Evidence Plane custody | `GREEN-REPO`, #321; policy `DISABLED / NOT_RUN` |
@@ -87,8 +88,8 @@ Target path:
 | Admission | Bridge exact-SHA + approval contracts accepted | RTA-001 and RTA-003 accepted; Bridge `3717bd5469...` |
 | Kali registration | canonical STDIO contract `GREEN-REPO` | Stage 1 `PASS`; disabled + sentinel retained |
 | Kali health | `kali.mcp.health.read -> server_health`, L0, exact mapping | Stage 2 `PASS`; safe state restored |
-| Provision | WebGoat/DVWA/Juice lifecycle contracts `READY-REPO` | WebGoat lifecycle `PASS` live for the exact tested revision `dd3677b6...` (run `run_f3ecec54f9464366aa1edfb32ac58b33`); DVWA/Juice live acceptance pending |
-| Readiness | typed loopback readiness adapters with host-port parity `PASS` | WebGoat readiness `PASS` live for that exact revision; historical run `run_73cd8ef3...` stays `UNKNOWN`; DVWA/Juice pending |
+| Provision | WebGoat/DVWA/Juice lifecycle contracts `READY-REPO` | WebGoat lifecycle `PASS` live for the exact tested revision `dd3677b6...` (run `run_f3ecec54f9464366aa1edfb32ac58b33`); DVWA lifecycle `PASS` live for the exact tested revision `e3fb2554...` (run `run_8f2174dc4c87452098b700ff556ac978`, CHG-HSL-069); Juice live acceptance pending (#394) |
+| Readiness | typed loopback readiness adapters with host-port parity `PASS` | WebGoat readiness `PASS` live for that exact revision; historical run `run_73cd8ef3...` stays `UNKNOWN`; DVWA readiness `PASS` live for the exact tested revision `e3fb2554...` (CHG-HSL-069); Juice pending (#394) |
 | Dispatch bounded effect | WebGoat L1 adapter + peer identity + router + resolver + audit + service composition `GREEN-REPO` | transport/routing/resolver/delivery/service policies `DISABLED / NOT_RUN`; live effect `NOT_RUN` |
 | Host identity/trust | host-evidence collector #336 `GREEN-REPO` | explicit host observation `NOT_RUN` |
 | User namespace | explicit-PID read-only observer #340 `GREEN-REPO` | gateway/Runner mapping observation `NOT_RUN` |
@@ -97,7 +98,7 @@ Target path:
 | Evidence tenant isolation | provider-neutral tenant-isolation verifier #348 `GREEN-REPO` | real tenant config/evidence and cross-tenant negatives `NOT_RUN` — PROD readiness, optional under current LAB_L1 |
 | Evidence custody | terminal/audit custody use the existing Evidence Plane `GREEN-REPO` | live terminal/audit persistence `NOT_RUN` |
 | Live promotion evidence package | phased PRE_PROMOTION/POST_EFFECT verifier #351 + profile-aware correction CHG-HSL-066 `GREEN-REPO` | PRE_PROMOTION and POST_EFFECT packages `NOT_RUN`; even complete packages remain review evidence only |
-| Reset/cleanup | bounded reset/destroy governance exists | first failure cleanup proved zero residue; WebGoat reset/destroy `PASS` live for the exact tested revision with zero project-owned residue; historical run `run_73cd8ef3...` stays `UNKNOWN` |
+| Reset/cleanup | bounded reset/destroy governance exists | first failure cleanup proved zero residue; WebGoat reset/destroy `PASS` live for the exact tested revision with zero project-owned residue; DVWA reset/destroy `PASS` live for the exact tested revision `e3fb2554...` with zero project-owned residue and idempotent second destroy (CHG-HSL-069); historical run `run_73cd8ef3...` stays `UNKNOWN` |
 
 ## Runtime acceptance already closed
 
