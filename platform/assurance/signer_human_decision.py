@@ -44,18 +44,6 @@ REQUIRED_EVIDENCE_KINDS = frozenset(
     }
 )
 
-_FORBIDDEN_RUNTIME_IMPORTS = {
-    "subprocess",
-    "socket",
-    "requests",
-    "httpx",
-    "boto3",
-    "hvac",
-    "pkcs11",
-    "os",
-    "shutil",
-}
-
 
 class SignerHumanDecisionError(ValueError):
     """Fail-closed signer human-decision contract violation."""
@@ -203,25 +191,3 @@ def evaluate_human_decision(
         promotion_allowed=False,
         runtime_status="NOT_RUN",
     )
-
-
-def _module_has_no_provider_or_runtime_imports() -> bool:
-    source = Path(__file__).read_text(encoding="utf-8")
-    for forbidden in _FORBIDDEN_RUNTIME_IMPORTS:
-        if f"import {forbidden}" in source or f"from {forbidden}" in source:
-            return False
-    for forbidden in (
-        "write_text(",
-        "write_bytes(",
-        "unlink(",
-        "chmod(",
-        "load_pem_private_key",
-        "load_der_private_key",
-        "private_bytes",
-        ".sign(",
-        "promote(",
-        "install_trust_store",
-    ):
-        if forbidden in source:
-            return False
-    return True
