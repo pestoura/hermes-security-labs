@@ -5,7 +5,7 @@ product: hermes-security-labs
 classification: HARDENING
 state: ACCEPTED
 disposition: FIX_NOW
-summary: 'Persist the accepted Issue #393 DVWA live lifecycle acceptance at exact origin/main e3fb2554c9a5d354b82a29edfbd0830fa78fc471: start/status1/smoke1/reset/status2/smoke2/destroy1/destroy2 all PASS, loopback-only 127.0.0.1:14280, zero DVWA residue, and unrelated Docker resources preserved (concurrent external m365 recreation documented separately).'
+summary: 'Persist the accepted Issue #393 DVWA live lifecycle acceptance at exact origin/main e3fb2554c9a5d354b82a29edfbd0830fa78fc471: start/status1/smoke1/reset/status2/smoke2/destroy1/destroy2 all PASS, loopback-only 127.0.0.1:14280, zero DVWA residue, and unrelated Docker resources preserved (concurrent external m365 recreation documented as a distinct concurrent-external observation within this same acceptance record/report).'
 source:
   type: ENGINEERING_REVIEW
   campaign: VAL-HSL-DVWA-LIVE-LIFECYCLE
@@ -30,5 +30,5 @@ promotion:
 deferredTo: null
 timestamps:
   discoveredAt: '2026-08-15T18:00:00Z'
-  updatedAt: '2026-08-15T18:30:00Z'
+  updatedAt: '2026-08-15T18:13:36Z'
   closedAt: null

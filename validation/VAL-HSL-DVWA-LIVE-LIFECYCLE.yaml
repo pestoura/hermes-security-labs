@@ -19,6 +19,6 @@ observations:
     evidence: 'run:run_8f2174dc4c87452098b700ff556ac978;manifest-run:run_3174fc965b7b404c9bf842f5c65632ac;manifest-sha256:4360328356b21efc3fdc6e394c413d4add14fc8c2c3fe87af6bd121721f8c504;scope:lifecycle-only-no-runner-promotion;non-interference:m365-ui-mcp containers recreated 86s after dvwa destroy2 by external controller, not dvwa-owned'
 promotionRecommendation: ACCEPT
 timestamps:
-  startedAt: '2026-08-15T18:08:30Z'
-  updatedAt: '2026-08-15T18:30:00Z'
-  closedAt: '2026-08-15T18:30:00Z'
+  startedAt: '2026-08-15T18:06:25Z'
+  updatedAt: '2026-08-15T18:13:36Z'
+  closedAt: '2026-08-15T18:13:36Z'

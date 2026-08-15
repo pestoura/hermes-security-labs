@@ -1,11 +1,11 @@
 # DVWA live lifecycle acceptance — 2026-08-15
 
-**Change:** `CHG-HSL-069`  \
-**Issue:** `#393`  \
-**Accepted runtime run:** `run_8f2174dc4c87452098b700ff556ac978`  \
-**Evidence-manifest run:** `run_3174fc965b7b404c9bf842f5c65632ac`  \
-**Repository revision exercised:** `e3fb2554c9a5d354b82a29edfbd0830fa78fc471`  \
-**Scope:** local OWASP DVWA lifecycle only  \
+**Change:** `CHG-HSL-069`  
+**Issue:** `#393`  
+**Accepted runtime run:** `run_8f2174dc4c87452098b700ff556ac978`  
+**Evidence-manifest run:** `run_3174fc965b7b404c9bf842f5c65632ac`  
+**Repository revision exercised:** `e3fb2554c9a5d354b82a29edfbd0830fa78fc471`  
+**Scope:** local OWASP DVWA lifecycle only  
 **Disposition:** `PASS / ACCEPTED-LIVE-LIFECYCLE`
 
 This record persists the sanitised acceptance result for the DVWA lifecycle. It does **not** authorize Runner promotion, signer/trust activation, Kali target traffic, exploitation or any other lab.
@@ -59,7 +59,7 @@ The DVWA lifecycle mutated **only** dvwa-owned resources:
 
 Docker events/Compose ownership distinguish this from the rest of the host. The recorded Docker event log during the run window shows no dvwa script acting on a non-dvwa container/network/volume.
 
-**Concurrent external activity (documented separately, not a DVWA-lifecycle effect).** After the DVWA sequence completed (dvwa destroy #2 ended `2026-08-15T18:09:31Z`), two non-DVWA `m365-ui-mcp` containers (`m365-ui-mcp-browser-worker-1`, `m365-ui-mcp-control-plane-1`, later visible as `planner-mcp-*`) were destroyed and recreated at `2026-08-15T18:10:57Z` — 86 seconds later — by a separate external controller. They are under a different Compose project label and were NOT adopted by the dvwa project. They were live again after that external operation. This is observed concurrent external M365 activity, not a DVWA lifecycle mutation; do not claim the entire host was static.
+**Concurrent external activity (documented as a distinct concurrent-external observation within this same report, not a DVWA-lifecycle effect).** After the DVWA sequence completed (dvwa destroy #2 ended `2026-08-15T18:09:31Z`), two non-DVWA `m365-ui-mcp` containers (`m365-ui-mcp-browser-worker-1`, `m365-ui-mcp-control-plane-1`, later visible as `planner-mcp-*`) were destroyed and recreated at `2026-08-15T18:10:57Z` — 86 seconds later — by a separate external controller. They are under a different Compose project label and were NOT adopted by the dvwa project. They were live again after that external operation. This is observed concurrent external M365 activity, not a DVWA lifecycle mutation; do not claim the entire host was static.
 
 The run explicitly left the following unrelated resources unchanged by the DVWA lifecycle:
 
@@ -90,7 +90,7 @@ After the two canonical destroy operations:
 
 The runtime produced eleven sanitised local evidence files under `/tmp/hsl-issue393-dvwa-evidence/`. Their contents are intentionally not committed. A separate read-only run calculated file hashes and a deterministic aggregate manifest.
 
-**Manifest format:** `<sha256>  <size>  <relative-path>`, sorted deterministically by path.  \
+**Manifest format:** `<sha256>  <size>  <relative-path>`, sorted deterministically by path.  
 **Manifest SHA-256:** `4360328356b21efc3fdc6e394c413d4add14fc8c2c3fe87af6bd121721f8c504`
 
 | Relative path | Bytes | SHA-256 |
