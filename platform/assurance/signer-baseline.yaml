@@ -7,6 +7,8 @@ signer_baseline:
   provider_neutral: true
   allows_automatic_supplier_choice: false
   supplier_selection: NO_SELECTION
+  selected_class: null
+  human_decision_id: null
   requires_external_signer: true
   requires_non_exportable_private_key: true
   requires_purpose_bound_key_identity: true
