@@ -28,14 +28,14 @@ observations:
     required: true
     result: BLOCKED
     status: OPEN
-    summary: 'Host/userns and service evidence are GREEN-REPO, but trust is absent. Under LAB_L1, production WORM-backend and tenant-isolation gates are PROD-only, not L1 blockers. Promotion remains blocked by signer/trust, peer-negative proof, live packages/persistence and DISABLED/NOT_RUN policies.'
+    summary: 'Host/userns, service and tenant-isolation verification are GREEN-REPO, but trust is absent. Under LAB_L1, production WORM-backend and tenant-isolation gates are PROD-only, not L1 blockers. Promotion remains blocked by signer/trust, peer-negative proof, live packages/persistence and DISABLED/NOT_RUN policies.'
     changeRecord: CHG-HSL-012
     evidence: 'evidence:deployment/runtime-promotion/evidence/live-observation-CHG-HSL-038.yaml;userns:PASS;trust-store:ABSENT;signer:NOT_OBSERVED;peer-negative:NOT_RUN;production-backend:NOT_IMPLEMENTED/NOT_RUN;tenant-isolation:NOT_RUN;live-evidence-package-verifier:GREEN-REPO;pre-promotion-package:NOT_RUN;post-effect-package:NOT_RUN;policies:DISABLED/NOT_RUN'
   - id: OBS-EVIDENCE-CUSTODY
     required: true
     result: BLOCKED
     status: OPEN
-    summary: 'Evidence custody/verifier capabilities are GREEN-REPO. LAB_L1 does not require the external production WORM backend or production tenant-isolation negatives. Current L1 blockers are live HASH_CHAIN_SEAL, audit/outcome persistence and PRE/POST evidence packages.'
+    summary: 'CHG-HSL-047 reconciles LAB_L1 custody capabilities as GREEN-REPO. External production WORM and production tenant-isolation negatives are PROD-only, not L1 blockers. Current L1 blockers are live HASH_CHAIN_SEAL, audit/outcome persistence and PRE/POST evidence packages.'
     changeRecord: CHG-HSL-002
     evidence: 'durable-backend-verifier:GREEN-REPO;tenant-isolation-verifier:GREEN-REPO;live-evidence-package-verifier:GREEN-REPO;production-WORM-backend:NOT_IMPLEMENTED/NOT_RUN;backend-tenant-config:NOT_RUN;cross-tenant-negatives:NOT_RUN;pre-promotion-package:NOT_RUN;post-effect-package:NOT_RUN;hash-chain-seal:GREEN-REPO(CHG-042);audit-sink:GREEN-REPO(CHG-043);profile-aware-pre-post:GREEN-REPO(CHG-044);package-composition:GREEN-REPO(CHG-046);peer-identity-audit:GREEN-REPO(CHG-045);HASH_CHAIN_SEAL:NOT_RUN'
   - id: OBS-LIVE-EFFECT-RESET
@@ -48,5 +48,5 @@ observations:
 promotionRecommendation: HOLD
 timestamps:
   startedAt: '2026-08-09T21:12:00Z'
-  updatedAt: '2026-08-15T13:40:00Z'
+  updatedAt: '2026-08-15T13:50:00Z'
   closedAt: null
