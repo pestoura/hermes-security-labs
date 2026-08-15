@@ -14,11 +14,17 @@ accepted R1–R8 baseline) and to the evaluation-only candidate model in
 
 - `signer_baseline.accepted: true` — R1–R8 are the accepted, provider-neutral source-of-truth.
 - `signer_baseline.supplier_selection: NO_SELECTION` — no KMS/HSM/VAULT/PKCS11 product chosen.
+- `platform/assurance/signer-human-decision.yaml` is the explicit human-decision source-of-truth
+  and is currently `state: NO_DECISION`, with no selected class and no evidence references.
+- `platform/schemas/signer-human-decision.schema.json` and
+  `platform/assurance/signer_human_decision.py` enforce the repository-only decision contract:
+  an `APPROVED` record may name only `KMS`, `HSM` or `VAULT`, must bind the required evidence
+  classes by canonical `evidence://` references plus SHA-256, and still grants no promotion.
 - `allows_automatic_supplier_choice: false` under both `LAB_L1` and `PROD`.
 - All four candidate classes are `NOT_EVALUATED`; `is_custody_proof: false` for every class,
   including `PKCS11` (interface, not custody).
 - `VAL-HSL-RUNNER-L1-LIVE-PROMOTION` remains `BLOCKED / HOLD`; no campaign observation is resolved
-  by this packet.
+  by this packet or by an `APPROVED` decision record alone.
 
 ## Decision criteria (must all hold before a supplier may be recorded)
 
@@ -30,7 +36,9 @@ accepted R1–R8 baseline) and to the evaluation-only candidate model in
    verifier;
 4. the explicit public trust store must be declared with path + `key_id` + algorithm + SHA-256 and
    must match the attested `public_key_spki_sha256`;
-5. `allows_automatic_supplier_choice` must remain `false`; selection is a recorded human decision.
+5. `allows_automatic_supplier_choice` must remain `false`; selection is a recorded human decision;
+6. the human decision must be recorded through the CHG-HSL-062 contract and bind, at minimum,
+   `capability_evidence`, `signer_attestation`, `trust_store_manifest` and `r1_r8_review` evidence.
 
 ## Required evidence (per candidate, before any SELECTED state)
 
@@ -40,10 +48,13 @@ accepted R1–R8 baseline) and to the evaluation-only candidate model in
 - proof of `active` key state and `signing_enabled == true`;
 - for `PKCS11`: evidence of the concrete token/module *behind* the interface and its custody
   guarantees — the interface alone proves nothing about R1;
-- auditability evidence: signing operations are attributable and obtainable without key material.
+- auditability evidence: signing operations are attributable and obtainable without key material;
+- a trust-store manifest and R1–R8 review bound into the human decision record by canonical
+  evidence references and exact SHA-256 digests.
 
 Missing or unverified evidence fails closed: the evaluation status stays `EVIDENCE_MISSING` or
-`EVIDENCE_UNVERIFIED` and the class is disqualified.
+`EVIDENCE_UNVERIFIED` and the class is disqualified. A syntactically valid human decision record
+is not evidence verification and does not replace any canonical signer/trust/promotion verifier.
 
 ## Disqualifiers (fail closed, no auto-recovery)
 
@@ -52,8 +63,10 @@ Missing or unverified evidence fails closed: the evaluation status stays `EVIDEN
 - `key_id`/`algorithm`/`provider_ref` mismatch with the approved signer binding;
 - stale (>5 min) or future observation timestamp;
 - unverified or absent source evidence reference/digest;
-- `PKCS11` claimed as `is_custody_proof: true` on its own;
-- any `evaluation_status: SELECTED` set without a recorded human decision.
+- `PKCS11` claimed as `is_custody_proof: true` on its own or selected as the custody backend;
+- any `evaluation_status: SELECTED` set without a recorded human decision;
+- any `APPROVED` human decision missing one of the four required evidence classes, containing
+  duplicate evidence classes, or using non-canonical refs/digests.
 
 ## Reversibility / migration considerations
 
@@ -70,5 +83,9 @@ Missing or unverified evidence fails closed: the evaluation status stays `EVIDEN
 ## Explicit `NO_SELECTION` close
 
 Until a human records an explicit supplier decision referencing this packet and the verified
-evidence above, `supplier_selection` stays `NO_SELECTION`. The repository must not infer a winner
-from the candidate table, from cost, from availability, or from any other non-security signal.
+evidence above, `supplier_selection` stays `NO_SELECTION` and
+`platform/assurance/signer-human-decision.yaml` stays `NO_DECISION`. The repository must not infer
+a winner from the candidate table, from cost, from availability, or from any other non-security
+signal. Even after a human decision is recorded, a separate deliberate guard/transition change is
+required before `supplier_selection` may leave `NO_SELECTION`; CHG-HSL-062 itself changes no
+runtime, trust binding, signer provider, execution policy or promotion state.
