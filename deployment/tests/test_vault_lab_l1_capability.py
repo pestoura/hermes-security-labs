@@ -59,13 +59,39 @@ def test_vault_runtime_isolated_and_hardened() -> None:
     assert vault["security_opt"] == ["no-new-privileges:true"]
     assert vault["cap_drop"] == ["ALL"]
     assert vault["read_only"] is True
+    assert vault["environment"]["SKIP_SETCAP"] == "1"
 
-    volumes = "\n".join(vault.get("volumes", []))
-    assert "/var/run/docker.sock" not in volumes
-    assert "/vault/config:ro" in volumes
-    assert "/vault/policies:ro" in volumes
-    assert "/vault/tls:ro" in volumes
-    assert "/vault/data" in volumes
+    assert vault["volumes"] == ["vault-lab-l1-data:/vault/data"]
+    assert "/var/run/docker.sock" not in repr(vault)
+
+    config_targets = {
+        item["source"]: item["target"] for item in vault.get("configs", [])
+    }
+    assert config_targets == {
+        "vault_lab_l1_config": "/vault/config/vault.hcl",
+        "vault_lab_l1_signer_policy": "/vault/policies/signer.hcl",
+        "vault_lab_l1_observer_policy": "/vault/policies/operator-observer.hcl",
+    }
+    assert compose["configs"]["vault_lab_l1_config"]["file"] == "./config/vault.hcl"
+    assert compose["configs"]["vault_lab_l1_signer_policy"]["file"] == "./policies/signer.hcl"
+    assert compose["configs"]["vault_lab_l1_observer_policy"]["file"] == "./policies/operator-observer.hcl"
+
+    secret_targets = {
+        item["source"]: item["target"] for item in vault.get("secrets", [])
+    }
+    assert secret_targets == {
+        "vault_lab_l1_ca": "vault_lab_l1_ca",
+        "vault_lab_l1_server_cert": "vault_lab_l1_server_cert",
+        "vault_lab_l1_server_key": "vault_lab_l1_server_key",
+    }
+    for name, filename in (
+        ("vault_lab_l1_ca", "ca.pem"),
+        ("vault_lab_l1_server_cert", "server.pem"),
+        ("vault_lab_l1_server_key", "server-key.pem"),
+    ):
+        source = compose["secrets"][name]["file"]
+        assert source.startswith("${VAULT_LAB_L1_TLS_DIR:")
+        assert source.endswith(f"/{filename}")
 
     limits = vault["deploy"]["resources"]["limits"]
     assert limits["cpus"]
@@ -80,10 +106,10 @@ def test_vault_hcl_requires_raft_and_tls() -> None:
     assert 'path    = "/vault/data"' in text
     assert 'node_id = "hermes-lab-l1-vault-1"' in text
     assert 'listener "tcp"' in text
-    assert 'address         = "0.0.0.0:8200"' in text
-    assert 'tls_cert_file      = "/vault/tls/server.pem"' in text
-    assert 'tls_key_file       = "/vault/tls/server-key.pem"' in text
-    assert 'tls_client_ca_file = "/vault/tls/ca.pem"' in text
+    assert re.search(r'(?m)^\s*address\s*=\s*"0\.0\.0\.0:8200"\s*$', text)
+    assert 'tls_cert_file      = "/run/secrets/vault_lab_l1_server_cert"' in text
+    assert 'tls_key_file       = "/run/secrets/vault_lab_l1_server_key"' in text
+    assert 'tls_client_ca_file = "/run/secrets/vault_lab_l1_ca"' in text
     assert 'tls_min_version    = "tls12"' in text
     assert re.search(r"(?m)^\s*tls_disable\s*=\s*1\s*$", text) is None
     assert "http://" not in text
