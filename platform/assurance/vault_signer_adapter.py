@@ -25,6 +25,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Mapping, Protocol
 
+from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
@@ -118,14 +119,7 @@ def _valid_https_root(value: object) -> bool:
 
 
 def _signing_module_for_request(request: object):
-    """Resolve the canonical signing module that defined this request object.
-
-    Repository assurance tests intentionally load the same source file under isolated
-    module names. Python class identity is module-specific, so reusing an arbitrary
-    previously loaded copy would reject an otherwise canonical SigningRequest before
-    provider logic runs. We preserve the strict isinstance contract by accepting only a
-    class whose defining module points at the exact canonical signing_service.py path.
-    """
+    """Resolve the canonical signing module that defined this request object."""
 
     module_name = getattr(type(request), "__module__", "")
     module = sys.modules.get(module_name) if isinstance(module_name, str) else None
@@ -217,6 +211,7 @@ class VaultKeyObservation:
     vault_type: str
     algorithm: str
     public_key_spki_sha256: str
+    public_key_spki_der: bytes
     exportable: bool
     allow_plaintext_backup: bool
     supports_signing: bool
@@ -418,6 +413,7 @@ class VaultSignerAdapter:
             vault_type="ed25519",
             algorithm="Ed25519",
             public_key_spki_sha256=hashlib.sha256(public_der).hexdigest(),
+            public_key_spki_der=public_der,
             exportable=False,
             allow_plaintext_backup=False,
             supports_signing=True,
@@ -437,6 +433,7 @@ class VaultSignerAdapter:
             },
         )
         signature = self._parse_signature(response, observation.key_version)
+        self._verify_signature(observation, signature, payload)
         audit_ref = self._build_audit_ref(request, observation, signature)
         result = signing.SigningResult(
             signature_b64=base64.b64encode(signature).decode("ascii"),
@@ -452,6 +449,23 @@ class VaultSignerAdapter:
             audit_ref=audit_ref,
         )
         return signing.require_lab_l1_admissible(result)
+
+    @staticmethod
+    def _verify_signature(
+        observation: VaultKeyObservation,
+        signature: bytes,
+        payload: bytes,
+    ) -> None:
+        try:
+            public_key = serialization.load_der_public_key(observation.public_key_spki_der)
+        except (ValueError, TypeError):
+            raise VaultSignerError("VAULT_KEY_IDENTITY_INVALID") from None
+        if not isinstance(public_key, Ed25519PublicKey):
+            raise VaultSignerError("VAULT_KEY_IDENTITY_INVALID")
+        try:
+            public_key.verify(signature, payload)
+        except InvalidSignature:
+            raise VaultSignerError("VAULT_SIGN_RESPONSE_INVALID") from None
 
     @staticmethod
     def _parse_signature(response: object, expected_version: int) -> bytes:
