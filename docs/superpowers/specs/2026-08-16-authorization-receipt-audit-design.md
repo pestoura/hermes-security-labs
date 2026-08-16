@@ -40,7 +40,7 @@ Its responsibilities are limited to:
 
 - building one closed public `authorization-receipt-audit/v1` record;
 - validating event type, phase, decision, stable reason code and trusted correlation context;
-- hashing any authorization reference before persistence;
+- hashing a canonical bounded authorization reference when available;
 - appending exactly one event to an injected/existing canonical `AuditSink`;
 - exposing the existing sink `seal()` / `verify()` behavior without implementing parallel integrity primitives.
 
@@ -105,7 +105,7 @@ Required semantic fields:
 - `phase`: `DELIVERY | REGISTRATION | LOOKUP`;
 - `decision`: `ACCEPT | DENY`;
 - `reason_code`: stable bounded machine-readable code;
-- `authorization_ref_sha256`: lowercase SHA-256 of the reference when a reference is present, otherwise `null`;
+- `authorization_ref_sha256`: lowercase SHA-256 only when the source value is a bounded canonical `tb1-authz:v1:` reference; otherwise `null`;
 - `duplicate`: boolean, meaningful for registration replay/idempotency;
 - `capability_id`: sanitized verified capability when available, otherwise `null`;
 - `intrusiveness_level`: verified value when available, otherwise `null`;
@@ -114,6 +114,18 @@ Required semantic fields:
 - `execution_authority: NONE`.
 
 Correlation/principal data is carried by the canonical `AuditContext`, not duplicated from untrusted payloads into the public record.
+
+The canonical public JSON bytes are SHA-256 content-addressed. The AuditSink append uses:
+
+```text
+object_kind = evidence_record
+object_ref = evidence://authorization-receipt-audit/<record_sha256>
+object_digest_sha256 = <record_sha256>
+object_size_bytes = len(canonical_json_bytes)
+object_media_type = application/json
+```
+
+No separate object store or chain is created by this lane.
 
 ## 6. Data minimization and sanitization
 
@@ -129,7 +141,7 @@ The audit record must never contain:
 - caller-asserted trust/verification state;
 - socket credentials beyond the bounded canonical principal label used in `AuditContext`.
 
-Authorization references are persisted only as SHA-256 digests in the public event. Stable refusal codes are persisted; exception strings from lower layers are not.
+Authorization references are persisted only as SHA-256 digests after bounded canonical-prefix validation. Arbitrary, oversized or malformed reference strings are not hashed into the record and produce `authorization_ref_sha256=null`. Stable refusal codes are persisted; exception strings from lower layers are not.
 
 ## 7. Fail-closed behavior
 
@@ -166,10 +178,12 @@ Audit failure during a miss/expired decision cannot turn the denial into success
 
 Receipt delivery's existing monotonic sequence and exact-duplicate semantics remain authoritative.
 
-- a first accepted registration produces one `REGISTERED` event;
-- an exact duplicate delivery may produce a distinct sanitized duplicate registration observation only if its event identity differs deterministically by the trusted delivery attempt/sequence context;
+- a first accepted registration produces exactly one `REGISTERED` event;
+- an exact duplicate delivery returns the existing duplicate outcome and **does not append a second registration audit event**;
 - out-of-order/replay refusals produce `REFUSED` and never register a second authorization;
 - the canonical `AuditSink` replay guard remains in force and is not weakened.
+
+This keeps both authorization registration and its audit representation idempotent under exact replay.
 
 ## 9. Policy and runtime posture
 
@@ -200,7 +214,7 @@ Required test groups:
 
 1. closed schema and committed-policy posture;
 2. successful registration emits one sanitized `REGISTERED` event;
-3. duplicate delivery remains idempotent and auditable;
+3. exact duplicate delivery remains idempotent and does not append another registration event;
 4. unauthenticated peer, bad envelope, replay and receipt-verification failures emit/refuse correctly without trusting receipt correlation;
 5. lookup hit emits `LOOKUP_HIT` with request-bound trusted correlation;
 6. unknown lookup emits `LOOKUP_MISS` and no authority;
@@ -208,9 +222,10 @@ Required test groups:
 8. audit sink failure after registration rolls back via `forget()`;
 9. audit sink failure on lookup hit denies authority;
 10. refusal-audit failure never converts denial to success;
-11. serialized audit records contain no signature, receipt, key, secret, raw parameters, raw target or raw authorization reference;
-12. existing receipt-delivery, resolver and WebGoat adapter suites remain GREEN;
-13. full `platform/tests`, security, release-governance, private-VAmPI and Exact-SHA gates pass on the final head and again after merge.
+11. malformed/oversized authorization-reference input is never persisted or hashed as a raw audit value;
+12. serialized audit records contain no signature, receipt, key, secret, raw parameters, raw target or raw authorization reference;
+13. existing receipt-delivery, resolver and WebGoat adapter suites remain GREEN;
+14. full `platform/tests`, security, release-governance, private-VAmPI and Exact-SHA gates pass on the final head and again after merge.
 
 ## 11. Governance record
 
