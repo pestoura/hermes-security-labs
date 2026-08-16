@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import sys
 from copy import deepcopy
 from pathlib import Path
@@ -340,7 +341,7 @@ def test_timestamp_provider_failure_is_sanitized_and_no_append_occurs() -> None:
     assert instance.length == 0
 
 
-def test_persisted_metadata_cannot_claim_runtime_or_execution_authority(tmp_path: Path) -> None:
+def test_persisted_payload_cannot_claim_runtime_or_execution_authority(tmp_path: Path) -> None:
     store = _store_module().LocalEvidenceStore(tmp_path / "evidence")
     result = _enabled_custody().persist(
         _event(),
@@ -349,11 +350,13 @@ def test_persisted_metadata_cannot_claim_runtime_or_execution_authority(tmp_path
         evidence_store=store,
     )
     record = store.get_record(result.evidence_id)
-    metadata = record["metadata"]
+    digest = record["content"]["sha256"]
+    object_path = store.objects / digest[:2] / digest
+    payload = json.loads(object_path.read_text(encoding="utf-8"))
 
-    assert metadata["promotion_allowed"] is False
-    assert metadata["runtime_status"] == "NOT_RUN"
-    assert metadata["execution_authority"] == "NONE"
+    assert payload["promotion_allowed"] is False
+    assert payload["runtime_status"] == "NOT_RUN"
+    assert payload["execution_authority"] == "NONE"
 
 
 def test_retry_after_audit_append_failure_reuses_one_custody_object_and_one_final_entry(
