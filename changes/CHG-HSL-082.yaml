@@ -1,0 +1,34 @@
+schemaVersion: jds.change/v1
+kind: ChangeRecord
+id: CHG-HSL-082
+product: hermes-security-labs
+classification: HARDENING
+state: IMPLEMENTING
+disposition: FIX_NOW
+summary: 'Provision the repository-safe deployment package for an isolated Hermes LAB_L1 Vault capability: single-node Raft, mandatory TLS, loopback-only operator API, dedicated internal signer network, Shamir 3/2 bootstrap, non-exportable Ed25519 Transit key and least-privilege AppRole. Repository implementation grants no signer selection, trust binding, runtime promotion or target-effect authority.'
+source:
+  type: ENGINEERING_REVIEW
+  campaign: VAL-HSL-RUNNER-L1-LIVE-PROMOTION
+  observation: OBS-RUNNER-POLICY-PROMOTION
+  reference: 'Issue #426 / PR #427 / owner-approved CHG-HSL-082 design following merged CHG-HSL-081. Real Shamir shares, root bootstrap credential, SecretID material, provider attestation and trust binding remain outside repository evidence and runtime is NOT_RUN.'
+affectedRelease: jds-002-adoption-candidate
+targetRelease: null
+risk: MEDIUM
+versionEffect: NONE
+branch: chg-hsl-082/vault-lab-l1-operational-capability
+issue: 426
+pr: 427
+validation:
+  targeted: NOT_RUN
+  regression: NOT_RUN
+  security: NOT_RUN
+  runtime: NOT_RUN
+promotion:
+  commit: null
+  artifactDigest: null
+  previousRelease: null
+deferredTo: null
+timestamps:
+  discoveredAt: '2026-08-16T16:40:00Z'
+  updatedAt: '2026-08-16T16:54:00Z'
+  closedAt: null
