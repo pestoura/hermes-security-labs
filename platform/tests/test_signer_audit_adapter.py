@@ -18,6 +18,11 @@ TEST_SIGNER_PATH = ASSURANCE / "test_signer_adapter.py"
 
 def _load(path: Path, name: str):
     assert path.exists(), f"{path.name} is not implemented yet"
+    resolved = path.resolve()
+    for module in tuple(sys.modules.values()):
+        module_file = getattr(module, "__file__", None)
+        if module_file and Path(module_file).resolve() == resolved:
+            return module
     existing = sys.modules.get(name)
     if existing is not None:
         return existing
