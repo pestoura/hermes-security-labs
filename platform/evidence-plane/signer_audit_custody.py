@@ -57,6 +57,44 @@ class SignerAuditCustodyResult:
         }
 
 
+class EvidenceVerifierChainResolver:
+    """Interface adapter: canonical EvidenceVerifier -> EvidenceChain resolver.
+
+    This class implements no verification logic. It only translates the existing
+    EvidenceChain callable signature to the existing EvidenceVerifier ``verify(ref,
+    sha256)`` contract. The content digest remains the authoritative object binding;
+    object size is already sealed by EvidenceChain but is not part of EvidenceVerifier's
+    two-argument contract.
+    """
+
+    def __init__(self, verifier: Any) -> None:
+        if verifier is None or not callable(getattr(verifier, "verify", None)):
+            raise TypeError("EvidenceVerifierChainResolver requires EvidenceVerifier.verify")
+        self._verifier = verifier
+
+    def __call__(
+        self,
+        *,
+        object_ref: str,
+        object_digest_sha256: str,
+        object_size_bytes: int,
+    ) -> bool:
+        if (
+            not isinstance(object_ref, str)
+            or not object_ref
+            or not isinstance(object_digest_sha256, str)
+            or len(object_digest_sha256) != 64
+            or isinstance(object_size_bytes, bool)
+            or not isinstance(object_size_bytes, int)
+            or object_size_bytes < 0
+        ):
+            return False
+        try:
+            return bool(self._verifier.verify(object_ref, object_digest_sha256))
+        except Exception:  # noqa: BLE001 - chain resolver must fail closed
+            return False
+
+
 def _load_module(name: str, path: Path) -> Any:
     resolved = path.resolve()
     for module in tuple(sys.modules.values()):
@@ -252,12 +290,7 @@ class SignerAuditCustody:
         retain_until = _iso_z(
             timestamp + timedelta(days=int(custody["retention_days"]))
         )
-        correlation_dict = corr.as_dict()
-        storage_ref = (
-            f"evidence://{correlation_dict['campaign_id']}/"
-            f"{correlation_dict['run_id']}/signer-operation-audit/"
-            f"{payload_sha256}.json"
-        )
+        storage_ref = f"evidence://signer-operation/{payload_sha256}"
         metadata = {
             "operation": validated["operation"],
             "request_correlation_id": validated["request_correlation_id"],
