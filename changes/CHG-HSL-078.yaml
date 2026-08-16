@@ -10,18 +10,18 @@ source:
   type: ENGINEERING_REVIEW
   campaign: VAL-HSL-RUNNER-L1-LIVE-PROMOTION
   observation: OBS-TB1-LIVE-DELIVERY
-  reference: 'Approved Option 3 design: registration + lookup + refusals. ADR-0015 records alternatives and review triggers. Live socket, trust-store installation, real signer/provider and runtime promotion remain separate blockers.'
+  reference: 'Issue #414 / PR #415. Approved Option 3 design: registration + lookup + refusals. ADR-0015 records alternatives and review triggers. Repository integration is GREEN; live socket, trust-store installation, real signer/provider and runtime promotion remain separate blockers.'
 affectedRelease: jds-002-adoption-candidate
 targetRelease: null
 risk: LOW
 versionEffect: NONE
 branch: chg-hsl-078/authorization-receipt-audit
-issue: null
-pr: null
+issue: 414
+pr: 415
 validation:
-  targeted: NOT_RUN
-  regression: NOT_RUN
-  security: NOT_RUN
+  targeted: PASS
+  regression: PASS
+  security: PASS
   runtime: NOT_RUN
 promotion:
   commit: null
@@ -30,5 +30,5 @@ promotion:
 deferredTo: null
 timestamps:
   discoveredAt: '2026-08-16T03:36:00Z'
-  updatedAt: '2026-08-16T03:36:00Z'
+  updatedAt: '2026-08-16T04:43:00Z'
   closedAt: null
