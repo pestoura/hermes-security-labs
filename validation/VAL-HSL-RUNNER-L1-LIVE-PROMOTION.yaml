@@ -6,7 +6,7 @@ objective: Govern promotion of the current WebGoat L1 Runner repository chain in
 state: BLOCKED
 candidate:
   version: runner-webgoat-l1-repo-candidate
-  commit: a63ef01925e5c1b925936c1e73b11b2d6cd2a6a5
+  commit: c716bd6512da3fa853ad8022863ecc8bac4e51a6
   artifactDigest: null
 environment: Hermes Security Labs / WebGoat isolated lab runtime
 observations:
@@ -14,30 +14,30 @@ observations:
     required: true
     result: PASS
     status: RESOLVED
-    summary: Repository chain includes WebGoat L1, TB1 authorization, peer identity/routing, Evidence Plane custody, host/userns observation, signer, durable-backend and tenant-isolation attestation verifiers, service composition, the EVIDENCE_ONLY promotion gate and the phased live-evidence package verifier. The Execution Gateway runtime HOLD boundary (client side of the AF_UNIX dispatch surface, CHG-HSL-036 / issue #359) is now also part of the repository chain as a fail-closed, NOT-promoted capability. All remain non-authoritative until live evidence and explicit human promotion exist.
+    summary: Repository chain includes WebGoat L1, TB1 authorization, peer identity/routing, Evidence Plane custody, host/userns observation, signer, durable-backend and tenant-isolation attestation verifiers, service composition, the EVIDENCE_ONLY promotion gate and the phased live-evidence package verifier. The Execution Gateway runtime HOLD boundary (client side of the AF_UNIX dispatch surface, CHG-HSL-036 / issue #359) is now also part of the repository chain as a fail-closed, NOT-promoted capability. CHG-HSL-079 / ADR-0016 additionally provides sanitized authorization-decision audit custody through the existing Evidence Plane and canonical AuditSink binding. All remain non-authoritative until live evidence and explicit human promotion exist.
     changeRecord: CHG-HSL-036
-    evidence: 'prs:316,317,318,321,322,323,328,331,332,334,335,336,337,338,340,341,342,343,345,346,348,349,350,351,352; main:6a77921ec2079aa6689d11e2d7118f948ccb3a60; execution-gateway-hold:IMPLEMENTED(CHG-036;issue#359:GREEN-REPO); execution-gateway-deployment:IMPLEMENTED(CHG-037;issue#361:GREEN-REPO); execution-gateway-boundary:UNPROMOTED(promotion_allowed=false;HOLD)'
+    evidence: 'prs:316,317,318,321,322,323,328,331,332,334,335,336,337,338,340,341,342,343,345,346,348,349,350,351,352,417; main:c716bd6512da3fa853ad8022863ecc8bac4e51a6; authorization-audit-custody:GREEN-REPO(CHG-HSL-079;ADR-0016;PR#417;post-merge-exact-sha=PASS); execution-gateway-hold:IMPLEMENTED(CHG-036;issue#359:GREEN-REPO); execution-gateway-deployment:IMPLEMENTED(CHG-037;issue#361:GREEN-REPO); execution-gateway-boundary:UNPROMOTED(promotion_allowed=false;HOLD)'
   - id: OBS-TB1-LIVE-DELIVERY
     required: true
     result: BLOCKED
     status: OPEN
-    summary: TB1 issuance, signer/trust-store preflight and signer-observation verification are GREEN-REPO. Live acceptance remains blocked because no real signer provider/source evidence or installed trust store has been observed, the receipt-delivery AF_UNIX endpoint is not configured, and delivery/resolver policies remain DISABLED/NOT_RUN.
+    summary: TB1 issuance, signer/trust-store preflight, signer-observation verification and repository-level authorization-decision audit custody are GREEN-REPO. Live acceptance remains blocked because no real signer provider/source evidence or installed trust store has been observed, the receipt-delivery AF_UNIX endpoint is not configured, delivery/resolver policies remain DISABLED/NOT_RUN, and the authorization-audit custody policy has no enabled live composition or observed live persistence.
     changeRecord: CHG-HSL-011
-    evidence: 'pr:322 delivery; pr:328 issuer; pr:331 signer/trust preflight; pr:336 host evidence; pr:342 signer verifier; evidence:deployment/runtime-promotion/evidence/live-observation-CHG-HSL-038.yaml; trust-store-host-observation:OBSERVED_ABSENT(/etc/hexor/runner/authorization-trust-store.json); signer-provider-observation:NOT_RUN; signer-source-evidence:NOT_RUN; receipt-delivery-policy:DISABLED/NOT_RUN; resolver-policy:DISABLED/NOT_RUN'
+    evidence: 'pr:322 delivery; pr:328 issuer; pr:331 signer/trust preflight; pr:336 host evidence; pr:342 signer verifier; pr:417 authorization-audit custody; evidence:deployment/runtime-promotion/evidence/live-observation-CHG-HSL-038.yaml; trust-store-host-observation:OBSERVED_ABSENT(/etc/hexor/runner/authorization-trust-store.json); signer-provider-observation:NOT_RUN; signer-source-evidence:NOT_RUN; receipt-delivery-policy:DISABLED/NOT_RUN; resolver-policy:DISABLED/NOT_RUN; authorization-audit-custody-policy:DISABLED/NOT_RUN; live-authorization-audit-persistence:NOT_RUN'
   - id: OBS-RUNNER-POLICY-PROMOTION
     required: true
     result: BLOCKED
     status: OPEN
-    summary: 'CHG-HSL-072 reconciles authorized issue #402 live observations: current Gateway/Runner userns re-attestation PASS and unauthorized-peer HOLD refusal PASS with canonical proof, no payload and no persistent identity. Trust/signing remain absent. CHG-HSL-071 PRE_PROMOTION remains ASSEMBLED/HOLD/INCOMPLETE. LAB_L1 excludes PROD-only WORM/tenant gates. Remaining blockers: signer/trust, receipt delivery, live persistence, PRE completion, HITL, live effect and POST_EFFECT.'
+    summary: 'CHG-HSL-072 reconciles authorized issue #402 live observations: current Gateway/Runner userns re-attestation PASS and unauthorized-peer HOLD refusal PASS with canonical proof, no payload and no persistent identity. CHG-HSL-079 separately closes the repository authorization-audit custody gap with Evidence Plane post-write verification and AuditSink custody binding, but no enabled live custody composition has been observed. CHG-HSL-071 PRE_PROMOTION remains ASSEMBLED/HOLD/INCOMPLETE. LAB_L1 excludes PROD-only WORM/tenant gates. Remaining blockers: signer/trust, receipt delivery, enabled live audit/outcome persistence, PRE completion, HITL, live effect and POST_EFFECT.'
     changeRecord: CHG-HSL-072
-    evidence: 'userns:PASS(CURRENT-CHG-HSL-072;gateway=3649254;runner=409235);peer-negative:PASS(CHG-HSL-072;HOLD_REFUSAL_OBSERVED;canonical_proof=true;payload_sent=false);trust-store:ABSENT;signer:NOT_OBSERVED;production-backend:NOT_IMPLEMENTED/NOT_RUN(PROD_ONLY);tenant-isolation:NOT_RUN(PROD_ONLY);pre-promotion-package:ASSEMBLED/HOLD/INCOMPLETE(CHG-HSL-071);post-effect-package:NOT_RUN;policies:DISABLED/NOT_RUN'
+    evidence: 'userns:PASS(CURRENT-CHG-HSL-072;gateway=3649254;runner=409235);peer-negative:PASS(CHG-HSL-072;HOLD_REFUSAL_OBSERVED;canonical_proof=true;payload_sent=false);authorization-audit-custody:GREEN-REPO(CHG-HSL-079;main=c716bd6512da3fa853ad8022863ecc8bac4e51a6;object_ref=evidence://authorization-receipt-audit/<sha256>;evidence_ref=ev_<id>);trust-store:ABSENT;signer:NOT_OBSERVED;authorization-audit-custody-policy:DISABLED/NOT_RUN;live-audit-custody:NOT_RUN;production-backend:NOT_IMPLEMENTED/NOT_RUN(PROD_ONLY);tenant-isolation:NOT_RUN(PROD_ONLY);pre-promotion-package:ASSEMBLED/HOLD/INCOMPLETE(CHG-HSL-071);post-effect-package:NOT_RUN;policies:DISABLED/NOT_RUN'
   - id: OBS-EVIDENCE-CUSTODY
     required: true
     result: BLOCKED
     status: OPEN
-    summary: 'CHG-HSL-071 reconciles custody evidence: HASH_CHAIN_SEAL VERIFIED; Gateway/Bridge PASS; PRE_PROMOTION ASSEMBLED/HOLD/INCOMPLETE. CHG-HSL-072 separately closes current userns and unauthorized-peer negatives. Campaign remains BLOCKED/OPEN. LAB_L1 blockers are signer/trust, receipt delivery, live audit/outcome persistence, remaining PRE gates, HITL, live effect and POST_EFFECT. WORM/tenant controls remain PROD-only.'
-    changeRecord: CHG-HSL-002
-    evidence: 'HASH_CHAIN_SEAL:VERIFIED(CHG-HSL-071);GATEWAY_ADMISSION_REOBSERVATION:PASS(CHG-HSL-071);BRIDGE_REVISION_REOBSERVATION:PASS(CHG-HSL-071);USER_NAMESPACE_MAPPING:PASS(CURRENT-CHG-HSL-072);UNAUTHORIZED_PEER_NEGATIVE:PASS(CHG-HSL-072);pre-promotion-package:ASSEMBLED/HOLD/INCOMPLETE(CHG-HSL-071);post-effect-package:NOT_RUN;live-runner-audit-terminal:NOT_RUN'
+    summary: 'CHG-HSL-079 / ADR-0016 closes the repository-level authorization-decision audit custody gap: the closed sanitized authorization-receipt-audit/v1 object can be persisted through the existing injected Evidence Plane store, requires post-write verification, retains content identity as evidence://authorization-receipt-audit/<sha256>, and binds canonical Evidence Plane custody as ev_<id> in the existing AuditSink/EvidenceChain. PR #417 was merged at main c716bd6512da3fa853ad8022863ecc8bac4e51a6 and all post-merge workflows plus Exact-SHA passed. This is GREEN-REPO only: the committed custody policy remains DISABLED/NOT_RUN and no enabled live authorization-audit persistence has been observed. CHG-HSL-071 HASH_CHAIN_SEAL/Gateway/Bridge evidence and CHG-HSL-072 userns/unauthorized-peer negatives remain valid. Campaign remains BLOCKED/OPEN. LAB_L1 blockers are signer/trust, receipt delivery, enabled live audit/outcome persistence, remaining PRE gates, HITL, live effect and POST_EFFECT. WORM/tenant controls remain PROD-only.'
+    changeRecord: CHG-HSL-080
+    evidence: 'authorization-audit-custody:GREEN-REPO(CHG-HSL-079;ADR-0016;PR#417;main=c716bd6512da3fa853ad8022863ecc8bac4e51a6);post-merge-workflows:PASS(validate=31929318302;security=31929318204;release-governance=31929318218;private-vampi=31929318215);post-merge-exact-sha:PASS;platform-tests:2329-pass/7-skip;docs-tests:1105-pass;roadmap-tests:146-pass;deployment-tests:560-pass;object-ref:evidence://authorization-receipt-audit/<sha256>;custody-binding:ev_<id>;authorization-audit-custody-policy:DISABLED/NOT_RUN;live-audit-custody:NOT_RUN;HASH_CHAIN_SEAL:VERIFIED(CHG-HSL-071);GATEWAY_ADMISSION_REOBSERVATION:PASS(CHG-HSL-071);BRIDGE_REVISION_REOBSERVATION:PASS(CHG-HSL-071);USER_NAMESPACE_MAPPING:PASS(CURRENT-CHG-HSL-072);UNAUTHORIZED_PEER_NEGATIVE:PASS(CHG-HSL-072);pre-promotion-package:ASSEMBLED/HOLD/INCOMPLETE(CHG-HSL-071);post-effect-package:NOT_RUN;live-runner-audit-terminal:NOT_RUN'
   - id: OBS-LIVE-EFFECT-RESET
     required: true
     result: BLOCKED
@@ -48,5 +48,5 @@ observations:
 promotionRecommendation: HOLD
 timestamps:
   startedAt: '2026-08-09T21:12:00Z'
-  updatedAt: '2026-08-15T21:11:00Z'
+  updatedAt: '2026-08-16T05:38:47Z'
   closedAt: null
