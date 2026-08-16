@@ -1,13 +1,10 @@
 #!/usr/bin/env python3
 """Custody bridge for public signer trust manifests into Evidence Plane v2.
 
-The bridge persists only an already-composed public ``signer-trust-manifest/v1``
-object through an injected canonical Evidence Plane store. It owns no datastore,
-EvidenceVerifier, EvidenceChain, AuditSink, seal, signer provider, trust installer or
-runtime authority.
-
-The canonical policy is DISABLED / NOT_RUN. Tests may explicitly enable a disposable
-copy against temporary local storage; that does not enable Hermes runtime custody.
+Persists only an already-composed public ``signer-trust-manifest/v1`` through an
+injected canonical Evidence Plane store. The canonical policy is DISABLED/NOT_RUN;
+this module owns no datastore, verifier, chain, AuditSink, signer provider, trust
+installer, key material, runtime authority or promotion authority.
 """
 
 from __future__ import annotations
@@ -18,6 +15,7 @@ import importlib.util
 import json
 import sys
 from collections.abc import Mapping, Sequence
+from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -89,7 +87,7 @@ def _load_module(name: str, path: Path) -> Any:
     if existing is not None:
         return existing
     spec = importlib.util.spec_from_file_location(name, path)
-    if spec is None or spec.loader is None:  # pragma: no cover - packaging defect
+    if spec is None or spec.loader is None:  # pragma: no cover
         raise RuntimeError(f"cannot load canonical module {path.name}")
     module = importlib.util.module_from_spec(spec)
     sys.modules[name] = module
@@ -127,10 +125,11 @@ def _validate_manifest(manifest: Any) -> dict[str, Any]:
         raise SignerTrustManifestCustodyError(
             "MANIFEST_INVALID", "signer trust manifest must be an object"
         )
-
     normalized = dict(manifest)
-    validator = jsonschema.Draft7Validator(_load_manifest_schema())
-    errors = sorted(validator.iter_errors(normalized), key=lambda error: list(error.path))
+    errors = sorted(
+        jsonschema.Draft7Validator(_load_manifest_schema()).iter_errors(normalized),
+        key=lambda error: list(error.path),
+    )
     if errors:
         raise SignerTrustManifestCustodyError("MANIFEST_INVALID", errors[0].message)
 
@@ -149,8 +148,7 @@ def _validate_manifest(manifest: Any) -> dict[str, Any]:
 def _parse_recorded_at(value: Any) -> datetime:
     if not isinstance(value, str) or not value.endswith("Z"):
         raise SignerTrustManifestCustodyError(
-            "MANIFEST_INVALID",
-            "recorded_at must be an RFC3339 UTC timestamp ending in Z",
+            "MANIFEST_INVALID", "recorded_at must be an RFC3339 UTC timestamp ending in Z"
         )
     try:
         parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
@@ -226,13 +224,12 @@ def validate_policy(document: Any) -> list[str]:
 
 
 def load_policy(path: Path | str = POLICY_PATH) -> dict[str, Any]:
-    policy_path = Path(path)
     try:
-        document = yaml.safe_load(policy_path.read_text(encoding="utf-8"))
-    except OSError as exc:
-        raise SignerTrustManifestCustodyError("POLICY_INVALID", "policy is unreadable") from exc
-    except yaml.YAMLError as exc:
-        raise SignerTrustManifestCustodyError("POLICY_INVALID", "policy is invalid") from exc
+        document = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
+    except (OSError, yaml.YAMLError) as exc:
+        raise SignerTrustManifestCustodyError(
+            "POLICY_INVALID", "policy is unreadable or invalid"
+        ) from exc
     findings = validate_policy(document)
     if findings:
         raise SignerTrustManifestCustodyError("POLICY_INVALID", "; ".join(findings))
@@ -246,7 +243,9 @@ class SignerTrustManifestCustody:
         findings = validate_policy(policy)
         if findings:
             raise SignerTrustManifestCustodyError("POLICY_INVALID", "; ".join(findings))
-        self._policy = dict(policy)
+        # Snapshot the already-validated caller-owned policy deeply. A shallow copy
+        # would leave the nested custody map mutable after the validation boundary.
+        self._policy = deepcopy(dict(policy))
 
     @property
     def enabled(self) -> bool:
@@ -282,7 +281,6 @@ class SignerTrustManifestCustody:
         payload_sha256 = evidence_contract.sha256_hex(payload)
         retain_until = _iso_z(timestamp + timedelta(days=30))
         storage_ref = f"evidence://signer-trust-manifest/{payload_sha256}"
-
         metadata = {
             "manifest_id": validated["manifest_id"],
             "provider_kind": validated["provider_kind"],
@@ -320,7 +318,7 @@ class SignerTrustManifestCustody:
                 created_at=recorded_at,
             )
             evidence_id = evidence_store.put(record, payload)
-        except Exception as exc:  # noqa: BLE001 - backend details must remain private
+        except Exception as exc:  # noqa: BLE001
             raise SignerTrustManifestCustodyError(
                 "EVIDENCE_PROJECTION_FAILED",
                 f"Evidence Plane projection failed safely: {type(exc).__name__}",
@@ -328,7 +326,7 @@ class SignerTrustManifestCustody:
 
         try:
             verified = bool(evidence_store.verify(evidence_id))
-        except Exception as exc:  # noqa: BLE001 - backend details must remain private
+        except Exception as exc:  # noqa: BLE001
             raise SignerTrustManifestCustodyError(
                 "EVIDENCE_VERIFICATION_FAILED",
                 f"Evidence Plane verification failed safely: {type(exc).__name__}",
@@ -354,8 +352,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("command", choices=("validate",))
     args = parser.parse_args(list(argv) if argv is not None else None)
     try:
-        policy = load_policy(args.policy)
-        SignerTrustManifestCustody(policy)
+        SignerTrustManifestCustody(load_policy(args.policy))
     except SignerTrustManifestCustodyError as exc:
         print(f"FAIL {exc.code}: {exc}", file=sys.stderr)
         return 1
