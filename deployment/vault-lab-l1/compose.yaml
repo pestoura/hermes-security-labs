@@ -1,0 +1,81 @@
+name: hermes-vault-lab-l1
+
+services:
+  vault:
+    image: hashicorp/vault:1.21.4@sha256:4e33b126a59c0c333b76fb4e894722462659a6bec7c48c9ee8cea56fccfd2569
+    command: ["server", "-config=/vault/config/vault.hcl"]
+    environment:
+      VAULT_ADDR: https://127.0.0.1:8200
+      VAULT_CACERT: /run/secrets/vault_lab_l1_ca
+      SKIP_SETCAP: "1"
+    ports:
+      - "127.0.0.1:${VAULT_LAB_L1_HOST_PORT:-18200}:8200"
+    networks:
+      - vault-signer-internal
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=32m
+      - /vault/logs:rw,noexec,nosuid,nodev,size=32m
+    volumes:
+      - vault-lab-l1-data:/vault/data
+    configs:
+      - source: vault_lab_l1_config
+        target: /vault/config/vault.hcl
+      - source: vault_lab_l1_signer_policy
+        target: /vault/policies/signer.hcl
+      - source: vault_lab_l1_observer_policy
+        target: /vault/policies/operator-observer.hcl
+    secrets:
+      - source: vault_lab_l1_ca
+        target: vault_lab_l1_ca
+      - source: vault_lab_l1_server_cert
+        target: vault_lab_l1_server_cert
+      - source: vault_lab_l1_server_key
+        target: vault_lab_l1_server_key
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512m
+          pids: 128
+        reservations:
+          memory: 128m
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - 'vault status >/dev/null 2>&1; rc=$$?; [ "$$rc" -eq 0 ] || [ "$$rc" -eq 2 ]'
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 5s
+    stop_grace_period: 30s
+
+configs:
+  vault_lab_l1_config:
+    file: ./config/vault.hcl
+  vault_lab_l1_signer_policy:
+    file: ./policies/signer.hcl
+  vault_lab_l1_observer_policy:
+    file: ./policies/operator-observer.hcl
+
+secrets:
+  vault_lab_l1_ca:
+    file: ${VAULT_LAB_L1_TLS_DIR:?VAULT_LAB_L1_TLS_DIR must point to operator-managed TLS material}/ca.pem
+  vault_lab_l1_server_cert:
+    file: ${VAULT_LAB_L1_TLS_DIR:?VAULT_LAB_L1_TLS_DIR must point to operator-managed TLS material}/server.pem
+  vault_lab_l1_server_key:
+    file: ${VAULT_LAB_L1_TLS_DIR:?VAULT_LAB_L1_TLS_DIR must point to operator-managed TLS material}/server-key.pem
+
+volumes:
+  vault-lab-l1-data:
+    name: hermes-vault-lab-l1-data
+
+networks:
+  vault-signer-internal:
+    name: vault-signer-internal
+    driver: bridge
+    internal: true
