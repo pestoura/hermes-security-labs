@@ -93,9 +93,12 @@ class SecretResolver:
         return self.values[reference]
 
 
+def _provider_private_key() -> Ed25519PrivateKey:
+    return Ed25519PrivateKey.from_private_bytes(b"\x81" * 32)
+
+
 def _public_key_pem() -> str:
-    key = Ed25519PrivateKey.from_private_bytes(b"\x81" * 32).public_key()
-    return key.public_bytes(
+    return _provider_private_key().public_key().public_bytes(
         encoding=serialization.Encoding.PEM,
         format=serialization.PublicFormat.SubjectPublicKeyInfo,
     ).decode("ascii")
@@ -137,18 +140,6 @@ def _key_metadata(
     )
 
 
-def _signature(*, version: int = 3, raw: bytes = b"\x42" * 64) -> _Response:
-    return _Response(
-        200,
-        {
-            "data": {
-                "signature": f"vault:v{version}:{base64.b64encode(raw).decode('ascii')}"
-            }
-        },
-        "req-sign",
-    )
-
-
 def _config(vault):
     return vault.VaultSignerConfig(
         vault_addr="https://vault.internal:8200",
@@ -178,6 +169,23 @@ def _request(signing, *, digest: str = "a" * 64):
         purpose="tb1-authorization",
         domain="hex0r.tb1.authorization.v1",
         correlation_id="corr-081",
+    )
+
+
+def _signature(*, version: int = 3, raw: bytes | None = None) -> _Response:
+    if raw is None:
+        signing = _signing()
+        raw = _provider_private_key().sign(
+            signing.canonical_signing_payload(_request(signing))
+        )
+    return _Response(
+        200,
+        {
+            "data": {
+                "signature": f"vault:v{version}:{base64.b64encode(raw).decode('ascii')}"
+            }
+        },
+        "req-sign",
     )
 
 
@@ -260,9 +268,8 @@ def test_adapter_uses_approle_observes_key_and_pins_exact_version() -> None:
     assert sign_call.json_body is not None
     assert sign_call.json_body["key_version"] == 3
     assert set(sign_call.json_body) == {"input", "key_version"}
-    assert base64.b64decode(str(sign_call.json_body["input"]), validate=True) == signing.canonical_signing_payload(
-        _request(signing)
-    )
+    payload = signing.canonical_signing_payload(_request(signing))
+    assert base64.b64decode(str(sign_call.json_body["input"]), validate=True) == payload
 
     assert result.signer_class == "VAULT"
     assert result.algorithm == "Ed25519"
@@ -271,7 +278,8 @@ def test_adapter_uses_approle_observes_key_and_pins_exact_version() -> None:
     assert result.authority == "EXTERNAL_CUSTODY"
     assert result.audit_ref.startswith("evidence://vault-sign-operation/")
     assert len(result.public_key_spki_sha256) == 64
-    assert base64.b64decode(result.signature_b64, validate=True) == b"\x42" * 64
+    signature = base64.b64decode(result.signature_b64, validate=True)
+    _provider_private_key().public_key().verify(signature, payload)
     assert "vault-token-redacted" not in repr(result)
     assert "role-id-081" not in repr(result)
     assert "secret-id-081" not in repr(result)
