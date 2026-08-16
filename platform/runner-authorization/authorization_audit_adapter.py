@@ -2,8 +2,12 @@
 """Repository-only TB1 authorization decision audit adapter.
 
 Builds sanitized ``authorization-receipt-audit/v1`` records and appends them to
-the existing canonical LAB_L1 AuditSink. It implements no receipt verification,
-authorization issuance, runtime transport, datastore, EvidenceChain, seal or
+the existing canonical LAB_L1 AuditSink. Optional injected custody may persist the
+same sanitized record through the existing Evidence Plane and bind its canonical
+``ev_`` identifier into the AuditSink entry.
+
+The adapter implements no receipt verification, authorization issuance, runtime
+transport, datastore, EvidenceChain, seal, trust installation, Runner effect or
 execution/promotion authority.
 """
 
@@ -14,8 +18,9 @@ import importlib.util
 import json
 import re
 import sys
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -27,6 +32,8 @@ AUTHORIZATION_REF_PREFIX = "tb1-authz:v1:"
 AUTHORIZATION_REF = re.compile(r"^tb1-authz:v1:[a-f0-9]{64}$")
 SAFE_ID = re.compile(r"^[A-Za-z0-9._:@/-]{1,256}$")
 REASON_CODE = re.compile(r"^[A-Z][A-Z0-9_]{0,255}$")
+EVIDENCE_ID = re.compile(r"^ev_[a-f0-9]{32}$")
+EVIDENCE_URI = re.compile(r"^evidence://(ev_[a-f0-9]{32})$")
 CONTEXT_FIELDS = {
     "campaign_id",
     "run_id",
@@ -208,17 +215,52 @@ def authorization_audit_record_digest(record: dict[str, object]) -> tuple[str, i
     return hashlib.sha256(payload).hexdigest(), len(payload)
 
 
+def _canonical_evidence_id(evidence_ref: object) -> str:
+    """Normalize Evidence Plane custody URI/id to AuditSink's canonical ``ev_`` ID."""
+
+    if isinstance(evidence_ref, str) and EVIDENCE_ID.fullmatch(evidence_ref):
+        return evidence_ref
+    if isinstance(evidence_ref, str):
+        match = EVIDENCE_URI.fullmatch(evidence_ref)
+        if match:
+            return match.group(1)
+    raise AuthorizationAuditError(
+        "AUTHORIZATION_AUDIT_EVIDENCE_REF_INVALID",
+        "evidence_ref must be ev_<32 lowercase hex> or evidence://ev_<32 lowercase hex>",
+    )
+
+
+def _utc_now_z() -> str:
+    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
 class CanonicalAuthorizationAuditAdapter:
     """Authorization-decision -> existing canonical AuditSink adapter."""
 
-    def __init__(self, *, chain_id: str) -> None:
+    def __init__(
+        self,
+        *,
+        chain_id: str,
+        custody: Any | None = None,
+        evidence_store: Any | None = None,
+        recorded_at_provider: Callable[[], str] | None = None,
+    ) -> None:
         try:
             self._sink = AuditSink(chain_id)
         except AuditSinkError as exc:
             raise AuthorizationAuditError(
                 "AUTHORIZATION_AUDIT_SINK_INVALID", str(exc)
             ) from exc
+        if recorded_at_provider is not None and not callable(recorded_at_provider):
+            raise AuthorizationAuditError(
+                "AUTHORIZATION_AUDIT_CUSTODY_INVALID",
+                "recorded_at_provider must be callable",
+            )
+        self._custody = custody
+        self._evidence_store = evidence_store
+        self._recorded_at_provider = recorded_at_provider or _utc_now_z
         self._emitted: dict[tuple[str, ...], dict[str, object]] = {}
+        self._pending_recorded_at: dict[tuple[str, ...], str] = {}
 
     def record_event(
         self,
@@ -258,6 +300,66 @@ class CanonicalAuthorizationAuditAdapter:
         if prior is not None:
             return dict(prior)
 
+        bound_evidence_id: str | None = None
+        if self._custody is not None:
+            if self._evidence_store is None:
+                raise AuthorizationAuditError(
+                    "AUTHORIZATION_AUDIT_CUSTODY_UNAVAILABLE",
+                    "authorization audit custody requires the canonical Evidence Plane store",
+                )
+            recorded_at = self._pending_recorded_at.get(identity)
+            if recorded_at is None:
+                try:
+                    recorded_at = self._recorded_at_provider()
+                except Exception as exc:  # noqa: BLE001 - provider details are private
+                    raise AuthorizationAuditError(
+                        "AUTHORIZATION_AUDIT_CUSTODY_FAILED",
+                        "authorization audit custody timestamp failed safely: "
+                        f"{type(exc).__name__}",
+                    ) from exc
+                if not isinstance(recorded_at, str):
+                    raise AuthorizationAuditError(
+                        "AUTHORIZATION_AUDIT_CUSTODY_FAILED",
+                        "authorization audit custody timestamp provider returned invalid data",
+                    )
+                self._pending_recorded_at[identity] = recorded_at
+            try:
+                persisted = self._custody.persist(
+                    record,
+                    correlation={
+                        "campaign_id": normalized_context.campaign_id,
+                        "run_id": normalized_context.run_id,
+                        "step_id": normalized_context.step_id,
+                        "attempt_id": normalized_context.attempt_id,
+                    },
+                    recorded_at=recorded_at,
+                    evidence_store=self._evidence_store,
+                )
+            except Exception as exc:  # noqa: BLE001 - custody details remain private
+                raise AuthorizationAuditError(
+                    "AUTHORIZATION_AUDIT_CUSTODY_FAILED",
+                    f"authorization audit custody failed safely: {type(exc).__name__}",
+                ) from exc
+
+            persisted_digest = getattr(persisted, "payload_sha256", None)
+            persisted_size = getattr(persisted, "payload_size_bytes", None)
+            if persisted_digest != digest or persisted_size != size:
+                raise AuthorizationAuditError(
+                    "AUTHORIZATION_AUDIT_CUSTODY_MISMATCH",
+                    "persisted authorization audit identity does not match the canonical record",
+                )
+            bound_evidence_id = _canonical_evidence_id(
+                getattr(persisted, "evidence_ref", None)
+            )
+            returned_evidence_id = _canonical_evidence_id(
+                getattr(persisted, "evidence_id", None)
+            )
+            if returned_evidence_id != bound_evidence_id:
+                raise AuthorizationAuditError(
+                    "AUTHORIZATION_AUDIT_CUSTODY_MISMATCH",
+                    "persisted authorization audit custody ID does not match its evidence reference",
+                )
+
         audit_context = AuditContext(
             campaign_id=normalized_context.campaign_id,
             run_id=normalized_context.run_id,
@@ -277,12 +379,14 @@ class CanonicalAuthorizationAuditAdapter:
                 object_size_bytes=size,
                 object_media_type="application/json",
                 context=audit_context,
+                evidence_ref=bound_evidence_id,
             )
         except AuditSinkError as exc:
             raise AuthorizationAuditError(
                 "AUTHORIZATION_AUDIT_APPEND_FAILED", str(exc)
             ) from exc
         self._emitted[identity] = dict(record)
+        self._pending_recorded_at.pop(identity, None)
         return record
 
     @property
