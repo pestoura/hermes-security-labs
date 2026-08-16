@@ -197,7 +197,9 @@ def _correlation(value: Any) -> Any:
             "exact correlation fields required",
         )
     try:
-        return evidence_contract.Correlation(**dict(value))
+        correlation = evidence_contract.Correlation(**dict(value))
+        correlation.as_dict()
+        return correlation
     except (TypeError, ValueError) as exc:
         raise AuthorizationAuditCustodyError(
             "AUTHORIZATION_AUDIT_CORRELATION_INVALID",
