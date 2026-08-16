@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import argparse
 import importlib.util
+import re
 import sys
 from collections import OrderedDict
 from collections.abc import Mapping, Sequence
@@ -36,6 +37,7 @@ AUDIT_CONTEXT_FIELDS = {
     "principal",
     "correlation_id",
 }
+SAFE_AUDIT_ID = re.compile(r"^[A-Za-z0-9._:@/-]{1,256}$")
 
 
 def _load_authorization_module():
@@ -54,6 +56,9 @@ def _load_authorization_module():
 
 authorization_contract = _load_authorization_module()
 VerifiedAuthorization = authorization_contract.VerifiedAuthorization
+CANONICAL_AUTHORIZATION_REF = re.compile(
+    rf"^{re.escape(authorization_contract.AUTHORIZATION_REF_PREFIX)}[a-f0-9]{{64}}$"
+)
 
 
 class AuthorizationResolverError(ValueError):
@@ -86,9 +91,7 @@ def _trusted_audit_context(value: Any) -> dict[str, str] | None:
     normalized: dict[str, str] = {}
     for key in AUDIT_CONTEXT_FIELDS:
         item = value.get(key)
-        if not isinstance(item, str) or not item or len(item) > 256:
-            return None
-        if any(ord(char) < 32 or ord(char) == 127 for char in item):
+        if not isinstance(item, str) or not SAFE_AUDIT_ID.fullmatch(item):
             return None
         normalized[key] = item
     return normalized
@@ -261,8 +264,8 @@ class VerifiedAuthorizationResolver:
 
         if not self.enabled:
             return None
-        if not isinstance(authorization_ref, str) or not authorization_ref.startswith(
-            authorization_contract.AUTHORIZATION_REF_PREFIX
+        if not isinstance(authorization_ref, str) or not CANONICAL_AUTHORIZATION_REF.fullmatch(
+            authorization_ref
         ):
             self._audit_lookup(
                 audit_context=audit_context,
