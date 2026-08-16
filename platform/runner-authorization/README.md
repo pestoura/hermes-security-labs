@@ -6,7 +6,7 @@ This directory provides the execution-plane lookup boundary for TB1 `authorizati
 
 Hermes remains the only execution-authorization authority. The resolver has one trusted ingest path:
 
-1. receive a signed TB1 receipt through a future trusted composition boundary;
+1. receive a signed TB1 receipt through a trusted composition boundary;
 2. call the canonical verifier in `platform/authorization-contract/authorization_receipt.py`;
 3. cache only the returned sanitized `VerifiedAuthorization` metadata;
 4. resolve a Runner `authorization_ref` only while that verified metadata remains in memory and inside its validity window.
@@ -57,19 +57,46 @@ The resolver also rechecks `issued_at`/`expires_at` on every lookup and removes 
 
 The committed `receipt-delivery-policy.yaml` is `DISABLED` / `deny` / `NOT_RUN` / `execution_authority: none` with `socket_path: NOT_CONFIGURED`, so merging cannot create a live delivery path.
 
-## Remaining runtime blocker
+## Authorization decision audit evidence
 
-Delivery composition now exists in the repository, but it is not enabled and not wired to a real socket.
+CHG-HSL-078 / ADR-0015 adds repository-only audit evidence for authorization decisions through `authorization_audit_adapter.py` and the existing canonical LAB_L1 `AuditSink` / EvidenceChain.
+
+The closed event model covers:
+
+- successful verified receipt registration (`REGISTERED`);
+- live lookup (`LOOKUP_HIT`);
+- unknown or invalid lookup (`LOOKUP_MISS`);
+- expired/future-invalid cached authorization (`LOOKUP_EXPIRED`);
+- delivery or registration refusal (`REFUSED`).
+
+Security properties:
+
+- trusted audit correlation is supplied by the local composition or schema-validated Runner request, never copied from an unverified receipt;
+- canonical authorization references are represented in the public event only by SHA-256; malformed/unbounded references are recorded as `null`;
+- raw receipt, signature, key, target, parameters, credentials and secrets are not included;
+- exact duplicate delivery does not create a second registration event;
+- with an observer configured, a registration or lookup hit that cannot be audited fails closed;
+- post-registration audit failure removes local resolvability through `resolver.forget()` before acceptance is returned;
+- refusal-audit failure cannot turn a denial into success;
+- the canonical AuditSink replay/hash-link/seal controls are reused unchanged.
+
+The first WebGoat L1 adapter already performs full request binding against verified authorization metadata and now supplies request-bound audit context when the resolver supports audited lookup. Legacy resolver doubles that expose only `resolve(ref)` remain supported for repository compatibility.
+
+This is **GREEN-REPO evidence only**. It does not mean the delivery socket, trust store or signer is operational.
+
+## Remaining runtime blockers
+
+Delivery composition and authorization decision auditing now exist in the repository, but the path is not enabled and is not wired to a real receipt socket.
 
 Before live promotion we still need:
 
 1. an enabled delivery policy bound to a real socket path, peer uid and control-plane principal, provisioned by deployment;
-2. configured TB1 trust store on the Runner side;
-3. lifecycle/revocation behaviour for cached authorizations;
-4. audit evidence for receipt registration and lookup decisions;
-5. integration with the target-bound adapter so it checks the full `VerifiedAuthorization` binding against the Runner request;
-6. live negative tests for forged, expired, unknown and mismatched references.
+2. configured and evidenced TB1 trust store on the Runner side;
+3. real external signer/provider evidence consistent with the approved custody decision;
+4. lifecycle/revocation behaviour for already-cached authorizations where required by live operation;
+5. live negative tests for forged, expired, unknown, revoked and mismatched references;
+6. explicit request-bound Human-in-the-Loop promotion approval after the remaining PRE_PROMOTION evidence is complete.
 
 ## Non-goals
 
-This block does not implement receipt issuance, private-key loading, routing, transport identity, adapter execution, Evidence Plane persistence, target traffic or runtime enablement.
+This block does not implement real receipt issuance, private-key loading, socket provisioning, provider selection, trust installation, target traffic or runtime enablement. Repository audit success is not execution or promotion authority.

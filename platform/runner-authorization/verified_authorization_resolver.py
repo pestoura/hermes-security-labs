@@ -6,13 +6,16 @@ TB1 receipt and delegates verification to the canonical authorization contract.
 Only the sanitized ``VerifiedAuthorization`` result is cached in memory.
 
 A naked authorization_ref is never sufficient: unknown, expired, disabled or
-unverified references resolve to no authority.
+unverified references resolve to no authority. An optional audit observer may
+record lookup decisions; when configured, a positive lookup is returned only if
+that decision is audited successfully with trusted request context.
 """
 
 from __future__ import annotations
 
 import argparse
 import importlib.util
+import re
 import sys
 from collections import OrderedDict
 from collections.abc import Mapping, Sequence
@@ -26,6 +29,15 @@ ROOT = Path(__file__).resolve().parents[2]
 POLICY_PATH = Path(__file__).resolve().parent / "resolver-policy.yaml"
 AUTH_MODULE_PATH = ROOT / "platform" / "authorization-contract" / "authorization_receipt.py"
 CANONICAL_VERIFICATION_SOURCE = "platform/authorization-contract/authorization_receipt.py"
+AUDIT_CONTEXT_FIELDS = {
+    "campaign_id",
+    "run_id",
+    "step_id",
+    "attempt_id",
+    "principal",
+    "correlation_id",
+}
+SAFE_AUDIT_ID = re.compile(r"^[A-Za-z0-9._:@/-]{1,256}$")
 
 
 def _load_authorization_module():
@@ -44,6 +56,9 @@ def _load_authorization_module():
 
 authorization_contract = _load_authorization_module()
 VerifiedAuthorization = authorization_contract.VerifiedAuthorization
+CANONICAL_AUTHORIZATION_REF = re.compile(
+    rf"^{re.escape(authorization_contract.AUTHORIZATION_REF_PREFIX)}[a-f0-9]{{64}}$"
+)
 
 
 class AuthorizationResolverError(ValueError):
@@ -68,6 +83,18 @@ def _parse_utc(value: str) -> datetime:
             "verified authorization timestamp is not timezone-aware",
         )
     return parsed.astimezone(timezone.utc)
+
+
+def _trusted_audit_context(value: Any) -> dict[str, str] | None:
+    if not isinstance(value, Mapping) or set(value) != AUDIT_CONTEXT_FIELDS:
+        return None
+    normalized: dict[str, str] = {}
+    for key in AUDIT_CONTEXT_FIELDS:
+        item = value.get(key)
+        if not isinstance(item, str) or not SAFE_AUDIT_ID.fullmatch(item):
+            return None
+        normalized[key] = item
+    return normalized
 
 
 def validate_policy(document: Any) -> list[str]:
@@ -130,13 +157,21 @@ def load_policy(path: Path | str = POLICY_PATH) -> dict[str, Any]:
 class VerifiedAuthorizationResolver:
     """Memory-only cache populated exclusively through canonical receipt verification."""
 
-    def __init__(self, policy: Mapping[str, Any]) -> None:
+    def __init__(self, policy: Mapping[str, Any], audit_observer: Any | None = None) -> None:
         findings = validate_policy(policy)
         if findings:
             raise AuthorizationResolverError("POLICY_INVALID", "; ".join(findings))
+        if audit_observer is not None and not callable(
+            getattr(audit_observer, "record_event", None)
+        ):
+            raise AuthorizationResolverError(
+                "AUDIT_OBSERVER_INVALID",
+                "authorization audit observer must expose record_event",
+            )
         self._policy = dict(policy)
         self._entries: OrderedDict[str, Any] = OrderedDict()
         self._max_entries = int(policy["cache"]["max_entries"])
+        self._audit_observer = audit_observer
 
     @property
     def enabled(self) -> bool:
@@ -152,6 +187,42 @@ class VerifiedAuthorizationResolver:
                 "RESOLVER_DISABLED",
                 "authorization resolver policy is disabled",
             )
+
+    def _audit_lookup(
+        self,
+        *,
+        audit_context: Any,
+        event_type: str,
+        reason_code: str,
+        authorization_ref: Any,
+        verified: Any | None = None,
+    ) -> bool:
+        if self._audit_observer is None:
+            return True
+        context = _trusted_audit_context(audit_context)
+        if context is None:
+            return False
+        try:
+            self._audit_observer.record_event(
+                context=context,
+                event_type=event_type,
+                phase="LOOKUP",
+                decision="ACCEPT" if event_type == "LOOKUP_HIT" else "DENY",
+                reason_code=reason_code,
+                authorization_ref=authorization_ref,
+                duplicate=False,
+                capability_id=(
+                    getattr(verified, "capability_id", None) if verified is not None else None
+                ),
+                intrusiveness_level=(
+                    getattr(verified, "intrusiveness_level", None)
+                    if verified is not None
+                    else None
+                ),
+            )
+        except Exception:  # noqa: BLE001 - audit failure must fail closed without leakage
+            return False
+        return True
 
     def register_receipt(self, receipt: Mapping[str, Any]) -> Any:
         """Verify a signed TB1 receipt and cache sanitized metadata only."""
@@ -184,17 +255,33 @@ class VerifiedAuthorizationResolver:
         self._entries[verified.authorization_ref] = verified
         return verified
 
-    def resolve(self, authorization_ref: str) -> Any | None:
-        """Resolve only an already verified, still-live authorization reference."""
+    def resolve(self, authorization_ref: str, *, audit_context: Any = None) -> Any | None:
+        """Resolve only an already verified, still-live authorization reference.
+
+        When an audit observer is configured, a successful lookup is returned only
+        after its request-bound audit event has been appended successfully.
+        """
 
         if not self.enabled:
             return None
-        if not isinstance(authorization_ref, str) or not authorization_ref.startswith(
-            authorization_contract.AUTHORIZATION_REF_PREFIX
+        if not isinstance(authorization_ref, str) or not CANONICAL_AUTHORIZATION_REF.fullmatch(
+            authorization_ref
         ):
+            self._audit_lookup(
+                audit_context=audit_context,
+                event_type="LOOKUP_MISS",
+                reason_code="AUTHORIZATION_REF_INVALID",
+                authorization_ref=authorization_ref,
+            )
             return None
         verified = self._entries.get(authorization_ref)
         if verified is None:
+            self._audit_lookup(
+                audit_context=audit_context,
+                event_type="LOOKUP_MISS",
+                reason_code="AUTHORIZATION_NOT_FOUND",
+                authorization_ref=authorization_ref,
+            )
             return None
 
         now = datetime.now(timezone.utc)
@@ -203,11 +290,33 @@ class VerifiedAuthorizationResolver:
             expires_at = _parse_utc(verified.expires_at)
         except AuthorizationResolverError:
             self._entries.pop(authorization_ref, None)
+            self._audit_lookup(
+                audit_context=audit_context,
+                event_type="LOOKUP_EXPIRED",
+                reason_code="AUTHORIZATION_NOT_LIVE",
+                authorization_ref=authorization_ref,
+                verified=verified,
+            )
             return None
         if now < issued_at or now >= expires_at:
             self._entries.pop(authorization_ref, None)
+            self._audit_lookup(
+                audit_context=audit_context,
+                event_type="LOOKUP_EXPIRED",
+                reason_code="AUTHORIZATION_NOT_LIVE",
+                authorization_ref=authorization_ref,
+                verified=verified,
+            )
             return None
 
+        if not self._audit_lookup(
+            audit_context=audit_context,
+            event_type="LOOKUP_HIT",
+            reason_code="AUTHORIZATION_LIVE",
+            authorization_ref=authorization_ref,
+            verified=verified,
+        ):
+            return None
         self._entries.move_to_end(authorization_ref)
         return verified
 

@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hex0r.local/schemas/authorization-receipt-audit.schema.json",
+  "title": "Hermes Authorization Receipt Audit Event",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "event_type",
+    "phase",
+    "decision",
+    "reason_code",
+    "authorization_ref_sha256",
+    "duplicate",
+    "capability_id",
+    "intrusiveness_level",
+    "promotion_allowed",
+    "runtime_status",
+    "execution_authority"
+  ],
+  "properties": {
+    "schema_version": {"const": "authorization-receipt-audit/v1"},
+    "event_type": {
+      "enum": ["REGISTERED", "LOOKUP_HIT", "LOOKUP_MISS", "LOOKUP_EXPIRED", "REFUSED"]
+    },
+    "phase": {"enum": ["DELIVERY", "REGISTRATION", "LOOKUP"]},
+    "decision": {"enum": ["ACCEPT", "DENY"]},
+    "reason_code": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "pattern": "^[A-Z][A-Z0-9_]*$"
+    },
+    "authorization_ref_sha256": {
+      "oneOf": [
+        {"type": "null"},
+        {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+      ]
+    },
+    "duplicate": {"type": "boolean"},
+    "capability_id": {
+      "oneOf": [
+        {"type": "null"},
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "pattern": "^[A-Za-z0-9._:@/-]+$"
+        }
+      ]
+    },
+    "intrusiveness_level": {
+      "oneOf": [
+        {"type": "null"},
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9._:@/-]+$"
+        }
+      ]
+    },
+    "promotion_allowed": {"const": false},
+    "runtime_status": {"const": "NOT_RUN"},
+    "execution_authority": {"const": "NONE"}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"event_type": {"const": "REGISTERED"}}, "required": ["event_type"]},
+      "then": {"properties": {"phase": {"const": "REGISTRATION"}, "decision": {"const": "ACCEPT"}}}
+    },
+    {
+      "if": {"properties": {"event_type": {"const": "LOOKUP_HIT"}}, "required": ["event_type"]},
+      "then": {"properties": {"phase": {"const": "LOOKUP"}, "decision": {"const": "ACCEPT"}}}
+    },
+    {
+      "if": {"properties": {"event_type": {"enum": ["LOOKUP_MISS", "LOOKUP_EXPIRED"]}}, "required": ["event_type"]},
+      "then": {"properties": {"phase": {"const": "LOOKUP"}, "decision": {"const": "DENY"}}}
+    },
+    {
+      "if": {"properties": {"event_type": {"const": "REFUSED"}}, "required": ["event_type"]},
+      "then": {
+        "properties": {
+          "phase": {"enum": ["DELIVERY", "REGISTRATION"]},
+          "decision": {"const": "DENY"}
+        }
+      }
+    }
+  ]
+}
