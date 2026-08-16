@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hex0r.local/schemas/signer-operation-audit.schema.json",
+  "title": "Hermes Signer Operation Audit Event",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "operation",
+    "request_digest_sha256",
+    "purpose",
+    "domain",
+    "request_correlation_id",
+    "signature_sha256",
+    "key_id",
+    "algorithm",
+    "public_key_spki_sha256",
+    "signer_class",
+    "authority",
+    "audit_ref",
+    "principal",
+    "provider_ref",
+    "test_only",
+    "promotion_allowed",
+    "runtime_status",
+    "execution_authority"
+  ],
+  "properties": {
+    "schema_version": {"const": "signer-operation-audit/v1"},
+    "operation": {"const": "SIGN"},
+    "request_digest_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "purpose": {"const": "tb1-authorization"},
+    "domain": {"const": "hex0r.tb1.authorization.v1"},
+    "request_correlation_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9._:@/-]+$"
+    },
+    "signature_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "key_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160,
+      "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+    },
+    "algorithm": {"enum": ["Ed25519", "ECDSA-P256-SHA256"]},
+    "public_key_spki_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "signer_class": {"enum": ["VAULT", "KMS", "HSM", "TEST"]},
+    "authority": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160,
+      "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+    },
+    "audit_ref": {
+      "type": "string",
+      "minLength": 12,
+      "maxLength": 500,
+      "pattern": "^(evidence|ci-test)://[^\\u0000-\\u001f\\u007f]+$"
+    },
+    "principal": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "pattern": "^[A-Za-z0-9._:@/-]+$"
+    },
+    "provider_ref": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+    },
+    "test_only": {"type": "boolean"},
+    "promotion_allowed": {"const": false},
+    "runtime_status": {"const": "NOT_RUN"},
+    "execution_authority": {"const": "NONE"}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"signer_class": {"const": "TEST"}}, "required": ["signer_class"]},
+      "then": {
+        "properties": {
+          "test_only": {"const": true},
+          "audit_ref": {"pattern": "^ci-test://[^\\u0000-\\u001f\\u007f]+$"}
+        }
+      },
+      "else": {
+        "properties": {
+          "audit_ref": {"pattern": "^evidence://[^\\u0000-\\u001f\\u007f]+$"}
+        }
+      }
+    }
+  ]
+}
