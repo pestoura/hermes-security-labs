@@ -78,16 +78,22 @@ class _Secrets:
         return self.values[reference]
 
 
+def _provider_private_key() -> Ed25519PrivateKey:
+    return Ed25519PrivateKey.from_private_bytes(b"\x91" * 32)
+
+
 def _public_key_pem() -> str:
-    public_key = Ed25519PrivateKey.from_private_bytes(b"\x91" * 32).public_key()
-    return public_key.public_bytes(
+    return _provider_private_key().public_key().public_bytes(
         encoding=serialization.Encoding.PEM,
         format=serialization.PublicFormat.SubjectPublicKeyInfo,
     ).decode("ascii")
 
 
-def _provider_responses() -> list[_Response]:
-    signature = base64.b64encode(b"\x51" * 64).decode("ascii")
+def _provider_responses(signing, request) -> list[_Response]:
+    signature_bytes = _provider_private_key().sign(
+        signing.canonical_signing_payload(request)
+    )
+    signature = base64.b64encode(signature_bytes).decode("ascii")
     return [
         _Response(200, {"auth": {"client_token": _TOKEN_MARKER}}),
         _Response(
@@ -120,7 +126,8 @@ def test_vault_result_enters_canonical_signer_audit_without_secret_or_authority_
         domain="hex0r.tb1.authorization.v1",
         correlation_id="corr-audit-081",
     )
-    transport = _Transport(_provider_responses())
+    signing = vault._signing_module_for_request(request)
+    transport = _Transport(_provider_responses(signing, request))
     adapter = vault.VaultSignerAdapter(
         vault.VaultSignerConfig(
             vault_addr="https://vault.internal:8200",
@@ -180,7 +187,7 @@ def test_vault_repository_capability_does_not_mutate_human_or_campaign_authority
 
     assert decision["decision"]["state"] == "NO_DECISION"
     assert decision["decision"]["selected_class"] is None
-    assert decision["decision"]["human_decision_id"] is None
+    assert decision["decision"]["decision_id"] is None
     assert decision["decision"]["evidence_refs"] == []
 
     assert campaign["state"] == "BLOCKED"
