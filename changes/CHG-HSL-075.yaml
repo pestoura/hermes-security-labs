@@ -1,0 +1,34 @@
+schemaVersion: jds.change/v1
+kind: ChangeRecord
+id: CHG-HSL-075
+product: hermes-security-labs
+classification: HARDENING
+state: ACCEPTED
+disposition: FIX_NOW
+summary: 'Add a dedicated provider-neutral signer-operation audit adapter that emits a closed public signer-operation-audit/v1 record and appends it to the existing canonical LAB_L1 AuditSink/evidence chain. The adapter records only public metadata and digests, implements no second ledger/chain/seal, and grants no execution or promotion authority.'
+source:
+  type: ENGINEERING_REVIEW
+  campaign: VAL-HSL-RUNNER-L1-LIVE-PROMOTION
+  observation: OBS-RUNNER-POLICY-PROMOTION
+  reference: 'User-approved option A; issue #409 and PR #408. Reuse canonical AuditSink following the existing runner-transport audit-adapter pattern. Issue #403 remains a separate human/provider custody decision and stays NO_DECISION/NO_SELECTION.'
+affectedRelease: jds-002-adoption-candidate
+targetRelease: null
+risk: LOW
+versionEffect: NONE
+branch: chg-hsl-075/signer-audit-attribution
+issue: 409
+pr: 408
+validation:
+  targeted: PASS
+  regression: PASS
+  security: PASS
+  runtime: NOT_RUN
+promotion:
+  commit: null
+  artifactDigest: null
+  previousRelease: null
+deferredTo: null
+timestamps:
+  discoveredAt: '2026-08-16T00:03:00Z'
+  updatedAt: '2026-08-16T00:12:00Z'
+  closedAt: null
