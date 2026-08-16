@@ -7,7 +7,7 @@
 
 ## 1. Objective
 
-Close the repository-level custody gap left after CHG-HSL-078 by persisting the exact sanitized `authorization-receipt-audit/v1` object through the existing Evidence Plane and proving the resulting `evidence_ref + sha256` through the existing `EvidenceVerifier` contract before the same reference is used by the canonical `AuditSink` / EvidenceChain.
+Close the repository-level custody gap left after CHG-HSL-078 by persisting the exact sanitized `authorization-receipt-audit/v1` object through the existing Evidence Plane, verifying that object through the existing `EvidenceVerifier` contract, and binding the canonical Evidence Plane custody ID into the existing `AuditSink` / EvidenceChain while preserving the content-addressed audit object reference.
 
 This design does not promote runtime or resolve the remaining live signer/trust/delivery/HITL/effect gates.
 
@@ -37,7 +37,7 @@ Implement a dedicated `AuthorizationAuditCustody` bridge in the Evidence Plane b
 3. **Authorization audit custody bridge** — new module under `platform/evidence-plane/` accepting an injected Evidence Plane store.
 4. **Existing Evidence Plane store** — no new datastore implementation.
 5. **Existing `LocalEvidenceVerifier` / EvidenceVerifier contract** — no new verifier.
-6. **Existing `CanonicalAuthorizationAuditAdapter` / AuditSink** — receives an optional custody dependency and, when configured, appends the exact verified Evidence Plane reference/digest rather than an unbacked synthetic reference.
+6. **Existing `CanonicalAuthorizationAuditAdapter` / AuditSink** — receives optional custody dependencies and, when configured, retains the content-addressed `object_ref` while binding the canonical `ev_<id>` custody record in `evidence_ref`.
 
 ### 3.2 Data flow
 
@@ -52,20 +52,27 @@ build_authorization_audit_record()
 AuthorizationAuditCustody.persist(record)
         |
         +--> validate closed schema
+        +--> validate trusted correlation + timestamp before write
         +--> canonical JSON bytes
         +--> sha256(payload)
-        +--> existing Evidence Plane store.write(...)
+        +--> existing Evidence Plane store.put(...)
         +--> existing store.verify(evidence_id)
-        +--> canonical evidence_ref + payload_sha256
-        +--> LocalEvidenceVerifier.verify(ref, sha256)
+        +--> canonical ev_<id> custody identity + payload digest/size
         |
         v
 CanonicalAuthorizationAuditAdapter
         |
-        +--> AuditSink.append(same ref, same digest, same size)
+        +--> require custody digest/size == canonical object digest/size
+        +--> require evidence_id == normalized evidence_ref
+        +--> AuditSink.append(
+                object_ref=evidence://authorization-receipt-audit/<sha256>,
+                evidence_ref=ev_<id>, ...)
         |
         v
-AuditSink.verify(resolver=LocalEvidenceVerifier(...))
+AuditSink.verify(resolver=EvidenceVerifierChainResolver(...))
+        |
+        v
+existing LocalEvidenceVerifier / EvidenceVerifier
 ```
 
 No raw receipt or decision input bypasses the canonical sanitized record contract.
@@ -80,12 +87,13 @@ Committed state:
 - `default: deny`;
 - `runtime_status: NOT_RUN`;
 - `execution_authority: none`;
-- bounded retention aligned to the current LAB_L1 Evidence Plane default unless the existing canonical policy contract requires a stricter value;
+- retention `default-30d / 30 days` for the repository candidate;
 - classification `restricted`;
 - no backend/provider binding;
-- no production durability/WORM claim.
+- no production durability/WORM claim;
+- raw receipt and raw authorization-reference custody disabled.
 
-Tests may construct a temporary ENABLED policy only inside `tmp_path` / in-memory test composition. Committed policy remains disabled.
+Tests may construct a temporary ENABLED policy only inside isolated test composition. Committed policy remains disabled.
 
 ## 5. Custody contract
 
@@ -93,20 +101,21 @@ The custody bridge accepts only an exact mapping that validates against `platfor
 
 On success it returns a bounded public result containing only:
 
-- `evidence_id`;
-- `evidence_ref`;
-- `payload_sha256`;
-- `payload_size_bytes`;
-- `classification`;
-- `retention_policy_id`;
-- `retention_days`;
-- `verified: true`.
+- `evidence_id` — canonical Evidence Plane record ID, `ev_<32 lowercase hex>`;
+- `evidence_ref` — URI form `evidence://ev_<id>`;
+- `payload_sha256` — digest of the exact canonical sanitized JSON object;
+- `payload_size_bytes` — size of those exact canonical bytes;
+- `classification` — `restricted` under the canonical policy.
 
-The canonical reference is:
+The content-addressed storage/object reference is distinct:
 
-`evidence://authorization-receipt-audit/<payload_sha256>`
+```text
+evidence://authorization-receipt-audit/<payload_sha256>
+```
 
-The bridge must independently recompute the SHA-256 from canonical JSON. Caller-provided digest/reference/verification flags are not authority and are not accepted as inputs.
+The bridge independently recomputes SHA-256 from canonical JSON. Caller-provided digest, evidence reference, verification flag, promotion flag or execution-authority flag is not accepted as authority.
+
+Successful return means the injected store accepted the canonical Evidence Plane record and `store.verify(evidence_id)` succeeded. The result does not add a second `verified` authority field.
 
 ## 6. Integration semantics
 
@@ -114,22 +123,33 @@ The bridge must independently recompute the SHA-256 from canonical JSON. Caller-
 
 ### No custody configured
 
-Preserve the CHG-HSL-078 repository-only behavior for compatibility. The adapter may build/append the current deterministic reference but makes no Evidence Plane custody claim.
+Preserve the CHG-HSL-078 repository-only behavior for compatibility. The adapter may build/append the current deterministic content reference but makes no Evidence Plane custody claim and leaves AuditSink `evidence_ref` unset.
 
 ### Custody configured
 
 For a new non-duplicate event:
 
-1. build sanitized record;
-2. persist and verify through custody;
-3. require returned digest equals the locally recomputed record digest;
-4. require returned reference equals `evidence://authorization-receipt-audit/<digest>`;
-5. append that exact reference/digest/size to AuditSink;
-6. cache idempotency only after both custody and AuditSink append succeed.
+1. build the sanitized record;
+2. independently compute its canonical digest and size;
+3. persist and post-write verify through custody;
+4. require returned `payload_sha256` and `payload_size_bytes` to equal the locally recomputed values;
+5. normalize the returned `evidence_ref` to canonical `ev_<id>` and require it to equal the returned `evidence_id`;
+6. append to AuditSink using:
+   - `object_ref=evidence://authorization-receipt-audit/<digest>`;
+   - the same `object_digest_sha256` and canonical object size;
+   - `evidence_ref=ev_<id>` as the custody binding;
+7. cache adapter idempotency only after both custody and AuditSink append succeed.
 
-Any failure before step 6 returns failure. No positive audit result is reported.
+Any failure before step 7 returns failure. No positive audit result is reported.
 
-Exact duplicate events must remain idempotent and must not create a second Evidence Plane object or AuditSink entry.
+The content identity and custody identity are intentionally not interchangeable:
+
+- `object_ref` identifies **which exact sanitized audit object**;
+- `evidence_ref` identifies **which canonical Evidence Plane record holds that object**.
+
+Exact duplicate events must remain idempotent and must not create a second Evidence Plane record or AuditSink entry.
+
+If custody succeeds and AuditSink append fails, immutable evidence is retained. The adapter preserves the event's selected `recorded_at` so a deterministic retry can reuse the same content-addressed Evidence Plane record and complete one final chain append.
 
 ## 7. Failure semantics
 
@@ -139,15 +159,16 @@ At minimum cover:
 
 - policy disabled/invalid;
 - record schema invalid;
-- canonicalization/digest mismatch;
+- invalid trusted correlation or timestamp before write;
+- canonicalization/digest/size mismatch;
 - Evidence Plane write failure;
 - post-write verification failure;
-- invalid/mismatched evidence reference;
-- LocalEvidenceVerifier failure;
+- invalid/mismatched Evidence Plane `evidence_id` / `evidence_ref`;
+- LocalEvidenceVerifier / chain-resolver failure;
 - AuditSink append failure;
 - replay conflict / non-identical object collision if the canonical store reports one.
 
-A denial/refusal decision remains a denial even if evidence persistence fails. However, where an audit observer/custody path is configured as required for a positive authorization path, inability to persist/verify the audit record remains fail-closed exactly as ADR-0015 requires.
+A denial/refusal decision remains a denial even if evidence persistence fails. Where an audit observer/custody path is configured as required for a positive authorization path, inability to persist/verify the audit record remains fail-closed exactly as ADR-0015 requires.
 
 ## 8. Data minimization
 
@@ -163,15 +184,15 @@ Persisted payload is exactly the existing sanitized audit record. Forbidden mate
 - backend exception text;
 - caller-supplied trust/verification/authority flags.
 
-No new sensitive fields are introduced by CHG-HSL-079.
+The closed schema itself fixes `promotion_allowed=false`, `runtime_status=NOT_RUN` and `execution_authority=NONE`. No new sensitive or authority-bearing fields are introduced by CHG-HSL-079.
 
 ## 9. Idempotency and ordering
 
-Content addressing makes the Evidence Plane object idempotent for exact replay. The authorization adapter's existing identity tuple remains authoritative for duplicate event suppression.
+Content addressing makes the Evidence Plane object idempotent for exact replay. The authorization adapter's existing identity tuple remains authoritative for duplicate event suppression after successful chain append.
 
 The bridge does not create ordering semantics of its own. Event ordering remains the responsibility of the existing AuditSink/EvidenceChain.
 
-No mutable overwrite is permitted.
+No mutable overwrite or evidence deletion is permitted to hide a partial append failure.
 
 ## 10. Test design
 
@@ -183,29 +204,30 @@ Add tests before implementation proving absence of:
 - schema-before-write enforcement;
 - post-write verification;
 - EvidenceVerifier linkage;
-- adapter use of persisted reference/digest.
+- adapter custody binding.
 
 RED must fail for those missing capabilities, not for unrelated repository defects.
 
-### Functional tests
+### Functional and adversarial tests
 
 Cover:
 
 - valid REGISTERED custody;
 - valid LOOKUP_HIT/MISS/EXPIRED and REFUSED custody;
-- exact canonical digest/reference;
+- exact canonical digest, size, content reference and `ev_<id>` custody binding;
 - `restricted` classification and bounded retention;
 - exact replay idempotency;
 - closed-schema rejection before write;
 - sensitive-field rejection;
 - disabled policy fail-closed;
+- invalid trusted correlation/timestamp before write;
 - store write failure sanitization;
 - store verify false/exception fail-closed;
-- tampered stored payload fails EvidenceVerifier;
-- digest mismatch and ref mismatch fail;
-- adapter uses exact custody ref/digest/size;
-- adapter does not append AuditSink entry when custody fails;
+- intact and tampered stored payload through the existing EvidenceVerifier;
+- digest, size, `evidence_id` and `evidence_ref` mismatch failures;
+- adapter does not append AuditSink entry when required custody fails;
 - AuditSink resolver verification passes for intact object and fails on tamper;
+- retry after AuditSink append failure reuses one custody object and creates one final chain entry;
 - legacy no-custody path remains regression-compatible.
 
 ### Regression gates
@@ -246,5 +268,5 @@ Repository acceptance is achieved only when the exact PR head is GREEN and the m
 - `promotion_allowed=false`;
 - `runtime_status=NOT_RUN`;
 - `execution_authority=NONE`;
-- delivery/resolver policies remain disabled;
+- custody/delivery/resolver policies remain disabled unless separately promoted with live evidence;
 - `VAL-HSL-RUNNER-L1-LIVE-PROMOTION` remains `BLOCKED / HOLD` until all independent live gates are satisfied.
