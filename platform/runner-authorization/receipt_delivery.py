@@ -30,6 +30,7 @@ from __future__ import annotations
 
 import argparse
 import importlib.util
+import re
 import sys
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
@@ -52,6 +53,7 @@ AUDIT_CONTEXT_FIELDS = {
     "principal",
     "correlation_id",
 }
+SAFE_AUDIT_ID = re.compile(r"^[A-Za-z0-9._:@/-]{1,256}$")
 
 FORBIDDEN_TRUST_FIELDS = {
     "verified",
@@ -149,9 +151,7 @@ def _trusted_audit_context(value: Any) -> dict[str, str] | None:
     normalized: dict[str, str] = {}
     for key in AUDIT_CONTEXT_FIELDS:
         item = value.get(key)
-        if not isinstance(item, str) or not item or len(item) > 256:
-            return None
-        if any(ord(char) < 32 or ord(char) == 127 for char in item):
+        if not isinstance(item, str) or not SAFE_AUDIT_ID.fullmatch(item):
             return None
         normalized[key] = item
     return normalized
@@ -456,9 +456,17 @@ class TrustedReceiptDelivery:
             verified=verified,
         ):
             try:
-                self._resolver.forget(verified.authorization_ref)
-            except Exception:  # noqa: BLE001 - rollback best effort; outcome remains denied
-                pass
+                rolled_back = self._resolver.forget(verified.authorization_ref)
+            except Exception as exc:  # noqa: BLE001 - no backend detail may escape
+                raise ReceiptDeliveryError(
+                    "DELIVERY_AUDIT_ROLLBACK_FAILED",
+                    "failed registration audit could not be rolled back safely",
+                ) from exc
+            if rolled_back is not True:
+                raise ReceiptDeliveryError(
+                    "DELIVERY_AUDIT_ROLLBACK_FAILED",
+                    "failed registration audit could not be rolled back safely",
+                )
             raise ReceiptDeliveryError(
                 "DELIVERY_AUDIT_FAILED",
                 "verified receipt registration could not be audited safely",
