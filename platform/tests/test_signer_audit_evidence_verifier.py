@@ -201,6 +201,7 @@ def test_local_evidence_verifier_binds_exact_ref_and_digest(tmp_path: Path) -> N
     verifier = _verifier_module().LocalEvidenceVerifier(store)
 
     assert verifier.verify(result.evidence_ref, result.payload_sha256) is True
+    assert verifier.verify(result.evidence_id, result.payload_sha256) is True
     assert verifier.verify(result.evidence_ref, "0" * 64) is False
     assert verifier.verify("evidence://ev_" + "f" * 32, result.payload_sha256) is False
 
@@ -238,7 +239,7 @@ def test_audit_sink_can_bind_and_verify_custodied_signer_event(tmp_path: Path) -
     )
     assert returned == event
     document = sink.seal(sealed_at="2026-08-16T00:31:00Z")
-    assert document["entries"][0]["evidence_ref"] == persisted.evidence_ref
+    assert document["entries"][0]["evidence_ref"] == persisted.evidence_id
     verified = sink.verify(resolver=verifier)
     assert verified["verified"] is True
 
