@@ -14,6 +14,8 @@ Safety boundaries:
 - authorization must resolve to canonical TB1 ``VerifiedAuthorization`` metadata;
 - correlation, operation, capability, intrusiveness, target digest and parameter
   digest are independently rebound at the adapter before any effect;
+- audited resolvers receive only schema-validated request correlation plus a fixed
+  Runner principal; raw target/parameters are never placed in audit context;
 - no raw URL/host/port/path input;
 - no shell, subprocess, scanner, redirect following, credentials or egress;
 - durable idempotency is required before any effect;
@@ -25,10 +27,12 @@ from __future__ import annotations
 import hashlib
 import http.client
 import importlib.util
+import inspect
 import json
 import re
 import sys
 import uuid
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -80,6 +84,7 @@ TARGET_SCHEME = "http"
 TARGET_ENVELOPE = {"type": "lab-asset", "value": TARGET_ID}
 EXPECTED_OPERATION_VERSION = "1.0.0"
 EXPECTED_INTRUSIVENESS = "L1"
+RUNNER_AUDIT_PRINCIPAL = "hexor.runner.webgoat-l1"
 CANONICAL_INPUT_KEYS = frozenset(
     {
         "operation_id",
@@ -135,16 +140,63 @@ def _parse_utc(value: Any) -> datetime | None:
 class AuthorizationResolver(Protocol):
     """Runtime boundary returning canonical verified TB1 metadata or no authority."""
 
-    def resolve(self, authorization_ref: str) -> Any | None:
+    def resolve(
+        self,
+        authorization_ref: str,
+        *,
+        audit_context: Mapping[str, str] | None = None,
+    ) -> Any | None:
         ...
 
 
 class DenyAllAuthorizationResolver:
     """Fail-closed default until a verified TB1 resolver is deployed."""
 
-    def resolve(self, authorization_ref: str) -> None:
-        del authorization_ref
+    def resolve(
+        self,
+        authorization_ref: str,
+        *,
+        audit_context: Mapping[str, str] | None = None,
+    ) -> None:
+        del authorization_ref, audit_context
         return None
+
+
+def _authorization_audit_context(request: Mapping[str, Any]) -> dict[str, str]:
+    correlation = request["correlation"]
+    return {
+        "campaign_id": correlation["campaign_id"],
+        "run_id": correlation["run_id"],
+        "step_id": correlation["step_id"],
+        "attempt_id": correlation["attempt_id"],
+        "principal": RUNNER_AUDIT_PRINCIPAL,
+        "correlation_id": request["idempotency_key"],
+    }
+
+
+def _resolver_accepts_audit_context(resolver: Any) -> bool:
+    method = getattr(resolver, "resolve", None)
+    if not callable(method):
+        return False
+    try:
+        parameters = inspect.signature(method).parameters
+    except (TypeError, ValueError):
+        return False
+    return "audit_context" in parameters or any(
+        parameter.kind is inspect.Parameter.VAR_KEYWORD
+        for parameter in parameters.values()
+    )
+
+
+def _resolve_authorization(
+    resolver: Any,
+    authorization_ref: str,
+    *,
+    audit_context: Mapping[str, str],
+) -> Any | None:
+    if _resolver_accepts_audit_context(resolver):
+        return resolver.resolve(authorization_ref, audit_context=dict(audit_context))
+    return resolver.resolve(authorization_ref)
 
 
 @dataclass(frozen=True)
@@ -296,7 +348,11 @@ class WebGoatL1RunnerAdapter:
     def _authorize(
         self, request: dict[str, Any], capability_id: str
     ) -> dict[str, Any] | None:
-        verified = self.authorization_resolver.resolve(request["authorization_ref"])
+        verified = _resolve_authorization(
+            self.authorization_resolver,
+            request["authorization_ref"],
+            audit_context=_authorization_audit_context(request),
+        )
         if verified is None:
             return _error(
                 "AUTHORIZATION_DENIED",
