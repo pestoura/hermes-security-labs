@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""CHG-HSL-073 tests for the provider-neutral signing-service boundary.
+"""CHG-HSL-073/081 tests for the provider-neutral signing-service boundary.
 
 Tests intentionally drive the contract through TDD. Dynamic loading keeps this
 repository-only assurance directory independent from Python package layout decisions.
@@ -90,6 +90,27 @@ def test_valid_request_is_accepted_unchanged() -> None:
     module = _load_module()
     request = _valid_request(module)
     assert module.validate_signing_request(request) is request
+
+
+def test_canonical_signing_payload_is_domain_separated_and_deterministic() -> None:
+    module = _load_module()
+    request = module.SigningRequest(
+        digest_sha256="a" * 64,
+        purpose="tb1-authorization",
+        domain="hex0r.tb1.authorization.v1",
+        correlation_id="corr-081",
+    )
+    expected = b"\x00".join(
+        (
+            b"HSL-SIGNING-V1",
+            b"hex0r.tb1.authorization.v1",
+            b"tb1-authorization",
+            b"corr-081",
+            bytes.fromhex("a" * 64),
+        )
+    )
+    assert module.canonical_signing_payload(request) == expected
+    assert module.canonical_signing_payload(request) == expected
 
 
 @pytest.mark.parametrize(
