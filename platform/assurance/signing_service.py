@@ -2,13 +2,14 @@
 """Provider-neutral external signing-service boundary for Hermes assurance flows.
 
 This module is deliberately provider-agnostic. It defines only the bounded data
-contract that a future external custody backend must implement. It performs no
-networking, process execution, provider access, trust installation or key handling.
+contract that an external custody backend must implement. It performs no networking,
+process execution, provider access, trust installation or key handling.
 
 The boundary accepts an already-computed SHA-256 digest for the single canonical TB1
-authorization purpose/domain plus bounded correlation metadata. Raw commands, evidence
-payloads and arbitrary content do not cross this contract. Runtime/provider attestation,
-custody evidence and trust verification remain separate canonical gates.
+authorization purpose/domain plus bounded correlation metadata. The canonical signing
+payload is domain-separated here so every provider signs the same bytes. Raw commands,
+evidence payloads and arbitrary content do not cross this contract. Runtime/provider
+attestation, custody evidence and trust verification remain separate canonical gates.
 """
 
 from __future__ import annotations
@@ -25,6 +26,7 @@ _MAX_RESULT_TEXT = 500
 _MAX_SIGNATURE_B64 = 8192
 _CANONICAL_DOMAIN = "hex0r.tb1.authorization.v1"
 _CANONICAL_PURPOSE = "tb1-authorization"
+_SIGNING_PREFIX = b"HSL-SIGNING-V1"
 _LAB_L1_CUSTODY_CLASSES = frozenset({"VAULT", "KMS", "HSM"})
 _LAB_L1_ALGORITHMS = frozenset({"Ed25519", "ECDSA-P256-SHA256"})
 _NON_AUTHORITATIVE_MARKERS = ("CI_ONLY", "NON_AUTHORITATIVE", "TEST")
@@ -133,6 +135,21 @@ def validate_signing_request(request: SigningRequest) -> SigningRequest:
         maximum=_MAX_CORRELATION_ID,
     )
     return request
+
+
+def canonical_signing_payload(request: SigningRequest) -> bytes:
+    """Return the one canonical domain-separated byte sequence providers must sign."""
+
+    request = validate_signing_request(request)
+    return b"\x00".join(
+        (
+            _SIGNING_PREFIX,
+            request.domain.encode("utf-8"),
+            request.purpose.encode("utf-8"),
+            request.correlation_id.encode("utf-8"),
+            bytes.fromhex(request.digest_sha256),
+        )
+    )
 
 
 def require_lab_l1_admissible(result: SigningResult) -> SigningResult:

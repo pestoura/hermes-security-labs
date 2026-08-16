@@ -56,18 +56,7 @@ _signing = _load_signing_service()
 def verification_payload(request) -> bytes:
     """Return the canonical domain-separated bytes signed by a test adapter."""
 
-    request = _signing.validate_signing_request(request)
-    # NUL is safe as a delimiter because SigningRequest validation rejects control
-    # characters in all textual fields. The digest is encoded from exact hex bytes.
-    return b"\x00".join(
-        (
-            b"HSL-SIGNING-V1",
-            request.domain.encode("utf-8"),
-            request.purpose.encode("utf-8"),
-            request.correlation_id.encode("utf-8"),
-            bytes.fromhex(request.digest_sha256),
-        )
-    )
+    return _signing.canonical_signing_payload(request)
 
 
 class TestSignerAdapter:
