@@ -10,7 +10,7 @@ source:
   type: ENGINEERING_REVIEW
   campaign: VAL-HSL-RUNNER-L1-LIVE-PROMOTION
   observation: OBS-RUNNER-POLICY-PROMOTION
-  reference: 'Issue #426 / PR #427. Tests-first head 16142317f8fdea3c15e3e0414c74fcdf0815a5c1 produced the expected deployment RED. First implementation 7c590004208578139720b265528eb856ab0dfef3 exposed one canonical host-bind hardening violation; it was corrected without adding an exception by using Compose configs/secrets plus a named Raft volume. Exact GREEN candidate fe5f79613d62068ec330325e50fcc3ffe79545d2 passed validate 31960587747 including Exact-SHA job 95198213156, security 31960587758, Release governance 31960587752 and Private VAmPI 31960587756; docs 1123, platform 2367/7 skipped, roadmap 146, deployment 570. Real Vault startup/initialization, Shamir/root/SecretID material, Transit key provisioning, provider attestation and trust binding remain NOT_RUN.'
+  reference: 'Issue #426 / PR #427 / CHG-HSL-082 checkpoint. GREEN-REPO evidence recorded in docs; live Hermes Vault provisioning and provider evidence remain NOT_RUN.'
 affectedRelease: jds-002-adoption-candidate
 targetRelease: null
 risk: MEDIUM
@@ -30,5 +30,5 @@ promotion:
 deferredTo: null
 timestamps:
   discoveredAt: '2026-08-16T16:40:00Z'
-  updatedAt: '2026-08-16T17:12:00Z'
+  updatedAt: '2026-08-16T17:15:00Z'
   closedAt: null
