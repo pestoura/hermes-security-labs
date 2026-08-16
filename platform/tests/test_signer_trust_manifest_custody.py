@@ -87,9 +87,8 @@ def _manifest(tmp_path: Path) -> dict[str, Any]:
     composer = _manifest_module()
     material = b"spki-chg-077"
     spki_sha = hashlib.sha256(material).hexdigest()
-    trust_store = _write_trust_store(tmp_path / "trust.json", material)
     generation = lifecycle.build_generation(
-        trust_store_path=trust_store,
+        trust_store_path=_write_trust_store(tmp_path / "trust.json", material),
         sequence=1,
         generated_at="2026-08-16T02:55:30Z",
         previous_generation_id=None,
@@ -152,16 +151,15 @@ def _correlation() -> dict[str, str]:
 
 
 def _enabled_policy() -> dict[str, Any]:
-    custody = _custody()
-    policy = custody.load_policy(POLICY_PATH)
+    policy = _custody().load_policy(POLICY_PATH)
     policy["state"] = "ENABLED"
     return policy
 
 
 def _canonical_bytes(value: dict[str, Any]) -> bytes:
-    return json.dumps(
-        value, sort_keys=True, separators=(",", ":"), ensure_ascii=True
-    ).encode("utf-8")
+    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode(
+        "utf-8"
+    )
 
 
 def test_canonical_policy_is_disabled_and_fail_closed(tmp_path: Path) -> None:
@@ -215,8 +213,7 @@ def test_manifest_identity_is_recomputed_before_any_write(tmp_path: Path) -> Non
     manifest = _manifest(tmp_path)
     body = dict(manifest)
     supplied_id = body.pop("manifest_id")
-    expected_id = "stm_" + hashlib.sha256(_canonical_bytes(body)).hexdigest()[:32]
-    assert supplied_id == expected_id
+    assert supplied_id == "stm_" + hashlib.sha256(_canonical_bytes(body)).hexdigest()[:32]
 
     changed = deepcopy(manifest)
     changed["provider_ref"] = "different-but-schema-valid-provider-ref"
@@ -270,11 +267,9 @@ def test_projects_exact_public_manifest_to_existing_evidence_plane(tmp_path: Pat
     assert record["origin"]["operation"] == "signer.trust_manifest.custody"
     assert record["origin"]["protocol_version"] == "signer-trust-manifest/v1"
     assert record["content"]["sha256"] == expected_sha
-    assert record["content"]["size"] == len(expected_payload)
+    assert record["content"]["size_bytes"] == len(expected_payload)
     assert record["content"]["media_type"] == "application/json"
-    assert record["content"]["storage_ref"] == (
-        f"evidence://signer-trust-manifest/{expected_sha}"
-    )
+    assert record["content"]["storage_ref"] == f"evidence://signer-trust-manifest/{expected_sha}"
     assert record["retention"]["policy_id"] == "default-30d"
 
     object_path = store.objects / expected_sha[:2] / expected_sha
@@ -292,8 +287,7 @@ def test_local_evidence_verifier_binds_exact_ref_and_digest(tmp_path: Path) -> N
         evidence_store=store,
     )
     verifier = _verifier_module().LocalEvidenceVerifier(store)
-    record = store.get_record(result.evidence_id)
-    storage_ref = record["content"]["storage_ref"]
+    storage_ref = store.get_record(result.evidence_id)["content"]["storage_ref"]
 
     assert verifier.verify(result.evidence_ref, result.payload_sha256) is True
     assert verifier.verify(result.evidence_id, result.payload_sha256) is True
