@@ -10,14 +10,14 @@ source:
   type: ENGINEERING_REVIEW
   campaign: VAL-HSL-RUNNER-L1-LIVE-PROMOTION
   observation: OBS-EVIDENCE-CUSTODY
-  reference: 'Issue #416 / ADR-0016. Approved Option A: dedicated minimal authorization-audit custody bridge over the existing Evidence Plane. Runtime delivery, signer/trust, HITL and live effect remain separate blockers.'
+  reference: 'Issue #416 / PR #417 / ADR-0016. Approved Option A: dedicated minimal authorization-audit custody bridge over the existing Evidence Plane. Runtime delivery, signer/trust, live custody composition, HITL and live effect remain separate blockers.'
 affectedRelease: jds-002-adoption-candidate
 targetRelease: null
 risk: LOW
 versionEffect: NONE
 branch: chg-hsl-079/authorization-audit-evidence-custody
 issue: 416
-pr: null
+pr: 417
 validation:
   targeted: NOT_RUN
   regression: NOT_RUN
@@ -30,5 +30,5 @@ promotion:
 deferredTo: null
 timestamps:
   discoveredAt: '2026-08-16T04:45:00Z'
-  updatedAt: '2026-08-16T04:45:00Z'
+  updatedAt: '2026-08-16T05:24:00Z'
   closedAt: null
