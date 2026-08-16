@@ -1,0 +1,15 @@
+schema_version: '1.0'
+policy_id: hexor.signer.trust_manifest.custody
+state: DISABLED
+default: deny
+runtime_status: NOT_RUN
+execution_authority: none
+custody:
+  evidence_plane_projection: required
+  classification: restricted
+  retention_policy_id: default-30d
+  retention_days: 30
+  include_private_key: false
+  include_raw_signing_payload: false
+  include_raw_signature: false
+  install_trust: false

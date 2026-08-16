@@ -20,6 +20,26 @@ This directory is the canonical Architecture Decision Record (ADR) register for 
 | `Superseded` | replaced by a later ADR; retained as history |
 | `Rejected` | considered but not adopted |
 
+### Alternative dispositions
+
+Every materially plausible alternative considered by an ADR must be retained with one explicit disposition. This is separate from the ADR's own lifecycle state.
+
+| Disposition | Meaning |
+| --- | --- |
+| `Selected` | currently adopted path |
+| `Deferred` | valid option deliberately postponed until a dependency, phase or trigger changes |
+| `Not selected for MVP` | potentially useful later, but disproportionate or premature for the current delivery phase |
+| `Rejected` | conflicts with a requirement, invariant or accepted risk posture and should not be used under the stated conditions |
+| `Superseded` | previously selected path replaced by a later accepted ADR |
+
+For every material alternative, the ADR records:
+
+1. why that disposition applies now;
+2. the main advantages and limitations that remain relevant;
+3. at least one concrete `Review trigger` whenever future reconsideration is plausible.
+
+`Deferred` and `Not selected for MVP` are not synonyms for permanently rejected. They are intentionally retained so a later architectural review can revisit earlier trade-offs without reconstructing them from chat history, issue comments or PR discussions.
+
 ### Mandatory sections
 
 Every ADR contains:
@@ -29,7 +49,7 @@ Every ADR contains:
 3. decision;
 4. positive and negative consequences;
 5. security implications;
-6. alternatives considered;
+6. alternatives considered, including explicit dispositions;
 7. evidence and validation;
 8. review triggers.
 
@@ -44,7 +64,8 @@ Create or supersede an ADR when a change:
 - introduces or changes a cross-plane contract;
 - changes a fail-safe, isolation, provenance or evidence invariant;
 - introduces a new architectural source of truth;
-- changes an epic dependency or materially diverges from accepted intent.
+- changes an epic dependency or materially diverges from accepted intent;
+- selects one of several materially different implementation paths whose trade-offs should remain reviewable later.
 
 Editorial clarification that does not alter behaviour or authority does not require a new ADR.
 
@@ -62,11 +83,14 @@ Editorial clarification that does not alter behaviour or authority does not requ
 | [ADR-0008](ADR-0008-human-controlled-content-promotion.md) | Generated content remains a proposal until recorded human promotion | Accepted | content lifecycle |
 | [ADR-0009](ADR-0009-runtime-source-of-truth-and-drift-semantics.md) | Use the Git registry as the runtime catalogue root, keep observation non-authoritative and apply fail-safe tri-state drift | Accepted | runtime source of truth |
 | [ADR-0010](ADR-0010-versioned-uuid-correlation-contract.md) | Introduce a versioned UUID correlation contract for gateway/admission integrations without rewriting legacy identifiers | Accepted | execution correlation contracts |
-| [ADR-0011](ADR-0011-assurance-profiles-for-first-live-lab-promotion.md) | Analyse whether production-grade WORM plus tenant isolation must precede the first isolated L1 lab effect; accepts split assurance profiles LAB_L1 (narrow) and PROD (production-equivalent), fail-closed to PROD | Accepted | assurance profiles and promotion coupling |
+| [ADR-0011](ADR-0011-assurance-profiles-for-first-live-lab-promotion.md) | Split assurance profiles into LAB_L1 and PROD while failing closed to PROD when profile state is absent or invalid | Accepted | assurance profiles and promotion coupling |
+| [ADR-0012](ADR-0012-signer-operation-audit-attribution.md) | Use a dedicated signer-operation attribution adapter feeding the existing AuditSink/EvidenceChain | Accepted | signer audit attribution |
+| [ADR-0013](ADR-0013-signer-trust-manifest-custody.md) | Use a minimal dedicated custody bridge for signer trust manifests and defer broader custody abstraction | Accepted | signer trust evidence custody |
+| [ADR-0014](ADR-0014-vault-target-architecture-deferred-implementation.md) | Prefer VAULT as the future signer custody architecture while deferring operational implementation and selection | Accepted / deferred implementation | signer custody architecture |
 
 ## Structural-decision coverage
 
-The initial ADR set covers the structural principles already accepted in the roadmap. A single ADR may cover related principles, but no principle is left without an authoritative decision record.
+The ADR set covers the structural principles accepted in the roadmap. A single ADR may cover related principles, but no structural principle should be left without an authoritative decision record.
 
 | Roadmap structural decision | ADR |
 | --- | --- |
@@ -84,6 +108,10 @@ The initial ADR set covers the structural principles already accepted in the roa
 | Missing or unparsable drift evidence maps to UNKNOWN | ADR-0009 |
 | Image digest identity is owned by runtime release | ADR-0009 |
 | Gateway/admission correlation is UUID in canonical v2 without rewriting v1 identifiers | ADR-0010 |
+| LAB_L1 may omit only production WORM and multi-tenant gates while keeping identity/authorization/HITL controls | ADR-0011 |
+| Signer audit attribution remains a dedicated domain adapter over the canonical AuditSink | ADR-0012 |
+| Signer trust manifest custody uses the existing Evidence Plane without premature generic abstraction | ADR-0013 |
+| VAULT is an architectural target only; provider selection/implementation remains a later evidence-bearing decision | ADR-0014 |
 
 ## Supersession process
 
@@ -94,7 +122,7 @@ The initial ADR set covers the structural principles already accepted in the roa
 5. mark the earlier ADR `Superseded` and link `Superseded by`;
 6. update this index, the reference architecture and affected epic documents in the same pull request.
 
-Historical decision text is not rewritten to make it appear consistent with a later decision.
+Historical decision text is not rewritten to make it appear consistent with a later decision. Earlier alternatives and their dispositions remain visible even if a later ADR supersedes the selected path.
 
 ## Relationship to other documents
 
