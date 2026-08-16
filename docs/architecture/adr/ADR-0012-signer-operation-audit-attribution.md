@@ -2,6 +2,7 @@
 
 - **Status:** Accepted
 - **Date:** 2026-08-16
+- **Decision owners:** `SVP2-A-01`, `EPIC-01`
 - **Decision source:** CHG-HSL-075 / PR #408
 - **Supersedes:** none
 - **Superseded by:** none
@@ -22,7 +23,9 @@ The adapter owns signer-domain translation only. AuditSink remains generic; `Sig
 
 The decision is structural. It grants no runtime, signer, trust or promotion authority.
 
-## Positive consequences
+## Consequences
+
+### Positive
 
 - Keeps signer-domain semantics out of the generic AuditSink schema.
 - Keeps cryptographic result contracts independent from governance attribution.
@@ -30,7 +33,7 @@ The decision is structural. It grants no runtime, signer, trust or promotion aut
 - Supports provider-neutral attribution through public identifiers, hashes and correlation metadata.
 - Makes later provider-specific audit evidence attachable without changing the cryptographic contract.
 
-## Negative consequences
+### Negative
 
 - Adds a small adapter and event schema that must be maintained beside the signer contract.
 - Requires explicit mapping between signer result fields and audit event fields.
