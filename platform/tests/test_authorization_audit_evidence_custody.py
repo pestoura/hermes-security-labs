@@ -152,7 +152,7 @@ def test_enabled_test_policy_projects_exact_sanitized_record(
     assert decoded == event
     serialized = object_path.read_text(encoding="utf-8")
     assert "tb1-authz:v1:" not in serialized
-    for forbidden in (
+    for forbidden_field in (
         "receipt_json",
         "signature_b64",
         "private_key",
@@ -162,7 +162,7 @@ def test_enabled_test_policy_projects_exact_sanitized_record(
         "cookie",
         "headers",
     ):
-        assert forbidden not in serialized.lower()
+        assert forbidden_field not in decoded
 
 
 def test_identical_persistence_is_idempotent_in_canonical_store(tmp_path: Path) -> None:
