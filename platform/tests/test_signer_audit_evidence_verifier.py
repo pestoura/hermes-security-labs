@@ -154,8 +154,9 @@ def test_enabled_test_policy_projects_exact_public_event_to_existing_store(tmp_p
     assert record["origin"]["producer"] == "signer-operation-audit-custody-v1"
     assert record["origin"]["operation"] == "signer.audit.SIGN"
     assert record["content"]["sha256"] == result.payload_sha256
-    assert record["content"]["storage_ref"].startswith("evidence://")
-    assert result.payload_sha256 in record["content"]["storage_ref"]
+    assert record["content"]["storage_ref"] == (
+        f"evidence://signer-operation/{result.payload_sha256}"
+    )
     assert record["retention"]["policy_id"] == "default-30d"
 
     digest = record["content"]["sha256"]
@@ -189,7 +190,7 @@ def test_identical_persistence_is_idempotent_in_canonical_store(tmp_path: Path) 
     assert len(list(store.records.glob("ev_*.json"))) == 1
 
 
-def test_local_evidence_verifier_binds_exact_ref_and_digest(tmp_path: Path) -> None:
+def test_local_evidence_verifier_binds_exact_ref_digest_and_storage_ref(tmp_path: Path) -> None:
     custody = _custody()
     store = _store_module().LocalEvidenceStore(tmp_path / "evidence")
     result = custody.SignerAuditCustody(_enabled_policy()).persist(
@@ -199,17 +200,20 @@ def test_local_evidence_verifier_binds_exact_ref_and_digest(tmp_path: Path) -> N
         evidence_store=store,
     )
     verifier = _verifier_module().LocalEvidenceVerifier(store)
+    record = store.get_record(result.evidence_id)
+    storage_ref = record["content"]["storage_ref"]
 
     assert verifier.verify(result.evidence_ref, result.payload_sha256) is True
     assert verifier.verify(result.evidence_id, result.payload_sha256) is True
+    assert verifier.verify(storage_ref, result.payload_sha256) is True
     assert verifier.verify(result.evidence_ref, "0" * 64) is False
     assert verifier.verify("evidence://ev_" + "f" * 32, result.payload_sha256) is False
 
-    record = store.get_record(result.evidence_id)
     digest = record["content"]["sha256"]
     object_path = store.objects / digest[:2] / digest
     object_path.write_bytes(b"tampered")
     assert verifier.verify(result.evidence_ref, result.payload_sha256) is False
+    assert verifier.verify(storage_ref, result.payload_sha256) is False
 
 
 def test_audit_sink_can_bind_and_verify_custodied_signer_event(tmp_path: Path) -> None:
@@ -226,6 +230,7 @@ def test_audit_sink_can_bind_and_verify_custodied_signer_event(tmp_path: Path) -
         evidence_store=store,
     )
     verifier = _verifier_module().LocalEvidenceVerifier(store)
+    resolver = custody.EvidenceVerifierChainResolver(verifier)
 
     sink = _adapter().CanonicalSignerAuditAdapter(
         chain_id="chain_" + "7" * 32,
@@ -240,8 +245,38 @@ def test_audit_sink_can_bind_and_verify_custodied_signer_event(tmp_path: Path) -
     assert returned == event
     document = sink.seal(sealed_at="2026-08-16T00:31:00Z")
     assert document["entries"][0]["evidence_ref"] == persisted.evidence_id
-    verified = sink.verify(resolver=verifier)
+    assert document["entries"][0]["object_ref"] == (
+        f"evidence://signer-operation/{persisted.payload_sha256}"
+    )
+    verified = sink.verify(resolver=resolver)
     assert verified["verified"] is True
+
+
+def test_chain_resolver_is_only_an_interface_adapter_and_fails_closed() -> None:
+    custody = _custody()
+
+    class Verifier:
+        def __init__(self) -> None:
+            self.calls: list[tuple[str, str]] = []
+
+        def verify(self, evidence_ref: str, sha256: str) -> bool:
+            self.calls.append((evidence_ref, sha256))
+            return True
+
+    verifier = Verifier()
+    resolver = custody.EvidenceVerifierChainResolver(verifier)
+    digest = "a" * 64
+    assert resolver(
+        object_ref="evidence://signer-operation/" + digest,
+        object_digest_sha256=digest,
+        object_size_bytes=42,
+    ) is True
+    assert verifier.calls == [("evidence://signer-operation/" + digest, digest)]
+    assert resolver(
+        object_ref="",
+        object_digest_sha256=digest,
+        object_size_bytes=42,
+    ) is False
 
 
 def test_invalid_or_secret_bearing_event_is_refused_before_write(tmp_path: Path) -> None:
