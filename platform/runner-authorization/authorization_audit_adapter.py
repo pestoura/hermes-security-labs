@@ -14,6 +14,7 @@ import importlib.util
 import json
 import re
 import sys
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -26,6 +27,14 @@ AUTHORIZATION_REF_PREFIX = "tb1-authz:v1:"
 AUTHORIZATION_REF = re.compile(r"^tb1-authz:v1:[a-f0-9]{64}$")
 SAFE_ID = re.compile(r"^[A-Za-z0-9._:@/-]{1,256}$")
 REASON_CODE = re.compile(r"^[A-Z][A-Z0-9_]{0,255}$")
+CONTEXT_FIELDS = {
+    "campaign_id",
+    "run_id",
+    "step_id",
+    "attempt_id",
+    "principal",
+    "correlation_id",
+}
 EVENT_MATRIX = {
     "REGISTERED": ("REGISTRATION", "ACCEPT"),
     "LOOKUP_HIT": ("LOOKUP", "ACCEPT"),
@@ -86,6 +95,25 @@ class AuthorizationAuditContext:
                     "AUTHORIZATION_AUDIT_CONTEXT_INVALID",
                     f"invalid trusted audit context field {field}",
                 )
+
+
+def _normalize_context(value: object) -> AuthorizationAuditContext:
+    if isinstance(value, AuthorizationAuditContext):
+        return value
+    if not isinstance(value, Mapping) or set(value) != CONTEXT_FIELDS:
+        raise AuthorizationAuditError(
+            "AUTHORIZATION_AUDIT_CONTEXT_INVALID",
+            "exact trusted authorization audit context fields are required",
+        )
+    try:
+        return AuthorizationAuditContext(**dict(value))
+    except (TypeError, ValueError) as exc:
+        if isinstance(exc, AuthorizationAuditError):
+            raise
+        raise AuthorizationAuditError(
+            "AUTHORIZATION_AUDIT_CONTEXT_INVALID",
+            "trusted authorization audit context is invalid",
+        ) from exc
 
 
 def _bounded_public(value: object, *, field: str, maximum: int) -> str | None:
@@ -190,11 +218,12 @@ class CanonicalAuthorizationAuditAdapter:
             raise AuthorizationAuditError(
                 "AUTHORIZATION_AUDIT_SINK_INVALID", str(exc)
             ) from exc
+        self._emitted: dict[tuple[str, ...], dict[str, object]] = {}
 
     def record_event(
         self,
         *,
-        context: AuthorizationAuditContext,
+        context: AuthorizationAuditContext | Mapping[str, str],
         event_type: str,
         phase: str,
         decision: str,
@@ -204,11 +233,7 @@ class CanonicalAuthorizationAuditAdapter:
         capability_id: str | None,
         intrusiveness_level: str | None,
     ) -> dict[str, object]:
-        if not isinstance(context, AuthorizationAuditContext):
-            raise AuthorizationAuditError(
-                "AUTHORIZATION_AUDIT_CONTEXT_INVALID",
-                "AuthorizationAuditContext is required",
-            )
+        normalized_context = _normalize_context(context)
         record = build_authorization_audit_record(
             event_type=event_type,
             phase=phase,
@@ -220,14 +245,27 @@ class CanonicalAuthorizationAuditAdapter:
             intrusiveness_level=intrusiveness_level,
         )
         digest, size = authorization_audit_record_digest(record)
+        identity = (
+            normalized_context.campaign_id,
+            normalized_context.run_id,
+            normalized_context.step_id,
+            normalized_context.attempt_id,
+            normalized_context.principal,
+            normalized_context.correlation_id,
+            digest,
+        )
+        prior = self._emitted.get(identity)
+        if prior is not None:
+            return dict(prior)
+
         audit_context = AuditContext(
-            campaign_id=context.campaign_id,
-            run_id=context.run_id,
-            step_id=context.step_id,
-            attempt_id=context.attempt_id,
-            principal=context.principal,
+            campaign_id=normalized_context.campaign_id,
+            run_id=normalized_context.run_id,
+            step_id=normalized_context.step_id,
+            attempt_id=normalized_context.attempt_id,
+            principal=normalized_context.principal,
             decision=event_type,
-            correlation_id=context.correlation_id,
+            correlation_id=normalized_context.correlation_id,
             outcome="recorded" if decision == "ACCEPT" else "denied",
             notes=SCHEMA_VERSION,
         )
@@ -244,6 +282,7 @@ class CanonicalAuthorizationAuditAdapter:
             raise AuthorizationAuditError(
                 "AUTHORIZATION_AUDIT_APPEND_FAILED", str(exc)
             ) from exc
+        self._emitted[identity] = dict(record)
         return record
 
     @property
