@@ -19,9 +19,9 @@ branch: chg-hsl-075/signer-audit-attribution
 issue: 409
 pr: 408
 validation:
-  targeted: PENDING
-  regression: PENDING
-  security: PENDING
+  targeted: NOT_RUN
+  regression: NOT_RUN
+  security: NOT_RUN
   runtime: NOT_RUN
 promotion:
   commit: null
@@ -30,5 +30,5 @@ promotion:
 deferredTo: null
 timestamps:
   discoveredAt: '2026-08-16T00:03:00Z'
-  updatedAt: '2026-08-16T00:03:00Z'
+  updatedAt: '2026-08-16T00:04:00Z'
   closedAt: null
