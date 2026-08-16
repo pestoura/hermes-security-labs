@@ -128,8 +128,9 @@ def test_bootstrap_is_explicit_shamir_3_of_2_and_secret_safe() -> None:
     assert "set -euo pipefail" in text
     assert "set -x" not in text
     assert "operator init -key-shares=3 -key-threshold=2" in text
-    assert "operator unseal -" in text
+    assert "operator unseal" in text
     assert "read -r -s" in text
+    assert "printf '%s\\n' \"$share\" |" in text
     assert "https://" in text
     assert "VAULT_SKIP_VERIFY" in text
     assert "secrets enable -path=transit transit" in text
