@@ -1,10 +1,13 @@
-# CHG-HSL-073 — provider-neutral signer boundary status
+# Provider-neutral signer boundary status — CHG-HSL-073 through CHG-HSL-076
 
-**Date:** 2026-08-15  
+**Baseline date:** 2026-08-15  
+**Reconciled:** 2026-08-16  
 **Campaign:** `VAL-HSL-RUNNER-L1-LIVE-PROMOTION`  
 **Effect:** repository-only hardening; no runtime/provider/trust mutation
 
 ## What is now implemented
+
+### CHG-HSL-073 — provider-neutral signing boundary
 
 CHG-HSL-073 establishes the first provider-neutral software boundary for a future external custody signer:
 
@@ -33,9 +36,53 @@ authority=CI_ONLY/NON_AUTHORITATIVE
 admissible_for_lab_l1=false
 ```
 
-## TDD evidence
+### CHG-HSL-074 — trust-manifest composition/provenance hardening
 
-The implementation was developed fail-closed through explicit RED/GREEN cycles:
+CHG-HSL-074 hardens provider-neutral trust-manifest composition and requires exact verified attestation provenance before composition may succeed. It does not select a provider, install a trust store, create keys or enable runtime policy.
+
+### CHG-HSL-075 — signer operation audit attribution
+
+CHG-HSL-075 adds a dedicated `signer-operation-audit/v1` adapter that feeds the existing canonical AuditSink/evidence chain:
+
+- closed public event schema;
+- deterministic content addressing;
+- request digest/purpose/domain/correlation binding;
+- signature represented only by SHA-256 of decoded public signature bytes;
+- public key id, algorithm and SPKI SHA-256 attribution;
+- principal/provider reference and provider audit reference attribution;
+- CI signer events mechanically `test_only=true`;
+- no raw signing payload, raw signature/base64, private key, credential, token or secret in the event;
+- no second ledger, evidence chain or seal.
+
+Every event remains mechanically non-authoritative for promotion:
+
+```text
+promotion_allowed=false
+runtime_status=NOT_RUN
+execution_authority=NONE
+```
+
+### CHG-HSL-076 — signer audit EvidenceVerifier linkage
+
+CHG-HSL-076 completes the provider-neutral `signer audit-event -> EvidenceVerifier` linkage:
+
+- canonical signer-audit custody policy is `DISABLED / deny / NOT_RUN`;
+- public signer audit event can be projected into an injected existing Evidence Plane store under a disposable test-only enabled copy of the policy;
+- Evidence Plane classification remains `restricted` and excludes original signing payload/raw signature;
+- Evidence Plane `storage_ref` and AuditSink `object_ref` use the same content address `evidence://signer-operation/<sha256>`;
+- the EvidenceChain metadata `evidence_ref` remains the frozen raw `ev_<32hex>` identifier;
+- existing `LocalEvidenceVerifier` proves exact local evidence integrity and digest binding;
+- a thin `EvidenceVerifierChainResolver` only translates the existing EvidenceChain callable interface into the existing `EvidenceVerifier.verify(ref, sha256)` interface;
+- the resolver adds no independent verification, persistence, provider, chain or seal semantics;
+- missing objects, tamper, digest mismatch, malformed references and backend errors fail closed.
+
+This closes the provider-neutral audit-event/EvidenceVerifier software linkage only. It is not real provider/custody evidence.
+
+## TDD / validation evidence
+
+The signer boundary has been developed through fail-closed repository gates rather than by weakening contracts.
+
+For CHG-HSL-073:
 
 1. contract tests first failed because `signing_service.py` did not exist;
 2. the minimal provider-neutral contract made that suite GREEN;
@@ -45,13 +92,21 @@ The implementation was developed fail-closed through explicit RED/GREEN cycles:
 6. LAB_L1 guard tests then produced a clean RED consisting only of the missing guard;
 7. the minimal envelope guard restored the full `platform/tests` contract suite to GREEN.
 
-No RED was bypassed by loosening signer type/custody semantics.
+For CHG-HSL-075 and CHG-HSL-076, observed failures were corrected at their actual interface boundaries:
+
+- invalid provisional JDS validation states were replaced with canonical states rather than weakening release governance;
+- duplicate Python module identity in tests was fixed in the test loader, not by weakening production type validation;
+- public `evidence://ev_...` references are normalized to the frozen raw `ev_...` EvidenceChain identifier at the signer boundary;
+- the EvidenceChain resolver contract was not modified: a thin interface adapter delegates to the existing LocalEvidenceVerifier;
+- Evidence Plane storage reference and AuditSink object reference were aligned to the same content-addressed signer audit object.
+
+No RED was bypassed by loosening signer custody, provider, trust, evidence or execution semantics.
 
 ## Architecture direction
 
-`VAULT` is recorded as the preferred future LAB_L1 custody architecture, but its implementation is deferred because no operational Vault capability exists yet in Hermes.
+`VAULT` remains recorded only as the preferred future LAB_L1 custody architecture direction. No operational custody class/provider has been approved or selected by these software-hardening lanes.
 
-This does **not** alter the canonical operational state:
+The canonical operational state remains:
 
 - `signer-human-decision.yaml`: `NO_DECISION`;
 - `supplier_selection`: `NO_SELECTION`;
@@ -59,21 +114,23 @@ This does **not** alter the canonical operational state:
 - `human_decision_id`: `null`;
 - trust store: absent;
 - provider attestation: not observed;
+- signer-audit custody policy: `DISABLED`;
 - `promotion_allowed=false`;
 - `runtime_status=NOT_RUN`;
 - campaign: `BLOCKED / HOLD`.
 
-Issue #403 remains open because actual operational signer selection still requires evidence that cannot exist until a real custody implementation is available.
+Issue #403 remains open because actual operational signer/custody selection and evidence still require an explicit human decision and real provider evidence.
 
 ## What this does not prove
 
-A structurally admissible external signer envelope is not provider evidence. The following remain required later and are not satisfied by CHG-HSL-073:
+Provider-neutral signer software being GREEN does not constitute external custody evidence. The following remain required later:
 
 - real external signer/provider observation;
 - non-exportable real private key proof;
 - active/signing-enabled key attestation;
 - independently verified source evidence;
-- exact public trust-store binding;
+- exact operational public trust-store binding;
+- rotation/revocation evidence;
 - R1-R8 review evidence;
 - real authenticated receipt delivery;
 - complete PRE_PROMOTION package;
@@ -81,14 +138,22 @@ A structurally admissible external signer envelope is not provider evidence. The
 - live Runner effect/audit/outcome/reset evidence;
 - POST_EFFECT acceptance.
 
+The LAB_L1 hash seal remains integrity/tamper-evidence only. It does not assert external authenticity or durable/WORM custody.
+
 ## Updated continuation path
 
-Work may now continue without waiting for Vault on provider-neutral capabilities:
+Completed provider-neutral signer lanes:
 
-1. trust-manifest and SPKI binding lifecycle;
+- [x] provider-neutral signing boundary;
+- [x] trust-manifest composition/provenance hardening;
+- [x] signer operation audit-event attribution;
+- [x] signer audit-event -> Evidence Plane -> EvidenceVerifier -> AuditSink/EvidenceChain linkage.
+
+Remaining lanes that may still be developed without selecting a real provider, subject to each lane preserving `NO_DECISION / NO_SELECTION`:
+
+1. trust-manifest/SPKI lifecycle contract where not already covered by CHG-HSL-074;
 2. rotation/revocation contract;
-3. signer audit-event and EvidenceVerifier linkage;
-4. authenticated receipt-delivery contract/integration;
-5. other non-signer PRE_PROMOTION evidence lanes.
+3. authenticated receipt-delivery contract/integration;
+4. other non-signer PRE_PROMOTION evidence lanes.
 
-The real Vault adapter/provisioning and the evidence-bearing operational decision remain separate later changes. No target-interacting action becomes authorized because this repository boundary is GREEN.
+The real Vault adapter/provisioning, operational custody decision, trust installation and evidence-bearing live signer observation remain separate later changes. No target-interacting action becomes authorized because these repository boundaries are GREEN.
