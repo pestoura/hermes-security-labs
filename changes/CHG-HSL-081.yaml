@@ -3,14 +3,14 @@ kind: ChangeRecord
 id: CHG-HSL-081
 product: hermes-security-labs
 classification: HARDENING
-state: IMPLEMENTING
+state: ACCEPTED
 disposition: FIX_NOW
 summary: 'Implement the first fail-closed LAB_L1 Vault Transit Ed25519 signer adapter behind the provider-neutral SigningService without selecting trust, enabling runtime policy or promoting the campaign.'
 source:
   type: ENGINEERING_REVIEW
   campaign: VAL-HSL-RUNNER-L1-LIVE-PROMOTION
   observation: OBS-RUNNER-POLICY-PROMOTION
-  reference: 'Issue #420 / ADR-0014 / owner-approved 2026-08-16 Vault operational design. Implementation authorization is not evidence-bearing APPROVED/SELECTED state; this repository capability addresses the existing signer/trust blocker without claiming a new live observation.'
+  reference: 'Issue #420 / PR #425 / ADR-0014. Owner-approved 2026-08-16 Vault operational design implemented repository-only. Exact head 0b7511f6c38034414b7bf8ad152af86955aa114b passed validate 31954302331 including Exact-SHA, security 31954302268, Release governance 31954302276 and Private VAmPI 31954302289; platform 2367 passed/7 skipped. No Vault service/key provisioning, provider live attestation, trust binding or runtime promotion occurred.'
 affectedRelease: jds-002-adoption-candidate
 targetRelease: null
 risk: MEDIUM
@@ -19,9 +19,9 @@ branch: chg-hsl-081/vault-lab-l1-signer-adapter
 issue: 420
 pr: 425
 validation:
-  targeted: NOT_RUN
-  regression: NOT_RUN
-  security: NOT_RUN
+  targeted: PASS
+  regression: PASS
+  security: PASS
   runtime: NOT_RUN
 promotion:
   commit: null
@@ -30,5 +30,5 @@ promotion:
 deferredTo: null
 timestamps:
   discoveredAt: '2026-08-16T14:15:00Z'
-  updatedAt: '2026-08-16T14:46:00Z'
+  updatedAt: '2026-08-16T15:02:57Z'
   closedAt: null
