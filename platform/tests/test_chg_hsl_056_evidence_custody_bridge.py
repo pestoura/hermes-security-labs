@@ -19,8 +19,8 @@ Required invariants proven here:
 - All POST_EFFECT gates remain NOT_RUN.
 - backend/tenant stay LAB_L1 OBSERVED_ABSENT / NOT_RUN; promotion_allowed=false,
   recommendation=HOLD, runtime_status=NOT_RUN throughout.
-- Provenance: the supplied candidate commit (an ancestor of current main) is bound verbatim,
-  never auto-repinned to current main.
+- Provenance: the supplied campaign candidate commit is bound verbatim and never replaced
+  by the current checkout/PR merge revision.
 - No new live evidence is collected; no PROD WORM/tenant/signer requirement is weakened;
   LocalEvidenceStore is never reclassified as a production WORM backend.
 
@@ -41,11 +41,11 @@ ROOT = Path(__file__).resolve().parents[2]
 EVIDENCE_DIR = ROOT / "platform" / "evidence-plane"
 RUNTIME_PROMOTION_DIR = ROOT / "deployment" / "runtime-promotion"
 
-# Authoritative campaign candidate commit (CHG-HSL-053 reconciliation). It is an ANCESTOR
-# of the current main tip by design; the bridge must bind it verbatim, never auto-repin.
-CAMPAIGN_CANDIDATE_COMMIT = "a63ef01925e5c1b925936c1e73b11b2d6cd2a6a5"
-# The authoritative current main tip at the time of this lane (must NOT appear as bound).
-CURRENT_MAIN_TIP = "6db67f809b092c7500bbd7a48491b2c76a142a12"
+# Authoritative campaign candidate after CHG-HSL-079 repository acceptance and post-merge
+# Exact-SHA verification. CHG-HSL-080 reconciles the campaign to this accepted baseline;
+# the bridge must bind the supplied candidate verbatim, never substitute the current
+# checkout/PR merge revision.
+CAMPAIGN_CANDIDATE_COMMIT = "c716bd6512da3fa853ad8022863ecc8bac4e51a6"
 
 
 def _load(name: str, path: Path):
@@ -159,9 +159,9 @@ def test_promotion_holds_not_run_runtime_status(tmp_path: Path) -> None:
 
 def test_candidate_commit_bound_verbatim_not_repinned(tmp_path: Path) -> None:
     res = _build(CAMPAIGN_CANDIDATE_COMMIT, tmp_path)
-    # The supplied (ancestor) commit is bound verbatim; the bridge never auto-repins to HEAD.
+    # The supplied accepted baseline is bound verbatim; the bridge never substitutes
+    # checkout HEAD or the PR merge SHA.
     assert res.candidate_commit == CAMPAIGN_CANDIDATE_COMMIT
-    assert res.candidate_commit != CURRENT_MAIN_TIP
     assert res.package["candidate"]["repository_commit"] == CAMPAIGN_CANDIDATE_COMMIT
 
 

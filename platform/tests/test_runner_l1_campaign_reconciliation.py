@@ -33,7 +33,7 @@ CHG072_EVIDENCE_PATH = (
     / "evidence"
     / "live-operator-observation-CHG-HSL-072.yaml"
 )
-BASELINE = "a63ef01925e5c1b925936c1e73b11b2d6cd2a6a5"
+BASELINE = "c716bd6512da3fa853ad8022863ecc8bac4e51a6"
 STATUS_BASELINE = "8c654379afb2114e34d6e748bb558b3ad5b8fb4b"
 CHG072_RECONCILIATION_BASE = "9448817e436ee096e0f839b6bb8b9bf9e06d8d6d"
 
@@ -118,8 +118,10 @@ def test_repository_chain_remains_green_repo_not_runtime_authority() -> None:
         "350",
         "351",
         "352",
+        "417",
     ):
         assert pr in evidence
+    assert "authorization-audit-custody:GREEN-REPO(CHG-HSL-079;ADR-0016;PR#417;post-merge-exact-sha=PASS)" in evidence
     assert "execution-gateway-hold:IMPLEMENTED(CHG-036;issue#359:GREEN-REPO)" in evidence
     assert "execution-gateway-deployment:IMPLEMENTED(CHG-037;issue#361:GREEN-REPO)" in evidence
     assert "execution-gateway-boundary:UNPROMOTED(promotion_allowed=false;HOLD)" in evidence
@@ -127,57 +129,71 @@ def test_repository_chain_remains_green_repo_not_runtime_authority() -> None:
 
 def test_tb1_live_delivery_remains_blocked_without_signer_trust_and_endpoint() -> None:
     tb1 = _observations()["OBS-TB1-LIVE-DELIVERY"]
+    evidence = tb1["evidence"]
     assert tb1["result"] == "BLOCKED"
     assert tb1["status"] == "OPEN"
-    assert "trust-store-host-observation:OBSERVED_ABSENT" in tb1["evidence"]
-    assert "signer-provider-observation:NOT_RUN" in tb1["evidence"]
-    assert "signer-source-evidence:NOT_RUN" in tb1["evidence"]
-    assert "receipt-delivery-policy:DISABLED/NOT_RUN" in tb1["evidence"]
+    assert "trust-store:ABSENT" in evidence
+    assert "signer-provider:NOT_RUN" in evidence
+    assert "signer-source:NOT_RUN" in evidence
+    assert "receipt-delivery:DISABLED/NOT_RUN" in evidence
+    assert "resolver:DISABLED/NOT_RUN" in evidence
+    assert "auth-audit-custody:GREEN-REPO(CHG-HSL-079)" in evidence
+    assert "auth-audit-custody-policy:DISABLED/NOT_RUN" in evidence
+    assert "live-auth-audit:NOT_RUN" in evidence
 
 
-def test_policy_observation_reconciles_current_userns_and_peer_negative() -> None:
+def test_policy_observation_reconciles_current_userns_peer_and_audit_custody() -> None:
     policy = _observations()["OBS-RUNNER-POLICY-PROMOTION"]
     evidence = policy["evidence"]
 
     assert policy["changeRecord"] == "CHG-HSL-072"
-    assert "userns:PASS(CURRENT-CHG-HSL-072;gateway=3649254;runner=409235)" in evidence
-    assert "peer-negative:PASS(CHG-HSL-072;HOLD_REFUSAL_OBSERVED;canonical_proof=true;payload_sent=false)" in evidence
+    assert "userns:PASS(CHG-HSL-072)" in evidence
+    assert "peer-negative:PASS(CHG-HSL-072)" in evidence
+    assert "auth-audit-custody:GREEN-REPO(CHG-HSL-079;main=c716bd6512da3fa853ad8022863ecc8bac4e51a6)" in evidence
     assert "trust-store:ABSENT" in evidence
     assert "signer:NOT_OBSERVED" in evidence
-    assert "production-backend:NOT_IMPLEMENTED/NOT_RUN(PROD_ONLY)" in evidence
-    assert "tenant-isolation:NOT_RUN(PROD_ONLY)" in evidence
-    assert "pre-promotion-package:ASSEMBLED/HOLD/INCOMPLETE(CHG-HSL-071)" in evidence
-    assert "post-effect-package:NOT_RUN" in evidence
-    assert "DISABLED/NOT_RUN" in evidence
+    assert "auth-audit-custody-policy:DISABLED/NOT_RUN" in evidence
+    assert "live-audit-custody:NOT_RUN" in evidence
+    assert "pre:ASSEMBLED/HOLD/INCOMPLETE(CHG-HSL-071)" in evidence
+    assert "post-effect:NOT_RUN" in evidence
+    assert "policies:DISABLED/NOT_RUN" in evidence
     assert "ROOT_REQUIRED" not in evidence
     assert "peer-negative:NOT_PROVEN" not in evidence
 
     summary = policy["summary"]
-    assert "userns re-attestation PASS" in summary
+    assert "CHG-HSL-072: userns PASS" in summary
     assert "unauthorized-peer HOLD refusal PASS" in summary
-    assert "LAB_L1 excludes PROD-only WORM/tenant gates" in summary
-    assert "Campaign" not in summary or policy["result"] == "BLOCKED"
+    assert "CHG-HSL-079: auth-audit custody GREEN-REPO" in summary
+    assert "live composition NOT_RUN" in summary
+    assert "Remaining LAB_L1 blockers" in summary
+    assert policy["result"] == "BLOCKED"
 
 
-def test_chg_hsl_071_and_072_reconcile_custody_without_promotion() -> None:
+def test_chg_hsl_079_and_080_reconcile_custody_without_promotion() -> None:
     custody = _observations()["OBS-EVIDENCE-CUSTODY"]
     evidence = custody["evidence"]
 
     assert custody["result"] == "BLOCKED"
     assert custody["status"] == "OPEN"
-    assert "HASH_CHAIN_SEAL:VERIFIED(CHG-HSL-071)" in evidence
-    assert "GATEWAY_ADMISSION_REOBSERVATION:PASS(CHG-HSL-071)" in evidence
-    assert "BRIDGE_REVISION_REOBSERVATION:PASS(CHG-HSL-071)" in evidence
-    assert "USER_NAMESPACE_MAPPING:PASS(CURRENT-CHG-HSL-072)" in evidence
-    assert "UNAUTHORIZED_PEER_NEGATIVE:PASS(CHG-HSL-072)" in evidence
-    assert "pre-promotion-package:ASSEMBLED/HOLD/INCOMPLETE(CHG-HSL-071)" in evidence
-    assert "post-effect-package:NOT_RUN" in evidence
-    assert "live-runner-audit-terminal:NOT_RUN" in evidence
+    assert custody["changeRecord"] == "CHG-HSL-080"
+    assert "auth-audit-custody:GREEN-REPO(CHG-HSL-079;ADR-0016;PR#417;main=c716bd6512da3fa853ad8022863ecc8bac4e51a6)" in evidence
+    assert "post-merge:PASS(all-4-workflows;exact-sha)" in evidence
+    assert "custody-policy:DISABLED/NOT_RUN" in evidence
+    assert "live-audit-custody:NOT_RUN" in evidence
+    assert "hash-chain:VERIFIED(CHG-HSL-071)" in evidence
+    assert "userns:PASS(CHG-HSL-072)" in evidence
+    assert "peer-negative:PASS(CHG-HSL-072)" in evidence
+    assert "pre:ASSEMBLED/HOLD/INCOMPLETE" in evidence
+    assert "post-effect:NOT_RUN" in evidence
 
     summary = custody["summary"]
-    assert "CHG-HSL-072 separately closes current userns and unauthorized-peer negatives" in summary
-    assert "Campaign remains BLOCKED/OPEN" in summary
-    assert "WORM/tenant controls remain PROD-only" in summary
+    assert "CHG-HSL-079/ADR-0016 closes repository auth-audit custody" in summary
+    assert "content identity and ev_<id> custody binding remain distinct" in summary
+    assert "GREEN-REPO only" in summary
+    assert "custody policy DISABLED/NOT_RUN" in summary
+    assert "live custody NOT_RUN" in summary
+    assert "Campaign remains BLOCKED/HOLD" in summary
+    assert "signer/trust, delivery, PRE, HITL, effect and POST_EFFECT remain open" in summary
 
 
 def test_prod_only_controls_are_not_lab_l1_blockers_in_chg071_record() -> None:

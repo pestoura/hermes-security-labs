@@ -10,8 +10,8 @@ These tests prove:
 - tampered / ambiguous / stale / duplicate / missing observation evidence fail closed;
 - anti-fabrication: HOST_IDENTITY_SOCKET_TRUST, USER_NAMESPACE_MAPPING, signer,
   receipt, peer-negative and every POST_EFFECT gate never become PASS;
-- candidate commit provenance semantics (an ancestor of main is bound verbatim, never
-  auto-repinned to HEAD);
+- candidate commit provenance semantics: the reconciled campaign candidate is bound
+  verbatim and never auto-repinned to checkout HEAD;
 - profile-aware omission/tombstone for LAB_L1 production WORM/tenant evidence;
 - HOLD invariants and the ephemeral preview CLI.
 """
@@ -46,6 +46,7 @@ ASSEMBLER_PATH = (
     / "offline_evidence_package_assembler.py"
 )
 CAMPAIGN_PATH = ROOT / "validation" / "VAL-HSL-RUNNER-L1-LIVE-PROMOTION.yaml"
+CAMPAIGN_CANDIDATE_COMMIT = "c716bd6512da3fa853ad8022863ecc8bac4e51a6"
 
 
 def _load(name: str, path: Path) -> Any:
@@ -71,7 +72,7 @@ def _write_repo(tmp: Path, *, ledger: str | None = None, evidence: str | None = 
     (tmp / "docs" / "roadmap").mkdir(parents=True)
     (tmp / "deployment" / "runtime-promotion" / "evidence").mkdir(parents=True)
     (tmp / "validation").mkdir(parents=True)
-    # Minimal campaign the adapter/assembler load: candidate commit = a63ef01 (ancestor).
+    # Minimal campaign copied from the current canonical source of truth.
     (tmp / "validation" / "VAL-HSL-RUNNER-L1-LIVE-PROMOTION.yaml").write_text(
         CAMPAIGN_PATH.read_text(encoding="utf-8"), encoding="utf-8"
     )
@@ -326,27 +327,25 @@ def test_tampered_produced_package_stays_hold(tmp_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Candidate commit provenance (ancestor of main, never auto-repinned)
+# Candidate commit provenance (campaign candidate, never auto-repinned)
 # ---------------------------------------------------------------------------
 
 
 def test_candidate_commit_bound_verbatim_not_repinned_to_head() -> None:
-    # a63ef01 is an ancestor of origin/main HEAD (62a690d) and is the campaign commit.
     out = tmp_path_ctx() / "preview.json"
     preview = adapter.generate_ephemeral_preview(
         repo_root=ROOT,
         out_path=out,
-        candidate_commit="a63ef01925e5c1b925936c1e73b11b2d6cd2a6a5",
+        candidate_commit=CAMPAIGN_CANDIDATE_COMMIT,
     )
-    # The adapter binds exactly the supplied ancestor SHA; it never substitutes 62a690d.
-    assert preview["candidate_commit_bound"] == "a63ef01925e5c1b925936c1e73b11b2d6cd2a6a5"
-    assert preview["candidate_commit_bound"] != "62a690de9fa925be9ab0686c53cfe1e620cc6f40"
+    # The adapter binds exactly the supplied canonical campaign SHA.
+    assert preview["candidate_commit_bound"] == CAMPAIGN_CANDIDATE_COMMIT
 
 
 def test_candidate_commit_none_defaults_to_campaign_commit() -> None:
     out = tmp_path_ctx() / "preview2.json"
     preview = adapter.generate_ephemeral_preview(repo_root=ROOT, out_path=out)
-    assert preview["candidate_commit_bound"] == "a63ef01925e5c1b925936c1e73b11b2d6cd2a6a5"
+    assert preview["candidate_commit_bound"] == CAMPAIGN_CANDIDATE_COMMIT
 
 
 def test_adapter_source_does_not_rewrite_candidate_commit() -> None:
@@ -406,7 +405,9 @@ def test_profile_aware_omission_preserved_through_verifier(tmp_path: Path) -> No
 def test_ephemeral_preview_stays_hold() -> None:
     out = tmp_path_ctx() / "preview3.json"
     preview = adapter.generate_ephemeral_preview(
-        repo_root=ROOT, out_path=out, candidate_commit="a63ef01925e5c1b925936c1e73b11b2d6cd2a6a5"
+        repo_root=ROOT,
+        out_path=out,
+        candidate_commit=CAMPAIGN_CANDIDATE_COMMIT,
     )
     assert preview["verifier"]["promotion_allowed"] is False
     assert preview["verifier"]["recommendation"] == "HOLD"
