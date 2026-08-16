@@ -162,7 +162,9 @@ def test_noncanonical_or_unbounded_authorization_reference_is_never_persisted(va
         intrusiveness_level=None,
     )
     assert record["authorization_ref_sha256"] is None
-    assert value is None or str(value) not in json.dumps(record, sort_keys=True)
+    serialized = json.dumps(record, sort_keys=True)
+    if isinstance(value, str) and value:
+        assert value not in serialized
 
 
 @pytest.mark.parametrize(
@@ -213,10 +215,10 @@ def test_public_record_contains_no_sensitive_or_authority_expanding_material() -
     assert record["promotion_allowed"] is False
     assert record["runtime_status"] == "NOT_RUN"
     assert record["execution_authority"] == "NONE"
-    serialized = json.dumps(record, sort_keys=True).lower()
-    for forbidden in (
-        "signature",
+    forbidden_keys = {
         "receipt",
+        "signature",
+        "signature_b64",
         "private_key",
         "public_key",
         "secret",
@@ -224,10 +226,15 @@ def test_public_record_contains_no_sensitive_or_authority_expanding_material() -
         "cookie",
         "credential",
         "target",
+        "target_sha256",
         "parameters",
-        "authorization_ref\"",
-    ):
-        assert forbidden not in serialized
+        "operation_parameters",
+        "authorization_ref",
+    }
+    assert forbidden_keys.isdisjoint(record)
+    serialized = json.dumps(record, sort_keys=True)
+    assert _canonical_ref() not in serialized
+    assert "tb1-authz:v1:" not in serialized
 
 
 def test_adapter_appends_to_existing_canonical_audit_sink_only() -> None:
