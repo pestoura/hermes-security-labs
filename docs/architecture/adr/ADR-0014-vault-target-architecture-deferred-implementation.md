@@ -2,6 +2,7 @@
 
 - **Status:** Accepted architectural direction — implementation deferred
 - **Date:** 2026-08-16
+- **Decision owners:** `SVP2-A-01`, `EPIC-01`
 - **Decision source:** CHG-HSL-073 design direction / issue #403 remains open
 - **Supersedes:** none
 - **Superseded by:** none
@@ -36,7 +37,9 @@ campaign = BLOCKED / HOLD
 
 Issue #403 remains the separate human decision/evidence gate. A future operational choice must still satisfy the canonical R1–R8 evidence requirements and does not become valid merely because this ADR prefers VAULT architecturally.
 
-## Positive consequences
+## Consequences
+
+### Positive
 
 - Gives the software boundary a stable target without pretending infrastructure exists.
 - Avoids a temporary provider decision that would create migration and cloud-dependency debt solely to unblock a gate.
@@ -44,7 +47,7 @@ Issue #403 remains the separate human decision/evidence gate. A future operation
 - Keeps private-key material outside the repository and prevents a local fallback from being mistaken for admissible custody.
 - Allows signer contracts, EvidenceVerifier, trust manifest and audit paths to progress independently of Vault provisioning.
 
-## Negative consequences
+### Negative
 
 - LAB_L1 signer promotion remains blocked until the actual Vault capability and evidence exist.
 - A later Vault implementation may expose constraints not visible in provider-neutral contracts.
