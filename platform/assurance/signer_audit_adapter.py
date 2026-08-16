@@ -22,6 +22,7 @@ import base64
 import hashlib
 import importlib.util
 import json
+import re
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -45,6 +46,8 @@ _HEX = frozenset("0123456789abcdef")
 _CORRELATION_KEYS = ("campaign_id", "run_id", "step_id", "attempt_id")
 _OBJECT_KIND = "evidence_record"
 _OBJECT_MEDIA_TYPE = "application/json"
+_EVIDENCE_ID = re.compile(r"^ev_[a-f0-9]{32}$")
+_EVIDENCE_URI = re.compile(r"^evidence://(ev_[a-f0-9]{32})$")
 
 
 class SignerAuditError(ValueError):
@@ -249,6 +252,23 @@ def signer_record_digest(record: Mapping[str, object]) -> tuple[str, int]:
     return sha256_hex(payload), len(payload)
 
 
+def _canonical_evidence_id(evidence_ref: object) -> str | None:
+    """Normalize a public evidence URI/id to EvidenceChain's canonical ``ev_`` id."""
+
+    if evidence_ref is None:
+        return None
+    if isinstance(evidence_ref, str) and _EVIDENCE_ID.fullmatch(evidence_ref):
+        return evidence_ref
+    if isinstance(evidence_ref, str):
+        match = _EVIDENCE_URI.fullmatch(evidence_ref)
+        if match:
+            return match.group(1)
+    raise SignerAuditError(
+        "SIGNER_AUDIT_EVIDENCE_REF_INVALID",
+        "evidence_ref must be ev_<32 lowercase hex> or evidence://ev_<32 lowercase hex>",
+    )
+
+
 class CanonicalSignerAuditAdapter:
     """Signer-operation -> existing canonical AuditSink adapter."""
 
@@ -282,9 +302,11 @@ class CanonicalSignerAuditAdapter:
         request: SigningRequest,
         result: SigningResult,
         attribution: SignerAuditAttribution,
+        evidence_ref: str | None = None,
     ) -> dict[str, object]:
         record = build_signer_audit_record(request, result, attribution)
         digest, size = signer_record_digest(record)
+        bound_evidence_id = _canonical_evidence_id(evidence_ref)
         context = AuditContext(
             campaign_id=self._correlation["campaign_id"],
             run_id=self._correlation["run_id"],
@@ -304,6 +326,7 @@ class CanonicalSignerAuditAdapter:
                 object_size_bytes=size,
                 object_media_type=_OBJECT_MEDIA_TYPE,
                 context=context,
+                evidence_ref=bound_evidence_id,
             )
         except AuditSinkError as exc:
             raise SignerAuditError("SIGNER_AUDIT_APPEND_FAILED", str(exc)) from exc
