@@ -2,6 +2,7 @@
 
 - **Status:** Accepted — implementation tracked by CHG-HSL-077
 - **Date:** 2026-08-16
+- **Decision owners:** `SVP2-A-01`, `EPIC-01`
 - **Decision source:** CHG-HSL-077 design approval
 - **Supersedes:** none
 - **Superseded by:** none
@@ -22,7 +23,9 @@ The canonical policy remains `DISABLED / deny / NOT_RUN / execution_authority=no
 
 This decision does not install trust, select a provider, provision keys, change #403, grant execution authority or enable LAB_L1 promotion.
 
-## Positive consequences
+## Consequences
+
+### Positive
 
 - Produces the exact evidence reference/digest primitive needed by the future human decision contract.
 - Reuses the existing Evidence Plane store and verifier rather than introducing competing integrity semantics.
@@ -30,7 +33,7 @@ This decision does not install trust, select a provider, provision keys, change 
 - Keeps the immediate change small, provider-neutral and testable.
 - Leaves AuditSink/EvidenceChain coupling optional until a concrete consumer requires it.
 
-## Negative consequences
+### Negative
 
 - Adds another narrow custody adapter beside signer-audit custody.
 - Repeats a small amount of policy/persistence plumbing that may later justify abstraction.
