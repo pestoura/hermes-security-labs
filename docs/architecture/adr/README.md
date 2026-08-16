@@ -88,6 +88,7 @@ Editorial clarification that does not alter behaviour or authority does not requ
 | [ADR-0013](ADR-0013-signer-trust-manifest-custody.md) | Use a minimal dedicated custody bridge for signer trust manifests and defer broader custody abstraction | Accepted | signer trust evidence custody |
 | [ADR-0014](ADR-0014-vault-target-architecture-deferred-implementation.md) | Prefer VAULT as the future signer custody architecture while deferring operational implementation and selection | Accepted / deferred implementation | signer custody architecture |
 | [ADR-0015](ADR-0015-authorization-receipt-audit-evidence.md) | Audit receipt registration, lookup and refusal decisions through a dedicated adapter feeding the canonical AuditSink/EvidenceChain | Accepted | authorization decision audit evidence |
+| [ADR-0016](ADR-0016-authorization-audit-evidence-custody.md) | Use a dedicated minimal Evidence Plane custody bridge for sanitized authorization-decision audit objects and bind verified custody to the canonical AuditSink/EvidenceChain | Accepted | authorization audit evidence custody |
 
 ## Structural-decision coverage
 
@@ -114,6 +115,7 @@ The ADR set covers the structural principles accepted in the roadmap. A single A
 | Signer trust manifest custody uses the existing Evidence Plane without premature generic abstraction | ADR-0013 |
 | VAULT is an architectural target only; provider selection/implementation remains a later evidence-bearing decision | ADR-0014 |
 | Authorization registration, lookup and refusal decisions are auditable through a dedicated domain adapter over the canonical AuditSink | ADR-0015 |
+| Sanitized authorization-decision audit objects use the existing Evidence Plane for verifiable custody while the AuditSink/EvidenceChain remains the canonical decision-ordering chain | ADR-0016 |
 
 ## Supersession process
 

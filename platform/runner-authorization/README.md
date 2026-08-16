@@ -82,21 +82,51 @@ Security properties:
 
 The first WebGoat L1 adapter already performs full request binding against verified authorization metadata and now supplies request-bound audit context when the resolver supports audited lookup. Legacy resolver doubles that expose only `resolve(ref)` remain supported for repository compatibility.
 
-This is **GREEN-REPO evidence only**. It does not mean the delivery socket, trust store or signer is operational.
+### Optional Evidence Plane custody
+
+CHG-HSL-079 / ADR-0016 adds optional repository support for persisting the **same sanitized authorization audit record** through the existing Evidence Plane before it is linked to the AuditSink.
+
+The custody dependency and Evidence Plane store are injected into `CanonicalAuthorizationAuditAdapter`; the adapter does not create a datastore, verifier, EvidenceChain or seal.
+
+When custody is configured:
+
+1. the closed `authorization-receipt-audit/v1` object is validated before storage;
+2. trusted campaign/run/step/attempt correlation and `recorded_at` are validated before any store write;
+3. the exact canonical JSON object is content-addressed and persisted through the injected Evidence Plane store;
+4. post-write integrity verification is mandatory;
+5. the returned digest and size must match the independently calculated audit-record digest and size;
+6. the returned Evidence Plane identity must be canonical and internally consistent;
+7. only after those checks does the existing AuditSink append the event.
+
+The two references have intentionally different semantics:
+
+```text
+object_ref   = evidence://authorization-receipt-audit/<payload_sha256>
+evidence_ref = ev_<canonical Evidence Plane ID>
+```
+
+`object_ref` identifies the exact sanitized content. `evidence_ref` binds that content to its canonical Evidence Plane custody record. One must not be substituted for the other.
+
+Exact replay remains idempotent. If Evidence Plane custody succeeds but AuditSink append fails, the immutable evidence object is retained and a deterministic retry reuses the same custody record rather than deleting evidence or creating repeated copies.
+
+The committed `platform/evidence-plane/authorization-audit-custody-policy.yaml` remains `DISABLED / deny / NOT_RUN / execution_authority: none`. Tests may enable an isolated temporary policy, but repository support is **not** evidence that live authorization-audit persistence is enabled or operational.
+
+This remains **GREEN-REPO evidence only**. It does not mean the delivery socket, resolver, trust store, signer or live custody composition is operational.
 
 ## Remaining runtime blockers
 
-Delivery composition and authorization decision auditing now exist in the repository, but the path is not enabled and is not wired to a real receipt socket.
+Delivery composition, authorization decision auditing and repository-level Evidence Plane custody support now exist, but the live path remains disabled and has no demonstrated enabled runtime custody composition.
 
 Before live promotion we still need:
 
 1. an enabled delivery policy bound to a real socket path, peer uid and control-plane principal, provisioned by deployment;
 2. configured and evidenced TB1 trust store on the Runner side;
 3. real external signer/provider evidence consistent with the approved custody decision;
-4. lifecycle/revocation behaviour for already-cached authorizations where required by live operation;
-5. live negative tests for forged, expired, unknown, revoked and mismatched references;
-6. explicit request-bound Human-in-the-Loop promotion approval after the remaining PRE_PROMOTION evidence is complete.
+4. an enabled runtime authorization-audit custody composition with live persistence and verification evidence;
+5. lifecycle/revocation behaviour for already-cached authorizations where required by live operation;
+6. live negative tests for forged, expired, unknown, revoked and mismatched references;
+7. explicit request-bound Human-in-the-Loop promotion approval after the remaining PRE_PROMOTION evidence is complete.
 
 ## Non-goals
 
-This block does not implement real receipt issuance, private-key loading, socket provisioning, provider selection, trust installation, target traffic or runtime enablement. Repository audit success is not execution or promotion authority.
+This block does not implement real receipt issuance, private-key loading, socket provisioning, provider selection, trust installation, target traffic or runtime enablement. Repository audit/custody success is not execution or promotion authority.
