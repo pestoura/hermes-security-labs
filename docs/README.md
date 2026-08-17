@@ -58,6 +58,7 @@ mantidos em Git e são a fonte de verdade. Issues do GitHub são uma vista de tr
 - [Lab assurance signer requirements — provider-neutral (Accepted)](architecture/lab-assurance-signer-requirements.md)
 - [Lab assurance signer — next-decision packet (NO_SELECTION)](architecture/lab-assurance-signer-decision-packet.md)
 - [Framework crosswalk](architecture/framework-crosswalk.md)
+- [First PTaaS vertical slice — design and specification (EM_VALIDACAO)](architecture/first-ptaas-vertical-slice.md)
 - [Security knowledge fabric](architecture/security-knowledge-fabric.md)
 - [Continuous content factories](architecture/continuous-content-factories.md)
 - [Backlog README](../roadmap/README.md)
