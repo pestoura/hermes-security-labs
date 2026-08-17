@@ -17,12 +17,15 @@ reached only in synthetic mode, so the S1->S4->S2 precedence and the frozen
 S5 refusal are unchanged. Task 9 proves S7 (effect seam) as a read-only
 registry-allowlist + adapter-presence check with runtime_status=NOT_RUN, also
 under synthetic derivation only; it never executes the adapter, router or
-runner. Later seams (S3, S8+) are NOT evaluated through the default ``bind``
-path.
+the runner. Later seams (S3) and the S8 evidence-custody shape are NOT evaluated
+through the default frozen ``bind`` path; S8 is exercised only under synthetic
+``_force_complete`` derivation coverage (in-memory sealed-chain digest, no
+persistence).
 """
 
 from __future__ import annotations
 
+import hashlib
 import sys
 import yaml
 from pathlib import Path
@@ -186,6 +189,71 @@ def _verify_s6(contract: Mapping[str, Any]) -> dict[str, Any]:
         "admission_codes": ["NOT_RUN"],
     }
 
+def _synthetic_evidence_refs(contract: Mapping[str, Any], clock: str) -> list[str]:
+    """Synthetic, valid evidence refs for derivation coverage only (no live effect).
+
+    Produces deterministic ``evidence://`` object refs and matching 64-hex sha256
+    digests derived from the contract's campaign/operation identifiers and the
+    fixed ``clock``. These are digests-only synthetic custody references; no real
+    evidence object, network call, subprocess, or LocalEvidenceStore write occurs.
+    Used exclusively under synthetic ``_force_complete`` mode to exercise the S8
+    sealed-chain derivation logic; the default frozen path supplies none.
+    """
+    campaign_id = contract.get("campaign_id") or "campaign"
+    operation_id = (contract.get("operations") or [{}])[0].get("operation_id", "operation")
+    refs: list[str] = []
+    for idx in range(2):
+        seed = f"{campaign_id}|{operation_id}|{clock}|{idx}"
+        digest = hashlib.sha256(seed.encode("utf-8")).hexdigest()
+        refs.append(f"evidence://ptaas-slice/{operation_id}/obs-{idx}")
+    return refs
+
+
+def _verify_s8(contract: Mapping[str, Any], *, evidence_refs: list[str], clock: str) -> dict[str, Any]:
+    """Derive the S8 evidence-custody shape in-memory using accepted interfaces (AC6).
+
+    Builds an in-memory ``EvidenceChain`` from the supplied (synthetic or real)
+    evidence refs and seals it with the already-accepted ``evidence_plane`` seal
+    interface. The chain state digest and seal are deterministic and verified
+    locally; NO persistence to ``LocalEvidenceStore`` or any filesystem occurs,
+    and no network/runner/effect/authority/Vault/secret is involved. The binder
+    holds no authority: it only derives the custody *shape* as proof of the
+    already-accepted evidence-integrity control. Reached only under synthetic
+    ``_force_complete`` derivation coverage; the frozen default path stops at S5.
+    """
+    chain_mod = _load_component(SEAM_OWNERS["S8"].replace("evidence_plane.py", "evidence_chain.py"), "hsl_ev_chain")
+    seal_mod = _load_component(SEAM_OWNERS["S8"].replace("evidence_plane.py", "seal.py"), "hsl_seal")
+
+    chain = chain_mod.EvidenceChain("chain_" + hashlib.sha256(contract.get("campaign_id", "ptaas-slice").encode("utf-8")).hexdigest())
+    correlation = {
+        "campaign_id": contract.get("campaign_id") or "campaign",
+        "run_id": "ptaas-slice-synthetic",
+        "step_id": "S8",
+        "attempt_id": "0",
+    }
+    for ref in evidence_refs:
+        digest = hashlib.sha256(ref.encode("utf-8")).hexdigest()
+        chain.append_object(
+            object_kind="evidence_record",
+            object_ref=ref,
+            object_digest_sha256=digest,
+            object_size_bytes=len(ref.encode("utf-8")),
+            object_media_type="application/x-sha256-ref",
+            correlation=correlation,
+            created_at=clock,
+        )
+    seal = seal_mod.seal_chain(chain, sealed_at=clock)
+    verification = seal_mod.verify_seal(seal)
+    return {
+        "seam": "S8",
+        "owner": SEAM_OWNERS["S8"],
+        "precondition_verified": True,
+        "chain_state_digest": chain.chain_state_digest(),
+        "seal_verified": bool(verification.get("verified")),
+        "persisted": False,  # never written to LocalEvidenceStore / filesystem
+    }
+
+
 def _verify_s7(contract: Mapping[str, Any]) -> dict[str, Any]:
     """Prove the S7 effect seam is a DECLARED read-only/L1 operation (AC2).
 
@@ -282,6 +350,14 @@ def bind(
         # operation registry + adapter presence/path only. No adapter/router/
         # runner execution, no network, no subprocess: runtime_status=NOT_RUN.
         seams["S7"] = _verify_s7(contract)
+        # Task 10: S8 derives the evidence-custody shape in-memory using the
+        # already-accepted EvidenceChain/seal interfaces (AC6). Synthetic valid
+        # evidence refs are supplied only here, deterministically, for derivation
+        # coverage; no LocalEvidenceStore write / persistence occurs. The frozen
+        # default path never reaches S8 and stays ABORTED at S5.
+        s8_clock = clock or "2026-08-17T00:00:00Z"
+        s8_refs = _synthetic_evidence_refs(contract, s8_clock)
+        seams["S8"] = _verify_s8(contract, evidence_refs=s8_refs, clock=s8_clock)
 
     return {
         "campaign_id": contract.get("campaign_id"),

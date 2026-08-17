@@ -251,3 +251,42 @@ def test_s7_holds_no_authority_and_no_live_effect():
             assert mod not in ln, f"{mod} imported: {ln}"
     # the adapter is referenced as a PATH string only, never loaded/executed
     assert '_load_component(SEAM_OWNERS["S7"]' not in src
+
+# --- Task 10: S8 evidence custody shape — in-memory sealed chain digest (AC6) ---
+# CHG-HSL-084 Task 10: S8 derives the evidence-custody shape in-memory only, using
+# the already-accepted EvidenceChain/evidence_plane (seal) interfaces. The seal/canonical
+# digest is deterministic and verified; NO LocalEvidenceStore write / persistence occurs.
+# The binder holds no authority and performs no effect: no filesystem write beyond
+# normal git/test temp, no network/runner/effect/authority/Vault/secret. The default
+# frozen-state path (no synthetic evidence refs) records S8 precondition_verified=False
+# with persisted=False. The _force_complete synthetic path supplies synthetic valid
+# evidence refs (digests only) for derivation coverage. The S1->S4->S2 precedence and
+# the frozen S5 refusal are unchanged.
+
+def test_s8_derives_sealed_chain_digest_without_persistence(tmp_path):
+    doc = yaml.safe_load(pathlib.Path("platform/slice-contract/ptaas-webgoat-l1.slice.yaml").read_text())
+    rec = sb.bind(doc, _force_complete=True)
+    s8 = rec["seams"]["S8"]
+    assert s8["chain_state_digest"] is not None
+    assert s8["seal_verified"] is True
+    assert s8["persisted"] is False  # no LocalEvidenceStore write
+
+def test_s8_default_path_no_evidence_refs_not_persisted():
+    doc = yaml.safe_load(pathlib.Path("platform/slice-contract/ptaas-webgoat-l1.slice.yaml").read_text())
+    rec = sb.bind(doc)  # default frozen path: no synthetic evidence refs
+    assert "S8" not in rec["seams"]  # not reached; S5 refuses first
+    assert rec["terminal_state"] == "ABORTED"
+
+def test_s8_holds_no_authority_and_no_live_effect():
+    src = pathlib.Path("platform/slice-contract/slice_binder.py").read_text()
+    import_lines = [
+        ln.strip() for ln in src.splitlines()
+        if ln.strip().startswith(("import ", "from "))
+    ]
+    banned = ("subprocess", "requests", "socket", "http", "urllib",
+              "runner_handoff", "runner_protocol_v2", "admission",
+              "webgoat_l1_adapter", "router", "vault", "secret", "signer",
+              "trust", "evidence_plane", "evidence_chain", "seal")
+    for ln in import_lines:
+        for mod in banned:
+            assert mod not in ln, f"{mod} imported: {ln}"
