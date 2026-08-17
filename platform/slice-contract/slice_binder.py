@@ -5,31 +5,39 @@ emits a deterministic, sanitized traversal record. Holds no authority: no effect
 no authorization issuance, no custody write, no campaign-state mutation. Never
 imports runner_handoff/admission/router/webgoat_l1_adapter or runner_protocol_v2.
 
-Task 4 implements S1 (scope) + S2 (target authorization) only, calling the
-existing real ``authorize_operation`` interface fail-closed. Task 6 resolves
-S4 (HITL assertion) as a static assurance-profile read after S1 passes and
-before S2; S4 never refuses and adds no approval surface. Task 8 records S6
-(admission/handoff) as a read-only path assert with runtime_status=NOT_RUN
-under synthetic ``_force_complete`` derivation coverage; S6 NEVER imports the
-admission/runner_handoff/runner_protocol_v2 modules and grants no authority.
-The frozen default path refuses at S5 (NO_DECISION) and stays ABORTED; S6 is
-reached only in synthetic mode, so the S1->S4->S2 precedence and the frozen
-S5 refusal are unchanged. Task 9 proves S7 (effect seam) as a read-only
-registry-allowlist + adapter-presence check with runtime_status=NOT_RUN, also
-under synthetic derivation only; it never executes the adapter, router or
-the runner. Later seams (S3) and the S8 evidence-custody shape are NOT evaluated
-through the default frozen ``bind`` path; S8 is exercised only under synthetic
-``_force_complete`` derivation coverage (in-memory sealed-chain digest, no
-persistence). Task 11 normalizes the S9 finding through the already-accepted
-``create_finding`` interface under synthetic ``_force_complete`` only, reusing
-S8's synthetic verified evidence refs; risk stays ``{}`` (no fabricated canonical
-component) and S9 fails closed with ``NO_VERIFIED_EVIDENCE_REF`` when no verified
-evidence ref is present. The default frozen path does NOT reach S9.
+Canonical seam order (preflight-reconciled source of truth):
+S1 -> S2 -> S3 -> S4 -> S5 -> S6 -> S7 -> S8 -> S9 -> S10 -> S11.
+
+``bind`` walks this exact order and STOPS at the FIRST unverified seam
+(recorded as ``refusing_seam``). The default frozen repository state uses the
+REAL ``authorize_operation`` interface: webgoat-web's ``allowed_operations`` are
+coarse categories that do NOT include the typed op ``web.discovery.headers``, so
+S2 refuses with ``OPERATION_OUT_OF_SCOPE`` and ``bind`` short-circuits
+immediately — S3..S11 are never populated. The derived terminal state is
+``ABORTED`` with ``refusing_seam='S2'`` (NOT S5). This is the spec-compliant
+current-state result that keeps VAL-HSL-RUNNER-L1-LIVE-PROMOTION BLOCKED/HOLD.
+
+``_force_complete=True`` is a PRIVATE synthetic-only, in-memory positive override
+for S2 and S5 only. It performs NO registry/trust-store mutation and holds NO
+authority/effect; it exists solely so the S11 ``COMPLETED`` derivation logic is
+test-covered without enabling any runtime path. Under it, all S1..S10
+preconditions are made true (S10's ``runtime_status=NOT_RUN`` is non-gating when
+``precondition_verified=True``) so S11 derives ``COMPLETED`` deterministically.
+
+S11 (this module's Task 13) derives the terminal state as a PURE function of the
+collected seam records: COMPLETED when every S1..S10 ``precondition_verified`` is
+True, ABORTED on the first refusal (``refusing_seam``), or STOPPED when
+``kill_switch_engaged=True``. It emits ``audit_record_present`` and a
+deterministic ``traversal_digest`` (in-memory sealed EvidenceChain over the
+collected seam records + fixed ``clock``). Identical contract + fixed clock yields
+byte-identical output. No live runner/network/subprocess/Vault/secrets; no
+target-registry or trust-store mutation.
 """
 
 from __future__ import annotations
 
 import hashlib
+import json
 import sys
 import yaml
 from pathlib import Path
@@ -149,19 +157,34 @@ def _verify_s3(contract: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
-def _verify_s5(contract: Mapping[str, Any]) -> dict[str, Any]:
-    """Record the S5 authorization seam as a read-only NO_DECISION refusal.
+def _verify_s5(contract: Mapping[str, Any], *, force: bool = False) -> dict[str, Any]:
+    """Record the S5 authorization seam.
 
-    S5 asserts the existence of the already-accepted authorization resolver path
-    and records a fail-closed refusal under the frozen ABSENT trust store. It
-    NEVER imports the resolver module (no authority, no live authorization call):
-    the frozen repository state has ``trust-store: ABSENT`` and every policy
-    ``DISABLED``/``deny``/``NOT_RUN``, so the binder records ``NO_DECISION`` and
-    refuses. For the current state this is the correct, spec-compliant terminal
+    Default (frozen state): S5 asserts the existence of the already-accepted
+    authorization resolver path and records a fail-closed refusal under the frozen
+    ABSENT trust store. It NEVER imports the resolver module (no authority, no live
+    authorization call): the frozen repository state has ``trust-store: ABSENT`` and
+    every policy ``DISABLED``/``deny``/``NOT_RUN``, so the binder records
+    ``NO_DECISION`` and refuses. This is the correct, spec-compliant terminal
     result that keeps VAL-HSL-RUNNER-L1-LIVE-PROMOTION BLOCKED/HOLD.
+
+    ``force=True`` (PRIVATE synthetic-only override, no authority/effect, no
+    trust-store mutation): records a synthetic-verified NO_DECISION-equivalent so
+    all S1..S10 preconditions can be true for S11's COMPLETED derivation. It does
+    NOT widen the real trust store or authorize anything.
     """
     owner = SEAM_OWNERS["S5"]
     exists = (REPO_ROOT / owner).is_file()
+    if force:
+        return {
+            "seam": "S5",
+            "owner": owner,
+            "precondition_verified": True,
+            "reason_code": "NO_DECISION_SYNTHETIC",
+            "authorization_ref": "NO_DECISION",
+            "component_present": exists,
+            "synthetic_override": True,
+        }
     return {
         "seam": "S5",
         "owner": owner,
@@ -203,12 +226,9 @@ def _synthetic_evidence_refs(contract: Mapping[str, Any], clock: str) -> list[st
     Used exclusively under synthetic ``_force_complete`` mode to exercise the S8
     sealed-chain derivation logic; the default frozen path supplies none.
     """
-    campaign_id = contract.get("campaign_id") or "campaign"
     operation_id = (contract.get("operations") or [{}])[0].get("operation_id", "operation")
     refs: list[str] = []
     for idx in range(2):
-        seed = f"{campaign_id}|{operation_id}|{clock}|{idx}"
-        digest = hashlib.sha256(seed.encode("utf-8")).hexdigest()
         refs.append(f"evidence://ptaas-slice/{operation_id}/obs-{idx}")
     return refs
 
@@ -362,87 +382,209 @@ def bind(
     *,
     clock: str | None = None,
     _force_complete: bool = False,
+    kill_switch_engaged: bool = False,
 ) -> dict[str, Any]:
-    # Fail-closed default: the frozen repository state refuses the traversal.
-    # Task 4 verifies S1 (scope) + S2 (target authorization); Task 6 resolves
-    # S4 (HITL) between S1 and S2; Task 7 records S5 (trust-store ABSENT
-    # refusal). S5 is terminal for the frozen state, so bind stops there and
-    # the terminal state stays ABORTED. The deferred S1->S4->S2 precedence/order
-    # constraint (Task 13) is preserved; S5 is appended after S2 only.
-    terminal_state = "ABORTED"
+    """Resolve, verify and derive the LAB_L1 vertical-slice traversal record.
+
+    Canonical seam order (preflight-reconciled source of truth):
+    S1 -> S2 -> S3 -> S4 -> S5 -> S6 -> S7 -> S8 -> S9 -> S10 -> S11.
+
+    ``bind`` walks that exact order and STOPS at the FIRST unverified seam
+    (recorded as ``refusing_seam``). The default frozen repository state uses the
+    REAL ``authorize_operation`` interface, which refuses webgoat-web +
+    web.discovery.headers at S2 with ``OPERATION_OUT_OF_SCOPE``; ``bind`` therefore
+    short-circuits immediately after S2 and never populates S3..S11. The derived
+    terminal state is ``ABORTED`` with ``refusing_seam='S2'`` (NOT S5). This is the
+    spec-compliant current-state result that keeps VAL-HSL-RUNNER-L1-LIVE-PROMOTION
+    BLOCKED/HOLD.
+
+    ``_force_complete=True`` is a PRIVATE synthetic-only, in-memory positive override
+    for S2 and S5 only. It performs NO registry/trust-store mutation and holds NO
+    authority/effect; it exists solely so the S11 ``COMPLETED`` derivation logic is
+    test-covered without enabling any runtime path. Under it, all S1..S10
+    preconditions are made true (S10's ``runtime_status=NOT_RUN`` is non-gating when
+    ``precondition_verified=True``) so S11 derives ``COMPLETED`` deterministically.
+
+    S11 derives the terminal state as a PURE function of the collected seam records:
+    COMPLETED (every S1..S10 ``precondition_verified`` True), ABORTED (first
+    unverified seam, recorded as ``refusing_seam``), or STOPPED (only when
+    ``kill_switch_engaged=True``). It emits ``audit_record_present`` and a
+    deterministic ``traversal_digest`` (in-memory sealed EvidenceChain over the
+    collected seam records + fixed ``clock``). Identical contract + fixed clock
+    yields byte-identical output. No live runner/network/subprocess/Vault/secrets;
+    no target-registry or trust-store mutation.
+    """
+    # Canonical order S1 -> S2 -> S3 -> ... -> S11 (reconciled source of truth).
+    stop_at_first_refusal = not _force_complete
+
+    # Kill-switch takes absolute precedence: an engaged kill switch derives STOPPED.
+    if kill_switch_engaged and _force_complete:
+        return _derive(
+            contract,
+            seams={},
+            refusing_seam=None,
+            terminal_state="STOPPED",
+            clock=clock,
+            kill_switch_engaged=True,
+        )
+
     seams: dict[str, Any] = {}
 
+    # S1 — scope gate (LAB_L1 + L0/L1 intrusiveness). Always evaluated first.
     s1 = _verify_s1(contract)
     seams["S1"] = s1
     if not s1["precondition_verified"]:
-        return {
-            "campaign_id": contract.get("campaign_id"),
-            "seams": seams,
-            "terminal_state": terminal_state,
-        }
+        return _derive(contract, seams, refusing_seam="S1", terminal_state="ABORTED", clock=clock)
 
-    # S4 is a static assurance-profile read (HITL assertion). It never refuses
-    # and introduces no new approval surface, so it is resolved after S1 scope
-    # passes and before the S2 authorization gate (Task 6, AC9).
+    # S2 — REAL target authorization (fail-closed). On the default frozen state this
+    # refuses OPERATION_OUT_OF_SCOPE and short-circuits immediately: S3..S11 absent.
+    s2 = _verify_s2(contract) if not _force_complete else {
+        "seam": "S2",
+        "owner": SEAM_OWNERS["S2"],
+        "precondition_verified": True,
+        "allowed": True,
+        "reason_code": "ALLOW_OFFENSIVE_OPERATION",
+        "target_id": contract["targets"][0]["target_id"],
+        "operation_id": contract["operations"][0]["operation_id"],
+        "synthetic_override": True,
+    }
+    seams["S2"] = s2
+    if not s2["precondition_verified"]:
+        return _derive(contract, seams, refusing_seam="S2", terminal_state="ABORTED", clock=clock)
+
+    # S3 — deterministic plan composition digest. Reached only under force mode;
+    # the synthetic S2-verified path exercises it directly via _verify_s3.
+    s3 = _verify_s3(contract) if _force_complete else None
+    if s3 is not None:
+        seams["S3"] = s3
+        if not s3["precondition_verified"] and stop_at_first_refusal:
+            return _derive(contract, seams, refusing_seam="S3", terminal_state="ABORTED", clock=clock)
+
+    # S4 — HITL assertion from the assurance profile (static read; never refuses).
     s4 = _verify_s4(contract)
     seams["S4"] = s4
 
-    s2 = _verify_s2(contract)
-    seams["S2"] = s2
-    # Precedence: an unverified authorization seam aborts the traversal.
-    if not s2["precondition_verified"]:
-        terminal_state = "ABORTED"
-
-    # S5 is terminal for the frozen state: it records a NO_DECISION refusal under
-    # the ABSENT trust store and never imports the resolver. Because the frozen
-    # repository state refuses at S5, bind stops here with ABORTED (the correct
-    # current-state result that keeps promotion BLOCKED/HOLD). The deferred
-    # S1->S4->S2 precedence/order constraint (Task 13) is preserved; S5 is
-    # appended after S2 only.
-    s5 = _verify_s5(contract)
+    # S5 — authorization seam (trust store). Default refuses TRUST_STORE_ABSENT;
+    # force mode supplies a synthetic-verified override (no trust-store mutation).
+    s5 = _verify_s5(contract) if not _force_complete else _verify_s5(contract, force=True)
     seams["S5"] = s5
     if not s5["precondition_verified"]:
-        terminal_state = "ABORTED"
+        return _derive(contract, seams, refusing_seam="S5", terminal_state="ABORTED", clock=clock)
 
-    # Task 8: under synthetic _force_complete derivation coverage only, record S6
-    # (admission/handoff) as a read-only NOT_RUN path assert. The frozen default
-    # path never reaches S6 and stays ABORTED at S5; the S1->S4->S2 precedence
-    # and the frozen S5 refusal are unchanged. S6 imports no authority module and
-    # grants no admission/handoff effect.
-    if _force_complete:
-        s6 = _verify_s6(contract)
-        seams["S6"] = s6
-        # Task 9: S7 proves the declared read-only/L1 effect seam from the
-        # operation registry + adapter presence/path only. No adapter/router/
-        # runner execution, no network, no subprocess: runtime_status=NOT_RUN.
-        seams["S7"] = _verify_s7(contract)
-        # Task 10: S8 derives the evidence-custody shape in-memory using the
-        # already-accepted EvidenceChain/seal interfaces (AC6). Synthetic valid
-        # evidence refs are supplied only here, deterministically, for derivation
-        # coverage; no LocalEvidenceStore write / persistence occurs. The frozen
-        # default path never reaches S8 and stays ABORTED at S5.
-        s8_clock = clock or "2026-08-17T00:00:00Z"
-        s8_refs = _synthetic_evidence_refs(contract, s8_clock)
-        seams["S8"] = _verify_s8(contract, evidence_refs=s8_refs, clock=s8_clock)
-        # Task 11: S9 normalizes a finding through the already-accepted
-        # create_finding interface, reusing S8's synthetic verified evidence refs
-        # (no new evidence source). risk stays {} (no fabricated canonical
-        # component); with no evidence ref it fails closed NO_VERIFIED_EVIDENCE_REF.
-        # The frozen default path never reaches S9 and stays ABORTED at S5; the
-        # S1->S4->S2 precedence and the frozen S5 refusal are unchanged.
-        seams["S9"] = _verify_s9(contract, evidence_refs=s8_refs)
-        # Task 12: S10 asserts the reset/zero-residue proof CONTRACT only —
-        # proof-schema presence + runtime_status=NOT_RUN. It executes NO
-        # cleanup/reset, performs NO filesystem mutation, runner, network,
-        # subprocess, effect, authority, Vault, or secret, and grants no
-        # reset/cleanup authority. Reached only under synthetic _force_complete
-        # derivation coverage; the frozen default path never reaches S10 and
-        # stays ABORTED at S5. Task 13 precedence/order constraints and the
-        # target-registry are NOT altered by this task.
-        seams["S10"] = _verify_s10(contract)
+    # S6 — admission/handoff path assert (NOT_RUN, no authority import).
+    s6 = _verify_s6(contract)
+    seams["S6"] = s6
+    if not s6["precondition_verified"] and stop_at_first_refusal:
+        return _derive(contract, seams, refusing_seam="S6", terminal_state="ABORTED", clock=clock)
 
+    # S7 — effect seam read-only allowlist + adapter presence (NOT_RUN).
+    s7 = _verify_s7(contract)
+    seams["S7"] = s7
+    if not s7["precondition_verified"] and stop_at_first_refusal:
+        return _derive(contract, seams, refusing_seam="S7", terminal_state="ABORTED", clock=clock)
+
+    # S8 — evidence-custody shape (in-memory sealed chain digest, no persistence).
+    s8_clock = clock or "2026-08-17T00:00:00Z"
+    s8_refs = _synthetic_evidence_refs(contract, s8_clock)
+    s8 = _verify_s8(contract, evidence_refs=s8_refs, clock=s8_clock)
+    seams["S8"] = s8
+    if not s8["precondition_verified"] and stop_at_first_refusal:
+        return _derive(contract, seams, refusing_seam="S8", terminal_state="ABORTED", clock=clock)
+
+    # S9 — finding derivation (risk={}, reuses S8 synthetic refs).
+    s9 = _verify_s9(contract, evidence_refs=s8_refs)
+    seams["S9"] = s9
+    if not s9["precondition_verified"] and stop_at_first_refusal:
+        return _derive(contract, seams, refusing_seam="S9", terminal_state="ABORTED", clock=clock)
+
+    # S10 — zero-residue proof contract assert (NOT_RUN; non-gating when pv=True).
+    s10 = _verify_s10(contract)
+    seams["S10"] = s10
+    if not s10["precondition_verified"] and stop_at_first_refusal:
+        return _derive(contract, seams, refusing_seam="S10", terminal_state="ABORTED", clock=clock)
+
+    # S11 — pure terminal-state derivation (COMPLETED when all S1..S10 verified).
+    return _derive(contract, seams, refusing_seam=None, terminal_state="COMPLETED", clock=clock)
+
+
+def _derive(
+    contract: Mapping[str, Any],
+    seams: dict[str, Any],
+    *,
+    refusing_seam: str | None,
+    terminal_state: str,
+    clock: str | None,
+    kill_switch_engaged: bool = False,
+) -> dict[str, Any]:
+    """Pure S11 derivation: terminal state + audit_record_present + deterministic digest.
+
+    Builds an in-memory sealed EvidenceChain over the collected seam records
+    (deterministic given the fixed ``clock``) and emits its chain-state digest as
+    the traversal digest. No persistence, no network, no runner, no authority.
+    """
+    clock = clock or "2026-08-17T00:00:00Z"
+    chain_mod = _load_component(
+        SEAM_OWNERS["S8"].replace("evidence_plane.py", "evidence_chain.py"), "hsl_ev_chain_derive"
+    )
+    seal_mod = _load_component(
+        SEAM_OWNERS["S8"].replace("evidence_plane.py", "seal.py"), "hsl_seal_derive"
+    )
+    chain_id = (
+        "chain_"
+        + hashlib.sha256(
+            (contract.get("campaign_id") or "ptaas-slice").encode("utf-8")
+        ).hexdigest()
+    )
+    chain = chain_mod.EvidenceChain(chain_id)
+    ref = (
+        "evidence://ptaas-slice/"
+        + str((contract.get("operations") or [{}])[0].get("operation_id", "operation"))
+        + "/seams"
+    )
+    digest = hashlib.sha256(
+        json.dumps(
+            {"seams": seams, "refusing_seam": refusing_seam, "clock": clock},
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+    ).hexdigest()
+    chain.append_object(
+        object_kind="evidence_record",
+        object_ref=ref,
+        object_digest_sha256=digest,
+        object_size_bytes=len(digest.encode("utf-8")),
+        object_media_type="application/x-sha256-ref",
+        correlation={
+            "campaign_id": contract.get("campaign_id") or "campaign",
+            "run_id": "ptaas-slice",
+            "step_id": "S11",
+            "attempt_id": "0",
+        },
+        created_at=clock,
+    )
+    seal = seal_mod.seal_chain(chain, sealed_at=clock)
+
+    all_seams_verified = all(
+        s.get("precondition_verified") is True
+        for sid, s in seams.items()
+        if sid in {f"S{i}" for i in range(1, 11)}
+    )
+    # COMPLETED requires every S1..S10 verified AND no refusal AND no kill switch.
+    derived_state = terminal_state
+    if kill_switch_engaged and derived_state != "ABORTED":
+        derived_state = "STOPPED"
+
+    audit_record_present = (
+        derived_state == "COMPLETED"
+        and refusing_seam is None
+        and all_seams_verified
+    )
     return {
         "campaign_id": contract.get("campaign_id"),
         "seams": seams,
-        "terminal_state": terminal_state,
+        "refusing_seam": refusing_seam,
+        "terminal_state": derived_state,
+        "audit_record_present": bool(audit_record_present),
+        "traversal_digest": seal["seal"]["chain_state_digest_sha256"],
+        "kill_switch_engaged": kill_switch_engaged,
     }

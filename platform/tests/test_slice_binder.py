@@ -166,28 +166,48 @@ def test_canonical_bind_does_not_evaluate_s3_after_s2_refusal():
     assert rec["terminal_state"] == "ABORTED"
 
 # --- Task 6: S4 HITL resolution from assurance profile (AC9) ---
+# CHG-HSL-084 Task 13 preflight reconciliation: the default bind short-circuits at
+# S2 (OPERATION_OUT_OF_SCOPE), so S4 is NOT populated on the real contract. Verify
+# S4 directly via _verify_s4 (or a synthetic S2-verified path); do NOT require S4 on
+# the default bind output.
 
 def test_s4_hitl_required_only_under_lab_l1():
     doc = yaml.safe_load(pathlib.Path("platform/slice-contract/ptaas-webgoat-l1.slice.yaml").read_text())
+    s4 = sb._verify_s4(doc)
+    assert s4["precondition_verified"] is True
+    assert s4["hitl_required"] is True
+    assert s4["source"] == "current-assurance-profile.yaml"
+    assert s4["seam"] == "S4"
+
+def test_s4_not_in_default_bind_output_short_circuits_at_s2():
+    # Reconciled: default bind stops at S2; S4 must NOT be present on default output.
+    doc = yaml.safe_load(pathlib.Path("platform/slice-contract/ptaas-webgoat-l1.slice.yaml").read_text())
     rec = sb.bind(doc)
-    assert rec["seams"]["S4"]["hitl_required"] is True
-    assert rec["seams"]["S4"]["source"] == "current-assurance-profile.yaml"
+    assert "S4" not in rec["seams"]
+    assert rec["refusing_seam"] == "S2"
+    assert rec["terminal_state"] == "ABORTED"
 
 # --- Task 7: S5 authorization seam — read-only trust-store ABSENT refusal (AC10, AC11) ---
-# CHG-HSL-084 Task 7 CORRECTION: S5 is evaluated AFTER S2 (precedence S1->S4->S2->S5
-# is preserved; the deferred S1->S4->S2 precedence/order constraint is NOT changed).
-# The canonical webgoat-web + web.discovery.headers contract reaches S5 through bind()
-# only after S2 is recorded (S2 refuses first), and S5 records a NO_DECISION refusal
-# under the frozen ABSENT trust store. The binder NEVER imports the resolver module.
+# CHG-HSL-084 Task 13 preflight reconciliation: the canonical default bind
+# short-circuits at S2 (OPERATION_OUT_OF_SCOPE), so S5 is NOT populated on the
+# default contract. S5 is a LATER seam that is never reached because S2 precedes
+# it and short-circuits first. Verify S5 directly via _verify_s5 to confirm the
+# trust-store-absent refusal shape; do NOT require S5 on the default bind output.
 
 def test_s5_refuses_when_trust_store_absent():
     doc = yaml.safe_load(pathlib.Path("platform/slice-contract/ptaas-webgoat-l1.slice.yaml").read_text())
-    rec = sb.bind(doc)
-    s5 = rec["seams"]["S5"]
+    s5 = sb._verify_s5(doc)
     assert s5["precondition_verified"] is False
     assert s5["reason_code"] == "TRUST_STORE_ABSENT"
     assert s5["authorization_ref"] == "NO_DECISION"
-    # frozen-state run must refuse here and stay ABORTED
+    assert s5["seam"] == "S5"
+
+def test_s5_not_in_default_bind_output_short_circuits_at_s2():
+    # Reconciled: default bind stops at S2; S5 (a later seam) must NOT be present.
+    doc = yaml.safe_load(pathlib.Path("platform/slice-contract/ptaas-webgoat-l1.slice.yaml").read_text())
+    rec = sb.bind(doc)
+    assert "S5" not in rec["seams"]
+    assert rec["refusing_seam"] == "S2"
     assert rec["terminal_state"] == "ABORTED"
 
 # --- Task 8: S6 admission/handoff seam — read-only path assert, NOT_RUN ---
@@ -379,3 +399,71 @@ def test_s10_holds_no_authority_and_no_live_effect():
             assert mod not in ln, f"{mod} imported: {ln}"
     # the lifecycle_protocol owner is a PATH string only, never loaded/executed
     assert '_load_component(SEAM_OWNERS["S10"]' not in src
+
+# --- Task 13: S11 terminal-state derivation + full determinism (AC3, AC8) ---
+# CHG-HSL-084 Task 13 preflight reconciliation (source-of-truth):
+# Canonical seam order S1->S2->S3->S4->S5->S6->S7->S8->S9->S10->S11. Default bind
+# short-circuits at S2 (OPERATION_OUT_OF_SCOPE), so S11 derives ABORTED/refusing_seam=S2
+# with S3..S11 absent. COMPLETED is exercised only via _force_complete (private
+# synthetic-only, in-memory, no authority/effect/trust-mutation). STOPPED only when
+# kill_switch_engaged=True. S11 is a pure function: emits audit_record_present and a
+# deterministic traversal_digest; identical contract + fixed clock => byte-identical.
+
+def test_terminal_state_completed_when_all_seams_ok():
+    # Synthetic-only COMPLETED via _force_complete (no live effect, no authority).
+    doc = yaml.safe_load(pathlib.Path("platform/slice-contract/ptaas-webgoat-l1.slice.yaml").read_text())
+    rec = sb.bind(doc, _force_complete=True)
+    assert rec["terminal_state"] == "COMPLETED"
+    assert rec["refusing_seam"] is None
+    assert rec["audit_record_present"] is True
+    # all S1..S10 present and verified under synthetic override
+    for sid in (f"S{i}" for i in range(1, 11)):
+        assert sid in rec["seams"]
+        assert rec["seams"][sid].get("precondition_verified") is True
+    assert rec["traversal_digest"] is not None
+
+def test_terminal_state_aborted_on_refusal():
+    # Default contract: real S2 refuses, short-circuits immediately at S2.
+    doc = yaml.safe_load(pathlib.Path("platform/slice-contract/ptaas-webgoat-l1.slice.yaml").read_text())
+    rec = sb.bind(doc)
+    assert rec["terminal_state"] == "ABORTED"
+    assert rec["refusing_seam"] == "S2"
+    # S3..S11 must be absent (short-circuit); only S1 and S2 populated.
+    assert set(rec["seams"].keys()) == {"S1", "S2"}
+    assert rec["seams"]["S2"]["reason_code"] == "OPERATION_OUT_OF_SCOPE"
+    assert rec["audit_record_present"] is False
+
+def test_terminal_state_stopped_when_kill_switch_engaged():
+    # STOPPED is derived only when kill_switch_engaged=True (synthetic complete mode).
+    doc = yaml.safe_load(pathlib.Path("platform/slice-contract/ptaas-webgoat-l1.slice.yaml").read_text())
+    rec = sb.bind(doc, _force_complete=True, kill_switch_engaged=True)
+    assert rec["terminal_state"] == "STOPPED"
+    assert rec["kill_switch_engaged"] is True
+    assert rec["audit_record_present"] is False
+
+def test_traversal_record_byte_identical():
+    # Identical contract + fixed clock => byte-identical record (determinism, AC3).
+    doc = yaml.safe_load(pathlib.Path("platform/slice-contract/ptaas-webgoat-l1.slice.yaml").read_text())
+    a = json.dumps(sb.bind(doc, _force_complete=True, clock="2026-08-17T00:00:00Z"), sort_keys=True)
+    b = json.dumps(sb.bind(doc, _force_complete=True, clock="2026-08-17T00:00:00Z"), sort_keys=True)
+    assert a == b
+
+def test_s10_not_run_non_gating_under_force_complete():
+    # S10 runtime_status=NOT_RUN must NOT block COMPLETED when precondition_verified=True.
+    doc = yaml.safe_load(pathlib.Path("platform/slice-contract/ptaas-webgoat-l1.slice.yaml").read_text())
+    rec = sb.bind(doc, _force_complete=True)
+    assert rec["seams"]["S10"]["runtime_status"] == "NOT_RUN"
+    assert rec["seams"]["S10"]["precondition_verified"] is True
+    assert rec["terminal_state"] == "COMPLETED"
+
+def test_force_complete_is_synthetic_only_no_mutation():
+    # _force_complete must not touch the registry/trust-store or grant authority.
+    # It only synthesizes S2/S5 positive outcomes in-memory for derivation coverage.
+    doc = yaml.safe_load(pathlib.Path("platform/slice-contract/ptaas-webgoat-l1.slice.yaml").read_text())
+    rec = sb.bind(doc, _force_complete=True)
+    assert rec["seams"]["S2"].get("synthetic_override") is True
+    assert rec["seams"]["S5"].get("synthetic_override") is True
+    assert rec["seams"]["S5"]["authorization_ref"] == "NO_DECISION"
+    # invariants unchanged in the contract itself
+    assert doc["invariants"]["trust_store"] == "ABSENT"
+    assert doc["invariants"]["execution_authority"] == "none"
