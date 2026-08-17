@@ -479,3 +479,51 @@ def test_force_complete_is_synthetic_only_no_mutation():
     # invariants unchanged in the contract itself
     assert doc["invariants"]["trust_store"] == "ABSENT"
     assert doc["invariants"]["execution_authority"] == "none"
+
+# --- Task 14: fail-closed precedence + authority-negative proof (AC5, AC11) ---
+# CHG-HSL-084 Task 14 (source-of-truth, corrected first-refusal semantics):
+# Canonical seam order S1->S2->S3->...->S11. The default frozen path uses the
+# REAL authorize_operation, which refuses at S2. When BOTH an early refusal (S2,
+# unknown target) AND a later refusal (S5, absent trust store) are plausible, the
+# EARLIEST unverified seam wins and is recorded as refusing_seam; later seams are
+# NOT evaluated/populated as pass. Critically, mere PRESENCE of a target_id in the
+# contract (even one that exists in the registry, e.g. webgoat-web) grants NO
+# authority: S2 still calls the real authorize_operation and refuses the typed op
+# web.discovery.headers (OPERATION_OUT_OF_SCOPE). Contract presence is never
+# authorization.
+
+def test_refusal_precedence_earliest_seam_recorded():
+    # S2 unknown target AND S5 absent trust store: earliest (S2) wins.
+    doc = {
+        "campaign_id": "x",
+        "assurance_profile": "LAB_L1",
+        "targets": [{"target_id": "nope", "authorization_state_required": "LAB_ONLY"}],
+        "operations": [{"operation_id": "web.discovery.headers", "intrusiveness_level": "L1", "destructive": False}],
+    }
+    rec = sb.bind(doc)
+    # earliest unverified seam is recorded as the refusing seam
+    assert rec["refusing_seam"] == "S2"     # not S5
+    # later seams must not be evaluated/populated as a pass
+    assert "S5" not in rec["seams"] or rec["seams"].get("S5", {}).get("precondition_verified") in (None, False)
+    # traversal aborts at the earliest refusal
+    assert rec["terminal_state"] == "ABORTED"
+
+def test_contract_presence_never_authorizes():
+    # target_id present in the contract (and even registered) but UNVERIFIED for
+    # the typed operation must deny before any handler; presence is not authority.
+    doc = {
+        "campaign_id": "x",
+        "assurance_profile": "LAB_L1",
+        "targets": [{"target_id": "webgoat-web", "authorization_state_required": "LAB_ONLY"}],
+        "operations": [{"operation_id": "web.discovery.headers", "intrusiveness_level": "L1", "destructive": False}],
+    }
+    rec = sb.bind(doc)
+    # S2 still calls the real authorize_operation (no synthetic allow); presence
+    # alone is not authority.
+    assert rec["seams"]["S2"]["owner"].endswith("execution_authorization.py")
+    # the real interface refuses the typed op despite the target existing
+    assert rec["seams"]["S2"]["precondition_verified"] is False
+    assert rec["seams"]["S2"]["allowed"] is False
+    assert rec["seams"]["S2"]["reason_code"] == "OPERATION_OUT_OF_SCOPE"
+    assert rec["refusing_seam"] == "S2"
+    assert rec["terminal_state"] == "ABORTED"
