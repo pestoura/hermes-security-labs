@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ptaas.slice/v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version","campaign_id","assurance_profile","targets","operations","evidence_tuple","finding_shape","terminal_state","invariants"],
+  "properties": {
+    "schema_version": {"const": "ptaas.slice/v1"},
+    "campaign_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$"},
+    "assurance_profile": {"const": "LAB_L1"},
+    "targets": {"type": "array", "minItems": 1, "maxItems": 1, "items": {
+      "type": "object", "additionalProperties": false,
+      "required": ["target_id","authorization_state_required"],
+      "properties": {"target_id": {"type":"string"}, "authorization_state_required": {"const":"LAB_ONLY"}}
+    }},
+    "operations": {"type": "array", "minItems": 1, "maxItems": 1, "items": {
+      "type": "object", "additionalProperties": false,
+      "required": ["operation_id","intrusiveness_level","destructive"],
+      "properties": {
+        "operation_id": {"type":"string"},
+        "intrusiveness_level": {"enum":["L0","L1"]},
+        "destructive": {"const": false}
+      }
+    }},
+    "evidence_tuple": {"type":"object","additionalProperties":true,"required":["required"],"properties":{"required":{"type":"boolean"}}},
+    "finding_shape": {"type":"object","additionalProperties":true,"required":["required"],"properties":{"required":{"type":"boolean"}}},
+    "terminal_state": {"type":"object","additionalProperties":false,"required":["allowed"],"properties":{"allowed":{"type":"array","items":{"enum":["COMPLETED","ABORTED","STOPPED"]}}}},
+    "invariants": {"type":"object","additionalProperties":false,
+      "required":["execution_authority","runtime_status","promotion_allowed","trust_store","supplier_selection"],
+      "properties": {
+        "execution_authority":{"const":"none"},
+        "runtime_status":{"const":"NOT_RUN"},
+        "promotion_allowed":{"const":false},
+        "trust_store":{"const":"ABSENT"},
+        "supplier_selection":{"const":"NO_SELECTION"}
+      }}
+  }
+}
