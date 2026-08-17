@@ -1,0 +1,34 @@
+schemaVersion: jds.change/v1
+kind: ChangeRecord
+id: CHG-HSL-084
+product: hermes-security-labs
+classification: IMPROVEMENT
+state: ACCEPTED
+disposition: FIX_NOW
+summary: 'Implement ADR-0017 Option C first PTaaS vertical slice: declarative slice contract (schema + webgoat-web L1 headers instance) and a read-only, authority-free traversal binder over accepted seams S1-S11. No effect, no live Vault, no trust-store, no new authority; campaign stays BLOCKED/HOLD.'
+source:
+  type: ENGINEERING_REVIEW
+  campaign: VAL-HSL-RUNNER-L1-LIVE-PROMOTION
+  observation: OBS-RUNNER-REPO-CHAIN
+  reference: ADR-0017 + docs/architecture/first-ptaas-vertical-slice.md; reconciled with CHG-HSL-083 design and prior accepted corrections on branch chg-hsl-084/ptaas-vertical-slice-implementation. Key source-of-truth reconciliation (see PR #429): (1) webgoat-web allowed_operations are coarse categories excluding typed op web.discovery.headers, so the real authorize_operation refuses at S2 (OPERATION_OUT_OF_SCOPE) and bind short-circuits with refusing_seam=S2, terminal_state=ABORTED. (2) Corrected allow reason code is ALLOW_OFFENSIVE_OPERATION (not ALLOW, undefined in execution_authorization.REASON_CODES), used only under synthetic _force_complete coverage. (3) Task 13 kill-switch fix derives STOPPED on the REAL default path when kill_switch_engaged=True, before S1/S2 traversal precedence. (4) Frozen default refusing_seam=S2 and all invariant literals unchanged (execution_authority=none, runtime_status=NOT_RUN, promotion_allowed=false, trust_store=ABSENT, supplier_selection=NO_SELECTION); VAL-HSL-RUNNER-L1-LIVE-PROMOTION remains BLOCKED/HOLD; no blocker closed; binder holds no authority.
+affectedRelease: jds-002-adoption-candidate
+targetRelease: null
+risk: LOW
+versionEffect: NONE
+branch: chg-hsl-084/ptaas-vertical-slice-implementation
+issue: null
+pr: null
+validation:
+  targeted: PASS
+  regression: PASS
+  security: NOT_APPLICABLE
+  runtime: NOT_APPLICABLE
+promotion:
+  commit: null
+  artifactDigest: null
+  previousRelease: null
+deferredTo: null
+timestamps:
+  discoveredAt: '2026-08-17T00:00:00Z'
+  updatedAt: '2026-08-17T13:00:00Z'
+  closedAt: null

@@ -1,0 +1,25 @@
+schema_version: ptaas.slice/v1
+campaign_id: camp-ptaas-webgoat-l1-001
+assurance_profile: LAB_L1
+targets:
+  - target_id: webgoat-web
+    authorization_state_required: LAB_ONLY
+operations:
+  - operation_id: web.discovery.headers
+    intrusiveness_level: L1
+    destructive: false
+evidence_tuple:
+  required: true
+finding_shape:
+  required: true
+terminal_state:
+  allowed:
+    - COMPLETED
+    - ABORTED
+    - STOPPED
+invariants:
+  execution_authority: none
+  runtime_status: NOT_RUN
+  promotion_allowed: false
+  trust_store: ABSENT
+  supplier_selection: NO_SELECTION
