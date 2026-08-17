@@ -1,0 +1,35 @@
+schemaVersion: jds.change/v1
+kind: ChangeRecord
+id: CHG-HSL-084
+product: hermes-security-labs
+classification: IMPLEMENTATION
+state: ACCEPTED
+disposition: FIX_NOW
+summary: 'Implement ADR-0017 Option C first PTaaS vertical slice: declarative slice contract (schema + webgoat-web L1 headers instance) and a read-only, authority-free traversal binder over accepted seams S1-S11. No effect, no live Vault, no trust-store, no new authority; campaign stays BLOCKED/HOLD.'
+source:
+  type: ENGINEERING_REVIEW
+  campaign: VAL-HSL-RUNNER-L1-LIVE-PROMOTION
+  observation: OBS-RUNNER-REPO-CHAIN
+  reference: ADR-0017 plus docs/architecture/first-ptaas-vertical-slice.md; reconciled with CHG-HSL-083 design and prior accepted corrections on branch chg-hsl-084/ptaas-vertical-slice-implementation (HEAD c78d9de).
+  detail: 'Observation (honest, source-of-truth, reconciled with prior accepted corrections): (1) S2 OPERATION_OUT_OF_SCOPE vs operation-registry typed-op divergence: webgoat-web allowed_operations in target-registry.yaml are coarse categories (discovery, service_enumeration, web_content_discovery, web_vulnerability_scan, manual_exploitation) that do NOT include the typed op web.discovery.headers, so the real authorize_operation refuses at S2 (OPERATION_OUT_OF_SCOPE) and bind short-circuits, leaving S3-S11 unpopulated with refusing_seam=S2 and terminal_state=ABORTED. (2) Corrected allow reason code is ALLOW_OFFENSIVE_OPERATION (not ALLOW, which is undefined in platform/targets/execution_authorization.py REASON_CODES); used only under synthetic _force_complete derivation coverage. (3) Task 13 kill-switch fix: an engaged kill_switch_engaged=True derives STOPPED on the REAL default path BEFORE any S1/S2 traversal (precedence over the S2 OPERATION_OUT_OF_SCOPE refusal), not only under synthetic _force_complete. (4) Frozen default refusing_seam=S2 and all invariant literals unchanged (execution_authority=none, runtime_status=NOT_RUN, promotion_allowed=false, trust_store=ABSENT, supplier_selection=NO_SELECTION); VAL-HSL-RUNNER-L1-LIVE-PROMOTION remains BLOCKED/HOLD; no blocker closed; no target-registry widening; binder holds no authority (never imports runner_handoff/admission/router/webgoat_l1_adapter/runner_protocol_v2, performs no effect, no live campaign).'
+affectedRelease: jds-002-adoption-candidate
+targetRelease: null
+risk: LOW
+versionEffect: NONE
+branch: chg-hsl-084/ptaas-vertical-slice-implementation
+issue: null
+pr: null
+validation:
+  targeted: PASS
+  regression: PASS
+  security: NOT_APPLICABLE
+  runtime: NOT_APPLICABLE
+promotion:
+  commit: null
+  artifactDigest: null
+  previousRelease: null
+deferredTo: null
+timestamps:
+  discoveredAt: '2026-08-17T00:00:00Z'
+  updatedAt: '2026-08-17T13:00:00Z'
+  closedAt: null
