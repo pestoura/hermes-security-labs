@@ -62,3 +62,25 @@ def test_instance_conforms_to_schema():
     import yaml
     doc = yaml.safe_load(pathlib.Path("platform/slice-contract/ptaas-webgoat-l1.slice.yaml").read_text())
     jsonschema.validate(doc, SCHEMA)
+
+# --- Task 3: binder skeleton + seam-ownership resolver (AC4) ---
+# NOTE: binder lives at platform/slice-contract/slice_binder.py (hyphenated dir,
+# matches existing directory and Task 3 "Files" header). It is loaded via
+# importlib rather than `import platform.slice_contract...` because `platform`
+# is a stdlib module and the directory uses a hyphen. All AC4 assertions are kept.
+import importlib.util as _ilu
+
+def _load_binder():
+    binder_path = pathlib.Path("platform/slice-contract/slice_binder.py")
+    spec = _ilu.spec_from_file_location("slice_binder_task3", binder_path)
+    mod = _ilu.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+sb = _load_binder()
+
+def test_all_seams_resolve_to_existing_components():
+    owners = sb.resolve_seam_owners()
+    for seam_id, abs_path in owners.items():
+        assert pathlib.Path(abs_path).is_file(), f"{seam_id} -> {abs_path} missing"
+    assert set(owners) >= {f"S{i}" for i in range(1, 12)}
