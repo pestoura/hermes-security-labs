@@ -417,8 +417,10 @@ def bind(
     # Canonical order S1 -> S2 -> S3 -> ... -> S11 (reconciled source of truth).
     stop_at_first_refusal = not _force_complete
 
-    # Kill-switch takes absolute precedence: an engaged kill switch derives STOPPED.
-    if kill_switch_engaged and _force_complete:
+    # Kill-switch takes absolute precedence: an engaged kill switch derives STOPPED
+    # on the REAL default path BEFORE any S1/S2 traversal, regardless of
+    # _force_complete (Task 13 safety precedence).
+    if kill_switch_engaged:
         return _derive(
             contract,
             seams={},

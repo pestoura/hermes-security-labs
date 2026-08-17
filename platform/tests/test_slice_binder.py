@@ -441,6 +441,18 @@ def test_terminal_state_stopped_when_kill_switch_engaged():
     assert rec["kill_switch_engaged"] is True
     assert rec["audit_record_present"] is False
 
+def test_kill_switch_engaged_real_default_path_derives_stopped():
+    # Task 13 safety precedence regression: an engaged kill switch MUST derive
+    # STOPPED on the REAL default path (no _force_complete) BEFORE any S1/S2
+    # traversal, not fall through to the S2 OPERATION_OUT_OF_SCOPE refusal
+    # (which would wrongly yield ABORTED). This guards the previously-violated
+    # precedence where STOPPED was only derived under synthetic _force_complete.
+    doc = yaml.safe_load(pathlib.Path("platform/slice-contract/ptaas-webgoat-l1.slice.yaml").read_text())
+    rec = sb.bind(doc, kill_switch_engaged=True)
+    assert rec["terminal_state"] == "STOPPED"
+    assert rec["kill_switch_engaged"] is True
+    assert rec["audit_record_present"] is False
+
 def test_traversal_record_byte_identical():
     # Identical contract + fixed clock => byte-identical record (determinism, AC3).
     doc = yaml.safe_load(pathlib.Path("platform/slice-contract/ptaas-webgoat-l1.slice.yaml").read_text())
