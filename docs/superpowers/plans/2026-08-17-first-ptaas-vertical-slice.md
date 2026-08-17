@@ -347,14 +347,21 @@ git commit -m "feat(slice): add read-only binder skeleton with seam-ownership re
 
 - [ ] **Step 1: Write failing tests**
 ```python
-def test_s2_authorizes_webgoat_web_headers():
+def test_s2_refuses_webgoat_web_typed_headers_out_of_scope():
+    # Post-CHG-HSL-084 Task 4 review correction (source-of-truth):
+    # webgoat-web.allowed_operations in target-registry.yaml are COARSE
+    # categories (discovery, service_enumeration, web_content_discovery,
+    # web_vulnerability_scan, manual_exploitation) and do NOT include the
+    # typed operation web.discovery.headers. The canonical bind therefore
+    # REFUSES at S2 with OPERATION_OUT_OF_SCOPE (it never authorizes).
     import yaml
     doc = yaml.safe_load(pathlib.Path("platform/slice-contract/ptaas-webgoat-l1.slice.yaml").read_text())
     rec = sb.bind(doc)
     s2 = rec["seams"]["S2"]
-    assert s2["precondition_verified"] is True
-    assert s2["allowed"] is True
-    assert s2["reason_code"] == "ALLOW"
+    assert s2["precondition_verified"] is False
+    assert s2["allowed"] is False
+    assert s2["reason_code"] == "OPERATION_OUT_OF_SCOPE"
+    assert rec["terminal_state"] == "ABORTED"
 
 def test_s2_refuses_unknown_target_fail_closed():
     doc = {"campaign_id":"x","assurance_profile":"LAB_L1",
@@ -364,7 +371,7 @@ def test_s2_refuses_unknown_target_fail_closed():
     assert rec["seams"]["S2"]["precondition_verified"] is False
     assert rec["terminal_state"] == "ABORTED"
 ```
-Note: `bind` must call S2 before S3 (precedence). These tests will fail until S2 logic is implemented.
+Note: `bind` must call S2 before S3 (precedence). These tests will fail until S2 logic is implemented. The allow reason code (when an operation IS in scope) is `ALLOW_OFFENSIVE_OPERATION`, **not** `ALLOW` — `ALLOW` is not a defined reason code in `platform/targets/execution_authorization.py` (see `REASON_CODES`). Because the canonical contract's S2 refuses, `bind` stops at S2 (precedence) and `terminal_state` is `ABORTED`; S5 (`TRUST_STORE_ABSENT`) is not reached for this contract. Terminal `ABORTED` and ALL invariant literals (`execution_authority: none`, `runtime_status: NOT_RUN`, `promotion_allowed: false`, `trust_store: ABSENT`, `supplier_selection: NO_SELECTION`) are unchanged by the S2 refusal. Positive later-seam branches (e.g. S3+ COMPLETED paths) are exercised only synthetically with valid-but-synthetic seam outcomes and do **not** widen the target-registry scope or authorize `web.discovery.headers`.
 
 - [ ] **Step 2: Run to verify failure**  
   Run: `python3 -m pytest -q platform/tests/test_slice_binder.py -k S2 -p no:cacheprovider`  
@@ -438,7 +445,7 @@ def _verify_s3(contract):
         "plan_digest": digest,
     }
 ```
-Wire after S2 in `bind` with precedence stop on failure.
+Wire S3 in `bind` **only after** S2 verifies. If `S2["precondition_verified"]` is `False`, `bind` MUST **early-return** immediately with `terminal_state="ABORTED"` and MUST NOT evaluate S3 (or any later seam). For the canonical `webgoat-web` + `web.discovery.headers` contract, S2 refuses (`OPERATION_OUT_OF_SCOPE`), so S3 is never reached through the real contract; the S3 deterministic-digest test is exercised only synthetically with a valid (S2-verified) seam outcome and does not widen the target-registry scope.
 
 - [ ] **Step 4: Run to verify pass**  
   Run: `python3 -m pytest -q platform/tests/test_slice_binder.py -k S3 -p no:cacheprovider`  
