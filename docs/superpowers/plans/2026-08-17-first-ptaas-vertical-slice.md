@@ -4,7 +4,7 @@
 
 **Goal:** Implement the Option C composition from `ADR-0017` and `docs/architecture/first-ptaas-vertical-slice.md` as a declarative slice contract (schema + one YAML instance) plus a thin, read-only, authority-free traversal binder that resolves and verifies the already-accepted seams S1–S11 and emits one deterministic, sanitized traversal record.
 
-**Architecture:** One JSON schema and one YAML instance declare, for exactly one `LAB_L1` campaign: one `target_id` (`webgoat-web`), one non-destructive operation (`web.discovery.headers`), the required evidence tuple, the required finding shape, the terminal-state definition, and the literal invariants `execution_authority: none`, `runtime_status: NOT_RUN`, `promotion_allowed: false`. A binder module imports only the already-accepted, effect-free components (`execution_authorization`, `scenario_plan`, `assurance_profile`, `evidence_plane`, `evidence_chain`, `seal`, `risk_findings`), resolves each seam to its owning component path, verifies that seam's precondition, derives the finding shape and the terminal campaign state as pure functions, and refuses fail-closed on the first unsatisfied precondition. The binder performs no effect, issues no authorization, writes no custody record, mutates no campaign state, and never imports the authority/effect modules (`runner_handoff`, `admission`, `router`, `webgoat_l1_adapter`) or `runner_protocol_v2`. Because the frozen repository state has `trust-store: ABSENT` and every policy `DISABLED`/`deny`/`NOT_RUN`, the binder run against current state refuses at S5 (`TRUST_STORE_ABSENT`) and derives `ABORTED` — the correct, spec-compliant result that keeps `VAL-HSL-RUNNER-L1-LIVE-PROMOTION` `BLOCKED/HOLD`. The positive `COMPLETED` branch is implemented and exercised only with synthetic-but-valid seam outcomes (no live effects) so the derivation logic is test-covered without enabling any runtime path.
+**Architecture:** One JSON schema and one YAML instance declare, for exactly one `LAB_L1` campaign: one `target_id` (`webgoat-web`), one non-destructive operation (`web.discovery.headers`), the required evidence tuple, the required finding shape, the terminal-state definition, and the literal invariants `execution_authority: none`, `runtime_status: NOT_RUN`, `promotion_allowed: false`. A binder module imports only the already-accepted, effect-free components (`execution_authorization`, `scenario_plan`, `assurance_profile`, `evidence_plane`, `evidence_chain`, `seal`, `risk_findings`), resolves each seam to its owning component path, verifies that seam's precondition, derives the finding shape and the terminal campaign state as pure functions, and refuses fail-closed on the first unsatisfied precondition. The binder performs no effect, issues no authorization, writes no custody record, mutates no campaign state, and never imports the authority/effect modules (`runner_handoff`, `admission`, `router`, `webgoat_l1_adapter`) or `runner_protocol_v2`. Because webgoat-web `allowed_operations` are coarse categories that do NOT include the typed op `web.discovery.headers`, the binder run against current state refuses at S2 (`OPERATION_OUT_OF_SCOPE`) and short-circuits before populating later seams, deriving `ABORTED` with `refusing_seam=S2` (S5 `TRUST_STORE_ABSENT` is a later, never-reached seam on the default contract) — the correct, spec-compliant result that keeps `VAL-HSL-RUNNER-L1-LIVE-PROMOTION` `BLOCKED/HOLD`. The positive `COMPLETED` branch is implemented and exercised only with synthetic-but-valid seam outcomes (no live effects) so the derivation logic is test-covered without enabling any runtime path.
 
 **Tech Stack:** Python 3.11, `pytest`, `jsonschema`, `PyYAML`, existing `platform/**` contracts, GitHub Actions validation gates. No new dependency. No `runner_protocol_v2` on the import path.
 
@@ -20,7 +20,7 @@
 
 - No production code beyond the four new files listed under *Exact planned file set*. No new orchestrator, no extension of `runner-service/service_composition.py`, no new authority-shaped component (ADR-0017 Option C only).
 - The binder holds **no authority**: it resolves, verifies, derives and refuses. It never calls an effect path and never imports `runner_handoff`, `admission`, `router`, `webgoat_l1_adapter`, or `runner_protocol_v2`.
-- No Vault, signer, trust-store, credential, secret, token, cookie, header or key material at any seam. `trust-store` stays `ABSENT`; S5 is recorded `NO_DECISION` and refuses.
+- No Vault, signer, trust-store, credential, secret, token, cookie, header or key material at any seam. `trust-store` stays `ABSENT`; S5 records `NO_DECISION` and refuses when reached. On the default contract, `bind` short-circuits earlier at **S2** (`OPERATION_OUT_OF_SCOPE`) and never populates S5.
 - No live effect: no network, no subprocess, no socket send, no filesystem write outside the in-memory chain used for digest derivation. Custody is proven by shape (in-memory sealed `EvidenceChain`) only; no `LocalEvidenceStore` write occurs.
 - Exactly one target and one operation per slice. The schema rejects more than one of either, intrusiveness above `L1`, `destructive: true`, and any missing declared invariant.
 - Every existing policy stays `DISABLED`/`deny`/`NOT_RUN`. `promotion_allowed=false`, `runtime_status=NOT_RUN`, `execution_authority=none`, `supplier_selection=NO_SELECTION`, `trust-store=ABSENT` are asserted literally and unchanged.
@@ -75,6 +75,22 @@ These signatures were read from the repository at the design commit and are the 
   - S10 `platform/lab-lifecycle/lifecycle_protocol.py`, `platform/lab-lifecycle/zero-residue-proof.schema.json`
   - S8 `platform/evidence-plane/evidence_plane.py`, `evidence_chain.py`, `seal.py`
   - S9 `platform/risk-findings/risk_findings.py`
+
+---
+
+## Preflight reconciliation (source-of-truth before Task 13 implementation)
+
+This section records the authoritative conclusions from the read-only preflight review and overrides any earlier narrative drift in the task bodies above. It is documentation-only; no code, test, spec, or ADR is modified by this commit.
+
+- **Canonical seam order:** `S1→S2→S3→S4→S5→S6→S7→S8→S9→S10→S11`. `bind` walks this exact order and stops at the first unverified seam.
+- **Default short-circuit at S2:** webgoat-web `allowed_operations` in `target-registry.yaml` are coarse categories (discovery, service_enumeration, web_content_discovery, web_vulnerability_scan, manual_exploitation) that do NOT include the typed operation `web.discovery.headers`. The authorizer therefore refuses at **S2 with `OPERATION_OUT_OF_SCOPE`**. The default `bind` short-circuits here and does **NOT** populate S3–S11.
+- **`refusing_seam` = S2:** on the default contract, `refusing_seam` is `S2` (not S5). S5 `TRUST_STORE_ABSENT` is a later seam that is never reached because S2 short-circuits first.
+- **Task 6 / S4 expectation corrected:** the S4 HITL test must call `_verify_s4` (or a synthetic S2-verified path) **directly** rather than requiring S4 on the default `bind` output, which short-circuits at S2 and leaves S4 unpopulated.
+- **Task 7 / S5 expectation corrected:** the S5 trust-store-absent test must call `_verify_s5` **directly** rather than requiring S5 on the default `bind` output (same short-circuit reason).
+- **Task 13 / `COMPLETED` is synthetic-only:** the `COMPLETED` terminal branch is exercised only via `_force_complete` — an **in-memory** positive override for S2/S5 that does **NOT** mutate the registry or the trust store and performs **NO live effect / holds NO authority**. It exists solely to cover the derivation logic without enabling any runtime path.
+- **S10 `NOT_RUN` is non-gating when `precondition_verified=True`:** S10 asserts the zero-residue proof contract (read-only path assert) and records `runtime_status: NOT_RUN`; when its `precondition_verified=True`, it must NOT block a `COMPLETED` derivation.
+- **S11 derives:** `COMPLETED` / `ABORTED` / `STOPPED` as a pure function of the collected seam records; emits `audit_record_present` and a deterministic digest. Add a `STOPPED` test if absent.
+- **Constraints preserved:** no live effect (no network/subprocess/socket/filesystem write outside the in-memory chain used for digest derivation), no authority (the binder never imports or invokes `runner_handoff`/`admission`/`router`/`webgoat_l1_adapter`/`runner_protocol_v2` and never issues authorization), and no mutation of registry/trust/policy state. All invariant literals remain unchanged.
 
 ---
 
@@ -371,7 +387,7 @@ def test_s2_refuses_unknown_target_fail_closed():
     assert rec["seams"]["S2"]["precondition_verified"] is False
     assert rec["terminal_state"] == "ABORTED"
 ```
-Note: `bind` must call S2 before S3 (precedence). These tests will fail until S2 logic is implemented. The allow reason code (when an operation IS in scope) is `ALLOW_OFFENSIVE_OPERATION`, **not** `ALLOW` — `ALLOW` is not a defined reason code in `platform/targets/execution_authorization.py` (see `REASON_CODES`). Because the canonical contract's S2 refuses, `bind` stops at S2 (precedence) and `terminal_state` is `ABORTED`; S5 (`TRUST_STORE_ABSENT`) is not reached for this contract. Terminal `ABORTED` and ALL invariant literals (`execution_authority: none`, `runtime_status: NOT_RUN`, `promotion_allowed: false`, `trust_store: ABSENT`, `supplier_selection: NO_SELECTION`) are unchanged by the S2 refusal. Positive later-seam branches (e.g. S3+ COMPLETED paths) are exercised only synthetically with valid-but-synthetic seam outcomes and do **not** widen the target-registry scope or authorize `web.discovery.headers`.
+Note: `bind` must call S2 before S3 (precedence). These tests will fail until S2 logic is implemented. The allow reason code (when an operation IS in scope) is `ALLOW_OFFENSIVE_OPERATION`, **not** `ALLOW` — `ALLOW` is not a defined reason code in `platform/targets/execution_authorization.py` (see `REASON_CODES`). **Preflight reconciliation (source-of-truth):** The final canonical seam order is **S1→S2→S3→S4→S5→S6→S7→S8→S9→S10→S11**. The default `bind` short-circuits at **S2 with `OPERATION_OUT_OF_SCOPE`** (webgoat-web `allowed_operations` are coarse categories that do NOT include the typed op `web.discovery.headers`, so the authorizer refuses). It therefore does **NOT** populate S3–S11 on the default path: `refusing_seam` = **S2**, `terminal_state` = **ABORTED**. S5 (`TRUST_STORE_ABSENT`) is NOT the refusing seam on the default contract — S2 precedes it and short-circuits first. Terminal `ABORTED` and ALL invariant literals (`execution_authority: none`, `runtime_status: NOT_RUN`, `promotion_allowed: false`, `trust_store: ABSENT`, `supplier_selection: NO_SELECTION`) are unchanged by the S2 refusal. Later-seam branches (S3+ COMPLETED paths) are exercised only synthetically with valid-but-synthetic seam outcomes and do **not** widen the target-registry scope or authorize `web.discovery.headers`.
 
 - [ ] **Step 2: Run to verify failure**  
   Run: `python3 -m pytest -q platform/tests/test_slice_binder.py -k S2 -p no:cacheprovider`  
@@ -463,11 +479,14 @@ git commit -m "feat(slice): verify S3 deterministic plan composition digest"
 
 - [ ] **Step 1: Write failing test**
 ```python
+# Preflight reconciliation: default bind short-circuits at S2, so S4 is NOT
+# populated on the real contract. Verify S4 directly via _verify_s4 (or a synthetic
+# S2-verified path); do NOT require S4 on default bind output.
 def test_s4_hitl_required_only_under_lab_l1():
     doc = yaml.safe_load(pathlib.Path("platform/slice-contract/ptaas-webgoat-l1.slice.yaml").read_text())
-    rec = sb.bind(doc)
-    assert rec["seams"]["S4"]["hitl_required"] is True
-    assert rec["seams"]["S4"]["source"] == "current-assurance-profile.yaml"
+    s4 = sb._verify_s4(doc)
+    assert s4["hitl_required"] is True
+    assert s4["source"] == "current-assurance-profile.yaml"
 ```
 
 - [ ] **Step 2: Run to verify failure**  
@@ -506,15 +525,15 @@ git commit -m "feat(slice): resolve S4 HITL from assurance profile, no new appro
 
 - [ ] **Step 1: Write failing test**
 ```python
+# Preflight reconciliation: default bind short-circuits at S2, so S5 is NOT
+# populated on the real contract. Verify S5 directly via _verify_s5 to confirm the
+# trust-store-absent refusal shape; do NOT require S5 on default bind output.
 def test_s5_refuses_when_trust_store_absent():
     doc = yaml.safe_load(pathlib.Path("platform/slice-contract/ptaas-webgoat-l1.slice.yaml").read_text())
-    rec = sb.bind(doc)
-    s5 = rec["seams"]["S5"]
+    s5 = sb._verify_s5(doc)
     assert s5["precondition_verified"] is False
     assert s5["reason_code"] == "TRUST_STORE_ABSENT"
     assert s5["authorization_ref"] == "NO_DECISION"
-    # frozen-state run must refuse here and stay ABORTED
-    assert rec["terminal_state"] == "ABORTED"
 ```
 
 - [ ] **Step 2: Run to verify failure**  
@@ -534,7 +553,7 @@ def _verify_s5(contract):
         "component_present": exists,
     }
 ```
-In `bind`, because S5 is terminal for the frozen state, set `terminal_state="ABORTED"` and stop (record the refusing seam id `S5`). This is the correct current-state result.
+In `bind`, S5 is exercised only via `_verify_s5` (direct call) or under `_force_complete`; on the default contract `bind` short-circuits at S2 and never reaches S5. When S5 logic is implemented, record `precondition_verified=False`, `reason_code="TRUST_STORE_ABSENT"`, `authorization_ref="NO_DECISION"` (refusal shape). The canonical default refusing seam is **S2**, not S5.
 
 - [ ] **Step 4: Run to verify pass**  
   Run: `python3 -m pytest -q platform/tests/test_slice_binder.py -k S5 -p no:cacheprovider`  
@@ -779,9 +798,9 @@ def test_terminal_state_completed_when_all_seams_ok():
 
 def test_terminal_state_aborted_on_refusal():
     doc = yaml.safe_load(pathlib.Path("platform/slice-contract/ptaas-webgoat-l1.slice.yaml").read_text())
-    rec = sb.bind(doc)                      # frozen state -> S5 refuses
+    rec = sb.bind(doc)                      # default → S2 short-circuits (OPERATION_OUT_OF_SCOPE)
     assert rec["terminal_state"] == "ABORTED"
-    assert rec["refusing_seam"] == "S5"
+    assert rec["refusing_seam"] == "S2"
 
 def test_traversal_record_byte_identical():
     doc = yaml.safe_load(pathlib.Path("platform/slice-contract/ptaas-webgoat-l1.slice.yaml").read_text())
@@ -789,8 +808,13 @@ def test_traversal_record_byte_identical():
     a = json.dumps(sb.bind(doc, _force_complete=True, clock="2026-08-17T00:00:00Z"), sort_keys=True)
     b = json.dumps(sb.bind(doc, _force_complete=True, clock="2026-08-17T00:00:00Z"), sort_keys=True)
     assert a == b
+
+def test_terminal_state_stopped_when_kill_switch_engaged():
+    doc = yaml.safe_load(pathlib.Path("platform/slice-contract/ptaas-webgoat-l1.slice.yaml").read_text())
+    rec = sb.bind(doc, _force_complete=True, kill_switch_engaged=True)
+    assert rec["terminal_state"] == "STOPPED"
 ```
-`bind` must add `audit_record_present` (True when terminal COMPLETED and all seam records present) and `refusing_seam` (the first unverified seam id). Terminal-state derivation: if every S1–S10 `precondition_verified` True → `COMPLETED`; else `ABORTED` with `refusing_seam`. `STOPPED` only when `kill_switch_engaged=True` is passed (default False).
+`bind` must add `audit_record_present` (True when terminal COMPLETED and all seam records present) and `refusing_seam` (the first unverified seam id, i.e. S2 on the default contract). **S11 derives** the terminal state as a pure function from the collected seam records: `COMPLETED` (every S1–S11 `precondition_verified` True), `ABORTED` (first unverified seam reached during the S1→S2→…→S11 walk, recorded as `refusing_seam`), or `STOPPED` (only when `kill_switch_engaged=True` is explicitly passed; default False). The derived record includes `audit_record_present` and a **deterministic digest** (in-memory sealed `EvidenceChain` over the collected seam records + fixed `clock`). On the default contract the walk short-circuits at S2, so S11 derives `ABORTED`/`refusing_seam=S2` without ever populating S3–S11.
 
 - [ ] **Step 2: Run to verify failure**  
   Run: `python3 -m pytest -q platform/tests/test_slice_binder.py -k 'terminal or byte_identical' -p no:cacheprovider`  
@@ -996,7 +1020,7 @@ Merge via API (no local `main` checkout needed): `gh api -X PUT repos/pestoura/h
   - CI green: `platform/tests`, `docs/tests`, `ruff` (security/pyproject), YAML parse, JDS-002 length gates.
   - No blocker closed; `VAL-HSL-RUNNER-L1-LIVE-PROMOTION` remains `BLOCKED/HOLD`; invariants asserted unchanged.
   - Reviewer confirms: only the four new files; no policy/gate/schema change beyond the slice contract schema; no Vault/Bridge/signer on the critical path.
-  - PR body cites `CHG-HSL-083` (design) and `ADR-0017` and states the frozen-state run yields `ABORTED` at `S5` (correct fail-closed), with the `COMPLETED` branch covered only by synthetic seam outcomes.
+  - PR body cites `CHG-HSL-083` (design) and `ADR-0017` and states the frozen-state run yields `ABORTED` at `S2` (`OPERATION_OUT_OF_SCOPE`, default short-circuit) with `refusing_seam=S2` and later seams unpopulated (correct fail-closed), with the `COMPLETED` branch covered only by synthetic seam outcomes via `_force_complete`.
 
 - [ ] **Step 8: Commit the change record**
 ```bash
@@ -1011,10 +1035,10 @@ git commit -m "docs(slice): add implementation change record for first PTaaS ver
 - **Spec coverage:** AC1–AC12 mapped to Tasks 1–15; AC3 determinism in Task 13; AC10/AC12 invariants + sanitization AST in Task 15; AC11 (no Vault/Bridge/signer) enforced by the no-import rule and S5 `NO_DECISION`. The design doc's section 6.1–6.6 is addressed: contract (T1–T2), binder (T3+), non-destructive check proven by registry+adapter existence (T9), evidence tuple shape (T10), finding shape with empty risk (T11), terminal state (T13).
 - **Placeholders:** No `TBD`/`TODO`/`XXX`. The only open value is the change-record id `CHG-HSL-0NN`, which is resolved at implementation time by checking `changes/` for the next free id (expected `084`). The binder's `_force_complete=True` synthetic mode is an explicit test-only derivation path, not a placeholder.
 - **Type consistency:** Every cited interface matches the repository at the design commit: `authorize_operation` returns `AuthorizationDecision` with `.allowed`/`.reason_code`; `compose_scenario_plan` returns `ScenarioPlanResult` with `.ok`/`.reason_code`/`.plan`; `create_finding(*, title, risk, root_cause, systemic, evidence_before)`; `EvidenceChain.append_object(...)` and `.chain_state_digest()`; `seal_chain`/`verify_seal`; `CAMPAIGN_STATES` includes `COMPLETED/ABORTED/STOPPED`. The binder deliberately avoids `runner_protocol_v2`-importing modules.
-- **Honest gaps:** Running `bind()` against the frozen repository refuses at S5 (`TRUST_STORE_ABSENT`) and yields `ABORTED` — this is the spec-compliant current-state result and is asserted as such. Live `COMPLETED` requires the separate live-promotion change with an explicit owner approval and a present trust store; it is out of scope and only exercised via synthetic seam outcomes.
+- **Honest gaps:** Running `bind()` against the default frozen repository short-circuits at S2 (`OPERATION_OUT_OF_SCOPE`) and yields `ABORTED` with `refusing_seam=S2`; later seams (incl. S5 `TRUST_STORE_ABSENT`) are NOT populated on the default path — this is the spec-compliant current-state result and is asserted as such. Live `COMPLETED` requires the separate live-promotion change with an explicit owner approval and a present trust store; it is out of scope and only exercised via synthetic seam outcomes.
 - **Global constraints preserved:** no production effect, no new authority, no Vault/Bridge/signer, no secrets, single target/operation, invariants literal, no blocker closed.
 
 ## Genuine blockers
 
 - **None for writing/committing this plan.** The plan is documentation on the design branch.
-- **For the future implementation change only:** the frozen-state run is expected to refuse at S5 (by design, not a defect). The positive `COMPLETED` path requires a present trust store and explicit owner approval via a separate change record — that is an intentional gate, not a blocker to authoring the implementation.
+- **For the future implementation change only:** the default frozen-state run is expected to short-circuit at S2 (`OPERATION_OUT_OF_SCOPE`, by design, not a defect), with later seams unpopulated. The positive `COMPLETED` path requires a present trust store and explicit owner approval via a separate change record — that is an intentional gate, not a blocker to authoring the implementation.
