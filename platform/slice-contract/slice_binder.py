@@ -14,8 +14,11 @@ under synthetic ``_force_complete`` derivation coverage; S6 NEVER imports the
 admission/runner_handoff/runner_protocol_v2 modules and grants no authority.
 The frozen default path refuses at S5 (NO_DECISION) and stays ABORTED; S6 is
 reached only in synthetic mode, so the S1->S4->S2 precedence and the frozen
-S5 refusal are unchanged. Later seams (S3, S7+) are NOT evaluated through the
-default ``bind`` path.
+S5 refusal are unchanged. Task 9 proves S7 (effect seam) as a read-only
+registry-allowlist + adapter-presence check with runtime_status=NOT_RUN, also
+under synthetic derivation only; it never executes the adapter, router or
+runner. Later seams (S3, S8+) are NOT evaluated through the default ``bind``
+path.
 """
 
 from __future__ import annotations
@@ -183,6 +186,42 @@ def _verify_s6(contract: Mapping[str, Any]) -> dict[str, Any]:
         "admission_codes": ["NOT_RUN"],
     }
 
+def _verify_s7(contract: Mapping[str, Any]) -> dict[str, Any]:
+    """Prove the S7 effect seam is a DECLARED read-only/L1 operation (AC2).
+
+    Read-only, effect-free proof built from two already-accepted artifacts:
+    (1) the operation registry ``platform/gateway-protocol/operation-registry.yaml``
+    entry for the contract's operation id, which declares
+    ``intrusiveness_level`` and ``side_effect``; and (2) the PRESENCE of the
+    adapter seam-ownership PATH. The binder NEVER imports or executes
+    ``webgoat_l1_adapter.py``, the router, the runner protocol or admission, and
+    performs no network call, subprocess or filesystem write, so
+    ``runtime_status`` stays NOT_RUN and no live effect is produced. Nothing in
+    the target registry is widened: S2 still refuses OPERATION_OUT_OF_SCOPE, and
+    S7 is reached only under synthetic ``_force_complete`` derivation coverage.
+    """
+    owner = SEAM_OWNERS["S7"]
+    reg = yaml.safe_load(
+        (REPO_ROOT / "platform/gateway-protocol/operation-registry.yaml").read_text()
+    )
+    op_id = contract["operations"][0]["operation_id"]
+    entry = next((o for o in (reg.get("operations") or []) if o.get("id") == op_id), None)
+    adapter_present = (REPO_ROOT / owner).is_file()
+    level = entry.get("intrusiveness_level") if entry else None
+    side_effect = entry.get("side_effect") if entry else None
+    verified = bool(entry) and level in ("L0", "L1") and side_effect == "read-only" and adapter_present
+    return {
+        "seam": "S7",
+        "owner": owner,
+        "precondition_verified": bool(verified),
+        "operation_id": op_id,
+        "registry_entry_found": bool(entry),
+        "intrusiveness_level": level,
+        "side_effect": side_effect,
+        "adapter_present": bool(adapter_present),
+        "runtime_status": "NOT_RUN",
+    }
+
 
 def bind(
     contract: Mapping[str, Any],
@@ -239,6 +278,10 @@ def bind(
     if _force_complete:
         s6 = _verify_s6(contract)
         seams["S6"] = s6
+        # Task 9: S7 proves the declared read-only/L1 effect seam from the
+        # operation registry + adapter presence/path only. No adapter/router/
+        # runner execution, no network, no subprocess: runtime_status=NOT_RUN.
+        seams["S7"] = _verify_s7(contract)
 
     return {
         "campaign_id": contract.get("campaign_id"),

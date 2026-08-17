@@ -204,3 +204,50 @@ def test_s6_recorded_not_run_no_authority_import():
     s6 = rec["seams"]["S6"]
     assert s6["owner"].endswith("admission.py")
     assert s6["runtime_status"] == "NOT_RUN"
+
+# --- Task 9: S7 effect seam — read-only allowlist + adapter existence (AC2) ---
+# CHG-HSL-084 Task 9: S7 proves the DECLARED read-only/L1 nature of the slice
+# operation using the already-accepted operation registry
+# (platform/gateway-protocol/operation-registry.yaml) plus adapter PRESENCE/PATH
+# only. The binder NEVER imports or executes webgoat_l1_adapter.py, the router,
+# the runner, a network call or a subprocess, so runtime_status stays NOT_RUN and
+# no live effect exists. It is recorded under synthetic _force_complete derivation
+# coverage ONLY; the frozen default path still refuses at S5 and stays ABORTED,
+# and the S1->S4->S2 precedence (Task 13 constraint) is untouched. No
+# target-registry widening: S2 still refuses OPERATION_OUT_OF_SCOPE.
+
+def test_s7_proves_allowlisted_read_only_operation():
+    doc = yaml.safe_load(pathlib.Path("platform/slice-contract/ptaas-webgoat-l1.slice.yaml").read_text())
+    rec = sb.bind(doc, _force_complete=True)
+    s7 = rec["seams"]["S7"]
+    assert s7["owner"].endswith("webgoat_l1_adapter.py")
+    assert s7["precondition_verified"] is True
+    assert s7["intrusiveness_level"] == "L1"
+    assert s7["side_effect"] == "read-only"
+    assert s7["runtime_status"] == "NOT_RUN"
+    assert s7["adapter_present"] is True
+    assert s7["registry_entry_found"] is True
+
+def test_s7_not_reached_on_frozen_default_path():
+    doc = yaml.safe_load(pathlib.Path("platform/slice-contract/ptaas-webgoat-l1.slice.yaml").read_text())
+    rec = sb.bind(doc)
+    assert "S7" not in rec["seams"]
+    assert rec["seams"]["S2"]["reason_code"] == "OPERATION_OUT_OF_SCOPE"
+    assert rec["terminal_state"] == "ABORTED"
+
+def test_s7_holds_no_authority_and_no_live_effect():
+    src = pathlib.Path("platform/slice-contract/slice_binder.py").read_text()
+    # inspect REAL import statements only (docstrings legitimately name the
+    # forbidden modules to document the no-authority invariant)
+    import_lines = [
+        ln.strip() for ln in src.splitlines()
+        if ln.strip().startswith(("import ", "from "))
+    ]
+    banned = ("subprocess", "requests", "socket", "http", "urllib",
+              "runner_handoff", "runner_protocol_v2", "admission",
+              "webgoat_l1_adapter", "router")
+    for ln in import_lines:
+        for mod in banned:
+            assert mod not in ln, f"{mod} imported: {ln}"
+    # the adapter is referenced as a PATH string only, never loaded/executed
+    assert '_load_component(SEAM_OWNERS["S7"]' not in src
