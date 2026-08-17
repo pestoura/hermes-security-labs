@@ -1,4 +1,9 @@
-import json, pathlib, yaml, jsonschema
+import json
+import pathlib
+import yaml
+import jsonschema
+import pytest
+
 SCHEMA = json.loads(pathlib.Path("platform/slice-contract/slice-contract.schema.json").read_text())
 
 def _valid():
@@ -24,39 +29,34 @@ def test_valid_contract_passes():
     jsonschema.validate(_valid(), SCHEMA)  # raises nothing
 
 def test_more_than_one_target_rejected():
-    c = _valid(); c["targets"].append({"target_id": "x", "authorization_state_required": "LAB_ONLY"})
-    try:
-        jsonschema.validate(c, SCHEMA); assert False, "should reject"
-    except jsonschema.ValidationError:
-        pass
+    c = _valid()
+    c["targets"].append({"target_id": "x", "authorization_state_required": "LAB_ONLY"})
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(c, SCHEMA)
 
 def test_more_than_one_operation_rejected():
-    c = _valid(); c["operations"].append({"operation_id": "y", "intrusiveness_level": "L1", "destructive": False})
-    try:
-        jsonschema.validate(c, SCHEMA); assert False
-    except jsonschema.ValidationError:
-        pass
+    c = _valid()
+    c["operations"].append({"operation_id": "y", "intrusiveness_level": "L1", "destructive": False})
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(c, SCHEMA)
 
 def test_intrusiveness_above_l1_rejected():
-    c = _valid(); c["operations"][0]["intrusiveness_level"] = "L2"
-    try:
-        jsonschema.validate(c, SCHEMA); assert False
-    except jsonschema.ValidationError:
-        pass
+    c = _valid()
+    c["operations"][0]["intrusiveness_level"] = "L2"
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(c, SCHEMA)
 
 def test_destructive_rejected():
-    c = _valid(); c["operations"][0]["destructive"] = True
-    try:
-        jsonschema.validate(c, SCHEMA); assert False
-    except jsonschema.ValidationError:
-        pass
+    c = _valid()
+    c["operations"][0]["destructive"] = True
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(c, SCHEMA)
 
 def test_missing_invariant_rejected():
-    c = _valid(); del c["invariants"]["promotion_allowed"]
-    try:
-        jsonschema.validate(c, SCHEMA); assert False
-    except jsonschema.ValidationError:
-        pass
+    c = _valid()
+    del c["invariants"]["promotion_allowed"]
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(c, SCHEMA)
 
 def test_instance_conforms_to_schema():
     import yaml
