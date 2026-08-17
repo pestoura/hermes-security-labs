@@ -20,7 +20,11 @@ under synthetic derivation only; it never executes the adapter, router or
 the runner. Later seams (S3) and the S8 evidence-custody shape are NOT evaluated
 through the default frozen ``bind`` path; S8 is exercised only under synthetic
 ``_force_complete`` derivation coverage (in-memory sealed-chain digest, no
-persistence).
+persistence). Task 11 normalizes the S9 finding through the already-accepted
+``create_finding`` interface under synthetic ``_force_complete`` only, reusing
+S8's synthetic verified evidence refs; risk stays ``{}`` (no fabricated canonical
+component) and S9 fails closed with ``NO_VERIFIED_EVIDENCE_REF`` when no verified
+evidence ref is present. The default frozen path does NOT reach S9.
 """
 
 from __future__ import annotations
@@ -254,6 +258,45 @@ def _verify_s8(contract: Mapping[str, Any], *, evidence_refs: list[str], clock: 
     }
 
 
+def _verify_s9(contract: Mapping[str, Any], *, evidence_refs: list[str]) -> dict[str, Any]:
+    """Derive the S9 normalized finding shape through the accepted create_finding interface (AC7).
+
+    Normalizes a finding via the already-accepted ``risk_findings.create_finding``
+    interface using the SAME synthetic verified evidence refs derived by S8 (no
+    new evidence source, no live evidence object). ``risk`` is always ``{}`` — the
+    binder NEVER fabricates a canonical risk / CVSS / severity component, and it
+    MUST NOT call ``build_risk_assessment`` with fabricated values. If no verified
+    evidence ref is present, S9 fails closed with ``NO_VERIFIED_EVIDENCE_REF`` and
+    produces no finding. No persistence / network / runner / effect / authority /
+    Vault / secret is involved. Reached only under synthetic ``_force_complete``
+    derivation coverage; the frozen default path stops at S2/S5 and never reaches S9.
+    """
+    if not evidence_refs:
+        return {
+            "seam": "S9",
+            "owner": SEAM_OWNERS["S9"],
+            "precondition_verified": False,
+            "reason_code": "NO_VERIFIED_EVIDENCE_REF",
+        }
+    rf = _load_component(SEAM_OWNERS["S9"], "hsl_risk_findings")
+    finding = rf.create_finding(
+        title=f"{contract['operations'][0]['operation_id']} on {contract['targets'][0]['target_id']}",
+        risk={},  # NEVER fabricate canonical risk components
+        root_cause="read-only discovery observation recorded under LAB_L1 custody",
+        systemic=False,
+        evidence_before=evidence_refs,
+    )
+    return {
+        "seam": "S9",
+        "owner": SEAM_OWNERS["S9"],
+        "precondition_verified": True,
+        "finding_id": finding["finding_id"],
+        "state": finding["state"],
+        "risk": finding["risk"],
+        "limitation_recorded": True,
+    }
+
+
 def _verify_s7(contract: Mapping[str, Any]) -> dict[str, Any]:
     """Prove the S7 effect seam is a DECLARED read-only/L1 operation (AC2).
 
@@ -358,6 +401,13 @@ def bind(
         s8_clock = clock or "2026-08-17T00:00:00Z"
         s8_refs = _synthetic_evidence_refs(contract, s8_clock)
         seams["S8"] = _verify_s8(contract, evidence_refs=s8_refs, clock=s8_clock)
+        # Task 11: S9 normalizes a finding through the already-accepted
+        # create_finding interface, reusing S8's synthetic verified evidence refs
+        # (no new evidence source). risk stays {} (no fabricated canonical
+        # component); with no evidence ref it fails closed NO_VERIFIED_EVIDENCE_REF.
+        # The frozen default path never reaches S9 and stays ABORTED at S5; the
+        # S1->S4->S2 precedence and the frozen S5 refusal are unchanged.
+        seams["S9"] = _verify_s9(contract, evidence_refs=s8_refs)
 
     return {
         "campaign_id": contract.get("campaign_id"),

@@ -290,3 +290,37 @@ def test_s8_holds_no_authority_and_no_live_effect():
     for ln in import_lines:
         for mod in banned:
             assert mod not in ln, f"{mod} imported: {ln}"
+
+# --- Task 11: S9 finding derivation — deterministic, risk={}, or fail-closed (AC7) ---
+# CHG-HSL-084 Task 11 CORRECTION: S9 is reached ONLY under synthetic
+# _force_complete derivation coverage, reusing the SAME synthetic verified
+# evidence refs derived by S8 (no live evidence, no new evidence source). The
+# default frozen path (no _force_complete) must NOT reach S9 — it stops at S2/S5.
+# S9 normalizes a finding through the already-accepted create_finding interface
+# with risk={} (never a fabricated canonical risk / CVSS / severity component);
+# when no verified evidence ref is present it refuses fail-closed with
+# NO_VERIFIED_EVIDENCE_REF and produces no finding. No persistence / network /
+# runner / effect / authority / Vault / secret is involved.
+
+def test_s9_derives_conforming_finding_without_fabricated_risk():
+    doc = yaml.safe_load(pathlib.Path("platform/slice-contract/ptaas-webgoat-l1.slice.yaml").read_text())
+    rec = sb.bind(doc, _force_complete=True)
+    s9 = rec["seams"]["S9"]
+    assert s9["finding_id"].startswith("fd_")
+    assert s9["state"] == "OBSERVED"
+    assert s9["risk"] == {}            # no fabricated canonical component
+    assert s9["limitation_recorded"] is True
+
+def test_s9_refuses_when_no_evidence_ref_fail_closed():
+    # The fail-closed refusal is a UNIT property of _verify_s9: with no verified
+    # evidence ref it must refuse (NO_VERIFIED_EVIDENCE_REF) and fabricate no finding.
+    s9 = sb._verify_s9(_load_instance(), evidence_refs=[])
+    assert s9["precondition_verified"] is False
+    assert s9["reason_code"] == "NO_VERIFIED_EVIDENCE_REF"
+    assert "finding_id" not in s9  # no finding fabricated on refusal
+
+def test_s9_not_reached_on_frozen_default_path():
+    # The default frozen bind() must not reach S9; it refuses earlier (S2/S5).
+    rec = sb.bind(_load_instance())
+    assert "S9" not in rec["seams"]
+    assert rec["terminal_state"] == "ABORTED"
