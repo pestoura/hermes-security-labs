@@ -77,6 +77,34 @@ def _verify_s2(contract: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+def _verify_s3(contract: Mapping[str, Any]) -> dict[str, Any]:
+    """Derive the deterministic S3 plan-composition digest (AC3 contributor).
+
+    Exercises the already-accepted ``compose_scenario_plan`` interface for the
+    ``webgoat-tls-transport-review`` scenario and digests the resulting plan
+    with the already-accepted ``canonical_digest`` interface. This is a pure
+    read-only derivation: no effect, no authorization, no scope widening.
+
+    CHG-HSL-084 Task 5 CORRECTION: the canonical webgoat-web +
+    web.discovery.headers contract refuses at S2 (OPERATION_OUT_OF_SCOPE), and
+    ``bind`` early-returns there, so this seam is NOT reached through ``bind``.
+    It is exercised synthetically/independently (see test_slice_binder.py) as a
+    valid S2-equivalent seam outcome, proving the digest is deterministic
+    without authorizing ``web.discovery.headers``.
+    """
+    sp = _load_component(SEAM_OWNERS["S3"], "hsl_scenario_plan")
+    res = sp.compose_scenario_plan("webgoat-tls-transport-review")
+    ev = _load_component(SEAM_OWNERS["S8"], "hsl_evidence_plane")
+    digest = ev.canonical_digest(res.as_dict()) if res.plan is not None else None
+    return {
+        "seam": "S3",
+        "owner": SEAM_OWNERS["S3"],
+        "precondition_verified": bool(res.ok),
+        "reason_code": res.reason_code,
+        "plan_digest": digest,
+    }
+
+
 def bind(contract: Mapping[str, Any], *, clock: str | None = None) -> dict[str, Any]:
     # Fail-closed default: the frozen repository state refuses the traversal.
     # Task 4 only verifies S1 (scope) and S2 (target authorization). Later

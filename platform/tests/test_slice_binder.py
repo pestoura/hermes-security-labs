@@ -137,3 +137,30 @@ def test_s1_scope_refusal_aborts_before_s2():
     assert rec["seams"]["S1"]["precondition_verified"] is False
     assert "S2" not in rec["seams"]
     assert rec["terminal_state"] == "ABORTED"
+
+# --- Task 5: S3 deterministic plan composition digest (AC3 contributor) ---
+# CHG-HSL-084 Task 5 CORRECTION: the canonical webgoat-web + web.discovery.headers
+# contract REFUSES at S2 (OPERATION_OUT_OF_SCOPE), and Task 4's precedence rule
+# makes bind() early-return, so S3 is NEVER reached through bind() on the real
+# contract. The S3 positive digest is therefore exercised SYNTHETICALLY /
+# INDEPENDENTLY: we call the real _verify_s3 helper directly against the
+# already-accepted webgoat-tls-transport-review scenario (a valid S2-equivalent
+# seam outcome). This proves the deterministic digest derivation without
+# widening the target-registry scope or authorizing web.discovery.headers.
+
+def test_s3_plan_digest_deterministic_synthetic():
+    r1 = sb._verify_s3(_load_instance())
+    r2 = sb._verify_s3(_load_instance())
+    assert r1["plan_digest"] is not None
+    assert r1["plan_digest"] == r2["plan_digest"]
+    assert r1["precondition_verified"] is True
+    assert r1["reason_code"] == "PLAN_READY"
+
+def test_canonical_bind_does_not_evaluate_s3_after_s2_refusal():
+    # Reinforces the corrected precedence invariant: the canonical contract's
+    # S2 refusal must keep bind() from evaluating S3 (or any later seam).
+    rec = sb.bind(_load_instance())
+    assert "S2" in rec["seams"]
+    assert rec["seams"]["S2"]["precondition_verified"] is False
+    assert "S3" not in rec["seams"]
+    assert rec["terminal_state"] == "ABORTED"
