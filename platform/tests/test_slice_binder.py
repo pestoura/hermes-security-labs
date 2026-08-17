@@ -527,3 +527,81 @@ def test_contract_presence_never_authorizes():
     assert rec["seams"]["S2"]["reason_code"] == "OPERATION_OUT_OF_SCOPE"
     assert rec["refusing_seam"] == "S2"
     assert rec["terminal_state"] == "ABORTED"
+
+# --- Task 15: sanitization AST guard + literal invariant assertions (AC10, AC12) ---
+# CHG-HSL-084 Task 15: the no-authority/no-effect property of the binder is proven
+# by a real AST analysis (platform/tests/ast_sanitization_guard.py), not by a
+# substring scan. The analyzer resolves import bindings (including aliases and
+# `from X import y`) and only flags call surfaces whose base resolves to a
+# forbidden authority/effect module, so docstrings and path STRINGS that legitimately
+# name those modules (the binder documents them) are never false positives.
+# The canonical contract's invariants are asserted literally (AC12).
+import ast as _ast  # noqa: E402  (module-level import after in-file test sections, matching this file's existing layout)
+from ast_sanitization_guard import (  # noqa: E402  (sibling test helper, resolved via pytest rootdir insertion)
+    FORBIDDEN_MODULES,
+    forbidden_imports,
+    forbidden_calls,
+)
+
+_BINDER_PATH = pathlib.Path("platform/slice-contract/slice_binder.py")
+
+def _binder_tree():
+    return _ast.parse(_BINDER_PATH.read_text())
+
+def test_binder_imports_no_forbidden_modules():
+    found = forbidden_imports(_binder_tree())
+    assert found == [], f"forbidden imports: {found}"
+    # the plan-named authority/effect modules are actually covered by the guard
+    assert {"runner_protocol_v2", "subprocess", "socket"} <= set(FORBIDDEN_MODULES)
+
+def test_binder_performs_no_socket_or_subprocess_calls():
+    found = forbidden_calls(_binder_tree())
+    assert found == [], f"forbidden call surface: {found}"
+
+def test_ast_guard_detects_forbidden_import_and_call_positively():
+    # negative control: the analyzer must FLAG real authority/effect usage,
+    # including aliased imports and `from` bindings.
+    bad = _ast.parse(
+        "import subprocess as sp\n"
+        "from socket import socket as sk\n"
+        "import runner_protocol_v2\n"
+        "def f():\n"
+        "    sp.run(['x'])\n"
+        "    sk().sendall(b'x')\n"
+    )
+    imp = {f["module"] for f in forbidden_imports(bad)}
+    assert {"subprocess", "socket", "runner_protocol_v2"} <= imp
+    calls = {f["attr"] for f in forbidden_calls(bad)}
+    assert "run" in calls and "sendall" in calls
+
+def test_ast_guard_does_not_flag_path_strings_or_docstrings():
+    # positive control: mentions in docstrings/strings and unrelated .run/.send
+    # attributes on non-forbidden bases must NOT be flagged.
+    ok = _ast.parse(
+        '"""mentions subprocess, socket and runner_protocol_v2 for documentation."""\n'
+        'P = "platform/adapters/webgoat_l1_adapter.py"\n'
+        'import json\n'
+        'def f(rec):\n'
+        '    return json.dumps(rec, sort_keys=True)\n'
+    )
+    assert forbidden_imports(ok) == []
+    assert forbidden_calls(ok) == []
+
+def test_invariants_asserted_literal():
+    doc = yaml.safe_load(pathlib.Path("platform/slice-contract/ptaas-webgoat-l1.slice.yaml").read_text())
+    assert doc["invariants"]["execution_authority"] == "none"
+    assert doc["invariants"]["runtime_status"] == "NOT_RUN"
+    assert doc["invariants"]["promotion_allowed"] is False
+    assert doc["invariants"]["trust_store"] == "ABSENT"
+    assert doc["invariants"]["supplier_selection"] == "NO_SELECTION"
+
+def test_binder_record_holds_invariants_and_no_promotion():
+    doc = yaml.safe_load(_BINDER_PATH.parent.joinpath("ptaas-webgoat-l1.slice.yaml").read_text())
+    rec = sb.bind(doc)
+    assert rec["execution_authority"] == "none"
+    assert rec["promotion_allowed"] is False
+    assert rec["runtime_status"] == "NOT_RUN"
+    assert rec["trust_store"] == "ABSENT"
+    assert rec["supplier_selection"] == "NO_SELECTION"
+    assert rec["refusing_seam"] == "S2"
+    assert rec["terminal_state"] == "ABORTED"

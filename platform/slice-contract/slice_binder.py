@@ -581,8 +581,18 @@ def _derive(
         and refusing_seam is None
         and all_seams_verified
     )
+    # AC10/AC12: the traversal record restates the contract invariants LITERALLY,
+    # fail-closed (a missing/other value never becomes permissive). The binder holds
+    # no authority and never promotes: execution_authority is always "none" and
+    # promotion_allowed always False, independent of the derived terminal state.
+    invariants = contract.get("invariants") or {}
     return {
         "campaign_id": contract.get("campaign_id"),
+        "execution_authority": "none",
+        "promotion_allowed": False,
+        "runtime_status": "NOT_RUN",
+        "trust_store": invariants.get("trust_store", "ABSENT"),
+        "supplier_selection": invariants.get("supplier_selection", "NO_SELECTION"),
         "seams": seams,
         "refusing_seam": refusing_seam,
         "terminal_state": derived_state,
