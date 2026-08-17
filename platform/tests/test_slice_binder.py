@@ -189,3 +189,18 @@ def test_s5_refuses_when_trust_store_absent():
     assert s5["authorization_ref"] == "NO_DECISION"
     # frozen-state run must refuse here and stay ABORTED
     assert rec["terminal_state"] == "ABORTED"
+
+# --- Task 8: S6 admission/handoff seam — read-only path assert, NOT_RUN ---
+# CHG-HSL-084 Task 8: S6 is recorded under synthetic _force_complete derivation
+# coverage ONLY. The binder asserts the seam-ownership path (admission.py) and
+# records runtime_status=NOT_RUN. It NEVER imports admission.py / runner_handoff.py
+# / runner_protocol_v2, never executes a runner, network, or subprocess, and never
+# grants authority. The S1->S4->S2 precedence and the frozen-state S5 refusal
+# (default path) are unchanged; the constraint stays intact for Task 13.
+
+def test_s6_recorded_not_run_no_authority_import():
+    doc = yaml.safe_load(pathlib.Path("platform/slice-contract/ptaas-webgoat-l1.slice.yaml").read_text())
+    rec = sb.bind(doc, _force_complete=True)  # synthetic-complete mode for derivation coverage
+    s6 = rec["seams"]["S6"]
+    assert s6["owner"].endswith("admission.py")
+    assert s6["runtime_status"] == "NOT_RUN"

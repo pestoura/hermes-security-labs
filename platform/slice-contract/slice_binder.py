@@ -8,9 +8,14 @@ imports runner_handoff/admission/router/webgoat_l1_adapter or runner_protocol_v2
 Task 4 implements S1 (scope) + S2 (target authorization) only, calling the
 existing real ``authorize_operation`` interface fail-closed. Task 6 resolves
 S4 (HITL assertion) as a static assurance-profile read after S1 passes and
-before S2; S4 never refuses and adds no approval surface. Later seams (S3, S5+)
-are intentionally NOT evaluated through ``bind``; the traversal defaults to
-ABORTED until those verifications exist.
+before S2; S4 never refuses and adds no approval surface. Task 8 records S6
+(admission/handoff) as a read-only path assert with runtime_status=NOT_RUN
+under synthetic ``_force_complete`` derivation coverage; S6 NEVER imports the
+admission/runner_handoff/runner_protocol_v2 modules and grants no authority.
+The frozen default path refuses at S5 (NO_DECISION) and stays ABORTED; S6 is
+reached only in synthetic mode, so the S1->S4->S2 precedence and the frozen
+S5 refusal are unchanged. Later seams (S3, S7+) are NOT evaluated through the
+default ``bind`` path.
 """
 
 from __future__ import annotations
@@ -157,7 +162,34 @@ def _verify_s5(contract: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
-def bind(contract: Mapping[str, Any], *, clock: str | None = None) -> dict[str, Any]:
+def _verify_s6(contract: Mapping[str, Any]) -> dict[str, Any]:
+    """Record the S6 admission/handoff seam as a read-only path assert (NOT_RUN).
+
+    S6 asserts the already-accepted admission/handoff seam-ownership path and
+    records runtime_status=NOT_RUN. It NEVER imports ``admission.py`` /
+    ``runner_handoff.py`` / ``runner_protocol_v2`` and never executes a runner,
+    network call, or subprocess. The binder holds no authority, so S6 grants no
+    admission and no handoff effect — it is the static structural record that
+    the seam path exists and is unchanged (still NOT_RUN) under the frozen state.
+    This is reached only under synthetic ``_force_complete`` derivation coverage;
+    the frozen default path stops at S5.
+    """
+    owner = SEAM_OWNERS["S6"]
+    return {
+        "seam": "S6",
+        "owner": owner,
+        "precondition_verified": True,
+        "runtime_status": "NOT_RUN",
+        "admission_codes": ["NOT_RUN"],
+    }
+
+
+def bind(
+    contract: Mapping[str, Any],
+    *,
+    clock: str | None = None,
+    _force_complete: bool = False,
+) -> dict[str, Any]:
     # Fail-closed default: the frozen repository state refuses the traversal.
     # Task 4 verifies S1 (scope) + S2 (target authorization); Task 6 resolves
     # S4 (HITL) between S1 and S2; Task 7 records S5 (trust-store ABSENT
@@ -198,6 +230,15 @@ def bind(contract: Mapping[str, Any], *, clock: str | None = None) -> dict[str, 
     seams["S5"] = s5
     if not s5["precondition_verified"]:
         terminal_state = "ABORTED"
+
+    # Task 8: under synthetic _force_complete derivation coverage only, record S6
+    # (admission/handoff) as a read-only NOT_RUN path assert. The frozen default
+    # path never reaches S6 and stays ABORTED at S5; the S1->S4->S2 precedence
+    # and the frozen S5 refusal are unchanged. S6 imports no authority module and
+    # grants no admission/handoff effect.
+    if _force_complete:
+        s6 = _verify_s6(contract)
+        seams["S6"] = s6
 
     return {
         "campaign_id": contract.get("campaign_id"),
