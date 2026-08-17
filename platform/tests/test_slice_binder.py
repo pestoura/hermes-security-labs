@@ -1,4 +1,4 @@
-import json, pathlib, jsonschema
+import json, pathlib, yaml, jsonschema
 SCHEMA = json.loads(pathlib.Path("platform/slice-contract/slice-contract.schema.json").read_text())
 
 def _valid():
@@ -164,3 +164,11 @@ def test_canonical_bind_does_not_evaluate_s3_after_s2_refusal():
     assert rec["seams"]["S2"]["precondition_verified"] is False
     assert "S3" not in rec["seams"]
     assert rec["terminal_state"] == "ABORTED"
+
+# --- Task 6: S4 HITL resolution from assurance profile (AC9) ---
+
+def test_s4_hitl_required_only_under_lab_l1():
+    doc = yaml.safe_load(pathlib.Path("platform/slice-contract/ptaas-webgoat-l1.slice.yaml").read_text())
+    rec = sb.bind(doc)
+    assert rec["seams"]["S4"]["hitl_required"] is True
+    assert rec["seams"]["S4"]["source"] == "current-assurance-profile.yaml"

@@ -6,14 +6,17 @@ no authorization issuance, no custody write, no campaign-state mutation. Never
 imports runner_handoff/admission/router/webgoat_l1_adapter or runner_protocol_v2.
 
 Task 4 implements S1 (scope) + S2 (target authorization) only, calling the
-existing real ``authorize_operation`` interface fail-closed. Later seams (S3+)
-are intentionally NOT evaluated here; the traversal defaults to ABORTED until
-those verifications exist.
+existing real ``authorize_operation`` interface fail-closed. Task 6 resolves
+S4 (HITL assertion) as a static assurance-profile read after S1 passes and
+before S2; S4 never refuses and adds no approval surface. Later seams (S3, S5+)
+are intentionally NOT evaluated through ``bind``; the traversal defaults to
+ABORTED until those verifications exist.
 """
 
 from __future__ import annotations
 
 import sys
+import yaml
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -77,6 +80,32 @@ def _verify_s2(contract: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+def _verify_s4(contract: Mapping[str, Any]) -> dict[str, Any]:
+    """Resolve the S4 HITL assertion from the current assurance profile (AC9).
+
+    Pure read-only read of ``current-assurance-profile.yaml``: S4 asserts the
+    LAB_L1-relevant booleans ``requires_request_bound_hitl`` and
+    ``requires_hash_chain``. It introduces NO new approval surface — the HITL
+    requirement is already declared by the assurance profile. The seam
+    precondition is always satisfied (static profile read), so S4 never
+    refuses the traversal; it is resolved immediately after S1 scope passes
+    and before the S2 authorization gate.
+    """
+    prof = yaml.safe_load((REPO_ROOT / SEAM_OWNERS["S4"]).read_text())
+    req = prof.get("evaluation", {})
+    hitl = bool(req.get("requires_request_bound_hitl", False))
+    hc = bool(req.get("requires_hash_chain", False))
+    return {
+        "seam": "S4",
+        "owner": SEAM_OWNERS["S4"],
+        "precondition_verified": True,
+        "hitl_required": hitl,
+        "hash_chain_required": hc,
+        "source": "current-assurance-profile.yaml",
+        "approval_reference_digest": "LAB_L1-request-bound-hitl-required" if hitl else None,
+    }
+
+
 def _verify_s3(contract: Mapping[str, Any]) -> dict[str, Any]:
     """Derive the deterministic S3 plan-composition digest (AC3 contributor).
 
@@ -120,6 +149,12 @@ def bind(contract: Mapping[str, Any], *, clock: str | None = None) -> dict[str, 
             "seams": seams,
             "terminal_state": terminal_state,
         }
+
+    # S4 is a static assurance-profile read (HITL assertion). It never refuses
+    # and introduces no new approval surface, so it is resolved after S1 scope
+    # passes and before the S2 authorization gate (Task 6, AC9).
+    s4 = _verify_s4(contract)
+    seams["S4"] = s4
 
     s2 = _verify_s2(contract)
     seams["S2"] = s2
