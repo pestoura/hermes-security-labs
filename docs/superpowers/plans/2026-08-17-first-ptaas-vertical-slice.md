@@ -821,7 +821,7 @@ def test_terminal_state_stopped_when_kill_switch_engaged():
   Expected: FAIL.
 
 - [ ] **Step 3: Implement S11 + wire precedence in `bind`**
-Finalize `bind` so it evaluates S1→S2→S3→S4→S5→...→S10 in order, stops at the first `precondition_verified is False` (records `refusing_seam`), derives `terminal_state` from the collected seams, and adds `audit_record_present`. `clock` defaults to a fixed sentinel when `_force_complete` for determinism, else `datetime.now(UTC).isoformat()`.
+Finalize `bind` so it evaluates S1→S2→S3→S4→S5→...→S10 in order, stops at the first `precondition_verified is False` (records `refusing_seam`), derives `terminal_state` from the collected seams, and adds `audit_record_present`. When `clock=None`, implementation uses a deterministic sentinel `"2026-08-17T00:00:00Z"` for synthetic evidence/custody digests (NOT `datetime.now(UTC)`), so identical contract + fixed clock yields byte-identical traversal records. This is explicitly synthetic/no-live-runtime: the binder holds no authority and performs no live effect; the exact SHA appears only in GitHub checks/PR metadata.
 
 - [ ] **Step 4: Run to verify pass**  
   Run: `python3 -m pytest -q platform/tests/test_slice_binder.py -k 'terminal or byte_identical' -p no:cacheprovider`  
