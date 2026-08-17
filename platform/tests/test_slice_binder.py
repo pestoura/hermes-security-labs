@@ -324,3 +324,58 @@ def test_s9_not_reached_on_frozen_default_path():
     rec = sb.bind(_load_instance())
     assert "S9" not in rec["seams"]
     assert rec["terminal_state"] == "ABORTED"
+
+# --- Task 12: S10 reset / zero-residue proof — read-only contract assert (AC shape) ---
+# CHG-HSL-084 Task 12 (already-approved fail-closed correction): S10 is the
+# reset/zero-residue proof seam, asserted as a READ-ONLY contract check only —
+# proof-schema presence + runtime_status=NOT_RUN. It executes NO cleanup/reset,
+# performs NO filesystem mutation, runner, network, subprocess, effect, authority,
+# Vault, or secret. It is reached ONLY under synthetic _force_complete derivation
+# coverage; the frozen default path (no _force_complete) must NOT reach S10 — it
+# refuses earlier (S2/S5) and stays ABORTED. Task 13 precedence/order constraints
+# and the target-registry are NOT altered by this task.
+
+def test_s10_zero_residue_contract_present():
+    doc = yaml.safe_load(pathlib.Path("platform/slice-contract/ptaas-webgoat-l1.slice.yaml").read_text())
+    rec = sb.bind(doc, _force_complete=True)
+    s10 = rec["seams"]["S10"]
+    assert s10["owner"].endswith("lifecycle_protocol.py")
+    assert s10["proof_schema_present"] is True
+    assert s10["runtime_status"] == "NOT_RUN"
+
+def test_s10_not_reached_on_frozen_default_path():
+    # The default frozen bind() must not reach S10; it refuses earlier (S2/S5).
+    rec = sb.bind(_load_instance())
+    assert "S10" not in rec["seams"]
+    assert rec["seams"]["S2"]["reason_code"] == "OPERATION_OUT_OF_SCOPE"
+    assert rec["terminal_state"] == "ABORTED"
+
+def test_s10_does_no_reset_and_no_live_effect():
+    # Unit property of _verify_s10: read-only assert of the proof-schema path,
+    # runtime_status NOT_RUN, no reset/cleanup/runner/effect/authority granted.
+    s10 = sb._verify_s10(_load_instance())
+    assert s10["seam"] == "S10"
+    assert s10["owner"].endswith("lifecycle_protocol.py")
+    assert s10["proof_schema_present"] is True
+    assert s10["precondition_verified"] is True
+    assert s10["runtime_status"] == "NOT_RUN"
+    # no fabricated effect/reset/authority field
+    assert "reset_executed" not in s10
+    assert "cleanup_performed" not in s10
+    assert "authority_granted" not in s10
+
+def test_s10_holds_no_authority_and_no_live_effect():
+    src = pathlib.Path("platform/slice-contract/slice_binder.py").read_text()
+    import_lines = [
+        ln.strip() for ln in src.splitlines()
+        if ln.strip().startswith(("import ", "from "))
+    ]
+    banned = ("subprocess", "requests", "socket", "http", "urllib",
+              "runner_handoff", "runner_protocol_v2", "admission",
+              "webgoat_l1_adapter", "router", "vault", "secret", "signer",
+              "trust", "lifecycle_protocol")
+    for ln in import_lines:
+        for mod in banned:
+            assert mod not in ln, f"{mod} imported: {ln}"
+    # the lifecycle_protocol owner is a PATH string only, never loaded/executed
+    assert '_load_component(SEAM_OWNERS["S10"]' not in src

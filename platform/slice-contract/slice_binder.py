@@ -334,6 +334,29 @@ def _verify_s7(contract: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+def _verify_s10(contract: Mapping[str, Any]) -> dict[str, Any]:
+    """Assert the S10 reset / zero-residue proof contract (read-only, NOT_RUN).
+
+    S10 is a READ-ONLY contract assertion only: it checks that the already-accepted
+    zero-residue proof schema exists (``platform/lab-lifecycle/zero-residue-proof.schema.json``)
+    and records ``runtime_status=NOT_RUN``. It executes NO cleanup/reset, performs NO
+    filesystem mutation, runner, network, subprocess, effect, authority, Vault, or secret.
+    The binder holds no authority, so S10 grants no reset/cleanup effect — it is the
+    static structural record that the reset/zero-residue proof *contract* exists and is
+    unchanged (still NOT_RUN) under the frozen state. Reached only under synthetic
+    ``_force_complete`` derivation coverage; the frozen default path stops at S5.
+    """
+    owner = SEAM_OWNERS["S10"]
+    schema_present = (REPO_ROOT / "platform/lab-lifecycle/zero-residue-proof.schema.json").is_file()
+    return {
+        "seam": "S10",
+        "owner": owner,
+        "precondition_verified": bool(schema_present),
+        "proof_schema_present": bool(schema_present),
+        "runtime_status": "NOT_RUN",
+    }
+
+
 def bind(
     contract: Mapping[str, Any],
     *,
@@ -408,6 +431,15 @@ def bind(
         # The frozen default path never reaches S9 and stays ABORTED at S5; the
         # S1->S4->S2 precedence and the frozen S5 refusal are unchanged.
         seams["S9"] = _verify_s9(contract, evidence_refs=s8_refs)
+        # Task 12: S10 asserts the reset/zero-residue proof CONTRACT only —
+        # proof-schema presence + runtime_status=NOT_RUN. It executes NO
+        # cleanup/reset, performs NO filesystem mutation, runner, network,
+        # subprocess, effect, authority, Vault, or secret, and grants no
+        # reset/cleanup authority. Reached only under synthetic _force_complete
+        # derivation coverage; the frozen default path never reaches S10 and
+        # stays ABORTED at S5. Task 13 precedence/order constraints and the
+        # target-registry are NOT altered by this task.
+        seams["S10"] = _verify_s10(contract)
 
     return {
         "campaign_id": contract.get("campaign_id"),
