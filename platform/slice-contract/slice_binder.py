@@ -134,10 +134,36 @@ def _verify_s3(contract: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+def _verify_s5(contract: Mapping[str, Any]) -> dict[str, Any]:
+    """Record the S5 authorization seam as a read-only NO_DECISION refusal.
+
+    S5 asserts the existence of the already-accepted authorization resolver path
+    and records a fail-closed refusal under the frozen ABSENT trust store. It
+    NEVER imports the resolver module (no authority, no live authorization call):
+    the frozen repository state has ``trust-store: ABSENT`` and every policy
+    ``DISABLED``/``deny``/``NOT_RUN``, so the binder records ``NO_DECISION`` and
+    refuses. For the current state this is the correct, spec-compliant terminal
+    result that keeps VAL-HSL-RUNNER-L1-LIVE-PROMOTION BLOCKED/HOLD.
+    """
+    owner = SEAM_OWNERS["S5"]
+    exists = (REPO_ROOT / owner).is_file()
+    return {
+        "seam": "S5",
+        "owner": owner,
+        "precondition_verified": False,
+        "reason_code": "TRUST_STORE_ABSENT",
+        "authorization_ref": "NO_DECISION",
+        "component_present": exists,
+    }
+
+
 def bind(contract: Mapping[str, Any], *, clock: str | None = None) -> dict[str, Any]:
     # Fail-closed default: the frozen repository state refuses the traversal.
-    # Task 4 only verifies S1 (scope) and S2 (target authorization). Later
-    # seams are not evaluated here, so the terminal state stays ABORTED.
+    # Task 4 verifies S1 (scope) + S2 (target authorization); Task 6 resolves
+    # S4 (HITL) between S1 and S2; Task 7 records S5 (trust-store ABSENT
+    # refusal). S5 is terminal for the frozen state, so bind stops there and
+    # the terminal state stays ABORTED. The deferred S1->S4->S2 precedence/order
+    # constraint (Task 13) is preserved; S5 is appended after S2 only.
     terminal_state = "ABORTED"
     seams: dict[str, Any] = {}
 
@@ -160,6 +186,17 @@ def bind(contract: Mapping[str, Any], *, clock: str | None = None) -> dict[str, 
     seams["S2"] = s2
     # Precedence: an unverified authorization seam aborts the traversal.
     if not s2["precondition_verified"]:
+        terminal_state = "ABORTED"
+
+    # S5 is terminal for the frozen state: it records a NO_DECISION refusal under
+    # the ABSENT trust store and never imports the resolver. Because the frozen
+    # repository state refuses at S5, bind stops here with ABORTED (the correct
+    # current-state result that keeps promotion BLOCKED/HOLD). The deferred
+    # S1->S4->S2 precedence/order constraint (Task 13) is preserved; S5 is
+    # appended after S2 only.
+    s5 = _verify_s5(contract)
+    seams["S5"] = s5
+    if not s5["precondition_verified"]:
         terminal_state = "ABORTED"
 
     return {

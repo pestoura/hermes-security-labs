@@ -172,3 +172,20 @@ def test_s4_hitl_required_only_under_lab_l1():
     rec = sb.bind(doc)
     assert rec["seams"]["S4"]["hitl_required"] is True
     assert rec["seams"]["S4"]["source"] == "current-assurance-profile.yaml"
+
+# --- Task 7: S5 authorization seam — read-only trust-store ABSENT refusal (AC10, AC11) ---
+# CHG-HSL-084 Task 7 CORRECTION: S5 is evaluated AFTER S2 (precedence S1->S4->S2->S5
+# is preserved; the deferred S1->S4->S2 precedence/order constraint is NOT changed).
+# The canonical webgoat-web + web.discovery.headers contract reaches S5 through bind()
+# only after S2 is recorded (S2 refuses first), and S5 records a NO_DECISION refusal
+# under the frozen ABSENT trust store. The binder NEVER imports the resolver module.
+
+def test_s5_refuses_when_trust_store_absent():
+    doc = yaml.safe_load(pathlib.Path("platform/slice-contract/ptaas-webgoat-l1.slice.yaml").read_text())
+    rec = sb.bind(doc)
+    s5 = rec["seams"]["S5"]
+    assert s5["precondition_verified"] is False
+    assert s5["reason_code"] == "TRUST_STORE_ABSENT"
+    assert s5["authorization_ref"] == "NO_DECISION"
+    # frozen-state run must refuse here and stay ABORTED
+    assert rec["terminal_state"] == "ABORTED"
