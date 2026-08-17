@@ -57,3 +57,8 @@ def test_missing_invariant_rejected():
         jsonschema.validate(c, SCHEMA); assert False
     except jsonschema.ValidationError:
         pass
+
+def test_instance_conforms_to_schema():
+    import yaml
+    doc = yaml.safe_load(pathlib.Path("platform/slice-contract/ptaas-webgoat-l1.slice.yaml").read_text())
+    jsonschema.validate(doc, SCHEMA)
