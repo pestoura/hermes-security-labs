@@ -37,7 +37,7 @@
 - `platform/slice-contract/ptaas-webgoat-l1.slice.yaml` — the single instance: `webgoat-web` + `web.discovery.headers`, `LAB_L1`.
 - `platform/slice-contract/slice_binder.py` — read-only resolver/verifier/deriver (no effect, no authority import).
 - `platform/tests/test_slice_binder.py` — TDD suite covering AC1–AC12.
-- `changes/CHG-HSL-0NN.yaml` — the implementation change record (use the next unused id; at plan-authoring time `083` is the design record and `084` is expected free — verify with `ls changes/ | grep -E 'CHG-HSL-0(8[4-9]|9[0-9])'`). Classification `IMPLEMENTATION`, validation `targeted: PASS`, `regression: PASS`, `security: NOT_APPLICABLE`, `runtime: NOT_APPLICABLE`; carries the invariants and `source.reference` to `ADR-0017` + the design doc.
+- `changes/CHG-HSL-084.yaml` — the implementation change record (resolved id; `084`). Classification `IMPROVEMENT`, validation `targeted: PASS`, `regression: PASS`, `security: NOT_APPLICABLE`, `runtime: NOT_APPLICABLE`; carries the invariants and `source.reference` to `ADR-0017` + the design doc + design change `CHG-HSL-083`.
 
 No index/README update is required: `docs/superpowers/` has no plans index file (verified; only `plans/` and `specs/` flat directories), so no plan-index link is needed. Do **not** modify `docs/architecture/first-ptaas-vertical-slice.md` (keep YAGNI; the implementation record is the source of truth for the change).
 
@@ -167,8 +167,8 @@ def test_missing_invariant_rejected():
         pass
 ```
 
-- [ ] **Step 2: Run tests to verify failure**  
-  Run: `python3 -m pytest -q platform/tests/test_slice_binder.py -p no:cacheprovider -k 'schema or target or operation or intrusiveness or destructive or invariant'`  
+- [ ] **Step 2: Run tests to verify failure**
+  Run: `python3 -m pytest -q platform/tests/test_slice_binder.py -p no:cacheprovider -k 'schema or target or operation or intrusiveness or destructive or invariant'`
   Expected: ERROR/FAIL — schema file does not exist yet.
 
 - [ ] **Step 3: Write minimal schema**
@@ -213,8 +213,8 @@ def test_missing_invariant_rejected():
 }
 ```
 
-- [ ] **Step 4: Run tests to verify pass**  
-  Run: `python3 -m pytest -q platform/tests/test_slice_binder.py -p no:cacheprovider -k 'schema or target or operation or intrusiveness or destructive or invariant'`  
+- [ ] **Step 4: Run tests to verify pass**
+  Run: `python3 -m pytest -q platform/tests/test_slice_binder.py -p no:cacheprovider -k 'schema or target or operation or intrusiveness or destructive or invariant'`
   Expected: all selected tests PASS.
 
 - [ ] **Step 5: Commit**
@@ -241,8 +241,8 @@ def test_instance_conforms_to_schema():
 ```
 Add to `test_slice_binder.py`.
 
-- [ ] **Step 2: Run to verify failure**  
-  Run: `python3 -m pytest -q platform/tests/test_slice_binder.py::test_instance_conforms_to_schema -p no:cacheprovider`  
+- [ ] **Step 2: Run to verify failure**
+  Run: `python3 -m pytest -q platform/tests/test_slice_binder.py::test_instance_conforms_to_schema -p no:cacheprovider`
   Expected: FAIL — file missing.
 
 - [ ] **Step 3: Write the instance**
@@ -274,8 +274,8 @@ invariants:
   supplier_selection: NO_SELECTION
 ```
 
-- [ ] **Step 4: Run to verify pass**  
-  Run: `python3 -m pytest -q platform/tests/test_slice_binder.py::test_instance_conforms_to_schema -p no:cacheprovider`  
+- [ ] **Step 4: Run to verify pass**
+  Run: `python3 -m pytest -q platform/tests/test_slice_binder.py::test_instance_conforms_to_schema -p no:cacheprovider`
   Expected: PASS.
 
 - [ ] **Step 5: Commit**
@@ -306,8 +306,8 @@ def test_all_seams_resolve_to_existing_components():
 ```
 Add to `test_slice_binder.py`.
 
-- [ ] **Step 2: Run to verify failure**  
-  Run: `python3 -m pytest -q platform/tests/test_slice_binder.py::test_all_seams_resolve_to_existing_components -p no:cacheprovider`  
+- [ ] **Step 2: Run to verify failure**
+  Run: `python3 -m pytest -q platform/tests/test_slice_binder.py::test_all_seams_resolve_to_existing_components -p no:cacheprovider`
   Expected: ERROR — module missing.
 
 - [ ] **Step 3: Write binder skeleton**
@@ -347,8 +347,8 @@ def bind(contract: Mapping[str, Any], *, clock: str | None = None) -> dict[str, 
 ```
 (Keep `sys` import for future component loading; it is unused now but required by the resolver pattern — documented, not a placeholder.)
 
-- [ ] **Step 4: Run to verify pass**  
-  Run: `python3 -m pytest -q platform/tests/test_slice_binder.py::test_all_seams_resolve_to_existing_components -p no:cacheprovider`  
+- [ ] **Step 4: Run to verify pass**
+  Run: `python3 -m pytest -q platform/tests/test_slice_binder.py::test_all_seams_resolve_to_existing_components -p no:cacheprovider`
   Expected: PASS.
 
 - [ ] **Step 5: Commit**
@@ -389,8 +389,8 @@ def test_s2_refuses_unknown_target_fail_closed():
 ```
 Note: `bind` must call S2 before S3 (precedence). These tests will fail until S2 logic is implemented. The allow reason code (when an operation IS in scope) is `ALLOW_OFFENSIVE_OPERATION`, **not** `ALLOW` — `ALLOW` is not a defined reason code in `platform/targets/execution_authorization.py` (see `REASON_CODES`). **Preflight reconciliation (source-of-truth):** The final canonical seam order is **S1→S2→S3→S4→S5→S6→S7→S8→S9→S10→S11**. The default `bind` short-circuits at **S2 with `OPERATION_OUT_OF_SCOPE`** (webgoat-web `allowed_operations` are coarse categories that do NOT include the typed op `web.discovery.headers`, so the authorizer refuses). It therefore does **NOT** populate S3–S11 on the default path: `refusing_seam` = **S2**, `terminal_state` = **ABORTED**. S5 (`TRUST_STORE_ABSENT`) is NOT the refusing seam on the default contract — S2 precedes it and short-circuits first. Terminal `ABORTED` and ALL invariant literals (`execution_authority: none`, `runtime_status: NOT_RUN`, `promotion_allowed: false`, `trust_store: ABSENT`, `supplier_selection: NO_SELECTION`) are unchanged by the S2 refusal. Later-seam branches (S3+ COMPLETED paths) are exercised only synthetically with valid-but-synthetic seam outcomes and do **not** widen the target-registry scope or authorize `web.discovery.headers`.
 
-- [ ] **Step 2: Run to verify failure**  
-  Run: `python3 -m pytest -q platform/tests/test_slice_binder.py -k S2 -p no:cacheprovider`  
+- [ ] **Step 2: Run to verify failure**
+  Run: `python3 -m pytest -q platform/tests/test_slice_binder.py -k S2 -p no:cacheprovider`
   Expected: FAIL (S2 not populated).
 
 - [ ] **Step 3: Implement S1+S2 in `bind`**
@@ -419,8 +419,8 @@ def _verify_s2(contract):
 ```
 In `bind`, build `seams` dict, run S1 (scope: assert `assurance_profile == "LAB_L1"` and `intrusiveness_level in {"L0","L1"}`) then S2; if either unverified, set `terminal_state="ABORTED"` and stop evaluating later seams (precedence). S1 record: `{"seam":"S1","owner":SEAM_OWNERS["S1"],"precondition_verified":True,"intrusiveness_ceiling":"L1"}`.
 
-- [ ] **Step 4: Run to verify pass**  
-  Run: `python3 -m pytest -q platform/tests/test_slice_binder.py -k S2 -p no:cacheprovider`  
+- [ ] **Step 4: Run to verify pass**
+  Run: `python3 -m pytest -q platform/tests/test_slice_binder.py -k S2 -p no:cacheprovider`
   Expected: PASS.
 
 - [ ] **Step 5: Commit**
@@ -443,8 +443,8 @@ def test_s3_plan_digest_deterministic():
     assert r1["seams"]["S3"]["precondition_verified"] is True
 ```
 
-- [ ] **Step 2: Run to verify failure**  
-  Run: `python3 -m pytest -q platform/tests/test_slice_binder.py -k S3 -p no:cacheprovider`  
+- [ ] **Step 2: Run to verify failure**
+  Run: `python3 -m pytest -q platform/tests/test_slice_binder.py -k S3 -p no:cacheprovider`
   Expected: FAIL (S3 missing).
 
 - [ ] **Step 3: Implement S3**
@@ -463,8 +463,8 @@ def _verify_s3(contract):
 ```
 Wire S3 in `bind` **only after** S2 verifies. If `S2["precondition_verified"]` is `False`, `bind` MUST **early-return** immediately with `terminal_state="ABORTED"` and MUST NOT evaluate S3 (or any later seam). For the canonical `webgoat-web` + `web.discovery.headers` contract, S2 refuses (`OPERATION_OUT_OF_SCOPE`), so S3 is never reached through the real contract; the S3 deterministic-digest test is exercised only synthetically with a valid (S2-verified) seam outcome and does not widen the target-registry scope.
 
-- [ ] **Step 4: Run to verify pass**  
-  Run: `python3 -m pytest -q platform/tests/test_slice_binder.py -k S3 -p no:cacheprovider`  
+- [ ] **Step 4: Run to verify pass**
+  Run: `python3 -m pytest -q platform/tests/test_slice_binder.py -k S3 -p no:cacheprovider`
   Expected: PASS.
 
 - [ ] **Step 5: Commit**
@@ -489,8 +489,8 @@ def test_s4_hitl_required_only_under_lab_l1():
     assert s4["source"] == "current-assurance-profile.yaml"
 ```
 
-- [ ] **Step 2: Run to verify failure**  
-  Run: `python3 -m pytest -q platform/tests/test_slice_binder.py -k S4 -p no:cacheprovider`  
+- [ ] **Step 2: Run to verify failure**
+  Run: `python3 -m pytest -q platform/tests/test_slice_binder.py -k S4 -p no:cacheprovider`
   Expected: FAIL.
 
 - [ ] **Step 3: Implement S4**
@@ -509,8 +509,8 @@ def _verify_s4(contract):
     }
 ```
 
-- [ ] **Step 4: Run to verify pass**  
-  Run: `python3 -m pytest -q platform/tests/test_slice_binder.py -k S4 -p no:cacheprovider`  
+- [ ] **Step 4: Run to verify pass**
+  Run: `python3 -m pytest -q platform/tests/test_slice_binder.py -k S4 -p no:cacheprovider`
   Expected: PASS.
 
 - [ ] **Step 5: Commit**
@@ -536,8 +536,8 @@ def test_s5_refuses_when_trust_store_absent():
     assert s5["authorization_ref"] == "NO_DECISION"
 ```
 
-- [ ] **Step 2: Run to verify failure**  
-  Run: `python3 -m pytest -q platform/tests/test_slice_binder.py -k S5 -p no:cacheprovider`  
+- [ ] **Step 2: Run to verify failure**
+  Run: `python3 -m pytest -q platform/tests/test_slice_binder.py -k S5 -p no:cacheprovider`
   Expected: FAIL.
 
 - [ ] **Step 3: Implement S5 (assert path exists; record NO_DECISION; refuse — never import the resolver)**
@@ -555,8 +555,8 @@ def _verify_s5(contract):
 ```
 In `bind`, S5 is exercised only via `_verify_s5` (direct call) or under `_force_complete`; on the default contract `bind` short-circuits at S2 and never reaches S5. When S5 logic is implemented, record `precondition_verified=False`, `reason_code="TRUST_STORE_ABSENT"`, `authorization_ref="NO_DECISION"` (refusal shape). The canonical default refusing seam is **S2**, not S5.
 
-- [ ] **Step 4: Run to verify pass**  
-  Run: `python3 -m pytest -q platform/tests/test_slice_binder.py -k S5 -p no:cacheprovider`  
+- [ ] **Step 4: Run to verify pass**
+  Run: `python3 -m pytest -q platform/tests/test_slice_binder.py -k S5 -p no:cacheprovider`
   Expected: PASS.
 
 - [ ] **Step 5: Commit**
@@ -579,8 +579,8 @@ def test_s6_recorded_not_run_no_authority_import():
     assert s6["runtime_status"] == "NOT_RUN"
 ```
 
-- [ ] **Step 2: Run to verify failure**  
-  Run: `python3 -m pytest -q platform/tests/test_slice_binder.py -k S6 -p no:cacheprovider`  
+- [ ] **Step 2: Run to verify failure**
+  Run: `python3 -m pytest -q platform/tests/test_slice_binder.py -k S6 -p no:cacheprovider`
   Expected: FAIL.
 
 - [ ] **Step 3: Implement S6 (path assert only; never import)**
@@ -591,8 +591,8 @@ def _verify_s6(contract):
             "runtime_status":"NOT_RUN","admission_codes":["NOT_RUN"]}
 ```
 
-- [ ] **Step 4: Run to verify pass**  
-  Run: `python3 -m pytest -q platform/tests/test_slice_binder.py -k S6 -p no:cacheprovider`  
+- [ ] **Step 4: Run to verify pass**
+  Run: `python3 -m pytest -q platform/tests/test_slice_binder.py -k S6 -p no:cacheprovider`
   Expected: PASS.
 
 - [ ] **Step 5: Commit**
@@ -617,8 +617,8 @@ def test_s7_proves_allowlisted_read_only_operation():
     assert s7["runtime_status"] == "NOT_RUN"
 ```
 
-- [ ] **Step 2: Run to verify failure**  
-  Run: `python3 -m pytest -q platform/tests/test_slice_binder.py -k S7 -p no:cacheprovider`  
+- [ ] **Step 2: Run to verify failure**
+  Run: `python3 -m pytest -q platform/tests/test_slice_binder.py -k S7 -p no:cacheprovider`
   Expected: FAIL.
 
 - [ ] **Step 3: Implement S7**
@@ -635,8 +635,8 @@ def _verify_s7(contract):
             "runtime_status":"NOT_RUN"}
 ```
 
-- [ ] **Step 4: Run to verify pass**  
-  Run: `python3 -m pytest -q platform/tests/test_slice_binder.py -k S7 -p no:cacheprovider`  
+- [ ] **Step 4: Run to verify pass**
+  Run: `python3 -m pytest -q platform/tests/test_slice_binder.py -k S7 -p no:cacheprovider`
   Expected: PASS.
 
 - [ ] **Step 5: Commit**
@@ -660,8 +660,8 @@ def test_s8_derives_sealed_chain_digest_without_persistence(tmp_path):
     assert s8["persisted"] is False  # no LocalEvidenceStore write
 ```
 
-- [ ] **Step 2: Run to verify failure**  
-  Run: `python3 -m pytest -q platform/tests/test_slice_binder.py -k S8 -p no:cacheprovider`  
+- [ ] **Step 2: Run to verify failure**
+  Run: `python3 -m pytest -q platform/tests/test_slice_binder.py -k S8 -p no:cacheprovider`
   Expected: FAIL.
 
 - [ ] **Step 3: Implement S8 (in-memory only)**
@@ -682,8 +682,8 @@ def _verify_s8(contract, *, evidence_refs, clock):
 ```
 `bind(..., _force_complete=True)` supplies synthetic valid `evidence_refs` (digests only) for derivation coverage; the default frozen-state path supplies none and records S8 `precondition_verified=False` with `persisted=False`.
 
-- [ ] **Step 4: Run to verify pass**  
-  Run: `python3 -m pytest -q platform/tests/test_slice_binder.py -k S8 -p no:cacheprovider`  
+- [ ] **Step 4: Run to verify pass**
+  Run: `python3 -m pytest -q platform/tests/test_slice_binder.py -k S8 -p no:cacheprovider`
   Expected: PASS.
 
 - [ ] **Step 5: Commit**
@@ -714,8 +714,8 @@ def test_s9_refuses_when_no_evidence_ref():
     assert rec["seams"]["S9"]["reason_code"] == "NO_VERIFIED_EVIDENCE_REF"
 ```
 
-- [ ] **Step 2: Run to verify failure**  
-  Run: `python3 -m pytest -q platform/tests/test_slice_binder.py -k S9 -p no:cacheprovider`  
+- [ ] **Step 2: Run to verify failure**
+  Run: `python3 -m pytest -q platform/tests/test_slice_binder.py -k S9 -p no:cacheprovider`
   Expected: FAIL.
 
 - [ ] **Step 3: Implement S9**
@@ -736,8 +736,8 @@ def _verify_s9(contract, *, evidence_refs):
             "limitation_recorded":True}
 ```
 
-- [ ] **Step 4: Run to verify pass**  
-  Run: `python3 -m pytest -q platform/tests/test_slice_binder.py -k S9 -p no:cacheprovider`  
+- [ ] **Step 4: Run to verify pass**
+  Run: `python3 -m pytest -q platform/tests/test_slice_binder.py -k S9 -p no:cacheprovider`
   Expected: PASS.
 
 - [ ] **Step 5: Commit**
@@ -761,8 +761,8 @@ def test_s10_zero_residue_contract_present():
     assert s10["runtime_status"] == "NOT_RUN"
 ```
 
-- [ ] **Step 2: Run to verify failure**  
-  Run: `python3 -m pytest -q platform/tests/test_slice_binder.py -k S10 -p no:cacheprovider`  
+- [ ] **Step 2: Run to verify failure**
+  Run: `python3 -m pytest -q platform/tests/test_slice_binder.py -k S10 -p no:cacheprovider`
   Expected: FAIL.
 
 - [ ] **Step 3: Implement S10**
@@ -774,8 +774,8 @@ def _verify_s10(contract):
             "proof_schema_present":schema_present,"runtime_status":"NOT_RUN"}
 ```
 
-- [ ] **Step 4: Run to verify pass**  
-  Run: `python3 -m pytest -q platform/tests/test_slice_binder.py -k S10 -p no:cacheprovider`  
+- [ ] **Step 4: Run to verify pass**
+  Run: `python3 -m pytest -q platform/tests/test_slice_binder.py -k S10 -p no:cacheprovider`
   Expected: PASS.
 
 - [ ] **Step 5: Commit**
@@ -816,15 +816,15 @@ def test_terminal_state_stopped_when_kill_switch_engaged():
 ```
 `bind` must add `audit_record_present` (True when terminal COMPLETED and all seam records present) and `refusing_seam` (the first unverified seam id, i.e. S2 on the default contract). **S11 derives** the terminal state as a pure function from the collected seam records: `COMPLETED` (every S1–S11 `precondition_verified` True), `ABORTED` (first unverified seam reached during the S1→S2→…→S11 walk, recorded as `refusing_seam`), or `STOPPED` (only when `kill_switch_engaged=True` is explicitly passed; default False). The derived record includes `audit_record_present` and a **deterministic digest** (in-memory sealed `EvidenceChain` over the collected seam records + fixed `clock`). On the default contract the walk short-circuits at S2, so S11 derives `ABORTED`/`refusing_seam=S2` without ever populating S3–S11.
 
-- [ ] **Step 2: Run to verify failure**  
-  Run: `python3 -m pytest -q platform/tests/test_slice_binder.py -k 'terminal or byte_identical' -p no:cacheprovider`  
+- [ ] **Step 2: Run to verify failure**
+  Run: `python3 -m pytest -q platform/tests/test_slice_binder.py -k 'terminal or byte_identical' -p no:cacheprovider`
   Expected: FAIL.
 
 - [ ] **Step 3: Implement S11 + wire precedence in `bind`**
 Finalize `bind` so it evaluates S1→S2→S3→S4→S5→...→S10 in order, stops at the first `precondition_verified is False` (records `refusing_seam`), derives `terminal_state` from the collected seams, and adds `audit_record_present`. When `clock=None`, implementation uses a deterministic sentinel `"2026-08-17T00:00:00Z"` for synthetic evidence/custody digests (NOT `datetime.now(UTC)`), so identical contract + fixed clock yields byte-identical traversal records. This is explicitly synthetic/no-live-runtime: the binder holds no authority and performs no live effect; the exact SHA appears only in GitHub checks/PR metadata.
 
-- [ ] **Step 4: Run to verify pass**  
-  Run: `python3 -m pytest -q platform/tests/test_slice_binder.py -k 'terminal or byte_identical' -p no:cacheprovider`  
+- [ ] **Step 4: Run to verify pass**
+  Run: `python3 -m pytest -q platform/tests/test_slice_binder.py -k 'terminal or byte_identical' -p no:cacheprovider`
   Expected: PASS.
 
 - [ ] **Step 5: Commit**
@@ -859,15 +859,15 @@ def test_contract_presence_never_authorizes():
     assert rec["seams"]["S2"]["owner"].endswith("execution_authorization.py")
 ```
 
-- [ ] **Step 2: Run to verify failure**  
-  Run: `python3 -m pytest -q platform/tests/test_slice_binder.py -k 'precedence or never_authorizes' -p no:cacheprovider`  
+- [ ] **Step 2: Run to verify failure**
+  Run: `python3 -m pytest -q platform/tests/test_slice_binder.py -k 'precedence or never_authorizes' -p no:cacheprovider`
   Expected: FAIL.
 
 - [ ] **Step 3: Implement precedence**
 Ensure `bind` short-circuits: once a seam is unverified, record `refusing_seam` and do not populate later seams' verification (they may still appear as path-assert-only stubs for documentation, but `precondition_verified` must be absent/False and must not be treated as pass). Adjust S5/S6/S7/S8/S9/S10 population to respect the stop flag.
 
-- [ ] **Step 4: Run to verify pass**  
-  Run: `python3 -m pytest -q platform/tests/test_slice_binder.py -k 'precedence or never_authorizes' -p no:cacheprovider`  
+- [ ] **Step 4: Run to verify pass**
+  Run: `python3 -m pytest -q platform/tests/test_slice_binder.py -k 'precedence or never_authorizes' -p no:cacheprovider`
   Expected: PASS.
 
 - [ ] **Step 5: Commit**
@@ -907,11 +907,11 @@ def test_invariants_asserted_literal():
     assert doc["invariants"]["supplier_selection"] == "NO_SELECTION"
 ```
 
-- [ ] **Step 2: Run to verify failure**  
-  Run: `python3 -m pytest -q platform/tests/test_slice_binder.py -k 'forbidden or invariants' -p no:cacheprovider`  
+- [ ] **Step 2: Run to verify failure**
+  Run: `python3 -m pytest -q platform/tests/test_slice_binder.py -k 'forbidden or invariants' -p no:cacheprovider`
   Expected: FAIL (guard test missing).
 
-- [ ] **Step 3: Implement guard**  
+- [ ] **Step 3: Implement guard**
 No code change needed if the binder already avoids forbidden imports; add the tests as the guard. Confirm the binder source contains no forbidden imports and no `socket.send`/`subprocess.run`/`os.system` AST calls:
 ```python
 def test_binder_performs_no_socket_or_subprocess_calls():
@@ -923,8 +923,8 @@ def test_binder_performs_no_socket_or_subprocess_calls():
             assert False, f"forbidden call surface: {node.attr}"
 ```
 
-- [ ] **Step 4: Run to verify pass**  
-  Run: `python3 -m pytest -q platform/tests/test_slice_binder.py -k 'forbidden or invariants or socket' -p no:cacheprovider`  
+- [ ] **Step 4: Run to verify pass**
+  Run: `python3 -m pytest -q platform/tests/test_slice_binder.py -k 'forbidden or invariants or socket' -p no:cacheprovider`
   Expected: PASS.
 
 - [ ] **Step 5: Commit**
@@ -938,10 +938,10 @@ git commit -m "test(slice): add AST sanitization guard and literal invariant ass
 ### Task 16: Regression gate, change record, exact-SHA verification, PR readiness
 
 **Files:**
-- Create: `changes/CHG-HSL-0NN.yaml` (next unused id; expected `084`).
+- Create: `changes/CHG-HSL-084.yaml` (next unused id; resolved `084`).
 
 - [ ] **Step 1: Run the slice suite green**
-  Run: `python3 -m pytest -q platform/tests/test_slice_binder.py -p no:cacheprovider`  
+  Run: `python3 -m pytest -q platform/tests/test_slice_binder.py -p no:cacheprovider`
   Expected: all PASS.
 
 - [ ] **Step 2: Run ruff on the new module (CI-aligned)**
@@ -951,19 +951,19 @@ RUFF_CACHE_DIR=/tmp/ruff-hsl python3 -m ruff check --config security/pyproject.t
 Expected: no findings. (Mirrors the `deployment-ops` skill's ruff invocation; the host read-only `/.ruff_cache` is avoided via `RUFF_CACHE_DIR`.)
 
 - [ ] **Step 3: Run the broader platform regression gate**
-  Run: `python3 -m pytest -q platform/tests -p no:cacheprovider`  
+  Run: `python3 -m pytest -q platform/tests -p no:cacheprovider`
   Expected: the slice tests pass and no pre-existing platform test regresses (the binder is additive and imports only effect-free modules, so no `runner_protocol_v2` `PYTHONPATH` is required for this file). If a pre-existing RP2-dependent test fails on the host, reproduce the CI gate with `PYTHONPATH=platform/runner-protocol/src` and report it as environmental, not a regression from this change.
 
 - [ ] **Step 4: Validate YAML/change-record length gates (JDS-002)**
-  Confirm `changes/CHG-HSL-0NN.yaml` `summary` and `source.reference` are ≤ 500 chars (`yaml.safe_load` check). No `TBD`/`TODO`/`XXX` placeholders remain in any new file.
+  Confirm `changes/CHG-HSL-084.yaml` `summary` and `source.reference` are ≤ 500 chars (`yaml.safe_load` check). No `TBD`/`TODO`/`XXX` placeholders remain in any new file.
 
 - [ ] **Step 5: Write the implementation change record**
 ```yaml
 schemaVersion: jds.change/v1
 kind: ChangeRecord
-id: CHG-HSL-0NN
+id: CHG-HSL-084
 product: hermes-security-labs
-classification: IMPLEMENTATION
+classification: IMPROVEMENT
 state: ACCEPTED
 disposition: FIX_NOW
 summary: 'Implement ADR-0017 Option C first PTaaS vertical slice: declarative slice contract (schema + webgoat-web L1 headers instance) and a read-only, authority-free traversal binder over accepted seams S1-S11. No effect, no live Vault, no trust-store, no new authority; campaign stays BLOCKED/HOLD.'
@@ -971,12 +971,12 @@ source:
   type: ENGINEERING_REVIEW
   campaign: VAL-HSL-RUNNER-L1-LIVE-PROMOTION
   observation: OBS-RUNNER-REPO-CHAIN
-  reference: 'ADR-0017 plus docs/architecture/first-ptaas-vertical-slice.md'
+  reference: 'ADR-0017 plus docs/architecture/first-ptaas-vertical-slice.md; reconciled with design change CHG-HSL-083'
 affectedRelease: jds-002-adoption-candidate
 targetRelease: null
 risk: LOW
 versionEffect: NONE
-branch: chg-hsl-083/ptaas-vertical-slice-impl
+branch: chg-hsl-084/ptaas-vertical-slice-implementation
 issue: null
 pr: null
 validation:
@@ -1007,7 +1007,7 @@ for f in \
   platform/slice-contract/ptaas-webgoat-l1.slice.yaml \
   platform/slice-contract/slice_binder.py \
   platform/tests/test_slice_binder.py \
-  changes/CHG-HSL-0NN.yaml; do
+  changes/CHG-HSL-084.yaml; do
   LOCAL=$(git -C "$WT" hash-object "$f")
   REMOTE=$(git -C "$CANON" ls-tree -r "$IMPL" "$f" | awk '{print $3}')
   [ "$LOCAL" = "$REMOTE" ] && echo "PARITY_OK  $f" || echo "MISMATCH  $f"
@@ -1016,7 +1016,7 @@ done
 Merge via API (no local `main` checkout needed): `gh api -X PUT repos/pestoura/hermes-security-labs/pulls/N/merge -f merge_method=squash -f sha=<REST .head.sha>`.
 
 - [ ] **Step 7: PR readiness checklist**
-  - Branch: `chg-hsl-083/ptaas-vertical-slice-impl`, forked from design commit `41e3f435ba3e17f847eab56d9c3faa89963fb9df` (or current `origin/main` if the design branch has since merged).
+  - Branch: `chg-hsl-084/ptaas-vertical-slice-implementation`, forked from design commit `41e3f435ba3e17f847eab56d9c3faa89963fb9df` (or current `origin/main` if the design branch has since merged).
   - CI green: `platform/tests`, `docs/tests`, `ruff` (security/pyproject), YAML parse, JDS-002 length gates.
   - No blocker closed; `VAL-HSL-RUNNER-L1-LIVE-PROMOTION` remains `BLOCKED/HOLD`; invariants asserted unchanged.
   - Reviewer confirms: only the four new files; no policy/gate/schema change beyond the slice contract schema; no Vault/Bridge/signer on the critical path.
@@ -1024,7 +1024,7 @@ Merge via API (no local `main` checkout needed): `gh api -X PUT repos/pestoura/h
 
 - [ ] **Step 8: Commit the change record**
 ```bash
-git add changes/CHG-HSL-0NN.yaml
+git add changes/CHG-HSL-084.yaml
 git commit -m "docs(slice): add implementation change record for first PTaaS vertical slice"
 ```
 
@@ -1033,7 +1033,7 @@ git commit -m "docs(slice): add implementation change record for first PTaaS ver
 ## Self-review of this plan (coverage / placeholders / type consistency)
 
 - **Spec coverage:** AC1–AC12 mapped to Tasks 1–15; AC3 determinism in Task 13; AC10/AC12 invariants + sanitization AST in Task 15; AC11 (no Vault/Bridge/signer) enforced by the no-import rule and S5 `NO_DECISION`. The design doc's section 6.1–6.6 is addressed: contract (T1–T2), binder (T3+), non-destructive check proven by registry+adapter existence (T9), evidence tuple shape (T10), finding shape with empty risk (T11), terminal state (T13).
-- **Placeholders:** No `TBD`/`TODO`/`XXX`. The only open value is the change-record id `CHG-HSL-0NN`, which is resolved at implementation time by checking `changes/` for the next free id (expected `084`). The binder's `_force_complete=True` synthetic mode is an explicit test-only derivation path, not a placeholder.
+- **Placeholders:** No `TBD`/`TODO`/`XXX`. The only open value was the change-record id `CHG-HSL-0NN`, resolved at implementation time to `CHG-HSL-084` by checking `changes/` for the next free id. The binder's `_force_complete=True` synthetic mode is an explicit test-only derivation path, not a placeholder.
 - **Type consistency:** Every cited interface matches the repository at the design commit: `authorize_operation` returns `AuthorizationDecision` with `.allowed`/`.reason_code`; `compose_scenario_plan` returns `ScenarioPlanResult` with `.ok`/`.reason_code`/`.plan`; `create_finding(*, title, risk, root_cause, systemic, evidence_before)`; `EvidenceChain.append_object(...)` and `.chain_state_digest()`; `seal_chain`/`verify_seal`; `CAMPAIGN_STATES` includes `COMPLETED/ABORTED/STOPPED`. The binder deliberately avoids `runner_protocol_v2`-importing modules.
 - **Honest gaps:** Running `bind()` against the default frozen repository short-circuits at S2 (`OPERATION_OUT_OF_SCOPE`) and yields `ABORTED` with `refusing_seam=S2`; later seams (incl. S5 `TRUST_STORE_ABSENT`) are NOT populated on the default path — this is the spec-compliant current-state result and is asserted as such. Live `COMPLETED` requires the separate live-promotion change with an explicit owner approval and a present trust store; it is out of scope and only exercised via synthetic seam outcomes.
 - **Global constraints preserved:** no production effect, no new authority, no Vault/Bridge/signer, no secrets, single target/operation, invariants literal, no blocker closed.
