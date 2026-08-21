@@ -81,3 +81,19 @@ def test_descriptor_is_reference_only_and_contains_no_admin_commands():
         "SecretID:",
     ):
         assert forbidden not in text
+
+
+def test_shared_readme_records_provider_and_hitl_boundaries():
+    text = SHARED_README.read_text(encoding="utf-8")
+    assert "provider-owned" in text.lower()
+    assert "hermes-vault" in text
+    assert "HITL" in text
+    assert "SecretID" in text
+    assert "NO_AUTOMATIC_ACTIVATION" in text
+
+
+def test_legacy_vault_package_is_non_authoritative_for_new_signing():
+    text = LEGACY_README.read_text(encoding="utf-8")
+    assert "NO_NEW_SIGNING_AUTHORITY" in text
+    assert "NO_AUTOMATIC_FALLBACK" in text
+    assert "verify-only" in text.lower()
