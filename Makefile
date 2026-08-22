@@ -15,11 +15,14 @@ validate:
 	python3 security/tools/securityctl.py validate
 	git ls-files '*.sh' | xargs -r -n1 bash -n
 
+# CI installs platform/runner-protocol as an editable SDK. The local gate exposes
+# the same repository source tree explicitly so pytest children inherit the package
+# without mutating the operator's Python environment.
 test:
 	python3 -m pytest -q docs/tests -p no:cacheprovider
 	python3 -m pytest -q deployment/tests -p no:cacheprovider
 	python3 -m pytest -q roadmap/tests -p no:cacheprovider
-	python3 -m pytest -q platform/tests -p no:cacheprovider
+	PYTHONPATH="$(CURDIR)/platform/runner-protocol/src$${PYTHONPATH:+:$${PYTHONPATH}}" python3 -m pytest -q platform/tests -p no:cacheprovider
 
 # Reproduces the CI gate exactly. A bare `ruff check .` is NOT the gate: it reports
 # pre-existing findings in paths CI does not lint.
