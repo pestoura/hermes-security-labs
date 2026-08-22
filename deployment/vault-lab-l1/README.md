@@ -2,6 +2,8 @@
 
 Status: repository deployment package for CHG-HSL-082. Repository GREEN is not live-provider evidence.
 
+> **CHG-HSL-085 transition boundary:** `NO_NEW_SIGNING_AUTHORITY` and `NO_AUTOMATIC_FALLBACK`. The shared `pestoura/hermes-vault` capability is the target for new HSL signatures after its separate acceptance/cutover gates pass. This package is retained as historical implementation provenance and later verify-only continuity; it must not be auto-started as a signing fallback.
+
 ## Security boundary
 
 This package provisions one HashiCorp Vault node for LAB_L1 with Integrated Storage/Raft and mandatory TLS. It is deliberately not a production HA design.

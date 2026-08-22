@@ -1,0 +1,37 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "hsl.shared-vault-consumer/v1",
+  "title": "HSL shared Hermes Vault consumer contract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "provider",
+    "vault_addr",
+    "transit_mount",
+    "key_name",
+    "approle_mount",
+    "approle_name",
+    "role_id_ref",
+    "secret_id_ref",
+    "activation"
+  ],
+  "properties": {
+    "schema_version": {"const": "hsl.shared-vault-consumer/v1"},
+    "provider": {"const": "hermes-shared-vault"},
+    "vault_addr": {"const": "https://hermes-vault:8200"},
+    "transit_mount": {"const": "hsl-transit"},
+    "key_name": {"const": "hsl-signing"},
+    "approle_mount": {"const": "approle"},
+    "approle_name": {"const": "hsl-signer"},
+    "role_id_ref": {
+      "type": "string",
+      "const": "secretref://hermes-vault/hsl-signer/role-id"
+    },
+    "secret_id_ref": {
+      "type": "string",
+      "const": "secretref://hermes-vault/hsl-signer/secret-id"
+    },
+    "activation": {"const": "NOT_RUN"}
+  }
+}

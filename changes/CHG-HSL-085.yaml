@@ -1,0 +1,34 @@
+schemaVersion: jds.change/v1
+kind: ChangeRecord
+id: CHG-HSL-085
+product: hermes-security-labs
+classification: IMPROVEMENT
+state: ACCEPTED
+disposition: FIX_NOW
+summary: 'Migrate HSL repository-side signer configuration toward the shared Hermes Vault consumer model without activating runtime authority: add a closed non-secret consumer descriptor for https://hermes-vault:8200, hsl-transit/hsl-signing and AppRole hsl-signer; prove compatibility with the existing VaultSignerAdapter; mark the isolated LAB_L1 Vault package as legacy verify-only with no new signing authority and no automatic fallback.'
+source:
+  type: ENGINEERING_REVIEW
+  campaign: VAL-HSL-RUNNER-L1-LIVE-PROMOTION
+  observation: OBS-RUNNER-POLICY-PROMOTION
+  reference: 'ADR-0018 + shared-Vault consumer migration spec/plan. Hermes Vault core is independently VAULT_CORE_OPERATIONAL=VERIFIED at pestoura/hermes-vault main d7858d0a2f412ce212b347472dfc55b0312377c3; this change consumes that service contract only, preserves NO_DECISION, NO_SELECTION, trust ABSENT and campaign BLOCKED/HOLD, and grants no HSL runtime activation.'
+affectedRelease: jds-002-adoption-candidate
+targetRelease: null
+risk: LOW
+versionEffect: NONE
+branch: chg-hsl-085/shared-vault-consumer-migration
+issue: null
+pr: 430
+validation:
+  targeted: PASS
+  regression: PASS
+  security: PASS
+  runtime: NOT_RUN
+promotion:
+  commit: null
+  artifactDigest: null
+  previousRelease: null
+deferredTo: null
+timestamps:
+  discoveredAt: '2026-08-22T01:06:11Z'
+  updatedAt: '2026-08-22T01:13:13Z'
+  closedAt: null

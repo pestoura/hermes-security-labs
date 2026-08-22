@@ -1,0 +1,10 @@
+schema_version: hsl.shared-vault-consumer/v1
+provider: hermes-shared-vault
+vault_addr: https://hermes-vault:8200
+transit_mount: hsl-transit
+key_name: hsl-signing
+approle_mount: approle
+approle_name: hsl-signer
+role_id_ref: secretref://hermes-vault/hsl-signer/role-id
+secret_id_ref: secretref://hermes-vault/hsl-signer/secret-id
+activation: NOT_RUN

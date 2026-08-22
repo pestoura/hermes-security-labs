@@ -90,6 +90,7 @@ Editorial clarification that does not alter behaviour or authority does not requ
 | [ADR-0015](ADR-0015-authorization-receipt-audit-evidence.md) | Audit receipt registration, lookup and refusal decisions through a dedicated adapter feeding the canonical AuditSink/EvidenceChain | Accepted | authorization decision audit evidence |
 | [ADR-0016](ADR-0016-authorization-audit-evidence-custody.md) | Use a dedicated minimal Evidence Plane custody bridge for sanitized authorization-decision audit objects and bind verified custody to the canonical AuditSink/EvidenceChain | Accepted | authorization audit evidence custody |
 | [ADR-0017](ADR-0017-first-ptaas-vertical-slice-composition.md) | Compare compositions for the first PTaaS vertical slice and recommend a declarative slice contract with a thin read-only traversal binder over already-accepted components, without taking a binding decision | Proposed / em validação | first PTaaS vertical-slice composition |
+| [ADR-0018](ADR-0018-shared-hermes-vault-consumer.md) | Define HSL as a consumer of the shared Hermes Vault using the existing provider-neutral signer adapter while preserving separate selection, trust and live-promotion gates | Accepted | shared signer consumer boundary |
 
 ## Structural-decision coverage
 
@@ -117,6 +118,7 @@ The ADR set covers the structural principles accepted in the roadmap. A single A
 | VAULT is an architectural target only; provider selection/implementation remains a later evidence-bearing decision | ADR-0014 |
 | Authorization registration, lookup and refusal decisions are auditable through a dedicated domain adapter over the canonical AuditSink | ADR-0015 |
 | Sanitized authorization-decision audit objects use the existing Evidence Plane for verifiable custody while the AuditSink/EvidenceChain remains the canonical decision-ordering chain | ADR-0016 |
+| HSL consumes the shared Hermes Vault through a non-secret consumer contract; signer selection/trust/live promotion remain separate | ADR-0018 |
 
 ## Supersession process
 
