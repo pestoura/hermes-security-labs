@@ -1,0 +1,34 @@
+schemaVersion: jds.change/v1
+kind: ChangeRecord
+id: CHG-HSL-091
+product: hermes-security-labs
+classification: HARDENING
+state: ACCEPTED
+disposition: FIX_NOW
+summary: 'Restore local make test parity for Runner Protocol subprocess drills by exposing the repository-local SDK source tree to platform tests, matching the package availability provided by CI without mutating the operator Python environment.'
+source:
+  type: ENGINEERING_REVIEW
+  campaign: VAL-HSL-RUNNER-L1-LIVE-PROMOTION
+  observation: OBS-RUNNER-POLICY-PROMOTION
+  reference: 'Discovered while validating CHG-HSL-090 on main 161769b0b819165fe521e0c50ca47b70dce2f336: four kill-switch subprocess drills failed because make test did not make runner_protocol_v2 importable. CI installs -e platform/runner-protocol; local source-path injection makes spawned subprocesses inherit the same SDK availability.'
+affectedRelease: jds-002-adoption-candidate
+targetRelease: null
+risk: LOW
+versionEffect: NONE
+branch: chg-hsl-091/make-test-runner-protocol-parity
+issue: null
+pr: null
+validation:
+  targeted: PASS
+  regression: PASS
+  security: PASS
+  runtime: NOT_RUN
+promotion:
+  commit: null
+  artifactDigest: null
+  previousRelease: null
+deferredTo: null
+timestamps:
+  discoveredAt: '2026-08-22T23:39:46Z'
+  updatedAt: '2026-08-22T23:41:01Z'
+  closedAt: null
