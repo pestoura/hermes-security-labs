@@ -1,0 +1,41 @@
+name: hsl-shared-vault-probe
+
+services:
+  shared-vault-probe:
+    container_name: hsl-shared-vault-probe
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      HSL_VAULT_ADDR: https://hermes-vault:8200
+      HSL_VAULT_CA_FILE: /run/hsl-vault-ca/ca.pem
+    volumes:
+      - hsl-shared-vault-ca:/run/hsl-vault-ca:ro
+    networks:
+      - hermes-security-plane
+    user: "10001:10001"
+    read_only: true
+    restart: "no"
+    init: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=16m
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 64M
+          pids: 32
+
+networks:
+  hermes-security-plane:
+    external: true
+    name: hermes-security-plane
+
+volumes:
+  hsl-shared-vault-ca:
+    external: true
+    name: hsl-shared-vault-ca
