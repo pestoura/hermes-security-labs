@@ -1,8 +1,8 @@
 # ADR-0018 — HSL consumes the shared Hermes Vault
 
-- **Status:** Accepted implementation direction
+- **Status:** Accepted
 - **Date:** 2026-08-21
-- **Decision owner:** HSL / Hermes Vault owner
+- **Decision owners:** HSL architecture owner / Hermes Vault service owner
 - **Related:** ADR-0014, CHG-HSL-081, CHG-HSL-082, shared Vault ADR-018..023
 
 ## Context
@@ -45,7 +45,21 @@ campaign = BLOCKED / HOLD
 
 Shared Vault bootstrap, RoleID/SecretID delivery, live signer observation, R1–R8 review, human decision, trust installation and live promotion are separate gates. No missing gate may be inferred from repository acceptance.
 
-## Security consequences
+## Consequences
+
+### Positive
+
+- HSL reuses one shared operational Vault instead of duplicating custody, recovery, audit and lifecycle controls.
+- The existing provider-neutral `VaultSignerAdapter` remains unchanged and testable against a non-secret descriptor.
+- New-signing authority and legacy verification continuity stay explicitly separated.
+
+### Negative
+
+- HSL now depends on the availability and consumer contract of the shared Vault service.
+- Consumer onboarding still requires a separate live identity handoff and capability acceptance before any signing authority can be enabled.
+- The legacy HSL Vault package must remain clearly non-authoritative until a later retirement decision removes it.
+
+## Security implications
 
 - HSL receives no Vault administration capability.
 - The shared Vault owns mount/key/AppRole lifecycle and audit/recovery controls.
@@ -53,16 +67,21 @@ Shared Vault bootstrap, RoleID/SecretID delivery, live signer observation, R1–
 - There is no automatic fallback to the legacy signer.
 - Existing historical signatures remain verifiable under the legacy public identity until a later retirement decision.
 
-## Alternatives
+## Alternatives considered
 
 1. **Shared Vault consumer descriptor + existing adapter — selected.** Minimal duplication, explicit ownership, fail-closed and testable without credentials.
 2. **Hard-code shared Vault values in `VaultSignerAdapter` — rejected.** Couples application code to one deployment and weakens provider-neutrality.
 3. **Keep a dedicated HSL Vault as the primary signer — rejected.** Duplicates recovery/audit/custody and conflicts with the approved shared-service model.
 
-## Acceptance
+## Evidence and validation
 
 Repository acceptance requires a closed, non-secret consumer descriptor, tests proving exact endpoint/mount/key/AppRole references and explicit assertions that signer decision, trust, runtime and promotion remain inactive.
 
 Live acceptance additionally requires the shared Vault HSL capability, limited identity proof, signer observation/attestation, R1–R8 evidence, historical verification continuity and the separate human decision lifecycle in issue #403.
 
 No SecretID, Vault token, Shamir share, private key, passphrase or recovery location may appear in repository evidence.
+
+
+## Review triggers
+
+Revisit this decision if the shared Vault service ownership model changes, the HSL signer no longer uses Transit/AppRole semantics, consumer isolation cannot be maintained, or the human signer-selection lifecycle rejects the shared-Vault provider. Repository acceptance alone is not a trigger to enable runtime authority.
