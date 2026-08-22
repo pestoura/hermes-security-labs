@@ -1,0 +1,30 @@
+[Unit]
+Description=Hexor Runner authenticated receipt-delivery listener
+Requires=hexor-runner-authz.socket
+After=hexor-runner-authz.socket
+
+[Service]
+User=hexor-runner
+Group=hexor-runner
+SupplementaryGroups=hexor-dispatch
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/usr/bin/python3 /opt/hexor/receipt-delivery-runtime/receipt_delivery_listener.py
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_UNIX
+RestrictNamespaces=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+CapabilityBoundingSet=
+AmbientCapabilities=
+
+[Install]
+WantedBy=multi-user.target
