@@ -1,0 +1,29 @@
+schema_version: "1.0"
+descriptor_id: hexor.runner.authorization.receipt-delivery-runtime
+change: CHG-HSL-088
+runtime_status: NOT_RUN
+promotion_allowed: false
+execution_authority: none
+socket:
+  path: /run/hexor/runner-authz.sock
+  owner_uid: 4101
+  group_gid: 4110
+  mode: "0660"
+peer:
+  principal_id: hexor.execution-gateway
+  allowed_uid: 4100
+  identity_source: linux-so-peercred
+listener:
+  mode: AUTHENTICATED_HOLD
+  max_frame_bytes: 65536
+  read_timeout_seconds: 2.0
+receipt_delivery:
+  state: DISABLED
+  policy_source: platform/runner-authorization/receipt-delivery-policy.yaml
+resolver:
+  state: DISABLED
+  policy_source: platform/runner-authorization/resolver-policy.yaml
+target_effects:
+  runner_dispatch: none
+  webgoat: none
+  kali: none

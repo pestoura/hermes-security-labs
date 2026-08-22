@@ -1,0 +1,14 @@
+[Unit]
+Description=Hexor Runner authorization receipt socket
+ConditionPathIsDirectory=/run/hexor
+
+[Socket]
+ListenStream=/run/hexor/runner-authz.sock
+SocketUser=hexor-runner
+SocketGroup=hexor-dispatch
+SocketMode=0660
+DirectoryMode=0750
+Accept=no
+
+[Install]
+WantedBy=sockets.target

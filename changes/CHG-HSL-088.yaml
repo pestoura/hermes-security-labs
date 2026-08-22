@@ -1,0 +1,34 @@
+schemaVersion: jds.change/v1
+kind: ChangeRecord
+id: CHG-HSL-088
+product: hermes-security-labs
+classification: IMPROVEMENT
+state: ACCEPTED
+disposition: FIX_NOW
+summary: 'Add a dedicated authenticated AF_UNIX receipt-delivery runtime boundary at /run/hexor/runner-authz.sock, separate from runner dispatch. The boundary authenticates the existing hexor-gateway uid 4100 using Linux SO_PEERCRED, defaults to AUTHENTICATED_HOLD with receipt delivery and resolver disabled, and provides bounded framing plus fail-closed deployment/rollback without target or execution effect.'
+source:
+  type: ENGINEERING_REVIEW
+  campaign: VAL-HSL-RUNNER-L1-LIVE-PROMOTION
+  observation: OBS-TB1-LIVE-DELIVERY
+  reference: 'Approved 2026-08-22 design: dedicated runner-authz socket; server hexor-runner uid 4101; sole authenticated peer hexor-gateway uid 4100; hexor-dispatch DAC is not authentication. Runtime remains DISABLED/NOT_RUN, execution_authority=none, promotion_allowed=false and separate from /run/hexor/runner-dispatch.sock.'
+affectedRelease: jds-002-adoption-candidate
+targetRelease: null
+risk: LOW
+versionEffect: NONE
+branch: chg-hsl-088/authenticated-receipt-delivery-runtime
+issue: null
+pr: null
+validation:
+  targeted: PASS
+  regression: PASS
+  security: PASS
+  runtime: NOT_RUN
+promotion:
+  commit: null
+  artifactDigest: null
+  previousRelease: null
+deferredTo: null
+timestamps:
+  discoveredAt: '2026-08-22T20:34:39Z'
+  updatedAt: '2026-08-22T20:39:49Z'
+  closedAt: null
