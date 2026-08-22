@@ -1,0 +1,34 @@
+schemaVersion: jds.change/v1
+kind: ChangeRecord
+id: CHG-HSL-087
+product: hermes-security-labs
+classification: HARDENING
+state: ACCEPTED
+disposition: FIX_NOW
+summary: 'Reconcile the accepted CHG-HSL-086 HermesJarvas pre-Secret-Zero shared-Vault observation into the walking skeleton and live-promotion campaign without converting network/TLS readiness into signer/provider attestation. Hermes Vault v1 is an operational shared baseline; the HSL probe remains on 172.25.0.3/32 with TLS verified while Secret Zero, signer/provider evidence, trust binding and promotion remain unexecuted.'
+source:
+  type: ENGINEERING_REVIEW
+  campaign: VAL-HSL-RUNNER-L1-LIVE-PROMOTION
+  observation: OBS-RUNNER-POLICY-PROMOTION
+  reference: 'ADR-0018 + CHG-HSL-085 + CHG-HSL-086 + HermesJarvas live re-observation on 2026-08-22. Issue #426 is retired as superseded by the shared Vault architecture. Issue #403 retains VAULT as architecture target only; operational decision remains NO_DECISION until evidence-backed R1-R8 requirements are met. signer-provider remains NOT_RUN, trust-store ABSENT, campaign BLOCKED/HOLD.'
+affectedRelease: jds-002-adoption-candidate
+targetRelease: null
+risk: LOW
+versionEffect: NONE
+branch: chg-hsl-087/reconcile-shared-vault-live-observation
+issue: 403
+pr: 432
+validation:
+  targeted: PASS
+  regression: PASS
+  security: PASS
+  runtime: PASS
+promotion:
+  commit: null
+  artifactDigest: null
+  previousRelease: null
+deferredTo: null
+timestamps:
+  discoveredAt: '2026-08-22T15:01:21Z'
+  updatedAt: '2026-08-22T15:20:40Z'
+  closedAt: null

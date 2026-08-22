@@ -21,16 +21,16 @@ observations:
     required: true
     result: BLOCKED
     status: OPEN
-    summary: 'TB1 issuance, signer/trust preflight and repository authorization-audit custody are GREEN-REPO. Live acceptance remains blocked: signer/provider not observed; trust store absent; receipt-delivery socket unconfigured; delivery/resolver/custody policies DISABLED/NOT_RUN; live audit persistence NOT_RUN.'
+    summary: 'TB1 issuance, signer/trust preflight and repository authorization-audit custody are GREEN-REPO. CHG-HSL-086 now adds a live shared-Vault pre-Secret-Zero network/TLS observation only. Live acceptance remains blocked: Secret Zero and signer/provider attestation/source evidence NOT_RUN; trust store absent; receipt-delivery socket unconfigured; delivery/resolver/custody policies DISABLED/NOT_RUN; live audit persistence NOT_RUN.'
     changeRecord: CHG-HSL-011
-    evidence: 'prs:322,328,331,336,342,417; trust-store:ABSENT; signer-provider:NOT_RUN; signer-source:NOT_RUN; receipt-delivery:DISABLED/NOT_RUN; resolver:DISABLED/NOT_RUN; auth-audit-custody:GREEN-REPO(CHG-HSL-079); auth-audit-custody-policy:DISABLED/NOT_RUN; live-auth-audit:NOT_RUN'
+    evidence: 'prs:322,328,331,336,342,417,430,431; signer-provider:NOT_RUN; shared-vault-pre-secret-zero:PASS(CHG-HSL-086;runtime=OBSERVED_PRE_SECRET_ZERO;consumer=172.25.0.3/32;tls=TLSv1.3); SECRETID_ISSUANCE=NOT_RUN; signer-attestation:NOT_RUN; signer-source:NOT_RUN; trust-store:ABSENT; receipt-delivery:DISABLED/NOT_RUN; resolver:DISABLED/NOT_RUN; auth-audit-custody:GREEN-REPO(CHG-HSL-079); auth-audit-custody-policy:DISABLED/NOT_RUN; live-auth-audit:NOT_RUN'
   - id: OBS-RUNNER-POLICY-PROMOTION
     required: true
     result: BLOCKED
     status: OPEN
-    summary: 'CHG-HSL-072: userns PASS and unauthorized-peer HOLD refusal PASS. CHG-HSL-079: auth-audit custody GREEN-REPO with Evidence Plane verification/AuditSink binding; live composition NOT_RUN. CHG-HSL-071 PRE_PROMOTION remains ASSEMBLED/HOLD/INCOMPLETE. Remaining LAB_L1 blockers: signer/trust, receipt delivery, live audit persistence, PRE completion, HITL, live effect and POST_EFFECT.'
+    summary: 'CHG-HSL-072: userns PASS and unauthorized-peer HOLD refusal PASS. CHG-HSL-079: auth-audit custody GREEN-REPO; live composition NOT_RUN. CHG-HSL-086: shared-Vault network/TLS pre-Secret-Zero observation PASS only; Secret Zero and signer attestation remain NOT_RUN. CHG-HSL-071 PRE_PROMOTION remains ASSEMBLED/HOLD/INCOMPLETE. Remaining LAB_L1 blockers: signer evidence/trust, receipt delivery, live audit persistence, PRE completion, HITL, live effect and POST_EFFECT.'
     changeRecord: CHG-HSL-072
-    evidence: 'userns:PASS(CHG-HSL-072); peer-negative:PASS(CHG-HSL-072); auth-audit-custody:GREEN-REPO(CHG-HSL-079;main=c716bd6512da3fa853ad8022863ecc8bac4e51a6); trust-store:ABSENT; signer:NOT_OBSERVED; auth-audit-custody-policy:DISABLED/NOT_RUN; live-audit-custody:NOT_RUN; pre:ASSEMBLED/HOLD/INCOMPLETE(CHG-HSL-071); post-effect:NOT_RUN; policies:DISABLED/NOT_RUN'
+    evidence: 'userns:PASS(CHG-HSL-072); peer-negative:PASS(CHG-HSL-072); auth-audit-custody:GREEN-REPO(CHG-HSL-079;main=c716bd6512da3fa853ad8022863ecc8bac4e51a6); signer:NOT_OBSERVED; shared-vault-pre-secret-zero:PASS(CHG-HSL-086;172.25.0.3/32;TLSv1.3); SECRETID_ISSUANCE=NOT_RUN; signer-attestation:NOT_RUN; trust-store:ABSENT; auth-audit-custody-policy:DISABLED/NOT_RUN; live-audit-custody:NOT_RUN; pre:ASSEMBLED/HOLD/INCOMPLETE(CHG-HSL-071); post-effect:NOT_RUN; policies:DISABLED/NOT_RUN'
   - id: OBS-EVIDENCE-CUSTODY
     required: true
     result: BLOCKED
@@ -48,5 +48,5 @@ observations:
 promotionRecommendation: HOLD
 timestamps:
   startedAt: '2026-08-09T21:12:00Z'
-  updatedAt: '2026-08-16T05:38:47Z'
+  updatedAt: '2026-08-22T14:35:00Z'
   closedAt: null
