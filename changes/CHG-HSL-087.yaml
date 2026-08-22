@@ -17,7 +17,7 @@ risk: LOW
 versionEffect: NONE
 branch: chg-hsl-087/reconcile-shared-vault-live-observation
 issue: 403
-pr: null
+pr: 432
 validation:
   targeted: PASS
   regression: PASS
@@ -30,5 +30,5 @@ promotion:
 deferredTo: null
 timestamps:
   discoveredAt: '2026-08-22T15:01:21Z'
-  updatedAt: '2026-08-22T15:01:21Z'
+  updatedAt: '2026-08-22T15:20:40Z'
   closedAt: null
