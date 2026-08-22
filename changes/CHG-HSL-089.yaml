@@ -17,7 +17,7 @@ risk: LOW
 versionEffect: NONE
 branch: chg-hsl-089/reconcile-receipt-delivery-live
 issue: 434
-pr: null
+pr: 435
 validation:
   targeted: PASS
   regression: PASS
@@ -30,5 +30,5 @@ promotion:
 deferredTo: null
 timestamps:
   discoveredAt: '2026-08-22T21:28:12Z'
-  updatedAt: '2026-08-22T21:39:58Z'
+  updatedAt: '2026-08-22T21:42:32Z'
   closedAt: null
