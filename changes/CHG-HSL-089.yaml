@@ -1,0 +1,34 @@
+schemaVersion: jds.change/v1
+kind: ChangeRecord
+id: CHG-HSL-089
+product: hermes-security-labs
+classification: HARDENING
+state: ACCEPTED
+disposition: FIX_NOW
+summary: 'Reconcile the independently verified CHG-HSL-088 HermesJarvas authenticated receipt-delivery AF_UNIX endpoint observation into the walking skeleton and live-promotion campaign while keeping receipt acceptance, resolver trust, signer/Secret Zero, promotion and target effects disabled.'
+source:
+  type: ENGINEERING_REVIEW
+  campaign: VAL-HSL-RUNNER-L1-LIVE-PROMOTION
+  observation: OBS-TB1-LIVE-DELIVERY
+  reference: 'PR #433 merged at 1d368ea8eb54d65d4fc2a5022d8a88e93252a6c2; issue #434 completed after operator install and independent read-only verification. runner-authz socket is enabled/active/listening in AUTHENTICATED_HOLD; installed artifacts match merged main; unprivileged peer is refused; existing runner dispatch is unchanged; delivery/resolver policies remain DISABLED/NOT_RUN.'
+affectedRelease: jds-002-adoption-candidate
+targetRelease: null
+risk: LOW
+versionEffect: NONE
+branch: chg-hsl-089/reconcile-receipt-delivery-live
+issue: 434
+pr: 435
+validation:
+  targeted: PASS
+  regression: PASS
+  security: PASS
+  runtime: PASS
+promotion:
+  commit: null
+  artifactDigest: null
+  previousRelease: null
+deferredTo: null
+timestamps:
+  discoveredAt: '2026-08-22T21:28:12Z'
+  updatedAt: '2026-08-22T21:42:32Z'
+  closedAt: null

@@ -2,13 +2,14 @@
 
 **Reconciled:** 2026-08-22 UTC
 **Current Labs baseline:** `8c654379afb2114e34d6e748bb558b3ad5b8fb4b`
-**Current repository main:** `c8e4c4517e0fceaa9e37d28fe05c53554af07723`
+**Current repository main:** `1d368ea8eb54d65d4fc2a5022d8a88e93252a6c2`
 **CHG-HSL-072 reconciliation base:** `9448817e436ee096e0f839b6bb8b9bf9e06d8d6d`
 **Accepted/live Hermes MCP Bridge revision:** `3717bd5469b061a44294b27e1a7510d477d3752b`
 **DVWA live lifecycle acceptance:** `run_8f2174dc4c87452098b700ff556ac978`
 **Juice Shop live lifecycle acceptance:** `run_cc3cd41e85c44d9182305960ea816f18`
 **CHG-HSL-071 accepted merge:** `c4f409d05e5575e815d4b35e0ca5fda45a73bf8c` (PR #401; post-merge Exact-SHA GREEN)
 **CHG-HSL-086 accepted merge:** `c8e4c4517e0fceaa9e37d28fe05c53554af07723` (PR #431; shared-Vault pre-Secret-Zero probe merged and live-observed)
+**CHG-HSL-088 accepted merge:** `1d368ea8eb54d65d4fc2a5022d8a88e93252a6c2` (PR #433; authenticated receipt-delivery boundary merged and live-observed in AUTHENTICATED_HOLD)
 
 This file is the concise current-state view. Historical detail remains in the dedicated roadmap/evidence records and the governed campaign at [`../../validation/VAL-HSL-RUNNER-L1-LIVE-PROMOTION.yaml`](../../validation/VAL-HSL-RUNNER-L1-LIVE-PROMOTION.yaml).
 
@@ -49,6 +50,7 @@ A complete machine-evidence package still cannot promote the Runner without expl
 | PRE_PROMOTION package | `ASSEMBLED / HOLD / INCOMPLETE` through CHG-HSL-071 plus CHG-HSL-072 evidence |
 | Hermes Vault v1 | `OPERATIONAL BASELINE`; shared ecosystem service healthy/unsealed on HermesJarvas |
 | HSL shared-Vault pre-Secret-Zero probe | `PASS / OBSERVED_PRE_SECRET_ZERO`; TLSv1.3 verified; consumer `172.25.0.3/32`; `SECRETID_ISSUANCE=NOT_RUN` |
+| HSL authenticated receipt-delivery boundary | `PASS / AUTHENTICATED_HOLD`; `/run/hexor/runner-authz.sock`; `4101:4110`; mode `0660`; peer uid `4100`; policy remains `DISABLED / NOT_RUN` |
 | Full walking skeleton live completion | `HOLD / BLOCKED-ON-LIVE-PROMOTION-EVIDENCE` |
 
 ## CHG-HSL-085/086 — shared Hermes Vault consumer path
@@ -68,6 +70,12 @@ The shared **Hermes Vault v1** service is treated as the `OPERATIONAL BASELINE` 
 - `execution_authority=NONE`.
 
 This observation is network/TLS readiness only. It is not signer attestation, provider/source evidence, R1-R8 completion, trust binding or execution authority. The campaign remains `BLOCKED / HOLD`. The next signer-dependent action is the Secret Zero operator HITL; ChatGPT automation must not create, unwrap, read or transport the resulting credentials.
+
+## CHG-HSL-088 — authenticated receipt-delivery live boundary
+
+The merged CHG-HSL-088 runtime was installed by an authorized operator and independently re-observed on HermesJarvas. The dedicated AF_UNIX endpoint `/run/hexor/runner-authz.sock` is enabled, active and listening as `hexor-runner` uid 4101 / `hexor-dispatch` gid 4110 with mode `0660`; the accepted peer contract remains uid 4100 / `hexor.execution-gateway`. All five installed artifacts match merged main byte-for-byte, the existing `runner-dispatch.sock` remains independently active, and an unprivileged caller is refused at the DAC boundary.
+
+This is an endpoint-boundary observation only. The receipt-delivery and resolver policies remain `DISABLED / NOT_RUN`; `execution_authority=none`, `promotion_allowed=false`, target effects remain none, trust-store remains absent, and signer/Secret Zero remain unexecuted. The campaign therefore remains `BLOCKED / HOLD`.
 
 ## CHG-HSL-072 — current-PID userns + unauthorized-peer acceptance
 
@@ -132,14 +140,13 @@ The two issue #402 blockers are now closed at evidence level. The remaining crit
 
 1. shared-Vault Secret Zero operator HITL, followed by sanitized external signer/provider observation, independently verified source evidence, trust-manifest input and R1-R8 evidence;
 2. evidence-backed #403 operational decision (`APPROVED + NO_SELECTION`), without automatic supplier/provider selection, then approved Runner authorization trust store installed and host-observed;
-3. authenticated receipt-delivery AF_UNIX endpoint configured and proven; this lane may progress independently before signer trust binding, but remains non-authoritative until promotion;
-4. refreshed host identity/socket/trust evidence where exact-candidate re-observation is required;
-5. live Runner/audit/terminal persistence evidence;
-6. completion and verification of all remaining mandatory PRE_PROMOTION gates;
-7. explicit Human-in-the-Loop promotion approval for the exact candidate;
-8. promotion of only the minimum required policy set;
-9. one authorized bounded WebGoat L1 effect plus terminal/audit persistence and reset/known-state proof;
-10. complete and verified POST_EFFECT package before campaign acceptance review.
+3. refreshed host identity/socket/trust evidence where exact-candidate re-observation is required;
+4. live Runner/audit/terminal persistence evidence;
+5. completion and verification of all remaining mandatory PRE_PROMOTION gates;
+6. explicit Human-in-the-Loop promotion approval for the exact candidate;
+7. promotion of only the minimum required policy set;
+8. one authorized bounded WebGoat L1 effect plus terminal/audit persistence and reset/known-state proof;
+9. complete and verified POST_EFFECT package before campaign acceptance review.
 
 Production WORM/backend controls and production tenant-isolation remain visible as PROD-only readiness and are not inserted into the current LAB_L1 critical path.
 
@@ -156,7 +163,7 @@ Classification:
 ## Automatic continuation order
 
 1. preserve the accepted CHG-HSL-072 issue #402 evidence without re-running it merely for progression;
-2. continue non-secret independent lanes, starting with authenticated receipt-delivery implementation/proof while keeping its policy non-authoritative;
+2. preserve the accepted CHG-HSL-088 authenticated receipt-delivery endpoint proof while keeping delivery/resolver policies disabled, then continue the next independent non-secret lane: live authorization-audit persistence;
 3. at the explicit operator HITL, complete shared-Vault Secret Zero locally and capture only sanitized signer attestation/source evidence;
 4. record the evidence-backed #403 operational decision and install/verify the approved trust store in a separately governed change;
 5. reconcile exact-candidate receipt/trust/host evidence;
