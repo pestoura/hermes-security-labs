@@ -17,7 +17,7 @@ risk: LOW
 versionEffect: NONE
 branch: chg-hsl-090/live-authorization-audit-persistence
 issue: null
-pr: null
+pr: 437
 validation:
   targeted: PASS
   regression: PASS
@@ -30,5 +30,5 @@ promotion:
 deferredTo: null
 timestamps:
   discoveredAt: '2026-08-22T22:32:44Z'
-  updatedAt: '2026-08-22T23:56:16Z'
+  updatedAt: '2026-08-22T23:58:13Z'
   closedAt: null
