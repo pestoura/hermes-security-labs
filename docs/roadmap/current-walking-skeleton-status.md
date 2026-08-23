@@ -1,8 +1,8 @@
 # Hermes Security Labs — current walking-skeleton status
 
-**Reconciled:** 2026-08-22 UTC
+**Reconciled:** 2026-08-23 UTC
 **Current Labs baseline:** `8c654379afb2114e34d6e748bb558b3ad5b8fb4b`
-**Current repository main:** `1d368ea8eb54d65d4fc2a5022d8a88e93252a6c2`
+**Current repository main:** `eada361cb5fd3f612b7b5911146cd4b448241e04`
 **CHG-HSL-072 reconciliation base:** `9448817e436ee096e0f839b6bb8b9bf9e06d8d6d`
 **Accepted/live Hermes MCP Bridge revision:** `3717bd5469b061a44294b27e1a7510d477d3752b`
 **DVWA live lifecycle acceptance:** `run_8f2174dc4c87452098b700ff556ac978`
@@ -10,6 +10,7 @@
 **CHG-HSL-071 accepted merge:** `c4f409d05e5575e815d4b35e0ca5fda45a73bf8c` (PR #401; post-merge Exact-SHA GREEN)
 **CHG-HSL-086 accepted merge:** `c8e4c4517e0fceaa9e37d28fe05c53554af07723` (PR #431; shared-Vault pre-Secret-Zero probe merged and live-observed)
 **CHG-HSL-088 accepted merge:** `1d368ea8eb54d65d4fc2a5022d8a88e93252a6c2` (PR #433; authenticated receipt-delivery boundary merged and live-observed in AUTHENTICATED_HOLD)
+**CHG-HSL-090 accepted merge:** `eada361cb5fd3f612b7b5911146cd4b448241e04` (PR #437; synthetic authorization-audit custody probe merged and live-observed)
 
 This file is the concise current-state view. Historical detail remains in the dedicated roadmap/evidence records and the governed campaign at [`../../validation/VAL-HSL-RUNNER-L1-LIVE-PROMOTION.yaml`](../../validation/VAL-HSL-RUNNER-L1-LIVE-PROMOTION.yaml).
 
@@ -51,6 +52,7 @@ A complete machine-evidence package still cannot promote the Runner without expl
 | Hermes Vault v1 | `OPERATIONAL BASELINE`; shared ecosystem service healthy/unsealed on HermesJarvas |
 | HSL shared-Vault pre-Secret-Zero probe | `PASS / OBSERVED_PRE_SECRET_ZERO`; TLSv1.3 verified; consumer `172.25.0.3/32`; `SECRETID_ISSUANCE=NOT_RUN` |
 | HSL authenticated receipt-delivery boundary | `PASS / AUTHENTICATED_HOLD`; `/run/hexor/runner-authz.sock`; `4101:4110`; mode `0660`; peer uid `4100`; policy remains `DISABLED / NOT_RUN` |
+| Authorization-audit synthetic custody proof | `PASS / OBSERVED_SYNTHETIC_CUSTODY`; canonical custody persisted one sanitized synthetic event, verified after reopen and through AuditSink, cleanup PASS; operational policy remains `DISABLED / NOT_RUN` |
 | Full walking skeleton live completion | `HOLD / BLOCKED-ON-LIVE-PROMOTION-EVIDENCE` |
 
 ## CHG-HSL-085/086 — shared Hermes Vault consumer path
@@ -76,6 +78,12 @@ This observation is network/TLS readiness only. It is not signer attestation, pr
 The merged CHG-HSL-088 runtime was installed by an authorized operator and independently re-observed on HermesJarvas. The dedicated AF_UNIX endpoint `/run/hexor/runner-authz.sock` is enabled, active and listening as `hexor-runner` uid 4101 / `hexor-dispatch` gid 4110 with mode `0660`; the accepted peer contract remains uid 4100 / `hexor.execution-gateway`. All five installed artifacts match merged main byte-for-byte, the existing `runner-dispatch.sock` remains independently active, and an unprivileged caller is refused at the DAC boundary.
 
 This is an endpoint-boundary observation only. The receipt-delivery and resolver policies remain `DISABLED / NOT_RUN`; `execution_authority=none`, `promotion_allowed=false`, target effects remain none, trust-store remains absent, and signer/Secret Zero remain unexecuted. The campaign therefore remains `BLOCKED / HOLD`.
+
+## CHG-HSL-090 — synthetic authorization-audit custody proof
+
+Merged main `eada361cb5fd3f612b7b5911146cd4b448241e04` was exercised on HermesJarvas with the bounded CHG-HSL-090 probe. One sanitized synthetic authorization-audit event was persisted through the canonical custody adapter into the existing Evidence Plane local store, verified after reopening the store, verified through the AuditSink evidence resolver, and removed by the probe cleanup. The observed runtime class is `OBSERVED_SYNTHETIC_CUSTODY`.
+
+This proves the synthetic local custody composition only. The committed authorization-audit custody policy remains `DISABLED / NOT_RUN`; operational live authorization flow remains `NOT_RUN`; `execution_authority=none`, `promotion_allowed=false`, target effects remain none, and no signer/trust or Secret Zero state changed. `OBS-EVIDENCE-CUSTODY` and the campaign therefore remain `BLOCKED / HOLD`.
 
 ## CHG-HSL-072 — current-PID userns + unauthorized-peer acceptance
 

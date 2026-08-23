@@ -1,0 +1,23 @@
+schema_version: hsl.authorization-audit-live-observation/v1
+change_record: CHG-HSL-090
+reconciled_by: CHG-HSL-092
+observed_main: eada361cb5fd3f612b7b5911146cd4b448241e04
+runtime_status: OBSERVED_SYNTHETIC_CUSTODY
+proof:
+  custody_persisted: true
+  reopen_verified: true
+  audit_chain_verified: true
+  classification: restricted
+  record_count: 1
+  cleanup_verified: true
+invariants:
+  policy_source_state: DISABLED
+  policy_runtime_status: NOT_RUN
+  execution_authority: NONE
+  promotion_allowed: false
+  target_effect: none
+sanitization:
+  identifiers_exposed: false
+  payload_exposed: false
+  local_paths_exposed: false
+recorded_at: 2026-08-23T00:09:02Z

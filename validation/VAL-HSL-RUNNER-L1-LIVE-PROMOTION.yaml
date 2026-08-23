@@ -21,23 +21,23 @@ observations:
     required: true
     result: BLOCKED
     status: OPEN
-    summary: 'TB1 issuance and repository authorization-audit custody are GREEN-REPO. CHG-HSL-086 shared-Vault pre-Secret-Zero network/TLS is PASS. CHG-HSL-088 now proves the dedicated authenticated receipt-delivery AF_UNIX endpoint live in AUTHENTICATED_HOLD. Live acceptance remains blocked: Secret Zero/signer evidence NOT_RUN; trust store absent; receipt-delivery policy and resolver DISABLED/NOT_RUN; live audit persistence NOT_RUN.'
+    summary: 'TB1 issuance and repository auth-audit custody are GREEN-REPO. CHG-HSL-088 receipt endpoint is PASS/AUTHENTICATED_HOLD. CHG-HSL-090 synthetic live auth-audit custody is PASS/OBSERVED_SYNTHETIC_CUSTODY. Operational acceptance remains blocked: signer/Secret Zero NOT_RUN, trust-store absent, receipt-delivery/resolver and custody policy DISABLED/NOT_RUN, operational live auth-audit NOT_RUN.'
     changeRecord: CHG-HSL-011
-    evidence: 'prs:417,430,431,433; signer-provider:NOT_RUN; signer-source:NOT_RUN; shared-vault-pre-secret-zero:PASS(CHG-HSL-086;runtime=OBSERVED_PRE_SECRET_ZERO;TLSv1.3); SECRETID_ISSUANCE=NOT_RUN; trust-store:ABSENT; receipt-boundary:PASS(CHG-HSL-088;AUTHENTICATED_HOLD); receipt-delivery:DISABLED/NOT_RUN; receipt-delivery-policy:DISABLED/NOT_RUN; resolver:DISABLED/NOT_RUN; auth-audit-custody:GREEN-REPO(CHG-HSL-079); auth-audit-custody-policy:DISABLED/NOT_RUN; live-auth-audit:NOT_RUN'
+    evidence: 'prs:417,430,431,433,437; signer-provider:NOT_RUN; signer-source:NOT_RUN; SECRETID_ISSUANCE=NOT_RUN; trust-store:ABSENT; receipt-boundary:PASS(CHG-HSL-088;AUTHENTICATED_HOLD); receipt-delivery:DISABLED/NOT_RUN; receipt-delivery-policy:DISABLED/NOT_RUN; resolver:DISABLED/NOT_RUN; auth-audit-custody:GREEN-REPO(CHG-HSL-079); auth-audit-custody-policy:DISABLED/NOT_RUN; synthetic-live-auth-audit:PASS(CHG-HSL-090); operational-live-auth-audit:NOT_RUN'
   - id: OBS-RUNNER-POLICY-PROMOTION
     required: true
     result: BLOCKED
     status: OPEN
-    summary: 'CHG-HSL-072: userns PASS and unauthorized-peer HOLD refusal PASS. CHG-HSL-079: auth-audit custody GREEN-REPO; live composition NOT_RUN. CHG-HSL-086: shared-Vault pre-Secret-Zero PASS; signer/Secret Zero NOT_RUN. CHG-HSL-088: authenticated receipt endpoint PASS/AUTHENTICATED_HOLD; delivery/resolver DISABLED/NOT_RUN. Remaining LAB_L1 blockers: signer trust/evidence, live audit persistence, PRE completion, HITL, live effect and POST_EFFECT.'
+    summary: 'CHG-HSL-072: userns PASS and unauthorized-peer HOLD refusal PASS. CHG-HSL-079: auth-audit custody GREEN-REPO; CHG-HSL-090 synthetic live custody PASS/OBSERVED_SYNTHETIC_CUSTODY; operational live composition NOT_RUN and policy DISABLED/NOT_RUN. CHG-HSL-086 pre-Secret-Zero PASS; CHG-HSL-088 endpoint PASS/AUTHENTICATED_HOLD. Remaining LAB_L1 blockers: signer trust/evidence, operational audit acceptance, PRE, HITL, live effect and POST_EFFECT.'
     changeRecord: CHG-HSL-072
-    evidence: 'userns:PASS(CHG-HSL-072); peer-negative:PASS(CHG-HSL-072); auth-audit-custody:GREEN-REPO(CHG-HSL-079;main=c716bd6512da3fa853ad8022863ecc8bac4e51a6); signer:NOT_OBSERVED; shared-vault-pre-secret-zero:PASS(CHG-HSL-086;172.25.0.3/32;TLSv1.3); SECRETID_ISSUANCE=NOT_RUN; signer-attestation:NOT_RUN; trust-store:ABSENT; auth-audit-custody-policy:DISABLED/NOT_RUN; live-audit-custody:NOT_RUN; pre:ASSEMBLED/HOLD/INCOMPLETE(CHG-HSL-071); post-effect:NOT_RUN; policies:DISABLED/NOT_RUN'
+    evidence: 'userns:PASS(CHG-HSL-072); peer-negative:PASS(CHG-HSL-072); auth-audit-custody:GREEN-REPO(CHG-HSL-079;main=c716bd6512da3fa853ad8022863ecc8bac4e51a6); signer:NOT_OBSERVED; shared-vault-pre-secret-zero:PASS(CHG-HSL-086;runtime=OBSERVED_PRE_SECRET_ZERO); trust-store:ABSENT; auth-audit-custody-policy:DISABLED/NOT_RUN; synthetic-live-audit-custody:PASS(CHG-HSL-090); operational-live-audit-custody:NOT_RUN; pre:ASSEMBLED/HOLD/INCOMPLETE(CHG-HSL-071); post-effect:NOT_RUN; policies:DISABLED/NOT_RUN'
   - id: OBS-EVIDENCE-CUSTODY
     required: true
     result: BLOCKED
     status: OPEN
-    summary: 'CHG-HSL-079/ADR-0016 closes repository auth-audit custody: sanitized audit objects use the existing Evidence Plane with post-write verification; content identity and ev_<id> custody binding remain distinct. PR #417/main c716bd6512da3fa853ad8022863ecc8bac4e51a6 passed post-merge Exact-SHA. GREEN-REPO only: custody policy DISABLED/NOT_RUN; live custody NOT_RUN. Campaign remains BLOCKED/HOLD; signer/trust, delivery, PRE, HITL, effect and POST_EFFECT remain open.'
-    changeRecord: CHG-HSL-080
-    evidence: 'auth-audit-custody:GREEN-REPO(CHG-HSL-079;ADR-0016;PR#417;main=c716bd6512da3fa853ad8022863ecc8bac4e51a6); post-merge:PASS(all-4-workflows;exact-sha); tests:platform=2329/7skip,docs=1105,roadmap=146,deployment=560; custody-policy:DISABLED/NOT_RUN; live-audit-custody:NOT_RUN; hash-chain:VERIFIED(CHG-HSL-071); userns:PASS(CHG-HSL-072); peer-negative:PASS(CHG-HSL-072); pre:ASSEMBLED/HOLD/INCOMPLETE; post-effect:NOT_RUN'
+    summary: 'CHG-HSL-079/ADR-0016 closes repository auth-audit custody; content identity and ev_<id> custody binding remain distinct. GREEN-REPO only was superseded by CHG-HSL-090 synthetic live custody PASS/OBSERVED_SYNTHETIC_CUSTODY. Operational custody policy DISABLED/NOT_RUN and live custody NOT_RUN. Campaign remains BLOCKED/HOLD; signer/trust, delivery, PRE, HITL, effect and POST_EFFECT remain open.'
+    changeRecord: CHG-HSL-092
+    evidence: 'auth-audit-custody:GREEN-REPO(CHG-HSL-079;ADR-0016;PR#417;main=c716bd6512da3fa853ad8022863ecc8bac4e51a6); post-merge:PASS(all-4-workflows;exact-sha); synthetic-live-audit-custody:PASS(CHG-HSL-090;main=eada361cb5fd3f612b7b5911146cd4b448241e04;runtime=OBSERVED_SYNTHETIC_CUSTODY); custody-policy:DISABLED/NOT_RUN; operational-live-audit-custody:NOT_RUN; hash-chain:VERIFIED(CHG-HSL-071); userns:PASS(CHG-HSL-072); peer-negative:PASS(CHG-HSL-072); pre:ASSEMBLED/HOLD/INCOMPLETE; post-effect:NOT_RUN'
   - id: OBS-LIVE-EFFECT-RESET
     required: true
     result: BLOCKED
@@ -48,5 +48,5 @@ observations:
 promotionRecommendation: HOLD
 timestamps:
   startedAt: '2026-08-09T21:12:00Z'
-  updatedAt: '2026-08-22T21:28:12Z'
+  updatedAt: '2026-08-23T00:09:02Z'
   closedAt: null
