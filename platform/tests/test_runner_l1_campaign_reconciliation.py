@@ -175,7 +175,7 @@ def test_chg_hsl_079_and_080_reconcile_custody_without_promotion() -> None:
 
     assert custody["result"] == "BLOCKED"
     assert custody["status"] == "OPEN"
-    assert custody["changeRecord"] == "CHG-HSL-080"
+    assert custody["changeRecord"] == "CHG-HSL-092"
     assert "auth-audit-custody:GREEN-REPO(CHG-HSL-079;ADR-0016;PR#417;main=c716bd6512da3fa853ad8022863ecc8bac4e51a6)" in evidence
     assert "post-merge:PASS(all-4-workflows;exact-sha)" in evidence
     assert "custody-policy:DISABLED/NOT_RUN" in evidence
