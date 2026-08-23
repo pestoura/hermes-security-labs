@@ -1,0 +1,38 @@
+schema_version: hsl.ai-mcp-live-lab-observation/v1
+change_record: CHG-HSL-094
+observed_main: b4ada2ed220b788c775158a701ac220437d8716a
+runtime_status: OBSERVED_LAB_CONTROLLED_RDC
+lab:
+  id: promptme
+  scope: laboratory
+  access_path: localhost_proxy
+proof:
+  post_start_health_observation: PASS
+  smoke: PASS
+  runner_outcome: PASS
+  runtime_status: ok
+  runtime_decision: vulnerable
+  evidence_items: 4
+  replay_second_effect: none
+  ledger_entries: 1
+  ledger_cleanup: PASS
+  destroy: PASS
+  zero_residue: PASS
+lifecycle:
+  start_command_transport: UNKNOWN
+  kali_connected: false
+  target_egress: denied
+invariants:
+  control_plane_authority: NONE
+  operational_authorization_receipt: NOT_USED
+  process_supervision: NOT_COMPOSED
+  cancellation_timeout_integration: NOT_RUN
+  sandbox_status: NOT_IMPLEMENTED
+  production_execution: NOT_RUN
+  promotion_allowed: false
+sanitization:
+  raw_prompt_exposed: false
+  raw_response_exposed: false
+  authorization_ref_exposed: false
+  local_paths_exposed: false
+recorded_at: 2026-08-23T03:10:44Z

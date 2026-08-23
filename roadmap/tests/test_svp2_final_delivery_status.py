@@ -103,7 +103,10 @@ def test_b02_delivery_completion_does_not_claim_epic05_finality_or_production_re
     controlled = ai_mcp["controlled_runtime_integration"]
     assert controlled["status"] == "PASS_CONTROLLED_IN_PROCESS"
     assert controlled["default_executor"] == "none"
-    assert controlled["live_network_execution"] == "NOT_RUN"
+    assert controlled["live_network_execution"] == "PASS_LAB_CONTROLLED_RDC"
+    assert controlled["live_lab_observation"]["status"] == "OBSERVED_LAB_CONTROLLED_RDC"
+    assert controlled["live_lab_observation"]["authorization_semantics"] == "TEST_ONLY_NOT_OPERATIONAL_AUTHORITY"
+    assert controlled["live_lab_observation"]["zero_residue"] == "PASS"
     assert controlled["process_supervision"] == "NOT_COMPOSED"
     assert controlled["production_execution"] == "NOT_RUN"
     assert all(family["promotion_status"] == "blocked" for family in compatibility["runner_families"])

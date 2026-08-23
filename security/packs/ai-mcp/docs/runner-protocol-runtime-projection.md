@@ -102,10 +102,13 @@ network/subprocess transport, claims a durable idempotency key before the contro
 replays a completed outcome without a second effect. Repository acceptance exercises the real
 calibrated `dispatch()` path with an in-memory transport only.
 
-Lifecycle classification is `PASS_CONTROLLED_IN_PROCESS`. This does **not** mean live execution:
-`live_network_execution=NOT_RUN`, `process_supervision=NOT_COMPOSED`,
-`cancellation_timeout_integration=NOT_RUN`, `sandbox_status=NOT_IMPLEMENTED`,
-`production_execution=NOT_RUN`, and promotion remains blocked.
+Lifecycle classification for CHG-HSL-093 is `PASS_CONTROLLED_IN_PROCESS`. At that merge, live network execution remained `NOT_RUN`; CHG-HSL-094 subsequently supersedes only that laboratory observation sub-state. Process supervision, cancellation/timeout integration, sandboxing, production execution and promotion are unchanged.
+
+## CHG-HSL-094 controlled PromptMe live observation via RDC
+
+On merged main `b4ada2ed220b788c775158a701ac220437d8716a`, the controlled adapter was exercised directly on HermesJarvas against the canonical PromptMe localhost publication proxy. The lifecycle smoke confirmed target egress denied; the calibrated runtime produced a sanitized `PASS` Runner outcome with runtime status `ok` and decision `vulnerable`; durable replay produced no second effect. The disposable ledger was removed, the lab was destroyed, and independent checks observed zero PromptMe containers and no listener on port 8210.
+
+The initial combined `start` command suffered a transport timeout and therefore remains `UNKNOWN`; health was accepted only after a separate status observation showed target and proxy healthy. This evidence is classified `PASS_LAB_CONTROLLED_RDC` / `OBSERVED_LAB_CONTROLLED_RDC`. The request used test-only authorization semantics, not an operational Hermes authorization receipt. Process supervision remains `NOT_COMPOSED`, cancellation/timeout integration `NOT_RUN`, sandbox `NOT_IMPLEMENTED`, production execution remains `NOT_RUN`, and promotion remains blocked.
 
 ## Explicit limitations — not delivered here
 
