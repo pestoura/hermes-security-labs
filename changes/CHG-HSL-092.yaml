@@ -17,7 +17,7 @@ risk: LOW
 versionEffect: NONE
 branch: chg-hsl-092/reconcile-synthetic-audit-custody
 issue: null
-pr: null
+pr: 438
 validation:
   targeted: PASS
   regression: PASS
@@ -30,5 +30,5 @@ promotion:
 deferredTo: null
 timestamps:
   discoveredAt: '2026-08-23T00:09:02Z'
-  updatedAt: '2026-08-23T00:19:09Z'
+  updatedAt: '2026-08-23T00:30:14Z'
   closedAt: null
