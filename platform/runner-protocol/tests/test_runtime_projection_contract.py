@@ -155,3 +155,30 @@ def test_matrix_validation_fails_when_the_projection_declaration_is_weakened(
     monkeypatch.setenv("RUNNER_PROTOCOL_CONTRACT_ROOT", str(fake_contract))
     with pytest.raises(ProtocolValidationError, match="runtime-projection declaration"):
         validate_compatibility_matrix()
+
+
+def test_controlled_runtime_integration_is_declared_without_production_promotion() -> None:
+    family = _ai_mcp_family()
+    controlled = family["controlled_runtime_integration"]
+    assert controlled == {
+        "status": "PASS_CONTROLLED_IN_PROCESS",
+        "integration_scope": "calibrated_dispatch_with_injected_executor",
+        "module_path": (
+            "security/packs/ai-mcp/src/ai_mcp_runbooks/"
+            "runtime_runner_protocol_adapter.py"
+        ),
+        "capability_id": CAPABILITY_ID,
+        "default_executor": "none",
+        "durable_idempotency": "PASS_CONTROLLED_IN_PROCESS",
+        "replay_second_effect": "none",
+        "adapter_network_access": "none",
+        "test_executor_transport": "in_memory_only",
+        "live_network_execution": "NOT_RUN",
+        "process_supervision": "NOT_COMPOSED",
+        "cancellation_timeout_integration": "NOT_RUN",
+        "sandbox_status": "NOT_IMPLEMENTED",
+        "production_execution": "NOT_RUN",
+        "production_effect_claim": "none",
+    }
+    assert family["execution_integration"] == "NOT_RUN"
+    assert family["promotion_status"] == "blocked"

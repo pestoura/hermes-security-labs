@@ -634,6 +634,30 @@ def validate_compatibility_matrix() -> None:
             "AI/MCP runtime-projection declaration is inconsistent"
         )
 
+    ai_mcp_controlled_expected = {
+        "status": "PASS_CONTROLLED_IN_PROCESS",
+        "integration_scope": "calibrated_dispatch_with_injected_executor",
+        "module_path": (
+            "security/packs/ai-mcp/src/ai_mcp_runbooks/"
+            "runtime_runner_protocol_adapter.py"
+        ),
+        "capability_id": "ai-mcp.runtime.handler-invoke",
+        "default_executor": "none",
+        "durable_idempotency": "PASS_CONTROLLED_IN_PROCESS",
+        "replay_second_effect": "none",
+        "adapter_network_access": "none",
+        "test_executor_transport": "in_memory_only",
+        "live_network_execution": "NOT_RUN",
+        "process_supervision": "NOT_COMPOSED",
+        "cancellation_timeout_integration": "NOT_RUN",
+        "sandbox_status": "NOT_IMPLEMENTED",
+        "production_execution": "NOT_RUN",
+        "production_effect_claim": "none",
+    }
+    if ai_mcp.get("controlled_runtime_integration") != ai_mcp_controlled_expected:
+        raise ProtocolValidationError(
+            "AI/MCP controlled-runtime declaration is inconsistent"
+        )
 
     repository_root = root.parents[1]
     candidate_declarations = (

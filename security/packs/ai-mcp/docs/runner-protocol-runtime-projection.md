@@ -93,6 +93,20 @@ remains the authorization authority.
 | [`security/packs/ai-mcp/tests/test_runner_protocol_projection.py`](../tests/test_runner_protocol_projection.py) | both directions, every status, policy refusals, correlation propagation, sanitisation, determinism, static isolation invariants |
 | [`platform/runner-protocol/tests/test_runtime_projection_contract.py`](../../../../platform/runner-protocol/tests/test_runtime_projection_contract.py) | the compatibility declaration, its agreement with the module on disk, and negative controls on both |
 
+## CHG-HSL-093 controlled runtime composition
+
+The pure projection above remains side-effect-free. A separate module,
+`runtime_runner_protocol_adapter.py`, now composes it with the calibrated AI/MCP dispatch only
+when a caller explicitly injects an executor. The adapter has no default executor, imports no
+network/subprocess transport, claims a durable idempotency key before the controlled effect and
+replays a completed outcome without a second effect. Repository acceptance exercises the real
+calibrated `dispatch()` path with an in-memory transport only.
+
+Lifecycle classification is `PASS_CONTROLLED_IN_PROCESS`. This does **not** mean live execution:
+`live_network_execution=NOT_RUN`, `process_supervision=NOT_COMPOSED`,
+`cancellation_timeout_integration=NOT_RUN`, `sandbox_status=NOT_IMPLEMENTED`,
+`production_execution=NOT_RUN`, and promotion remains blocked.
+
 ## Explicit limitations — not delivered here
 
 - **no execution.** The projection never invokes the runtime. Wiring a gateway to call it

@@ -10,8 +10,8 @@
 | Phase | 1 |
 | Priority | P0 |
 | Delivery umbrella | `SVP2-B-02` (issue [#80](https://github.com/pestoura/hermes-security-labs/issues/80)) |
-| Document version | 2.1.0 |
-| Document date | 2026-08-06 |
+| Document version | 2.2.0 |
+| Document date | 2026-08-23 |
 | Catalogue | [Epic catalogue 45](../epic-catalogue-45.md) |
 | Lifecycle contract | [Architecture documentation lifecycle](../../architecture/architecture-documentation-lifecycle.md) |
 
@@ -45,11 +45,15 @@ fixed-worker synthetic process evidence only. The same shared supervised engine 
 by an isolated AI/MCP candidate through pull request
 [#124](https://github.com/pestoura/hermes-security-labs/pull/124), with its canonical compatibility
 declaration promoted through pull request
-[#125](https://github.com/pestoura/hermes-security-labs/pull/125). All three runner families now
-have fixed-worker synthetic process evidence only. The calibrated AI/MCP runtime, handlers,
-providers, agents, memory/RAG adapters and campaigns remain separate and disconnected from Runner
-Protocol. `FINAL` remains false: production execution integration is `NOT_RUN`, promotion is
-blocked, and no sandboxed real capability has been demonstrated.
+[#125](https://github.com/pestoura/hermes-security-labs/pull/125). All three runner families retain
+fixed-worker synthetic process evidence. CHG-HSL-093 adds a separate controlled in-process
+composition between Runner Protocol v2 and the already calibrated AI/MCP dispatch path: an
+explicitly injected executor is required, durable idempotency is enforced before the controlled
+effect, replay produces no second effect, and repository tests use an in-memory HTTP transport.
+There is no default executor and no live network or target execution. `FINAL` remains false:
+production execution integration is `NOT_RUN`, process supervision for the calibrated runtime is
+`NOT_COMPOSED`, sandboxing is `NOT_IMPLEMENTED`, promotion is blocked, and no sandboxed real
+capability has been demonstrated.
 
 | Lifecycle state | Reached |
 | --- | --- |
