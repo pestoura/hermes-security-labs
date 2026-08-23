@@ -1,0 +1,24 @@
+schema_version: hsl.ai-mcp-controlled-supervision/v1
+change_record: CHG-HSL-095
+observed_main: 1f26b1c345f6a0faace73003181562d0000d768b
+runtime_status: PASS_CONTROLLED_PROCESS
+process_supervision: PASS_CONTROLLED_PROCESS
+hard_timeout: PASS_CONTROLLED_PROCESS
+cancellation_request: NOT_RUN
+live_lab_execution: NOT_RUN_TOOL_BLOCK
+live_lab_blocker: RDC_TOOL_SAFETY_BLOCK
+proof:
+  fixed_worker: true
+  request_controlled_command_surface: none
+  durable_replay: PASS
+  replay_second_process: none
+  supervisor_unavailable_fail_closed: PASS
+  timeout_terminal: TIMED_OUT
+  timeout_error_code: TIMEOUT_HARD
+  timeout_cleanup: PASS
+invariants:
+  control_plane_authority: NONE
+  operational_authorization_receipt: NOT_USED
+  sandbox_status: NOT_IMPLEMENTED
+  production_execution: NOT_RUN
+  promotion_allowed: false

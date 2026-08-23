@@ -107,7 +107,12 @@ def test_b02_delivery_completion_does_not_claim_epic05_finality_or_production_re
     assert controlled["live_lab_observation"]["status"] == "OBSERVED_LAB_CONTROLLED_RDC"
     assert controlled["live_lab_observation"]["authorization_semantics"] == "TEST_ONLY_NOT_OPERATIONAL_AUTHORITY"
     assert controlled["live_lab_observation"]["zero_residue"] == "PASS"
-    assert controlled["process_supervision"] == "NOT_COMPOSED"
+    assert controlled["process_supervision"] == "PASS_CONTROLLED_PROCESS"
+    assert controlled["cancellation_timeout_integration"] == "HARD_TIMEOUT_PASS_CANCELLATION_NOT_RUN"
+    assert controlled["supervised_process"]["hard_timeout"] == "PASS_CONTROLLED_PROCESS"
+    assert controlled["supervised_process"]["cancellation_request"] == "NOT_RUN"
+    assert controlled["supervised_process"]["live_lab_execution"] == "PASS_LAB_CONTROLLED_RDC_SUPERVISED"
+    assert controlled["supervised_process"]["live_lab_observation"]["zero_residue"] == "PASS"
     assert controlled["production_execution"] == "NOT_RUN"
     assert all(family["promotion_status"] == "blocked" for family in compatibility["runner_families"])
     assert "SVP2-B-02`: **candidate for `completed`**" in completion

@@ -1,0 +1,32 @@
+schema_version: hsl.ai-mcp-live-supervised-observation/v1
+change_record: CHG-HSL-095
+observation: OBS-AIMCP-SUPERVISED-LIVE-RDC
+observed_base_main: 1f26b1c345f6a0faace73003181562d0000d768b
+branch: chg-hsl-095/supervised-aimcp-runtime
+observed_at: '2026-08-23T13:15:17Z'
+runtime_status: OBSERVED_LAB_CONTROLLED_RDC_SUPERVISED
+runner_outcome: PASS
+supervision_status: EXITED
+runtime_result_status: ok
+runtime_decision: vulnerable
+first_process_count: 1
+ledger_entries: 1
+replay_outcome: PASS
+replay_second_process: none
+authorization_semantics: TEST_ONLY_NOT_OPERATIONAL_AUTHORITY
+lifecycle:
+  start: PASS
+  smoke: PASS
+  target_egress: denied
+  kali_connected: false
+  destroy: PASS
+  promptme_container_count: 0
+  port_8210: ABSENT
+zero_residue: PASS
+invariants:
+  control_plane_authority: NONE
+  operational_authorization_receipt: NOT_USED
+  cancellation_request: NOT_RUN
+  sandbox_status: NOT_IMPLEMENTED
+  production_execution: NOT_RUN
+  promotion_allowed: false

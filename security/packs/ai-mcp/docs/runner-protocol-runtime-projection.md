@@ -108,21 +108,28 @@ Lifecycle classification for CHG-HSL-093 is `PASS_CONTROLLED_IN_PROCESS`. At tha
 
 On merged main `b4ada2ed220b788c775158a701ac220437d8716a`, the controlled adapter was exercised directly on HermesJarvas against the canonical PromptMe localhost publication proxy. The lifecycle smoke confirmed target egress denied; the calibrated runtime produced a sanitized `PASS` Runner outcome with runtime status `ok` and decision `vulnerable`; durable replay produced no second effect. The disposable ledger was removed, the lab was destroyed, and independent checks observed zero PromptMe containers and no listener on port 8210.
 
-The initial combined `start` command suffered a transport timeout and therefore remains `UNKNOWN`; health was accepted only after a separate status observation showed target and proxy healthy. This evidence is classified `PASS_LAB_CONTROLLED_RDC` / `OBSERVED_LAB_CONTROLLED_RDC`. The request used test-only authorization semantics, not an operational Hermes authorization receipt. Process supervision remains `NOT_COMPOSED`, cancellation/timeout integration `NOT_RUN`, sandbox `NOT_IMPLEMENTED`, production execution remains `NOT_RUN`, and promotion remains blocked.
+The initial combined `start` command suffered a transport timeout and therefore remains `UNKNOWN`; health was accepted only after a separate status observation showed target and proxy healthy. This evidence is classified `PASS_LAB_CONTROLLED_RDC` / `OBSERVED_LAB_CONTROLLED_RDC`. The request used test-only authorization semantics, not an operational Hermes authorization receipt. At CHG-HSL-094, process supervision was still `NOT_COMPOSED`; CHG-HSL-095 supersedes only that controlled-process sub-state. Sandbox `NOT_IMPLEMENTED`, production execution remains `NOT_RUN`, and promotion remains blocked.
+
+## CHG-HSL-095 controlled process supervision
+
+The calibrated PromptMe path is now composable through the repository-owned `PosixProcessSupervisor` using a fixed trusted worker. The Runner request cannot select an executable or argv. Durable idempotency is claimed before process creation; replay does not start a second process. Repository-controlled process tests demonstrate `PASS_CONTROLLED_PROCESS` supervision and hard-timeout cleanup, including SIGTERM-to-SIGKILL escalation and fail-closed handling when supervision is unavailable.
+
+Cancellation request: **`NOT_RUN`**. Supervised live lab execution: **`PASS_LAB_CONTROLLED_RDC_SUPERVISED`**. A later canonical Phase-2 lifecycle start succeeded on HermesJarvas; the fixed supervised worker exited cleanly with Runner `PASS`, runtime `ok/vulnerable`, one first process, durable replay with no second process, target egress denied, Kali disconnected, and destroy/zero-residue PASS. The earlier `NOT_RUN_TOOL_BLOCK` evidence is retained as historical evidence rather than rewritten. No operational authorization receipt, sandbox, production execution or promotion is inferred.
 
 ## Explicit limitations — not delivered here
 
-- **no execution.** The projection never invokes the runtime. Wiring a gateway to call it
-  and then execute is future work.
+- **no production execution.** Controlled in-process, controlled lab-network, and controlled
+  process evidence exist, but no production runner execution has been activated.
 - **no sandbox.** `sandbox_status` stays `NOT_IMPLEMENTED`.
 - **no Evidence Plane integration.** The evidence reference is a digest, not a stored
-  artefact; persistence is future work.
-- **no idempotency enforcement.** The projection classifies nothing; the durable ledger is
-  not consumed on this path.
-- **no progress or cancellation.** Only request and terminal outcome are projected.
+  production artefact; persistence is future work.
+- **projection remains pure.** Idempotency and supervision are enforced by the controlled
+  adapters around the projection, not by the projection module itself.
+- **no Runner cancellation-message execution.** Hard-timeout process cleanup is proven;
+  `runner.cancellation.request` remains `NOT_RUN`.
 - **no promotion.** The AI/MCP family stays `conformance_only`, `NOT_RUN`, blocked.
 - **one calibrated handler.** Only `agent/conversation-test` is calibrated; `is_calibrated`
   reports this and the projection never promotes an uncalibrated handler.
 
-`NO_RUNTIME_CHANGE`. No secret, credential, package visibility, Compose file, deployment or
-external target is touched.
+`NO_PRODUCTION_RUNTIME_ACTIVATION`. No secret, credential, package visibility or production
+deployment is introduced by CHG-HSL-095.

@@ -120,7 +120,10 @@ Therefore:
 - controlled AI/MCP runtime composition: **`PASS_CONTROLLED_IN_PROCESS`**;
 - calibrated AI/MCP live network execution: **`PASS_LAB_CONTROLLED_RDC`** — PromptMe laboratory only, test-only authorization semantics;
 - operational Control Plane authorization receipt for that observation: **`NOT_USED`**;
-- calibrated AI/MCP process supervision: **`NOT_COMPOSED`**;
+- calibrated AI/MCP process supervision: **`PASS_CONTROLLED_PROCESS`** — fixed trusted worker, durable replay and verified process-group cleanup;
+- calibrated AI/MCP hard timeout: **`PASS_CONTROLLED_PROCESS`**;
+- cancellation request: **`NOT_RUN`**;
+- supervised live lab execution: **`PASS_LAB_CONTROLLED_RDC_SUPERVISED`** — PromptMe LAB-only via RDC, fixed worker, replay without a second process and zero-residue cleanup;
 - production execution integration: **`NOT_RUN`**;
 - sandbox: **`NOT_IMPLEMENTED`**;
 - promotion: **blocked**.

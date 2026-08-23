@@ -189,8 +189,43 @@ def test_controlled_runtime_integration_is_declared_without_production_promotion
             "kali_connected": False,
             "zero_residue": "PASS",
         },
-        "process_supervision": "NOT_COMPOSED",
-        "cancellation_timeout_integration": "NOT_RUN",
+        "process_supervision": "PASS_CONTROLLED_PROCESS",
+        "cancellation_timeout_integration": "HARD_TIMEOUT_PASS_CANCELLATION_NOT_RUN",
+        "supervised_process": {
+            "status": "PASS_CONTROLLED_PROCESS",
+            "module_path": (
+                "security/packs/ai-mcp/src/ai_mcp_runbooks/"
+                "supervised_promptme_runtime_adapter.py"
+            ),
+            "worker_path": (
+                "security/packs/ai-mcp/src/ai_mcp_runbooks/"
+                "supervised_promptme_runtime_worker.py"
+            ),
+            "worker_selection": "fixed_trusted",
+            "request_controlled_command_surface": "none",
+            "durable_idempotency": "PASS_CONTROLLED_PROCESS",
+            "replay_second_process": "none",
+            "hard_timeout": "PASS_CONTROLLED_PROCESS",
+            "cancellation_request": "NOT_RUN",
+            "live_lab_execution": "PASS_LAB_CONTROLLED_RDC_SUPERVISED",
+            "live_lab_observation": {
+                "status": "OBSERVED_LAB_CONTROLLED_RDC_SUPERVISED",
+                "runner_outcome": "PASS",
+                "supervision_status": "EXITED",
+                "runtime_status": "ok",
+                "runtime_decision": "vulnerable",
+                "first_process_count": 1,
+                "replay_second_process": "none",
+                "ledger_entries": 1,
+                "target_egress": "denied",
+                "kali_connected": False,
+                "zero_residue": "PASS",
+                "authorization_semantics": "TEST_ONLY_NOT_OPERATIONAL_AUTHORITY",
+            },
+            "target_ref": "promptme",
+            "endpoint": "http://127.0.0.1:8210",
+            "authorization_semantics": "TEST_ONLY_NOT_OPERATIONAL_AUTHORITY",
+        },
         "sandbox_status": "NOT_IMPLEMENTED",
         "production_execution": "NOT_RUN",
         "production_effect_claim": "none",
