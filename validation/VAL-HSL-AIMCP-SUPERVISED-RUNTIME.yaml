@@ -1,0 +1,31 @@
+schemaVersion: jds.validation/v1
+kind: ValidationCampaign
+id: VAL-HSL-AIMCP-SUPERVISED-RUNTIME
+product: hermes-security-labs
+objective: Validate controlled process supervision for the calibrated PromptMe AI/MCP runtime using the repository-owned POSIX supervisor, fixed trusted worker, durable replay, hard-timeout cleanup and a bounded LAB-only RDC observation, without claiming operational authorization or production execution.
+state: PASSED
+candidate:
+  version: aimcp-supervised-chg095
+  commit: 1f26b1c345f6a0faace73003181562d0000d768b
+  artifactDigest: null
+environment: Hermes Security Labs / controlled process and PromptMe LAB boundary
+observations:
+  - id: OBS-AIMCP-SUPERVISED-CONTROLLED
+    required: true
+    result: PASS
+    status: RESOLVED
+    summary: Fixed trusted-worker supervision, durable replay, hard-timeout terminal mapping and fail-closed supervisor-unavailable handling passed in controlled repository tests. The earlier live attempt was blocked before execution and remains preserved in its historical evidence.
+    changeRecord: CHG-HSL-095
+    evidence: 'process-supervision:PASS_CONTROLLED_PROCESS; hard-timeout:PASS_CONTROLLED_PROCESS; cancellation-request:NOT_RUN; historical-supervised-live-lab:NOT_RUN_TOOL_BLOCK; request-command-surface:none; durable-replay:PASS; production:NOT_RUN; promotion:false'
+  - id: OBS-AIMCP-SUPERVISED-LIVE-RDC
+    required: true
+    result: PASS
+    status: RESOLVED
+    summary: Canonical PromptMe lifecycle start and smoke passed; the fixed supervised worker exited cleanly with Runner PASS and runtime ok/vulnerable. Durable replay created no second process, then destroy proved zero containers and no listener on port 8210.
+    changeRecord: CHG-HSL-095
+    evidence: 'supervised-live-lab:PASS_LAB_CONTROLLED_RDC_SUPERVISED; runner-outcome:PASS; supervision:EXITED; runtime:ok/vulnerable; first-process:1; replay-second-process:none; ledger-entries:1; target-egress:denied; kali:false; destroy:PASS; zero-residue:PASS; authorization:TEST_ONLY_NOT_OPERATIONAL_AUTHORITY; production:NOT_RUN; promotion:false'
+promotionRecommendation: ACCEPT
+timestamps:
+  startedAt: '2026-08-23T09:35:57Z'
+  updatedAt: '2026-08-23T14:43:49Z'
+  closedAt: '2026-08-23T13:15:17Z'

@@ -52,10 +52,14 @@ explicitly injected executor is required, durable idempotency is enforced before
 effect, replay produces no second effect, and repository tests use an in-memory HTTP transport.
 CHG-HSL-094 later records one PromptMe laboratory-only live network observation via RDC on merged
 main `b4ada2ed220b788c775158a701ac220437d8716a`, with test-only authorization semantics, target egress denied, replay without a second
-effect and zero-residue destroy. There is still no default executor or operational Control Plane
-authority on this path. `FINAL` remains false: production execution integration is `NOT_RUN`,
-process supervision for the calibrated runtime is `NOT_COMPOSED`, sandboxing is `NOT_IMPLEMENTED`,
-promotion is blocked, and no sandboxed production capability has been demonstrated.
+effect and zero-residue destroy. CHG-HSL-095 then composes the calibrated PromptMe runtime
+through the existing POSIX process supervisor with a fixed trusted worker, durable replay and
+verified hard-timeout cleanup. A later PromptMe LAB-only RDC run records
+`PASS_LAB_CONTROLLED_RDC_SUPERVISED`, including clean worker exit, replay without a second process
+and zero-residue cleanup. Cancellation requests remain `NOT_RUN`; there is still no default production executor or operational
+Control Plane authority on this path. `FINAL` remains false: production execution integration is
+`NOT_RUN`, sandboxing is `NOT_IMPLEMENTED`, promotion is blocked, and no sandboxed production
+capability has been demonstrated.
 
 | Lifecycle state | Reached |
 | --- | --- |
