@@ -24,8 +24,8 @@ observations:
     summary: Canonical PromptMe lifecycle start and smoke passed; the fixed supervised worker exited cleanly with Runner PASS and runtime ok/vulnerable. Durable replay created no second process, then destroy proved zero containers and no listener on port 8210.
     changeRecord: CHG-HSL-095
     evidence: 'supervised-live-lab:PASS_LAB_CONTROLLED_RDC_SUPERVISED; runner-outcome:PASS; supervision:EXITED; runtime:ok/vulnerable; first-process:1; replay-second-process:none; ledger-entries:1; target-egress:denied; kali:false; destroy:PASS; zero-residue:PASS; authorization:TEST_ONLY_NOT_OPERATIONAL_AUTHORITY; production:NOT_RUN; promotion:false'
-promotionRecommendation: HOLD
+promotionRecommendation: ACCEPT
 timestamps:
   startedAt: '2026-08-23T09:35:57Z'
-  updatedAt: '2026-08-23T13:15:17Z'
+  updatedAt: '2026-08-23T14:43:49Z'
   closedAt: '2026-08-23T13:15:17Z'

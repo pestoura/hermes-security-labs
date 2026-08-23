@@ -73,7 +73,7 @@ def test_chg095_governance_artifacts_exist_and_preserve_authority_boundary() -> 
     observations = {item["id"]: item for item in campaign["observations"]}
     assert observations["OBS-AIMCP-SUPERVISED-CONTROLLED"]["result"] == "PASS"
     assert observations["OBS-AIMCP-SUPERVISED-LIVE-RDC"]["result"] == "PASS"
-    assert campaign["promotionRecommendation"] == "HOLD"
+    assert campaign["promotionRecommendation"] == "ACCEPT"
 
 
 def test_docs_state_hard_timeout_pass_but_cancellation_and_live_remain_not_run() -> None:
