@@ -99,9 +99,17 @@ def test_b02_delivery_completion_does_not_claim_epic05_finality_or_production_re
     assert compatibility["cross_family_supervised_conformance"]["execution_integration"] == "NOT_RUN"
     assert compatibility["cross_family_supervised_conformance"]["promotion_status"] == "blocked"
     assert all(family["execution_integration"] == "NOT_RUN" for family in compatibility["runner_families"])
+    ai_mcp = next(family for family in compatibility["runner_families"] if family["id"] == "ai-mcp")
+    controlled = ai_mcp["controlled_runtime_integration"]
+    assert controlled["status"] == "PASS_CONTROLLED_IN_PROCESS"
+    assert controlled["default_executor"] == "none"
+    assert controlled["live_network_execution"] == "NOT_RUN"
+    assert controlled["process_supervision"] == "NOT_COMPOSED"
+    assert controlled["production_execution"] == "NOT_RUN"
     assert all(family["promotion_status"] == "blocked" for family in compatibility["runner_families"])
     assert "SVP2-B-02`: **candidate for `completed`**" in completion
     assert "EPIC-05 FINAL`: **`no`**" in completion
+    assert "controlled AI/MCP runtime composition: **`PASS_CONTROLLED_IN_PROCESS`**" in completion
     assert "production execution integration: **`NOT_RUN`**" in completion
     assert "sandbox: **`NOT_IMPLEMENTED`**" in completion
     assert "DOD-10" in completion

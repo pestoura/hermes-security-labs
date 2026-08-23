@@ -87,7 +87,7 @@ The canonical lifecycle declaration is stored in [`platform/runner-protocol/comp
 - No request-controlled executable, argument vector, working directory, environment or worker mode is accepted.
 - No production runtime, scanner, pipeline, repository operation, MCP provider, agent, memory/RAG adapter, network, laboratory or customer target is invoked.
 - Raw process output is never persisted.
-- The calibrated AI/MCP runtime remains disconnected from Runner Protocol.
+- Block 11 itself remains fixed-worker synthetic conformance only. CHG-HSL-093 separately composes the calibrated AI/MCP dispatch with Runner Protocol in-process under an explicitly injected executor and durable ledger; live network execution, process supervision, sandboxing and production promotion remain absent.
 - The vendor-neutral `conformance.effect.*` kit is not reinterpreted; Block 11 uses the separate supervised-process `conformance.process.*` boundary.
 - This record does not claim EPIC-05 `FINAL` status.
 

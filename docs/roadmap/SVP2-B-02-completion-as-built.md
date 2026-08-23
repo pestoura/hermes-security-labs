@@ -61,7 +61,7 @@ The following remain **outside the completion claim**:
 
 - PR #119 — API fixed-worker supervised candidate; merge `bc7e301baf977e041ff267a045bbb8ee592c6455`; `PASS_SYNTHETIC_PROCESS`.
 - PRs #121/#122 — shared engine + DevSecOps fixed-worker supervised candidate; lifecycle main `f2be46da70601aafe92a436636d8c09201a1b259`; `PASS_SYNTHETIC_PROCESS`.
-- PRs #124/#125 — AI/MCP fixed-worker supervised candidate; lifecycle main `40b0e60bbf0fecf0f76da648ab3b3560e02cb41c`; `PASS_SYNTHETIC_PROCESS` while calibrated AI/MCP runtime remains disconnected.
+- PRs #124/#125 — AI/MCP fixed-worker supervised candidate; lifecycle main `40b0e60bbf0fecf0f76da648ab3b3560e02cb41c`; `PASS_SYNTHETIC_PROCESS` remains the supervised-process evidence. CHG-HSL-093 separately adds `PASS_CONTROLLED_IN_PROCESS` composition of the calibrated dispatch with an injected executor and durable idempotency; this is not production or supervised live execution.
 - PR #129 — cross-family supervised synthetic conformance; validated head `5421a7652b2b1eee6a3c00fb728f8bc79ee8c453`; merge `586802146b8e575f4f9c71fcc2bb7a0ae4134880`; post-merge validate `31129689358` PASS; security `31129689363` PASS. The harness normalizes message shape, exact correlation fields, terminal/error/evidence shape, replay/conflict, timeout, cancellation, residue and refusal behaviour across API/DevSecOps/AI-MCP.
 
 ### Gateway / authority / terminal boundaries
@@ -117,6 +117,9 @@ Therefore:
 - `EPIC-05 FINAL`: **`no`**;
 - compatibility protocol status: **`contract_only`**;
 - cross-family conformance: **`PASS_SYNTHETIC_PROCESS`**;
+- controlled AI/MCP runtime composition: **`PASS_CONTROLLED_IN_PROCESS`**;
+- calibrated AI/MCP live network execution: **`NOT_RUN`**;
+- calibrated AI/MCP process supervision: **`NOT_COMPOSED`**;
 - production execution integration: **`NOT_RUN`**;
 - sandbox: **`NOT_IMPLEMENTED`**;
 - promotion: **blocked**.
