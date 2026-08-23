@@ -17,7 +17,7 @@ risk: LOW
 versionEffect: NONE
 branch: chg-hsl-094/promptme-live-runtime-observation
 issue: null
-pr: null
+pr: 441
 validation:
   targeted: PASS
   regression: PASS
@@ -30,5 +30,5 @@ promotion:
 deferredTo: null
 timestamps:
   discoveredAt: '2026-08-23T03:10:44Z'
-  updatedAt: '2026-08-23T04:14:33Z'
+  updatedAt: '2026-08-23T04:15:45Z'
   closedAt: null
