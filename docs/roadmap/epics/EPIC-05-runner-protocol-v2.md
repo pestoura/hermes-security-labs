@@ -50,10 +50,12 @@ fixed-worker synthetic process evidence. CHG-HSL-093 adds a separate controlled 
 composition between Runner Protocol v2 and the already calibrated AI/MCP dispatch path: an
 explicitly injected executor is required, durable idempotency is enforced before the controlled
 effect, replay produces no second effect, and repository tests use an in-memory HTTP transport.
-There is no default executor and no live network or target execution. `FINAL` remains false:
-production execution integration is `NOT_RUN`, process supervision for the calibrated runtime is
-`NOT_COMPOSED`, sandboxing is `NOT_IMPLEMENTED`, promotion is blocked, and no sandboxed real
-capability has been demonstrated.
+CHG-HSL-094 later records one PromptMe laboratory-only live network observation via RDC on merged
+main `b4ada2ed220b788c775158a701ac220437d8716a`, with test-only authorization semantics, target egress denied, replay without a second
+effect and zero-residue destroy. There is still no default executor or operational Control Plane
+authority on this path. `FINAL` remains false: production execution integration is `NOT_RUN`,
+process supervision for the calibrated runtime is `NOT_COMPOSED`, sandboxing is `NOT_IMPLEMENTED`,
+promotion is blocked, and no sandboxed production capability has been demonstrated.
 
 | Lifecycle state | Reached |
 | --- | --- |
@@ -532,8 +534,9 @@ flowchart LR
 The delivered implementation is a repository-owned protocol contract, validation library and
 optional local enforcement primitives for durable idempotency and POSIX process supervision. The
 fixed-worker synthetic API, DevSecOps and AI/MCP candidates dispatch controlled repository test
-processes through the shared supervisor. The calibrated AI/MCP runtime remains disconnected. No
-production adapter, network, container, laboratory or customer target is used.
+processes through the shared supervisor. At this Block 11 evidence cutoff the calibrated AI/MCP
+runtime remained disconnected; CHG-HSL-093/094 later add controlled in-process composition and a
+separate PromptMe LAB-only network observation. No production adapter or customer target is used.
 
 ### Evidence
 

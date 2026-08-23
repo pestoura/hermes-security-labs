@@ -1,0 +1,34 @@
+schemaVersion: jds.change/v1
+kind: ChangeRecord
+id: CHG-HSL-094
+product: hermes-security-labs
+classification: HARDENING
+state: ACCEPTED
+disposition: FIX_NOW
+summary: 'Reconcile a controlled live PromptMe laboratory observation executed directly on HermesJarvas via RDC against merged main b4ada2ed220b788c775158a701ac220437d8716a. The calibrated AI/MCP dispatch composed through Runner Protocol produced a sanitized PASS/ok/vulnerable outcome, durable replay produced no second effect, and destroy verified zero residue. The initial start command transport timed out and remains UNKNOWN; independent health observation and smoke subsequently passed.'
+source:
+  type: ENGINEERING_REVIEW
+  campaign: VAL-HSL-PROMPTME-LIVE-RUNTIME
+  observation: OBS-AIMCP-PROMPTME-LIVE-RDC
+  reference: 'Direct controlled LAB observation after CHG-HSL-093 merge. Scope laboratory only through localhost proxy 127.0.0.1:8210; target egress denied; Kali remained disconnected. Test-only authorization reference was not an operational Hermes receipt and is not retained. No production authority or promotion is inferred.'
+affectedRelease: jds-002-adoption-candidate
+targetRelease: null
+risk: LOW
+versionEffect: NONE
+branch: chg-hsl-094/promptme-live-runtime-observation
+issue: null
+pr: null
+validation:
+  targeted: PASS
+  regression: PASS
+  security: PASS
+  runtime: PASS
+promotion:
+  commit: null
+  artifactDigest: null
+  previousRelease: null
+deferredTo: null
+timestamps:
+  discoveredAt: '2026-08-23T03:10:44Z'
+  updatedAt: '2026-08-23T04:14:33Z'
+  closedAt: null

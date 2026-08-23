@@ -1,0 +1,24 @@
+schemaVersion: jds.validation/v1
+kind: ValidationCampaign
+id: VAL-HSL-PROMPTME-LIVE-RUNTIME
+product: hermes-security-labs
+objective: Validate the calibrated AI/MCP Runner Protocol composition against the canonical local PromptMe Docker laboratory through RDC, including smoke, one bounded live lab execution, durable replay without a second effect and destroy/zero-residue proof, without implying operational Runner authorization or production promotion.
+state: PASSED
+candidate:
+  version: promptme-live-runtime-b4ada2ed
+  commit: b4ada2ed220b788c775158a701ac220437d8716a
+  artifactDigest: null
+environment: Hermes Security Labs / PromptMe deterministic local Docker laboratory
+observations:
+  - id: OBS-AIMCP-PROMPTME-LIVE-RDC
+    required: true
+    result: PASS
+    status: RESOLVED
+    summary: PromptMe was observed healthy after a transport-timeout start, smoke proved localhost publication and denied target egress, the calibrated AI/MCP runtime produced a sanitized PASS outcome against the live lab, durable replay kept the effect count at one, and canonical destroy removed project containers and the localhost listener.
+    changeRecord: CHG-HSL-094
+    evidence: 'scope:LAB_ONLY; transport:RDC; start:TRANSPORT_TIMEOUT_THEN_HEALTH_OBSERVED; smoke:PASS; target-egress:DENIED; runner-outcome:PASS; runtime-status:ok; runtime-decision:vulnerable; evidence-items:4; replay-status:PASS; replay-effect-count:1; ledger-entries:1; authorization-semantics:TEST_ONLY_NOT_OPERATIONAL_AUTHORITY; promotion:false; destroy:PASS; port-8210:ABSENT; project-containers:0'
+promotionRecommendation: ACCEPT
+timestamps:
+  startedAt: '2026-08-23T03:10:44Z'
+  updatedAt: '2026-08-23T03:10:44Z'
+  closedAt: '2026-08-23T03:10:44Z'

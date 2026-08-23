@@ -165,13 +165,27 @@ runner_families:
       replay_second_effect: none
       adapter_network_access: none
       test_executor_transport: in_memory_only
-      live_network_execution: NOT_RUN
+      live_network_execution: PASS_LAB_CONTROLLED_RDC
+      live_lab_observation:
+        status: OBSERVED_LAB_CONTROLLED_RDC
+        lab_id: promptme
+        observed_main: b4ada2ed220b788c775158a701ac220437d8716a
+        access_path: localhost_proxy
+        start_command_transport: UNKNOWN
+        authorization_semantics: TEST_ONLY_NOT_OPERATIONAL_AUTHORITY
+        runner_outcome: PASS
+        runtime_status: ok
+        runtime_decision: vulnerable
+        replay_second_effect: none
+        target_egress: denied
+        kali_connected: false
+        zero_residue: PASS
       process_supervision: NOT_COMPOSED
       cancellation_timeout_integration: NOT_RUN
       sandbox_status: NOT_IMPLEMENTED
       production_execution: NOT_RUN
       production_effect_claim: none
-    notes: The fixed-worker AI/MCP candidate remains synthetic-only. CHG-HSL-093 adds controlled in-process composition of the calibrated AI/MCP dispatch through an explicitly injected executor and durable idempotency, exercised with in-memory transport only. No default executor, live network, target interaction, process supervision, production execution or promotion is enabled.
+    notes: The fixed-worker AI/MCP candidate remains synthetic-only. CHG-HSL-093 adds controlled in-process composition of the calibrated dispatch. CHG-HSL-094 records one PromptMe laboratory-only live network observation via RDC with test-only authorization semantics and zero-residue cleanup. No default executor, operational Control Plane authority, process supervision, sandbox, production execution or promotion is enabled.
 
 migration_gates:
   - schema_validation

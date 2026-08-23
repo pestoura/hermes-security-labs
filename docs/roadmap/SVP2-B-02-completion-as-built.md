@@ -118,7 +118,8 @@ Therefore:
 - compatibility protocol status: **`contract_only`**;
 - cross-family conformance: **`PASS_SYNTHETIC_PROCESS`**;
 - controlled AI/MCP runtime composition: **`PASS_CONTROLLED_IN_PROCESS`**;
-- calibrated AI/MCP live network execution: **`NOT_RUN`**;
+- calibrated AI/MCP live network execution: **`PASS_LAB_CONTROLLED_RDC`** — PromptMe laboratory only, test-only authorization semantics;
+- operational Control Plane authorization receipt for that observation: **`NOT_USED`**;
 - calibrated AI/MCP process supervision: **`NOT_COMPOSED`**;
 - production execution integration: **`NOT_RUN`**;
 - sandbox: **`NOT_IMPLEMENTED`**;
