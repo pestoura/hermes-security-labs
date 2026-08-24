@@ -15,7 +15,8 @@ network:
     enforced: false
     profile: publication-bridge
     allowlist: []
-    residual_risk: publication bridge network permits outbound traffic from the published service
+    residual_risk: publication bridge network permits outbound traffic from the published
+      service
 liveness:
   source: compose-healthcheck
   interval_seconds: 10
@@ -57,6 +58,8 @@ lifecycle:
 - start
 - status
 - smoke
+- connect-kali
+- disconnect-kali
 - stop
 - reset
 - destroy
