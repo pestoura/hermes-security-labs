@@ -131,7 +131,7 @@ Ordered so that each entry unblocks the next and none waits on a blocked depende
 | 3 | Promote those epics to `AS_BUILT` once section 15 cites evidence | 2 | no | Restores agreement between the lifecycle contract and reality |
 | 4 | Connect the calibrated AI/MCP runtime to Runner Protocol and record the divergence | — | no | **Controlled composition delivered by CHG-HSL-093; LAB observation reconciled by CHG-HSL-094**: the calibrated dispatch is composed through an explicitly injected executor with durable idempotency. Repository tests remain in-memory; a separate PromptMe laboratory-only RDC run observed `PASS_LAB_CONTROLLED_RDC`, replay without a second effect and zero-residue cleanup. CHG-HSL-095 subsequently adds `PASS_CONTROLLED_PROCESS` fixed-worker supervision with durable replay and hard-timeout cleanup. A later PromptMe LAB-only RDC run proves `PASS_LAB_CONTROLLED_RDC_SUPERVISED`, including fixed-worker `EXITED`, replay without a second process and zero-residue cleanup. Cancellation messages remain `NOT_RUN`, operational Control Plane authority is absent, sandbox is `NOT_IMPLEMENTED`, production execution is `NOT_RUN`, and promotion remains blocked. |
 | 5 | Delete the 194 remote branches whose pull request is merged | — | no | 206 of 207 remote branches are noise; the signal is one open lane |
-| 6 | Close the milestone accounting gap on `SVP v2 Foundation` | 1 | no | The milestone reports two open items while its four issues are closed |
+| 6 | Close the milestone accounting gap on `SVP v2 Foundation` | 1 | no | **DELIVERED by CHG-HSL-096** — milestone #1 closed and GitHub backend reconciled to `open_issues=0`, `closed_issues=4` |
 | 7 | Provision the dedicated `read:packages` credential | owner authorization | yes | Only step that unblocks the private-registry chain |
 | 8 | Execute issue #53 gates F, G and H | 7 | yes | Cannot start earlier without a credential |
 | 9 | Accept the private digest, then migrate VAmPI Compose | 8 | yes | Explicit sequencing boundary in #53 |
@@ -144,10 +144,11 @@ introduces this document.
 
 Recorded rather than corrected silently:
 
-1. Milestone `SVP v2 Foundation` reports two open items through the GitHub milestone counter
-   while all four issues assigned to it (#76, #77, #78, #80) are closed. No open issue or pull
-   request resolves against that milestone. This is a GitHub-side counter divergence, not a
-   backlog gap, and it must not be treated as outstanding delivery work.
+1. Milestone `SVP v2 Foundation` accounting gap is resolved by `CHG-HSL-096`. GitHub
+   initially reported `open_issues=2`, `closed_issues=2` even though the milestone contained
+   exactly #76, #77, #78 and #80 and all four were closed. Milestone #1 was closed and the
+   unchanged milestone membership on #77 was refreshed, forcing a backend recount. The
+   verified final state is `state=closed`, `open_issues=0`, `closed_issues=4`.
 2. `SVP2-I-01` (#92) has no dedicated concept epic. This gap is already recorded in
    [`epic-catalogue-45.md`](epic-catalogue-45.md) section 2 and is preserved here.
 3. `.deployment.json` in a local checkout reports `DRIFT_DETECTED` against a newer `main`

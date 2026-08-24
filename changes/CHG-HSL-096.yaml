@@ -1,0 +1,34 @@
+schemaVersion: jds.change/v1
+kind: ChangeRecord
+id: CHG-HSL-096
+product: hermes-security-labs
+classification: DOC_ONLY
+state: ACCEPTED
+disposition: FIX_NOW
+summary: 'Reconcile the stale GitHub accounting for milestone #1 SVP v2 Foundation. All four release issues were already closed; closing the milestone and refreshing the unchanged milestone membership on issue #77 forced GitHub to recalculate from 2 open / 2 closed to 0 open / 4 closed. Repository change is documentation and evidence only; no runtime change.'
+source:
+  type: ENGINEERING_REVIEW
+  campaign: null
+  observation: null
+  reference: 'GitHub milestone #1 contained exactly issues #76, #77, #78 and #80, all closed/completed. Backend milestone counters remained stale at open_issues=2, closed_issues=2. Milestone was closed, then #77 milestone membership was temporarily removed and restored to milestone 1; backend verified state=closed, open_issues=0, closed_issues=4.'
+affectedRelease: v2.0
+targetRelease: null
+risk: LOW
+versionEffect: NONE
+branch: chg-hsl-096/foundation-milestone-accounting
+issue: null
+pr: 444
+validation:
+  targeted: PASS
+  regression: PASS
+  security: PASS
+  runtime: NOT_RUN
+promotion:
+  commit: null
+  artifactDigest: null
+  previousRelease: null
+deferredTo: null
+timestamps:
+  discoveredAt: '2026-08-24T09:44:17Z'
+  updatedAt: '2026-08-24T09:51:24Z'
+  closedAt: null
