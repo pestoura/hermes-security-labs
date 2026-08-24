@@ -17,7 +17,7 @@ risk: LOW
 versionEffect: NONE
 branch: chg-hsl-096/foundation-milestone-accounting
 issue: null
-pr: null
+pr: 444
 validation:
   targeted: PASS
   regression: PASS
@@ -30,5 +30,5 @@ promotion:
 deferredTo: null
 timestamps:
   discoveredAt: '2026-08-24T09:44:17Z'
-  updatedAt: '2026-08-24T09:49:59Z'
+  updatedAt: '2026-08-24T09:51:24Z'
   closedAt: null
