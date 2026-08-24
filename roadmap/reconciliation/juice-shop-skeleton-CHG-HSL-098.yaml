@@ -1,0 +1,35 @@
+schema: hsl.juice-shop-skeleton-reconciliation/v1
+change_record: CHG-HSL-098
+observed_at: '2026-08-24T22:30:44Z'
+functional_commit: bd4a9bed8297a1182ef7461bd6c79f87e5ac0716
+scope: local-lab-lifecycle-only
+host_port: 13000
+image: bkimminich/juice-shop@sha256:e68144772ebaaca0ec117b38d44903af92416793230288ef7c5437fc4f26850a
+runtime:
+  start_healthy: true
+  smoke_disconnected: PASS
+  connect_kali: PASS
+  kali_http_status: 200
+  smoke_while_kali_connected:
+    result: EXPECTED_FAIL
+    exit_code: 1
+  destroy_while_kali_connected: PASS
+  reset: PASS
+  destroy_idempotent: PASS
+zero_residue:
+  container_absent: true
+  network_absent: true
+  volumes_absent: true
+  host_port_free: true
+evidence:
+  local_ephemeral_dir: /tmp/hsl-chg098-exact-sha-bd4a9bed
+  manifest_sha256: 88750bb4e5e6c6e9080c3555b8fb5d5c29f461bf76757e8abab0416768506bda
+  sanitized_only: true
+  durable_raw_custody_claimed: false
+boundaries:
+  runner_promotion: false
+  signer_activation: false
+  trust_binding: false
+  external_target_traffic: false
+  exploitation: false
+result: PASS_EXACT_SHA_LAB_LIFECYCLE

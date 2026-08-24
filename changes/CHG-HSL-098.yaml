@@ -8,9 +8,9 @@ disposition: FIX_NOW
 summary: 'Reconcile the current Juice Shop walking-skeleton lifecycle with the accepted CHG-HSL-070 runtime baseline: fix destroy to operate on the explicit Compose network juice-shop-lab, fail closed when smoke observes Kali or an unexpected endpoint attached, declare connect-kali/disconnect-kali in the executable manifest, and align maturity documentation with the auditor PASS state.'
 source:
   type: ENGINEERING_REVIEW
-  campaign: null
-  observation: null
-  reference: 'Pre-commit TDD and controlled local runtime checks identified stale declarative metadata and a destroy network-name defect. Exact-SHA runtime validation remains NOT_RUN until the functional commit is created; no promotion authority is implied.'
+  campaign: VAL-HSL-JUICE-SHOP-SKELETON-RECONCILIATION
+  observation: OBS-JUICE-SHOP-SKELETON-EXACT-SHA
+  reference: 'Exact functional commit bd4a9bed8297a1182ef7461bd6c79f87e5ac0716 passed the controlled local lifecycle: healthy start, disconnected smoke, explicit Kali attach with HTTP 200, fail-closed smoke while Kali was attached, ownership-aware destroy, reset, idempotent cleanup and zero project-owned residue. Evidence is sanitised and lifecycle-only; no Runner, signer, trust or target promotion authority is implied.'
 affectedRelease: jds-002-adoption-candidate
 targetRelease: null
 risk: LOW
@@ -20,9 +20,9 @@ issue: null
 pr: null
 validation:
   targeted: PASS
-  regression: NOT_RUN
+  regression: PASS
   security: PASS
-  runtime: NOT_RUN
+  runtime: PASS
 promotion:
   commit: null
   artifactDigest: null
@@ -30,5 +30,5 @@ promotion:
 deferredTo: null
 timestamps:
   discoveredAt: '2026-08-24T21:41:38Z'
-  updatedAt: '2026-08-24T21:48:07Z'
+  updatedAt: '2026-08-24T22:40:10Z'
   closedAt: null

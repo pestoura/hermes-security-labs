@@ -1,0 +1,24 @@
+schemaVersion: jds.validation/v1
+kind: ValidationCampaign
+id: VAL-HSL-JUICE-SHOP-SKELETON-RECONCILIATION
+product: hermes-security-labs
+objective: Validate the CHG-HSL-098 Juice Shop walking-skeleton reconciliation on an exact functional commit, including explicit Kali attach/detach, fail-closed smoke isolation, ownership-aware destroy, reset, idempotent cleanup and zero project-owned residue.
+state: PASSED
+candidate:
+  version: juice-shop-skeleton-bd4a9bed
+  commit: bd4a9bed8297a1182ef7461bd6c79f87e5ac0716
+  artifactDigest: null
+environment: Hermes Security Labs / local Juice Shop isolated Docker lifecycle
+observations:
+  - id: OBS-JUICE-SHOP-SKELETON-EXACT-SHA
+    required: true
+    result: PASS
+    status: RESOLVED
+    summary: Exact functional SHA passed healthy start, disconnected smoke, explicit Kali attach with HTTP 200, expected smoke rejection while Kali remained attached, ownership-aware destroy from attached state, reset, idempotent destroy and final zero residue on loopback host port 13000.
+    changeRecord: CHG-HSL-098
+    evidence: 'roadmap/reconciliation/juice-shop-skeleton-CHG-HSL-098.yaml; local ephemeral evidence manifest sha256:88750bb4e5e6c6e9080c3555b8fb5d5c29f461bf76757e8abab0416768506bda; scope:lifecycle-only; no Runner/signer/trust promotion authority.'
+promotionRecommendation: ACCEPT
+timestamps:
+  startedAt: '2026-08-24T22:28:00Z'
+  updatedAt: '2026-08-24T22:30:44Z'
+  closedAt: '2026-08-24T22:30:44Z'
