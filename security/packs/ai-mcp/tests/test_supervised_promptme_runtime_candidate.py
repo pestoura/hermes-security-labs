@@ -195,7 +195,7 @@ def test_candidate_source_has_no_shell_or_request_controlled_command_surface() -
 
 
 class UnavailableSupervisor:
-    def run(self, _spec):
+    def run(self, _spec, *, cancellation=None):
         raise SupervisionUnavailableError("synthetic unavailable detail must not escape")
 
 
