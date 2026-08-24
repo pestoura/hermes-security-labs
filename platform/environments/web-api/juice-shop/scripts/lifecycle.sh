@@ -89,7 +89,10 @@ PY
   [[ "${status}" =~ ^[234][0-9][0-9]$ ]] || { echo "[smoke] HTTP ${status}"; return 1; }
   assert_network_owned
   [ "$(docker network inspect "${NETWORK_NAME}" --format '{{.Internal}}')" = false ]
-  ! is_kali_connected
+  if is_kali_connected; then
+    echo "[smoke] Kali must be disconnected before smoke validation"
+    return 1
+  fi
   echo "[smoke] PASS HTTP=${status} mapping=${mapping}"
 }
 
@@ -113,8 +116,14 @@ stop_lab() {
 destroy_lab() {
   disconnect_kali
   "${COMPOSE[@]}" down --volumes --remove-orphans
-  ! "${COMPOSE[@]}" ps -aq | grep -q .
-  ! docker network inspect "${NETWORK_NAME}" >/dev/null 2>&1
+  if "${COMPOSE[@]}" ps -aq | grep -q .; then
+    echo "[destroy] Project containers still present"
+    return 1
+  fi
+  if docker network inspect "${NETWORK_NAME}" >/dev/null 2>&1; then
+    echo "[destroy] Project network still present"
+    return 1
+  fi
   echo "[destroy] COMPLETE"
 }
 
@@ -124,14 +133,16 @@ reset_lab() {
   smoke_lab
 }
 
-case "${1:-}" in
-  start) start_lab ;;
-  status) status_lab ;;
-  smoke) smoke_lab ;;
-  connect-kali) connect_kali ;;
-  disconnect-kali) disconnect_kali ;;
-  stop) stop_lab ;;
-  reset) reset_lab ;;
-  destroy) destroy_lab ;;
-  *) echo "Usage: $0 {start|status|smoke|connect-kali|disconnect-kali|stop|reset|destroy}"; exit 2 ;;
-esac
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+  case "${1:-}" in
+    start) start_lab ;;
+    status) status_lab ;;
+    smoke) smoke_lab ;;
+    connect-kali) connect_kali ;;
+    disconnect-kali) disconnect_kali ;;
+    stop) stop_lab ;;
+    reset) reset_lab ;;
+    destroy) destroy_lab ;;
+    *) echo "Usage: $0 {start|status|smoke|connect-kali|disconnect-kali|stop|reset|destroy}" >&2; exit 2 ;;
+  esac
+fi
