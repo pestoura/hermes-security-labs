@@ -5,6 +5,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 COMPOSE_FILE="${SCRIPT_DIR}/../compose.yaml"
 PROJECT_NAME="juice-shop"
 APP_SERVICE="juice-shop"
+APP_NETWORK="juice-shop-lab"
+KALI_CONTAINER="hermes-kali-mcp"
 COMPOSE=(docker compose -p "${PROJECT_NAME}" -f "${COMPOSE_FILE}")
 
 echo "[smoke] Checking container status..."
@@ -22,6 +24,38 @@ if [ "$health" != "healthy" ]; then
   exit 1
 fi
 echo "[smoke] Health: $health"
+
+echo "[smoke] Checking network ownership and Kali isolation..."
+if ! docker network inspect "${APP_NETWORK}" >/dev/null 2>&1; then
+  echo "[smoke] Network absent: ${APP_NETWORK}"
+  exit 1
+fi
+project_label="$(docker network inspect "${APP_NETWORK}" --format '{{index .Labels "com.docker.compose.project"}}')"
+if [[ "${project_label}" != "${PROJECT_NAME}" ]]; then
+  echo "[smoke] Network ${APP_NETWORK} is not owned by ${PROJECT_NAME}"
+  exit 1
+fi
+app_name="$(docker inspect "${container_id}" --format '{{.Name}}' | sed 's#^/##')"
+endpoint_names="$(docker network inspect "${APP_NETWORK}" --format '{{range .Containers}}{{.Name}}{{"\n"}}{{end}}')"
+app_present=false
+while IFS= read -r endpoint; do
+  [[ -z "${endpoint}" ]] && continue
+  case "${endpoint}" in
+    "${app_name}") app_present=true ;;
+    "${KALI_CONTAINER}")
+      echo "[smoke] Kali must be disconnected before smoke validation"
+      exit 1
+      ;;
+    *)
+      echo "[smoke] Unexpected endpoint ${endpoint} on ${APP_NETWORK}"
+      exit 1
+      ;;
+  esac
+done <<<"${endpoint_names}"
+if [[ "${app_present}" != true ]]; then
+  echo "[smoke] Expected Juice Shop endpoint ${app_name} is missing"
+  exit 1
+fi
 
 echo "[smoke] Resolving canonical host publication..."
 mapping="$("${COMPOSE[@]}" port "${APP_SERVICE}" 3000 2>/dev/null || true)"

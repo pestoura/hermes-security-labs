@@ -17,6 +17,9 @@ ADAPTER = ROOT / "lab-readiness" / "adapters" / "juice-shop.yaml"
 COMPOSE = ENV / "compose.yaml"
 SMOKE = ENV / "scripts" / "smoke.sh"
 RESET = ENV / "scripts" / "reset.sh"
+DESTROY = ENV / "scripts" / "destroy.sh"
+MANIFEST = ENV / "manifest.yaml"
+MATURITY = ROOT.parent / "docs" / "lab-catalog-maturity.md"
 
 
 def test_compose_publication_and_readiness_share_host_port_contract() -> None:
@@ -63,3 +66,32 @@ def test_reset_keeps_smoke_after_health_gate() -> None:
     health_gate = reset.index('if [ "$health" = "healthy" ]')
     smoke = reset.index('"${SCRIPT_DIR}/smoke.sh"')
     assert health_gate < smoke
+
+
+def test_manifest_declares_explicit_kali_attach_detach_lifecycle() -> None:
+    manifest = yaml.safe_load(MANIFEST.read_text(encoding="utf-8"))
+    lifecycle = manifest["lifecycle"]
+    assert "connect-kali" in lifecycle
+    assert "disconnect-kali" in lifecycle
+
+
+def test_destroy_uses_explicit_compose_network_and_disconnects_kali() -> None:
+    destroy = DESTROY.read_text(encoding="utf-8")
+    assert 'NETWORK_NAME="juice-shop-lab"' in destroy
+    assert "juice-shop_juice-shop-lab" not in destroy
+    assert '"${SCRIPT_DIR}/disconnect-kali.sh"' in destroy
+    assert 'com.docker.compose.project' in destroy
+
+
+def test_smoke_fails_closed_if_kali_is_already_connected() -> None:
+    smoke = SMOKE.read_text(encoding="utf-8")
+    assert 'APP_NETWORK="juice-shop-lab"' in smoke
+    assert 'KALI_CONTAINER="hermes-kali-mcp"' in smoke
+    assert "Kali must be disconnected before smoke validation" in smoke
+
+
+def test_maturity_document_matches_audited_pass_state() -> None:
+    maturity = MATURITY.read_text(encoding="utf-8")
+    assert "| juice-shop | PASS | — |" in maturity
+    assert "juice-shop | DEGRADED" not in maturity
+    assert "porta de host fixa; sem scripts Kali" not in maturity

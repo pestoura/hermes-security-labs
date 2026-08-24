@@ -64,7 +64,7 @@ efeito lateral.
 | webgoat | PASS | — |
 | wrongsecrets | PASS | — |
 | crapi | PASS | — |
-| juice-shop | DEGRADED | porta de host fixa; sem scripts Kali |
+| juice-shop | PASS | — |
 
 ## Fila de promoção a production-ready
 
@@ -76,8 +76,8 @@ segunda continua a ser trabalho de aceitação com execução.
    `graphql-vulnerable-lab`, `nodegoat`, `webgoat`, `wrongsecrets`, `pygoat`,
    `crapi`. Já cumprem o contrato declarativo; falta apenas registar a execução
    observada.
-2. **Uma correção pequena de distância** — `juice-shop`: parametrizar a porta de
-   host e adicionar os scripts `connect-kali.sh` / `disconnect-kali.sh`.
+2. **Aceitação concluída** — `juice-shop`: `PASS` no auditor e ciclo de vida real
+   aceite em `CHG-HSL-070`, incluindo porta de host parametrizável e zero-residue cleanup.
 
 Ambientes `catalog-only` não entram nesta fila enquanto não trouxerem
 `compose.yaml` e scripts de ciclo de vida para o repositório.

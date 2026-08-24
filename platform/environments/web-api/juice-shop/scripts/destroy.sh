@@ -5,21 +5,15 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 COMPOSE_FILE="${SCRIPT_DIR}/../compose.yaml"
 
 PROJECT_NAME="juice-shop"
-NETWORK_NAME="juice-shop_juice-shop-lab"
+NETWORK_NAME="juice-shop-lab"
 CONTAINER_NAME="juice-shop"
 DATA_VOLUME="juice-shop_juice-shop-data"
 FTP_VOLUME="juice-shop_juice-shop-ftp"
 
 COMPOSE=(docker compose -p "${PROJECT_NAME}" -f "${COMPOSE_FILE}")
 
-# Trap to ensure Kali is disconnected even on failure
-cleanup_kali() {
-  docker network disconnect juice-shop_juice-shop-lab hermes-kali-mcp 2>/dev/null || true
-}
-trap cleanup_kali EXIT
-
-echo "[destroy] Disconnecting Kali MCP..."
-docker network disconnect juice-shop_juice-shop-lab hermes-kali-mcp 2>/dev/null || true
+echo "[destroy] Disconnecting Kali MCP through ownership-aware lifecycle..."
+"${SCRIPT_DIR}/disconnect-kali.sh"
 
 echo "[destroy] Removing project containers, volumes, and network..."
 "${COMPOSE[@]}" down --volumes --remove-orphans

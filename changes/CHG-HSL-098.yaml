@@ -1,0 +1,34 @@
+schemaVersion: jds.change/v1
+kind: ChangeRecord
+id: CHG-HSL-098
+product: hermes-security-labs
+classification: BUGFIX
+state: ACCEPTED
+disposition: FIX_NOW
+summary: 'Reconcile the current Juice Shop walking-skeleton lifecycle with the accepted CHG-HSL-070 runtime baseline: fix destroy to operate on the explicit Compose network juice-shop-lab, fail closed when smoke observes Kali or an unexpected endpoint attached, declare connect-kali/disconnect-kali in the executable manifest, and align maturity documentation with the auditor PASS state.'
+source:
+  type: ENGINEERING_REVIEW
+  campaign: null
+  observation: null
+  reference: 'Pre-commit TDD and controlled local runtime checks identified stale declarative metadata and a destroy network-name defect. Exact-SHA runtime validation remains NOT_RUN until the functional commit is created; no promotion authority is implied.'
+affectedRelease: jds-002-adoption-candidate
+targetRelease: null
+risk: LOW
+versionEffect: NONE
+branch: chg-hsl-098/juice-shop-skeleton-reconciliation
+issue: null
+pr: null
+validation:
+  targeted: PASS
+  regression: NOT_RUN
+  security: PASS
+  runtime: NOT_RUN
+promotion:
+  commit: null
+  artifactDigest: null
+  previousRelease: null
+deferredTo: null
+timestamps:
+  discoveredAt: '2026-08-24T21:41:38Z'
+  updatedAt: '2026-08-24T21:48:07Z'
+  closedAt: null
