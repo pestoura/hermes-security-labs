@@ -1,0 +1,26 @@
+schema: hsl.roadmap-milestone-reconciliation/v1
+change_record: CHG-HSL-096
+observed_at: '2026-08-24T09:44:17Z'
+milestone:
+  number: 1
+  title: SVP v2 Foundation
+before:
+  state: open
+  open_issues: 2
+  closed_issues: 2
+verification:
+  github_search_open_issues: 0
+  github_search_closed_issues: 4
+  github_rest_members: [76, 77, 78, 80]
+  all_members_closed: true
+action:
+  milestone_state: closed
+  membership_refresh_issue: 77
+  membership_refresh: remove_then_restore_same_milestone
+after:
+  state: closed
+  open_issues: 0
+  closed_issues: 4
+  issues: [76, 77, 78, 80]
+runtime_change: false
+secrets_touched: false
