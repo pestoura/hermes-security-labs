@@ -56,7 +56,7 @@ effect and zero-residue destroy. CHG-HSL-095 then composes the calibrated Prompt
 through the existing POSIX process supervisor with a fixed trusted worker, durable replay and
 verified hard-timeout cleanup. A later PromptMe LAB-only RDC run records
 `PASS_LAB_CONTROLLED_RDC_SUPERVISED`, including clean worker exit, replay without a second process
-and zero-residue cleanup. Cancellation requests remain `NOT_RUN`; there is still no default production executor or operational
+and zero-residue cleanup. CHG-HSL-097 subsequently proves `PASS_LAB_CONTROLLED_RDC` cancellation on the exact fixed-worker PromptMe candidate, including durable `CANCELLED` replay without a second process, separate force-after-grace proof and zero-residue cleanup. Operational/deployed Control Plane cancellation dispatch remains `NOT_RUN`; there is still no default production executor or operational
 Control Plane authority on this path. `FINAL` remains false: production execution integration is
 `NOT_RUN`, sandboxing is `NOT_IMPLEMENTED`, promotion is blocked, and no sandboxed production
 capability has been demonstrated.

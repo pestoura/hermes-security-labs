@@ -1,8 +1,10 @@
 # Hermes Security Labs — current walking-skeleton status
 
-**Reconciled:** 2026-08-23 UTC
+**Reconciled:** 2026-08-25 UTC
 **Current Labs baseline:** `8c654379afb2114e34d6e748bb558b3ad5b8fb4b`
-**Current repository main:** `eada361cb5fd3f612b7b5911146cd4b448241e04`
+**Current repository main / Foundation functional baseline:** `7711ddf2920c87259b6c0c4a4119d5441dba4181`
+**Foundation / Walking Skeleton (Level A): `HOLD`** — repository and CI criteria are PASS; CHG-HSL-097 post-merge POSIX/runtime re-observation is `NOT_RUN_HERMES_OFFLINE`.
+**Core Operational v1 / LAB_L1 promotion:** `BLOCKED / HOLD` — Secret Zero, signer custody/trust and explicit Human-in-the-Loop promotion remain separate later gates.
 **CHG-HSL-072 reconciliation base:** `9448817e436ee096e0f839b6bb8b9bf9e06d8d6d`
 **Accepted/live Hermes MCP Bridge revision:** `3717bd5469b061a44294b27e1a7510d477d3752b`
 **DVWA live lifecycle acceptance:** `run_8f2174dc4c87452098b700ff556ac978`
@@ -11,6 +13,8 @@
 **CHG-HSL-086 accepted merge:** `c8e4c4517e0fceaa9e37d28fe05c53554af07723` (PR #431; shared-Vault pre-Secret-Zero probe merged and live-observed)
 **CHG-HSL-088 accepted merge:** `1d368ea8eb54d65d4fc2a5022d8a88e93252a6c2` (PR #433; authenticated receipt-delivery boundary merged and live-observed in AUTHENTICATED_HOLD)
 **CHG-HSL-090 accepted merge:** `eada361cb5fd3f612b7b5911146cd4b448241e04` (PR #437; synthetic authorization-audit custody probe merged and live-observed)
+**CHG-HSL-097 accepted merge:** `7711ddf2920c87259b6c0c4a4119d5441dba4181` (PR #445; controlled PromptMe Runner cancellation merged; post-merge runtime re-observation pending while HermesJarvas is offline)
+**CHG-HSL-098 accepted merge:** `af65af1105384c3f8ffaa0aee5d5a5658dac663e` (PR #446; Juice Shop fail-closed lifecycle merged and post-merge zero-residue accepted)
 
 This file is the concise current-state view. Historical detail remains in the dedicated roadmap/evidence records and the governed campaign at [`../../validation/VAL-HSL-RUNNER-L1-LIVE-PROMOTION.yaml`](../../validation/VAL-HSL-RUNNER-L1-LIVE-PROMOTION.yaml).
 

@@ -1,0 +1,34 @@
+schemaVersion: jds.change/v1
+kind: ChangeRecord
+id: CHG-HSL-099
+product: hermes-security-labs
+classification: DOC_ONLY
+state: ACCEPTED
+disposition: FIX_NOW
+summary: 'Establish the fail-closed final Foundation walking-skeleton snapshot and reconcile current Runner cancellation documentation without claiming completion before CHG-HSL-097 post-merge runtime re-observation.'
+source:
+  type: ENGINEERING_REVIEW
+  campaign: null
+  observation: null
+  reference: 'Merged main 7711ddf2920c87259b6c0c4a4119d5441dba4181 has unique ChangeRecord IDs, closed Foundation milestone accounting through CHG-HSL-096, Juice Shop reconciliation through CHG-HSL-098, PromptMe cancellation through CHG-HSL-097 and all four push CI workflows PASS. HermesJarvas is offline, so the required CHG-HSL-097 post-merge POSIX/runtime re-observation remains NOT_RUN and Foundation completion is held fail closed.'
+affectedRelease: jds-002-adoption-candidate
+targetRelease: null
+risk: LOW
+versionEffect: NONE
+branch: chg-hsl-099/foundation-final-snapshot
+issue: null
+pr: null
+validation:
+  targeted: PASS
+  regression: NOT_RUN
+  security: PASS
+  runtime: NOT_RUN
+promotion:
+  commit: null
+  artifactDigest: null
+  previousRelease: null
+deferredTo: null
+timestamps:
+  discoveredAt: '2026-08-25T05:12:56Z'
+  updatedAt: '2026-08-25T05:12:56Z'
+  closedAt: null
