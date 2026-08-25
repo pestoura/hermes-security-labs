@@ -1,0 +1,34 @@
+schemaVersion: jds.change/v1
+kind: ChangeRecord
+id: CHG-HSL-097
+product: hermes-security-labs
+classification: HARDENING
+state: ACCEPTED
+disposition: FIX_NOW
+summary: 'Integrate Runner Protocol cancellation with the supervised PromptMe LAB-only runtime candidate, preserving durable idempotency, bounded process cleanup, fail-closed request boundaries and sanitized terminal outcomes.'
+source:
+  type: ENGINEERING_REVIEW
+  campaign: VAL-HSL-AIMCP-CANCELLATION-RUNTIME
+  observation: OBS-AIMCP-CANCELLATION-LIVE-RDC
+  reference: 'TDD RED proved cancellation was absent and review fixed three concurrency boundaries. Exact functional commit 76ecc4aac3cb25e1697613a27304c6ca0dc082bd then cancelled one real fixed PromptMe LAB worker after process creation, persisted and replayed CANCELLED without a second process; a repository-owned hang fixture separately proved force-after-grace. Final lab destroy independently verified zero residue. No operational authority or promotion is inferred.'
+affectedRelease: jds-002-adoption-candidate
+targetRelease: null
+risk: MEDIUM
+versionEffect: NONE
+branch: chg-hsl-097/promptme-runner-cancellation
+issue: null
+pr: 445
+validation:
+  targeted: PASS
+  regression: PASS
+  security: PASS
+  runtime: PASS
+promotion:
+  commit: null
+  artifactDigest: null
+  previousRelease: null
+deferredTo: null
+timestamps:
+  discoveredAt: '2026-08-24T09:06:25Z'
+  updatedAt: '2026-08-25T00:18:15Z'
+  closedAt: null

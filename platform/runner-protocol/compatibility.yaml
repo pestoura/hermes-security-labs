@@ -181,7 +181,7 @@ runner_families:
         kali_connected: false
         zero_residue: PASS
       process_supervision: PASS_CONTROLLED_PROCESS
-      cancellation_timeout_integration: HARD_TIMEOUT_PASS_CANCELLATION_NOT_RUN
+      cancellation_timeout_integration: HARD_TIMEOUT_PASS_CANCELLATION_PASS_CONTROLLED
       supervised_process:
         status: PASS_CONTROLLED_PROCESS
         module_path: security/packs/ai-mcp/src/ai_mcp_runbooks/supervised_promptme_runtime_adapter.py
@@ -191,7 +191,20 @@ runner_families:
         durable_idempotency: PASS_CONTROLLED_PROCESS
         replay_second_process: none
         hard_timeout: PASS_CONTROLLED_PROCESS
-        cancellation_request: NOT_RUN
+        cancellation_request: PASS_LAB_CONTROLLED_RDC
+        cancellation_live_observation:
+          status: OBSERVED_LAB_CONTROLLED_RDC_CANCELLATION
+          functional_commit: 76ecc4aac3cb25e1697613a27304c6ca0dc082bd
+          acknowledgement: accepted
+          terminal_status: CANCELLED
+          supervision_status: CANCELLED
+          first_process_count: 1
+          replay_second_process: none
+          force_after_grace: PASS_CONTROLLED_PROCESS
+          target_egress: denied
+          kali_connected: false
+          zero_residue: PASS
+          authorization_semantics: TEST_ONLY_NOT_OPERATIONAL_AUTHORITY
         live_lab_execution: PASS_LAB_CONTROLLED_RDC_SUPERVISED
         live_lab_observation:
           status: OBSERVED_LAB_CONTROLLED_RDC_SUPERVISED
@@ -212,7 +225,7 @@ runner_families:
       sandbox_status: NOT_IMPLEMENTED
       production_execution: NOT_RUN
       production_effect_claim: none
-    notes: The fixed-worker AI/MCP candidate remains synthetic-only. CHG-HSL-093 adds controlled in-process composition of the calibrated dispatch. CHG-HSL-094 records one PromptMe laboratory-only live network observation via RDC with test-only authorization semantics and zero-residue cleanup. CHG-HSL-095 adds controlled fixed-worker process supervision with durable replay and hard-timeout cleanup, then records a supervised PromptMe LAB-only RDC observation with no replay process and zero-residue cleanup. Cancellation messages remain NOT_RUN, and no operational Control Plane authority, sandbox, production execution or promotion is enabled.
+    notes: The fixed-worker AI/MCP candidate remains synthetic-only. CHG-HSL-093 adds controlled in-process composition of the calibrated dispatch. CHG-HSL-094 records one PromptMe laboratory-only live network observation via RDC with test-only authorization semantics and zero-residue cleanup. CHG-HSL-095 adds controlled fixed-worker process supervision with durable replay and hard-timeout cleanup, then records a supervised PromptMe LAB-only RDC observation with no replay process and zero-residue cleanup. CHG-HSL-097 proves controlled cancellation on the exact functional commit with one real fixed PromptMe worker, durable CANCELLED replay without a second process, separate force-after-grace proof and zero-residue cleanup. Operational Control Plane cancellation dispatch, sandbox, production execution and promotion remain NOT_RUN or disabled.
 
 migration_gates:
   - schema_validation

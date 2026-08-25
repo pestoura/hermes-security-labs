@@ -716,7 +716,7 @@ separate PromptMe LAB-only network observation. No production adapter or custome
 | Completion failure fails closed | met | non-retryable `INCONCLUSIVE` test |
 | Real capability and authorization create no claim | met | negative ledger-record tests |
 | Production API effect deduplication | `NOT_RUN` | no real capability mapping or executor integration |
-| Live bounded process cancellation | `NOT_RUN` | synthetic protocol cancellation only |
+| Live bounded process cancellation | `PASS_LAB_CONTROLLED_RDC` | CHG-HSL-097 exact-SHA fixed PromptMe worker cancellation; durable replay creates no second process; force-after-grace separately proven with repository-owned fixture; production adapter cancellation remains `NOT_RUN` |
 
 ### Block 7 acceptance assessment
 

@@ -114,7 +114,7 @@ The initial combined `start` command suffered a transport timeout and therefore 
 
 The calibrated PromptMe path is now composable through the repository-owned `PosixProcessSupervisor` using a fixed trusted worker. The Runner request cannot select an executable or argv. Durable idempotency is claimed before process creation; replay does not start a second process. Repository-controlled process tests demonstrate `PASS_CONTROLLED_PROCESS` supervision and hard-timeout cleanup, including SIGTERM-to-SIGKILL escalation and fail-closed handling when supervision is unavailable.
 
-Cancellation request: **`NOT_RUN`**. Supervised live lab execution: **`PASS_LAB_CONTROLLED_RDC_SUPERVISED`**. A later canonical Phase-2 lifecycle start succeeded on HermesJarvas; the fixed supervised worker exited cleanly with Runner `PASS`, runtime `ok/vulnerable`, one first process, durable replay with no second process, target egress denied, Kali disconnected, and destroy/zero-residue PASS. The earlier `NOT_RUN_TOOL_BLOCK` evidence is retained as historical evidence rather than rewritten. No operational authorization receipt, sandbox, production execution or promotion is inferred.
+At CHG-HSL-095 the cancellation request remained **`NOT_RUN`**. CHG-HSL-097 now records cancellation request: **`PASS_LAB_CONTROLLED_RDC`** on exact functional commit `76ecc4aac3cb25e1697613a27304c6ca0dc082bd`: one real fixed PromptMe worker was cancelled after process creation, terminal `CANCELLED` was committed durably, replay created no second process, and a separate repository-owned hang fixture proved force-after-grace. Operational/deployed Control Plane cancellation remains **`NOT_RUN`**. Supervised live lab execution: **`PASS_LAB_CONTROLLED_RDC_SUPERVISED`**. A later canonical Phase-2 lifecycle start succeeded on HermesJarvas; the fixed supervised worker exited cleanly with Runner `PASS`, runtime `ok/vulnerable`, one first process, durable replay with no second process, target egress denied, Kali disconnected, and destroy/zero-residue PASS. The earlier `NOT_RUN_TOOL_BLOCK` evidence is retained as historical evidence rather than rewritten. No operational authorization receipt, sandbox, production execution or promotion is inferred.
 
 ## Explicit limitations — not delivered here
 
@@ -132,4 +132,4 @@ Cancellation request: **`NOT_RUN`**. Supervised live lab execution: **`PASS_LAB_
   reports this and the projection never promotes an uncalibrated handler.
 
 `NO_PRODUCTION_RUNTIME_ACTIVATION`. No secret, credential, package visibility or production
-deployment is introduced by CHG-HSL-095.
+deployment is introduced by CHG-HSL-095 or CHG-HSL-097.
