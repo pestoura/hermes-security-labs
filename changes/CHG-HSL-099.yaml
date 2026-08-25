@@ -17,7 +17,7 @@ risk: LOW
 versionEffect: NONE
 branch: chg-hsl-099/foundation-final-snapshot
 issue: null
-pr: null
+pr: 447
 validation:
   targeted: PASS
   regression: NOT_RUN
