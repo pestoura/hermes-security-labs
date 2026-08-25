@@ -5,12 +5,19 @@ product: hermes-security-labs
 classification: DOC_ONLY
 state: ACCEPTED
 disposition: FIX_NOW
-summary: 'Establish the fail-closed final Foundation walking-skeleton snapshot and reconcile current Runner cancellation documentation without claiming completion before CHG-HSL-097 post-merge runtime re-observation.'
+summary: Establish the fail-closed final Foundation walking-skeleton snapshot and
+  reconcile current Runner cancellation documentation without claiming completion
+  before CHG-HSL-097 post-merge runtime re-observation.
 source:
   type: ENGINEERING_REVIEW
-  campaign: null
-  observation: null
-  reference: 'Merged main 7711ddf2920c87259b6c0c4a4119d5441dba4181 has unique ChangeRecord IDs, closed Foundation milestone accounting through CHG-HSL-096, Juice Shop reconciliation through CHG-HSL-098, PromptMe cancellation through CHG-HSL-097 and all four push CI workflows PASS. HermesJarvas is offline, so the required CHG-HSL-097 post-merge POSIX/runtime re-observation remains NOT_RUN and Foundation completion is held fail closed.'
+  campaign: VAL-HSL-FOUNDATION-FINAL-SNAPSHOT
+  observation: OBS-FOUNDATION-FINAL-POSTMERGE-RUNTIME
+  reference: "Exact merged main 7711ddf2920c87259b6c0c4a4119d5441dba4181 passed final\
+    \ push CI and CHG-HSL-097 post-merge POSIX/runtime re-observation on HermesJarvas:\
+    \ 15/15 focused tests, live fixed-worker accepted\u2192CANCELLED, durable replay\
+    \ without a second process, separate force-after-grace PASS, final smoke and zero-residue\
+    \ PASS. This closes Foundation Level A only; Core Operational v1, Secret Zero,\
+    \ trust, Runner promotion and production remain separate."
 affectedRelease: jds-002-adoption-candidate
 targetRelease: null
 risk: LOW
@@ -20,9 +27,9 @@ issue: null
 pr: 447
 validation:
   targeted: PASS
-  regression: NOT_RUN
+  regression: PASS
   security: PASS
-  runtime: NOT_RUN
+  runtime: PASS
 promotion:
   commit: null
   artifactDigest: null
@@ -30,5 +37,5 @@ promotion:
 deferredTo: null
 timestamps:
   discoveredAt: '2026-08-25T05:12:56Z'
-  updatedAt: '2026-08-25T05:12:56Z'
+  updatedAt: '2026-08-25T06:56:48Z'
   closedAt: null

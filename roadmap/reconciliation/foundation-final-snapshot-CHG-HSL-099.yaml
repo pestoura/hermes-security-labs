@@ -1,9 +1,9 @@
 schema: hsl.foundation-final-snapshot/v1
 change_record: CHG-HSL-099
-observed_at: '2026-08-25T05:12:56Z'
+observed_at: '2026-08-25T06:49:11Z'
 functional_baseline: 7711ddf2920c87259b6c0c4a4119d5441dba4181
-status: HOLD_POST_MERGE_RUNTIME_CHG097
-foundation_complete: false
+status: COMPLETE
+foundation_complete: true
 criteria:
   change_record_ids_unique: PASS
   foundation_milestone_accounting: PASS
@@ -19,8 +19,9 @@ criteria:
     security: PASS
     release_governance: PASS
     private_vampi_source_repo_deny: PASS
-  chg097_post_merge_runtime: NOT_RUN_HERMES_OFFLINE
+  chg097_post_merge_runtime: PASS
   open_pull_requests_before_chg099: 0
+  chg097_post_merge_runtime_evidence: roadmap/reconciliation/chg097-postmerge-runtime-CHG-HSL-099.yaml
 boundaries:
   production_ready: false
   core_operational_v1_complete: false
@@ -32,9 +33,7 @@ boundaries:
   private_ghcr_required_for_foundation: false
   domain_activation_required_for_foundation: false
 next_gate:
-  id: CHG097_POST_MERGE_RUNTIME
-  execution_host: HermesJarvas
-  required_result: PASS
-  current_result: NOT_RUN_HERMES_OFFLINE
-  on_pass: FOUNDATION_COMPLETION_REVIEW
-  on_fail: HOLD
+  id: CORE_OPERATIONAL_V1_ENTRY_REVIEW
+  current_result: NOT_STARTED
+  requires_separate_authorization: true
+  secret_zero_human_in_the_loop: true
