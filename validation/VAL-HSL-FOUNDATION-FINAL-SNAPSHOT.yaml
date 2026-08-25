@@ -1,0 +1,28 @@
+schemaVersion: jds.validation/v1
+kind: ValidationCampaign
+id: VAL-HSL-FOUNDATION-FINAL-SNAPSHOT
+product: hermes-security-labs
+objective: Validate the final Foundation / Walking Skeleton Level A snapshot after
+  CHG-HSL-097 post-merge POSIX/runtime re-observation on exact merged main, without
+  promoting Core Operational v1 or production authority.
+state: PASSED
+candidate:
+  version: foundation-main-7711ddf
+  commit: 7711ddf2920c87259b6c0c4a4119d5441dba4181
+  artifactDigest: null
+environment: Hermes Security Labs / HermesJarvas controlled local laboratory
+observations:
+- id: OBS-FOUNDATION-FINAL-POSTMERGE-RUNTIME
+  required: true
+  result: PASS
+  status: RESOLVED
+  summary: Exact merged main passed 15/15 focused POSIX tests, live fixed-worker cancellation
+    with durable CANCELLED replay, separate force-after-grace proof, final smoke and
+    zero-residue cleanup. Foundation Level A only.
+  changeRecord: CHG-HSL-099
+  evidence: roadmap/reconciliation/chg097-postmerge-runtime-CHG-HSL-099.yaml
+promotionRecommendation: ACCEPT
+timestamps:
+  startedAt: '2026-08-25T06:49:11Z'
+  updatedAt: '2026-08-25T06:49:11Z'
+  closedAt: '2026-08-25T06:49:11Z'

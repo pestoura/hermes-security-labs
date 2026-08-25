@@ -1,0 +1,56 @@
+schema: hsl.foundation-postmerge-runtime-observation/v1
+change_record: CHG-HSL-099
+subject_change: CHG-HSL-097
+observed_at: '2026-08-25T06:49:11Z'
+observed_main: 7711ddf2920c87259b6c0c4a4119d5441dba4181
+execution_host: HermesJarvas
+result: PASS
+precheck:
+  promptme_residue: ABSENT
+  exact_main: true
+  focused_posix_tests: PASS_15_OF_15
+live_cancellation:
+  acknowledgement: accepted
+  terminal_status: CANCELLED
+  dispatch_terminal: CANCELLED
+  supervision_status: CANCELLED
+  force_killed: false
+  first_process_count: 1
+  ledger_entries: 1
+  replay_terminal: CANCELLED
+  replay_second_process: none
+  active_processes_after: 0
+  unknown_correlation_ack: not_found
+force_after_grace:
+  worker_class: repository-owned-hang-fixture
+  acknowledgement: accepted
+  terminal_status: CANCELLED
+  supervision_status: CANCELLED
+  force_killed: true
+  cleanup_failed: false
+  active_processes_after: 0
+lifecycle:
+  start: PASS
+  smoke: PASS
+  target_egress: denied
+  kali_connected: false
+  destroy: PASS
+zero_residue: PASS
+zero_residue_details:
+  containers: 0
+  volumes: 0
+  networks: 0
+  port_8210_listeners: 0
+  kali: running
+boundaries:
+  authorization_semantics: TEST_ONLY_NOT_OPERATIONAL_AUTHORITY
+  operational_authorization_receipt: NOT_USED
+  production_execution: NOT_RUN
+  runner_live_promotion: false
+  signer_or_trust_change: false
+  secret_zero: NOT_RUN
+  promotion_allowed: false
+  customer_target_execution: false
+raw_evidence:
+  durable_raw_custody_claimed: false
+  local_ephemeral_only: true
