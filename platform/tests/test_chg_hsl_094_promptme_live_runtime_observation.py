@@ -67,7 +67,7 @@ def test_compatibility_promotes_only_the_controlled_lab_observation() -> None:
     assert live["replay_second_effect"] == "none"
     assert live["zero_residue"] == "PASS"
     assert controlled["process_supervision"] == "PASS_CONTROLLED_PROCESS"
-    assert controlled["cancellation_timeout_integration"] == "HARD_TIMEOUT_PASS_CANCELLATION_NOT_RUN"
+    assert controlled["cancellation_timeout_integration"] == "HARD_TIMEOUT_PASS_CANCELLATION_PASS_CONTROLLED"
     assert controlled["sandbox_status"] == "NOT_IMPLEMENTED"
     assert controlled["production_execution"] == "NOT_RUN"
     assert controlled["production_effect_claim"] == "none"

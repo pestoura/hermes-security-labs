@@ -122,7 +122,8 @@ Therefore:
 - operational Control Plane authorization receipt for that observation: **`NOT_USED`**;
 - calibrated AI/MCP process supervision: **`PASS_CONTROLLED_PROCESS`** — fixed trusted worker, durable replay and verified process-group cleanup;
 - calibrated AI/MCP hard timeout: **`PASS_CONTROLLED_PROCESS`**;
-- cancellation request: **`NOT_RUN`**;
+- cancellation request: **`PASS_LAB_CONTROLLED_RDC`** — CHG-HSL-097, exact-SHA fixed PromptMe worker cancellation with durable `CANCELLED` replay and separate force-after-grace proof;
+- operational/deployed Control Plane cancellation dispatch: **`NOT_RUN`**;
 - supervised live lab execution: **`PASS_LAB_CONTROLLED_RDC_SUPERVISED`** — PromptMe LAB-only via RDC, fixed worker, replay without a second process and zero-residue cleanup;
 - production execution integration: **`NOT_RUN`**;
 - sandbox: **`NOT_IMPLEMENTED`**;

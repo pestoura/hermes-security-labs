@@ -27,13 +27,13 @@ def _controlled() -> dict:
 def test_controlled_runtime_records_supervised_process_without_live_promotion() -> None:
     controlled = _controlled()
     assert controlled["process_supervision"] == "PASS_CONTROLLED_PROCESS"
-    assert controlled["cancellation_timeout_integration"] == "HARD_TIMEOUT_PASS_CANCELLATION_NOT_RUN"
+    assert controlled["cancellation_timeout_integration"] == "HARD_TIMEOUT_PASS_CANCELLATION_PASS_CONTROLLED"
     supervised = controlled["supervised_process"]
     assert supervised["status"] == "PASS_CONTROLLED_PROCESS"
     assert supervised["worker_selection"] == "fixed_trusted"
     assert supervised["request_controlled_command_surface"] == "none"
     assert supervised["hard_timeout"] == "PASS_CONTROLLED_PROCESS"
-    assert supervised["cancellation_request"] == "NOT_RUN"
+    assert supervised["cancellation_request"] == "PASS_LAB_CONTROLLED_RDC"
     assert supervised["live_lab_execution"] == "PASS_LAB_CONTROLLED_RDC_SUPERVISED"
     live = supervised["live_lab_observation"]
     assert live["status"] == "OBSERVED_LAB_CONTROLLED_RDC_SUPERVISED"
@@ -76,7 +76,7 @@ def test_chg095_governance_artifacts_exist_and_preserve_authority_boundary() -> 
     assert campaign["promotionRecommendation"] == "ACCEPT"
 
 
-def test_docs_state_hard_timeout_pass_but_cancellation_and_live_remain_not_run() -> None:
+def test_docs_state_controlled_cancellation_pass_but_production_remains_not_run() -> None:
     projection = (
         ROOT / "security" / "packs" / "ai-mcp" / "docs" / "runner-protocol-runtime-projection.md"
     ).read_text(encoding="utf-8")
@@ -86,6 +86,6 @@ def test_docs_state_hard_timeout_pass_but_cancellation_and_live_remain_not_run()
     for document in (projection, completion):
         assert "PASS_CONTROLLED_PROCESS" in document
         normalized = document.lower()
-        assert "cancellation request: **`not_run`**" in normalized
+        assert "cancellation request: **`pass_lab_controlled_rdc`**" in normalized
         assert "supervised live lab execution: **`pass_lab_controlled_rdc_supervised`**" in normalized
         assert "production execution" in normalized and "not_run" in normalized

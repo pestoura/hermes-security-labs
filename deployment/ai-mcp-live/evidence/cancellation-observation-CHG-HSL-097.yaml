@@ -1,0 +1,46 @@
+schema_version: hsl.ai-mcp-cancellation-observation/v1
+change_record: CHG-HSL-097
+observation: OBS-AIMCP-CANCELLATION-LIVE-RDC
+functional_commit: 76ecc4aac3cb25e1697613a27304c6ca0dc082bd
+observed_at: '2026-08-25T00:06:15Z'
+runtime_status: OBSERVED_LAB_CONTROLLED_RDC_CANCELLATION
+authorization_semantics: TEST_ONLY_NOT_OPERATIONAL_AUTHORITY
+live_worker:
+  selection: fixed_trusted
+  endpoint: http://127.0.0.1:8210
+  cancellation_ack: accepted
+  terminal_status: CANCELLED
+  supervision_status: CANCELLED
+  first_process_count: 1
+  cleanup_failed: false
+  force_killed: false
+  ledger_entries: 1
+  replay_terminal: CANCELLED
+  replay_second_process: none
+force_after_grace:
+  status: PASS_CONTROLLED_PROCESS
+  worker_class: repository-owned-hang-fixture
+  terminal_status: CANCELLED
+  force_killed: true
+  cleanup_failed: false
+  first_process_count: 1
+lifecycle:
+  start: PASS
+  smoke: PASS
+  target_egress: denied
+  kali_connected: false
+  destroy: PASS
+  promptme_container_count: 0
+  promptme_volume_count: 0
+  promptme_network_count: 0
+  port_8210: ABSENT
+zero_residue: PASS
+raw_evidence:
+  durable_raw_custody_claimed: false
+  local_ephemeral_only: true
+invariants:
+  control_plane_authority: NONE
+  operational_authorization_receipt: NOT_USED
+  sandbox_status: NOT_IMPLEMENTED
+  production_execution: NOT_RUN
+  promotion_allowed: false

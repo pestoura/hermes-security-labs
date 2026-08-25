@@ -1,0 +1,24 @@
+schemaVersion: jds.validation/v1
+kind: ValidationCampaign
+id: VAL-HSL-AIMCP-CANCELLATION-RUNTIME
+product: hermes-security-labs
+objective: Validate CHG-HSL-097 Runner cancellation on the exact functional commit using the fixed PromptMe LAB-only worker, durable replay, bounded cleanup and a separate repository-owned force-after-grace process observation.
+state: PASSED
+candidate:
+  version: aimcp-cancellation-76ecc4a
+  commit: 76ecc4aac3cb25e1697613a27304c6ca0dc082bd
+  artifactDigest: null
+environment: Hermes Security Labs / PromptMe deterministic localhost laboratory
+observations:
+  - id: OBS-AIMCP-CANCELLATION-LIVE-RDC
+    required: true
+    result: PASS
+    status: RESOLVED
+    summary: Exact functional commit cancelled one real fixed PromptMe worker after process creation, persisted CANCELLED, replayed CANCELLED without a second process, separately proved force-after-grace with the repository-owned hang fixture, and destroyed the laboratory with zero residue.
+    changeRecord: CHG-HSL-097
+    evidence: deployment/ai-mcp-live/evidence/cancellation-observation-CHG-HSL-097.yaml
+promotionRecommendation: ACCEPT
+timestamps:
+  startedAt: '2026-08-25T00:00:00Z'
+  updatedAt: '2026-08-25T00:06:15Z'
+  closedAt: '2026-08-25T00:06:15Z'

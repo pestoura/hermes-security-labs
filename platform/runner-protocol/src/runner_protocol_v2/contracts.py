@@ -664,7 +664,7 @@ def validate_compatibility_matrix() -> None:
             "zero_residue": "PASS",
         },
         "process_supervision": "PASS_CONTROLLED_PROCESS",
-        "cancellation_timeout_integration": "HARD_TIMEOUT_PASS_CANCELLATION_NOT_RUN",
+        "cancellation_timeout_integration": "HARD_TIMEOUT_PASS_CANCELLATION_PASS_CONTROLLED",
         "supervised_process": {
             "status": "PASS_CONTROLLED_PROCESS",
             "module_path": (
@@ -680,7 +680,21 @@ def validate_compatibility_matrix() -> None:
             "durable_idempotency": "PASS_CONTROLLED_PROCESS",
             "replay_second_process": "none",
             "hard_timeout": "PASS_CONTROLLED_PROCESS",
-            "cancellation_request": "NOT_RUN",
+            "cancellation_request": "PASS_LAB_CONTROLLED_RDC",
+            "cancellation_live_observation": {
+                "status": "OBSERVED_LAB_CONTROLLED_RDC_CANCELLATION",
+                "functional_commit": "76ecc4aac3cb25e1697613a27304c6ca0dc082bd",
+                "acknowledgement": "accepted",
+                "terminal_status": "CANCELLED",
+                "supervision_status": "CANCELLED",
+                "first_process_count": 1,
+                "replay_second_process": "none",
+                "force_after_grace": "PASS_CONTROLLED_PROCESS",
+                "target_egress": "denied",
+                "kali_connected": False,
+                "zero_residue": "PASS",
+                "authorization_semantics": "TEST_ONLY_NOT_OPERATIONAL_AUTHORITY",
+            },
             "live_lab_execution": "PASS_LAB_CONTROLLED_RDC_SUPERVISED",
             "live_lab_observation": {
                 "status": "OBSERVED_LAB_CONTROLLED_RDC_SUPERVISED",
