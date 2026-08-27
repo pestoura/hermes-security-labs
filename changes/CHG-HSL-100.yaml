@@ -1,0 +1,34 @@
+schemaVersion: jds.change/v1
+kind: ChangeRecord
+id: CHG-HSL-100
+product: hermes-security-labs
+classification: IMPROVEMENT
+state: ACCEPTED
+disposition: FIX_NOW
+summary: 'Add a closed sanitized reconciliation contract for issue #439 so the operator-only Secret Zero HITL can be recorded later as PASS or FAIL without accepting raw credential material and without granting signer, trust, Runner or target authority.'
+source:
+  type: ENGINEERING_REVIEW
+  campaign: VAL-HSL-RUNNER-L1-LIVE-PROMOTION
+  observation: OBS-RUNNER-POLICY-PROMOTION
+  reference: 'Core Operational v1 preparation after CHG-HSL-099. Current state remains operator-only HITL NOT_RUN with signer NO_DECISION, supplier NO_SELECTION, promotion_allowed=false and execution_authority=NONE. This change defines sanitized policy/result metadata only and does not issue, unwrap, authenticate, bind trust, promote Runner execution or touch a target.'
+affectedRelease: jds-002-adoption-candidate
+targetRelease: null
+risk: LOW
+versionEffect: NONE
+branch: chg-hsl-100/secret-zero-reconciliation-contract
+issue: 439
+pr: null
+validation:
+  targeted: PASS
+  regression: PASS
+  security: PASS
+  runtime: NOT_RUN
+promotion:
+  commit: null
+  artifactDigest: null
+  previousRelease: null
+deferredTo: null
+timestamps:
+  discoveredAt: '2026-08-27T19:31:00Z'
+  updatedAt: '2026-08-27T19:31:00Z'
+  closedAt: null
