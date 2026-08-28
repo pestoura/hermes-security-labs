@@ -1,10 +1,14 @@
 # Hermes Security Labs — current walking-skeleton status
 
-**Reconciled:** 2026-08-25 UTC
+**Reconciled:** 2026-08-28 UTC
 **Current Labs baseline:** `8c654379afb2114e34d6e748bb558b3ad5b8fb4b`
-**Current repository main / Foundation functional baseline:** `7711ddf2920c87259b6c0c4a4119d5441dba4181`
-**Foundation / Walking Skeleton (Level A): `COMPLETE`** — repository/CI criteria and CHG-HSL-097 post-merge POSIX/runtime re-observation are PASS on exact main `7711ddf2920c87259b6c0c4a4119d5441dba4181`; final PromptMe cleanup is zero-residue.
-**Core Operational v1 / LAB_L1 promotion:** `BLOCKED / HOLD` — Secret Zero, signer custody/trust and explicit Human-in-the-Loop promotion remain separate later gates.
+**Foundation functional baseline:** `7711ddf2920c87259b6c0c4a4119d5441dba4181`
+**Latest reconciled repository milestone:** CHG-HSL-100 / PR #448 / `0349cea6eb60f0719464e8735bfc1d0bdf2f227f`
+**Foundation / Walking Skeleton (Level A): `COMPLETE`** — repository/CI criteria and CHG-HSL-097 post-merge POSIX/runtime re-observation are PASS on Foundation functional baseline `7711ddf2920c87259b6c0c4a4119d5441dba4181`; final PromptMe cleanup is zero-residue.
+**Core Operational v1 / LAB_L1 promotion:** `IN_PROGRESS / BLOCKED_AT_SECRET_ZERO_HITL` — preparation through CHG-HSL-100 is merged and GREEN; the next state transition remains operator-only Secret Zero.
+**Secret Zero:** `NOT_RUN`
+**signer human decision:** `NO_DECISION`
+**supplier selection:** `NO_SELECTION`
 **CHG-HSL-072 reconciliation base:** `9448817e436ee096e0f839b6bb8b9bf9e06d8d6d`
 **Accepted/live Hermes MCP Bridge revision:** `3717bd5469b061a44294b27e1a7510d477d3752b`
 **DVWA live lifecycle acceptance:** `run_8f2174dc4c87452098b700ff556ac978`
@@ -15,6 +19,8 @@
 **CHG-HSL-090 accepted merge:** `eada361cb5fd3f612b7b5911146cd4b448241e04` (PR #437; synthetic authorization-audit custody probe merged and live-observed)
 **CHG-HSL-097 accepted merge:** `7711ddf2920c87259b6c0c4a4119d5441dba4181` (PR #445; controlled PromptMe Runner cancellation merged and post-merge POSIX/runtime re-observed PASS with zero residue)
 **CHG-HSL-098 accepted merge:** `af65af1105384c3f8ffaa0aee5d5a5658dac663e` (PR #446; Juice Shop fail-closed lifecycle merged and post-merge zero-residue accepted)
+**CHG-HSL-099 accepted merge:** `d418c0ad30054c464c2bc2316bf6b81d03082e83` (PR #447; Foundation final snapshot merged; Level A COMPLETE only)
+**CHG-HSL-100 accepted merge:** `0349cea6eb60f0719464e8735bfc1d0bdf2f227f` (PR #448; sanitized Secret Zero reconciliation contract merged; operator-only HITL remains NOT_RUN and does not grant trust, Runner or target authority)
 
 This file is the concise current-state view. Historical detail remains in the dedicated roadmap/evidence records and the governed campaign at [`../../validation/VAL-HSL-RUNNER-L1-LIVE-PROMOTION.yaml`](../../validation/VAL-HSL-RUNNER-L1-LIVE-PROMOTION.yaml).
 

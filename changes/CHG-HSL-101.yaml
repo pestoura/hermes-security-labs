@@ -1,0 +1,34 @@
+schemaVersion: jds.change/v1
+kind: ChangeRecord
+id: CHG-HSL-101
+product: hermes-security-labs
+classification: DOC_ONLY
+state: ACCEPTED
+disposition: FIX_NOW
+summary: 'Reconcile the canonical current-status document after Foundation closure and CHG-HSL-100, separating the immutable Foundation functional baseline from the latest reconciled repository milestone and recording the exact Core Operational v1 Secret Zero HITL hold.'
+source:
+  type: ENGINEERING_REVIEW
+  campaign: VAL-HSL-RUNNER-L1-LIVE-PROMOTION
+  observation: OBS-RUNNER-POLICY-PROMOTION
+  reference: 'CHG-HSL-099 closed Foundation Level A and CHG-HSL-100 merged the sanitized Secret Zero reconciliation contract. Secret Zero remains NOT_RUN, signer remains NO_DECISION, supplier remains NO_SELECTION, and this documentation reconciliation creates no execution authority, trust binding, Runner effect or target effect.'
+affectedRelease: jds-002-adoption-candidate
+targetRelease: null
+risk: LOW
+versionEffect: NONE
+branch: chg-hsl-101/core-operational-status
+issue: 439
+pr: null
+validation:
+  targeted: PASS
+  regression: PASS
+  security: PASS
+  runtime: NOT_RUN
+promotion:
+  commit: null
+  artifactDigest: null
+  previousRelease: null
+deferredTo: null
+timestamps:
+  discoveredAt: '2026-08-28T07:50:00Z'
+  updatedAt: '2026-08-28T07:50:00Z'
+  closedAt: null
