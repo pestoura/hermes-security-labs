@@ -127,3 +127,47 @@ def test_validate_workflow_aggregates_every_gate_into_exact_sha_evidence() -> No
     assert "exit 1" in body, "the evidence job must fail closed on a non-success gate"
     assert "GITHUB_SHA" in body, "the evidence job must record the exact commit SHA"
 
+
+CHECKOUT_NODE24_PIN = "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"
+SETUP_PYTHON_NODE24_PIN = "actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97"
+
+
+def test_checkout_uses_node24_compatible_official_pin_everywhere() -> None:
+    refs: list[str] = []
+    for path in _workflows():
+        document = _load(path)
+        for job in document.get("jobs", {}).values():
+            for step in job.get("steps", []) or []:
+                uses = step.get("uses")
+                if uses and uses.startswith("actions/checkout@"):
+                    refs.append(uses)
+    assert refs, "no actions/checkout references discovered"
+    assert set(refs) == {CHECKOUT_NODE24_PIN}, f"unexpected checkout pins: {sorted(set(refs))}"
+
+
+def test_setup_python_uses_node24_compatible_official_pin_everywhere() -> None:
+    refs: list[str] = []
+    for path in _workflows():
+        document = _load(path)
+        for job in document.get("jobs", {}).values():
+            for step in job.get("steps", []) or []:
+                uses = step.get("uses")
+                if uses and uses.startswith("actions/setup-python@"):
+                    refs.append(uses)
+    assert refs, "no actions/setup-python references discovered"
+    assert set(refs) == {SETUP_PYTHON_NODE24_PIN}, f"unexpected setup-python pins: {sorted(set(refs))}"
+
+GITLEAKS_NODE24_PIN = "gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e"
+
+
+def test_gitleaks_uses_node24_compatible_official_pin() -> None:
+    refs: list[str] = []
+    for path in _workflows():
+        document = _load(path)
+        for job in document.get("jobs", {}).values():
+            for step in job.get("steps", []) or []:
+                uses = step.get("uses")
+                if uses and uses.startswith("gitleaks/gitleaks-action@"):
+                    refs.append(uses)
+    assert refs, "no gitleaks action reference discovered"
+    assert set(refs) == {GITLEAKS_NODE24_PIN}, f"unexpected gitleaks pins: {sorted(set(refs))}"
