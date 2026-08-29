@@ -11,7 +11,8 @@ services:
       VAULT_CACERT: /run/hsl-vault-ca/ca.pem
     volumes:
       - hsl-shared-vault-ca:/run/hsl-vault-ca:ro
-    network_mode: "container:hsl-shared-vault-probe"
+    networks:
+      - hermes-security-plane
     user: "10001:10001"
     read_only: true
     restart: "no"
@@ -31,6 +32,11 @@ services:
           cpus: "0.25"
           memory: 96M
           pids: 32
+
+networks:
+  hermes-security-plane:
+    external: true
+    name: hermes-security-plane
 
 volumes:
   hsl-shared-vault-ca:

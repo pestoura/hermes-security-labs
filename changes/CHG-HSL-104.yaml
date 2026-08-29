@@ -5,12 +5,12 @@ product: hermes-security-labs
 classification: HARDENING
 state: ACCEPTED
 disposition: FIX_NOW
-summary: 'Replace the ad-hoc Secret Zero Vault CLI container with a dedicated ephemeral non-root consumer image that inherits no Vault data/log volumes, shares the held probe network namespace, mounts only the public CA read-only and preserves the operator-only HITL boundary.'
+summary: 'Replace the ad-hoc Secret Zero Vault CLI container with a dedicated ephemeral non-root consumer image that inherits no Vault data/log volumes, uses its own isolated namespace on the shared security plane, mounts only the public CA read-only and preserves the operator-only HITL boundary.'
 source:
   type: ENGINEERING_REVIEW
   campaign: null
   observation: null
-  reference: 'Post-CHG-HSL-103 runtime inspection found the temporary official Vault CLI container running as root with image-declared writable /vault/file and /vault/logs anonymous volumes. The dedicated consumer was built and observed on HermesJarvas as UID/GID 10001, read-only, non-privileged, CAP_DROP=ALL, CA read-only, no Vault data/log mounts, and source IP equal to the held probe. No credential material was used.'
+  reference: 'Post-CHG-HSL-103 inspection found the ad-hoc Vault CLI consumer running as root with writable /vault/file and /vault/logs image volumes. The replacement was observed on HermesJarvas as UID/GID 10001, read-only, non-privileged, CAP_DROP=ALL, CA-only RO mount, no Vault data/log mounts, and IP 172.25.0.4 while the probe stayed 172.25.0.3. Future issuance binds to the consumer fresh /32, never the probe IP. No credential material was used.'
 affectedRelease: jds-002-adoption-candidate
 targetRelease: null
 risk: LOW
@@ -30,5 +30,5 @@ promotion:
 deferredTo: null
 timestamps:
   discoveredAt: '2026-08-29T20:13:45Z'
-  updatedAt: '2026-08-29T21:14:21Z'
+  updatedAt: '2026-08-29T21:26:53Z'
   closedAt: null

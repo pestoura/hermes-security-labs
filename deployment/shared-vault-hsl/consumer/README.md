@@ -15,7 +15,7 @@ The consumer:
 - is never privileged;
 - mounts only the public Vault CA volume, read-only;
 - has only an ephemeral `/tmp` tmpfs;
-- shares the probe network namespace so its source IPv4 remains the freshly observed probe `/32`;
+- attaches directly to `hermes-security-plane` with its own isolated network namespace; its own source IPv4 `/32` must be observed immediately before any operator issuance;
 - receives no RoleID, SecretID, wrapping token or Vault token through Compose/environment configuration.
 
 The image contains no `/vault/file` or `/vault/logs` volumes. Secret material may exist only transiently in the operator-controlled shell memory during the HITL procedure.

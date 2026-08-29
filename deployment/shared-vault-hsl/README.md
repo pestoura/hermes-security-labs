@@ -36,4 +36,4 @@ Historical evidence produced with the former HSL-local signer remains a verifica
 
 `consumer/` is the canonical ephemeral Vault CLI shell for future operator HITL windows. It replaces the ad-hoc official-Vault container used during the first Secret Zero observation, which exposed unnecessary root execution and image-declared writable `/vault/file` and `/vault/logs` volumes.
 
-The dedicated consumer runs as UID/GID 10001, inherits no Vault data/log volumes, mounts only the public CA read-only, shares the held probe network namespace and preserves all Secret Zero operator-only boundaries. CHG-HSL-104 hardens the shell only; it does not change the signer decision, bind trust or grant runtime authority.
+The dedicated consumer runs as UID/GID 10001, inherits no Vault data/log volumes, mounts only the public CA read-only, uses its own isolated namespace on `hermes-security-plane` and requires its own fresh `/32` observation immediately before issuance. CHG-HSL-104 hardens the shell only; it does not change the signer decision, bind trust or grant runtime authority.

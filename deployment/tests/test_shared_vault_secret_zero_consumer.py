@@ -37,10 +37,11 @@ def test_consumer_image_is_dedicated_pinned_and_non_volume_inheriting() -> None:
     assert "ROLE_ID" not in source
 
 
-def test_consumer_compose_is_fail_closed_and_shares_probe_network_namespace() -> None:
+def test_consumer_compose_is_fail_closed_and_uses_isolated_external_network() -> None:
     service = _compose_service()
     assert service["container_name"] == "hsl-secret-zero-consumer"
-    assert service["network_mode"] == "container:hsl-shared-vault-probe"
+    assert "network_mode" not in service
+    assert service["networks"] == ["hermes-security-plane"]
     assert service["user"] == "10001:10001"
     assert service["read_only"] is True
     assert service["restart"] == "no"
@@ -70,6 +71,10 @@ def test_consumer_has_bounded_resources_and_external_ca_volume() -> None:
     service = document["services"]["secret-zero-consumer"]
     limits = service["deploy"]["resources"]["limits"]
     assert limits == {"cpus": "0.25", "memory": "96M", "pids": 32}
+    assert document["networks"]["hermes-security-plane"] == {
+        "external": True,
+        "name": "hermes-security-plane",
+    }
     assert document["volumes"]["hsl-shared-vault-ca"] == {
         "external": True,
         "name": "hsl-shared-vault-ca",
