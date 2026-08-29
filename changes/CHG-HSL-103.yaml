@@ -10,7 +10,7 @@ source:
   type: ENGINEERING_REVIEW
   campaign: VAL-HSL-RUNNER-L1-LIVE-PROMOTION
   observation: OBS-RUNNER-POLICY-PROMOTION
-  reference: 'Issue #439 operator execution observed on 2026-08-29. Sanitized Vault audit: wrapped issuance 20:06:43Z; unwrap PASS 20:06:54Z; AppRole login PASS 20:07:53Z; Transit key read PASS 20:08:54Z; sign/verify PASS 20:10:05Z; sys/mounts and sys/auth denied as required 20:10:52Z-20:10:53Z; consumer token revoke PASS 20:11:31Z; JIT token revoke PASS 20:12:53Z. Residue checks: repository clean, zero token-like hvs.* material in repository and host bash history, no consumer shell history, no secret-bearing configured environment, temporary consumer removed. This records OBSERVED_PASS only: signer remains NO_DECISION, supplier remains NO_SELECTION, trust_binding_allowed=false, promotion_allowed=false, execution_authority=NONE, runner_effect=false, target_effect=false.'
+  reference: 'Issue #439 operator execution 2026-08-29: wrapped issuance, single unwrap, AppRole login, Transit key read/sign/verify and required sys/auth negative checks PASS; consumer and JIT tokens self-revoked; residue checks clean; temporary consumer removed. Sanitized evidence only. Signer NO_DECISION; supplier NO_SELECTION; trust_binding_allowed=false; promotion_allowed=false; execution_authority=NONE; runner_effect=false; target_effect=false.'
 affectedRelease: jds-002-adoption-candidate
 targetRelease: null
 risk: LOW
