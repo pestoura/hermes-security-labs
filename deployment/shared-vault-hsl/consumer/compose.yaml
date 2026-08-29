@@ -1,0 +1,44 @@
+name: hsl-secret-zero-consumer
+
+services:
+  secret-zero-consumer:
+    container_name: hsl-secret-zero-consumer
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      VAULT_ADDR: https://hermes-vault:8200
+      VAULT_CACERT: /run/hsl-vault-ca/ca.pem
+    volumes:
+      - hsl-shared-vault-ca:/run/hsl-vault-ca:ro
+    networks:
+      - hermes-security-plane
+    user: "10001:10001"
+    read_only: true
+    restart: "no"
+    init: true
+    privileged: false
+    stdin_open: true
+    tty: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=16m
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 96M
+          pids: 32
+
+networks:
+  hermes-security-plane:
+    external: true
+    name: hermes-security-plane
+
+volumes:
+  hsl-shared-vault-ca:
+    external: true
+    name: hsl-shared-vault-ca
