@@ -1,0 +1,34 @@
+schemaVersion: jds.change/v1
+kind: ChangeRecord
+id: CHG-HSL-105
+product: hermes-security-labs
+classification: IMPROVEMENT
+state: ACCEPTED
+disposition: FIX_NOW
+summary: 'Add a fail-closed, credential-free assembly and verification path for the four sanitized evidence classes required before the staged HSL signer human decision: capability evidence, signer attestation, trust-store manifest and R1-R8 review.'
+source:
+  type: ENGINEERING_REVIEW
+  campaign: null
+  observation: null
+  reference: 'Implements the evidence-readiness path required by issue #403 after CHG-HSL-103 Secret Zero OBSERVED_PASS and CHG-HSL-104 consumer hardening. The bundle is generated only from normalized public observations, is content-addressed and tamper-checked, and may reach READY_FOR_HUMAN_DECISION only. It never issues credentials, contacts Vault, binds trust, selects a supplier, promotes runtime or grants execution authority.'
+affectedRelease: jds-002-adoption-candidate
+targetRelease: null
+risk: LOW
+versionEffect: NONE
+branch: chg-hsl-105/signer-decision-evidence
+issue: 403
+pr: 454
+validation:
+  targeted: PASS
+  regression: PASS
+  security: PASS
+  runtime: NOT_APPLICABLE
+promotion:
+  commit: null
+  artifactDigest: null
+  previousRelease: null
+deferredTo: null
+timestamps:
+  discoveredAt: '2026-08-29T22:45:00Z'
+  updatedAt: '2026-08-29T23:50:50Z'
+  closedAt: null

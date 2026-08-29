@@ -1,0 +1,133 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/pestoura/hermes-security-labs/deployment/shared-vault-hsl/signer-evidence/provider-observation.schema.json",
+  "title": "HSL shared-Vault signer provider observation v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "state",
+    "observed_at",
+    "provider_kind",
+    "provider_ref",
+    "transit_mount",
+    "key_name",
+    "key_version",
+    "key_id",
+    "algorithm",
+    "key_state",
+    "signing_enabled",
+    "private_key_exportable",
+    "allow_plaintext_backup",
+    "public_key_spki_b64",
+    "public_key_spki_sha256",
+    "capability_checks",
+    "bootstrap_evidence",
+    "audit_evidence",
+    "trust_binding_allowed",
+    "promotion_allowed",
+    "execution_authority",
+    "runtime_status"
+  ],  "properties": {
+    "schema_version": {"const": "hsl.shared-vault-signer-provider-observation/v1"},
+    "state": {"enum": ["NOT_RUN", "OBSERVED"]},
+    "observed_at": {"type": ["string", "null"], "format": "date-time"},
+    "provider_kind": {"const": "VAULT"},
+    "provider_ref": {"type": "string", "pattern": "^https://[^\\s]+$", "maxLength": 512},
+    "transit_mount": {"const": "hsl-transit"},
+    "key_name": {"const": "hsl-signing"},
+    "key_version": {"type": ["integer", "null"], "minimum": 1},
+    "key_id": {"type": ["string", "null"], "pattern": "^vault:hsl-transit:hsl-signing:v[1-9][0-9]*$"},
+    "algorithm": {"const": "Ed25519"},
+    "key_state": {"enum": ["unknown", "active"]},
+    "signing_enabled": {"type": "boolean"},
+    "private_key_exportable": {"type": ["boolean", "null"]},
+    "allow_plaintext_backup": {"type": ["boolean", "null"]},
+    "public_key_spki_b64": {"type": ["string", "null"], "maxLength": 4096},
+    "public_key_spki_sha256": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"},
+    "capability_checks": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "key_read_passed",
+        "sign_verify_passed",
+        "negative_sys_passed",
+        "negative_auth_passed",
+        "audit_attribution_passed",
+        "no_secret_material_persisted"
+      ],
+      "properties": {        "key_read_passed": {"type": "boolean"},
+        "sign_verify_passed": {"type": "boolean"},
+        "negative_sys_passed": {"type": "boolean"},
+        "negative_auth_passed": {"type": "boolean"},
+        "audit_attribution_passed": {"type": "boolean"},
+        "no_secret_material_persisted": {"type": "boolean"}
+      }
+    },
+    "bootstrap_evidence": {"$ref": "#/$defs/evidence_ref"},
+    "audit_evidence": {"$ref": "#/$defs/evidence_ref"},
+    "trust_binding_allowed": {"const": false},
+    "promotion_allowed": {"const": false},
+    "execution_authority": {"const": "NONE"},
+    "runtime_status": {"const": "NOT_RUN"}
+  },
+  "$defs": {
+    "evidence_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ref", "sha256"],
+      "properties": {
+        "ref": {"type": ["string", "null"], "pattern": "^evidence://[^\\s]+$", "maxLength": 500},
+        "sha256": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"}
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"state": {"const": "NOT_RUN"}}},
+      "then": {"properties": {        "observed_at": {"type": "null"},
+        "key_version": {"type": "null"},
+        "key_id": {"type": "null"},
+        "key_state": {"const": "unknown"},
+        "signing_enabled": {"const": false},
+        "private_key_exportable": {"type": "null"},
+        "allow_plaintext_backup": {"type": "null"},
+        "public_key_spki_b64": {"type": "null"},
+        "public_key_spki_sha256": {"type": "null"},
+        "bootstrap_evidence": {
+          "properties": {"ref": {"type": "null"}, "sha256": {"type": "null"}}
+        },
+        "audit_evidence": {
+          "properties": {"ref": {"type": "null"}, "sha256": {"type": "null"}}
+        }
+      }}
+    },
+    {
+      "if": {"properties": {"state": {"const": "OBSERVED"}}},
+      "then": {"properties": {
+        "observed_at": {"type": "string", "format": "date-time"},
+        "key_version": {"type": "integer", "minimum": 1},
+        "key_id": {"type": "string"},
+        "key_state": {"const": "active"},
+        "signing_enabled": {"const": true},
+        "private_key_exportable": {"const": false},
+        "allow_plaintext_backup": {"const": false},
+        "public_key_spki_b64": {"type": "string", "minLength": 1},
+        "public_key_spki_sha256": {"type": "string"},
+        "capability_checks": {"properties": {          "key_read_passed": {"const": true},
+          "sign_verify_passed": {"const": true},
+          "negative_sys_passed": {"const": true},
+          "negative_auth_passed": {"const": true},
+          "audit_attribution_passed": {"const": true},
+          "no_secret_material_persisted": {"const": true}
+        }},
+        "bootstrap_evidence": {
+          "properties": {"ref": {"type": "string"}, "sha256": {"type": "string"}}
+        },
+        "audit_evidence": {
+          "properties": {"ref": {"type": "string"}, "sha256": {"type": "string"}}
+        }
+      }}
+    }
+  ]
+}
