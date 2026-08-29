@@ -17,7 +17,7 @@ risk: LOW
 versionEffect: NONE
 branch: chg-hsl-105/signer-decision-evidence
 issue: 403
-pr: null
+pr: 454
 validation:
   targeted: PASS
   regression: PASS
@@ -30,5 +30,5 @@ promotion:
 deferredTo: null
 timestamps:
   discoveredAt: '2026-08-29T22:45:00Z'
-  updatedAt: '2026-08-29T23:49:21Z'
+  updatedAt: '2026-08-29T23:50:50Z'
   closedAt: null
