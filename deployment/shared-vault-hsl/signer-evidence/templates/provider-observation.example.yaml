@@ -1,0 +1,33 @@
+schema_version: hsl.shared-vault-signer-provider-observation/v1
+state: NOT_RUN
+observed_at: null
+provider_kind: VAULT
+provider_ref: https://hermes-vault:8200/hsl-transit/hsl-signing
+transit_mount: hsl-transit
+key_name: hsl-signing
+key_version: null
+key_id: null
+algorithm: Ed25519
+key_state: unknown
+signing_enabled: false
+private_key_exportable: null
+allow_plaintext_backup: null
+public_key_spki_b64: null
+public_key_spki_sha256: null
+capability_checks:
+  key_read_passed: false
+  sign_verify_passed: false
+  negative_sys_passed: false
+  negative_auth_passed: false
+  audit_attribution_passed: false
+  no_secret_material_persisted: false
+bootstrap_evidence:
+  ref: null
+  sha256: null
+audit_evidence:
+  ref: null
+  sha256: null
+trust_binding_allowed: false
+promotion_allowed: false
+execution_authority: NONE
+runtime_status: NOT_RUN

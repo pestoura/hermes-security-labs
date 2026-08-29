@@ -18,6 +18,7 @@ accepted R1–R8 baseline) and to the evaluation-only candidate model in
   selection explicit and machine-checkable.
 - `platform/assurance/signer-human-decision.yaml` is the explicit human-decision source-of-truth
   and is currently `state: NO_DECISION`, with no selected class and no evidence references.
+- CHG-HSL-105 adds `deployment/shared-vault-hsl/signer-evidence/` as the fail-closed assembly path for the four evidence classes required before the staged `APPROVED + NO_SELECTION` record. `READY_FOR_HUMAN_DECISION` is evidence readiness only and grants no authority.
 - `platform/schemas/signer-human-decision.schema.json` and
   `platform/assurance/signer_human_decision.py` enforce the repository-only decision contract:
   an `APPROVED` record may name only `KMS`, `HSM` or `VAULT`, must bind the required evidence

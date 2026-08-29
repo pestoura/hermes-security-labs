@@ -37,3 +37,9 @@ Historical evidence produced with the former HSL-local signer remains a verifica
 `consumer/` is the canonical ephemeral Vault CLI shell for future operator HITL windows. It replaces the ad-hoc official-Vault container used during the first Secret Zero observation, which exposed unnecessary root execution and image-declared writable `/vault/file` and `/vault/logs` volumes.
 
 The dedicated consumer runs as UID/GID 10001, inherits no Vault data/log volumes, mounts only the public CA read-only, uses its own isolated namespace on `hermes-security-plane` and requires its own fresh `/32` observation immediately before issuance. CHG-HSL-104 hardens the shell only; it does not change the signer decision, bind trust or grant runtime authority.
+
+## Signer decision evidence bundle
+
+CHG-HSL-105 adds `signer-evidence/`, a repository-only assembly path for the four evidence classes required by issue #403. It accepts only sanitized public provider metadata and stages output outside Git.
+
+A bundle may become `READY_FOR_HUMAN_DECISION` only after canonical signer-attestation verification, public trust-store lifecycle review and R1–R8 assessment all pass. That readiness state does not change `NO_DECISION`, `NO_SELECTION`, trust binding, Runner authority or target authority; the explicit human decision remains a later governed change.

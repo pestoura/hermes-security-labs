@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/pestoura/hermes-security-labs/deployment/shared-vault-hsl/signer-evidence/r1-r8-review.schema.json",
+  "title": "HSL LAB_L1 signer R1-R8 review v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "review_id",
+    "evaluated_at",
+    "custody_class",
+    "provider_ref",
+    "key_id",
+    "requirements",
+    "all_passed",
+    "trust_binding_allowed",
+    "promotion_allowed",
+    "execution_authority",
+    "runtime_status"
+  ],
+  "properties": {
+    "schema_version": {"const": "hsl.signer-r1-r8-review/v1"},
+    "review_id": {"type": "string", "pattern": "^r1r8_[a-f0-9]{32}$"},
+    "evaluated_at": {"type": "string", "format": "date-time"},
+    "custody_class": {"const": "VAULT"},
+    "provider_ref": {"type": "string", "minLength": 1, "maxLength": 512},
+    "key_id": {"type": "string", "minLength": 1, "maxLength": 160},
+    "requirements": {      "type": "array",
+      "minItems": 8,
+      "maxItems": 8,
+      "prefixItems": [
+        {"$ref": "#/$defs/r1"},
+        {"$ref": "#/$defs/r2"},
+        {"$ref": "#/$defs/r3"},
+        {"$ref": "#/$defs/r4"},
+        {"$ref": "#/$defs/r5"},
+        {"$ref": "#/$defs/r6"},
+        {"$ref": "#/$defs/r7"},
+        {"$ref": "#/$defs/r8"}
+      ],
+      "items": false
+    },
+    "all_passed": {"const": true},
+    "trust_binding_allowed": {"const": false},
+    "promotion_allowed": {"const": false},
+    "execution_authority": {"const": "NONE"},
+    "runtime_status": {"const": "NOT_RUN"}
+  },
+  "$defs": {
+    "entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "result", "basis", "evidence_refs"],
+      "properties": {
+        "id": {"type": "string"},
+        "result": {"const": "PASS"},
+        "basis": {"type": "string", "minLength": 10, "maxLength": 1000},
+        "evidence_refs": {          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "items": {"type": "string", "pattern": "^evidence://[^\\s]+$", "maxLength": 500}
+        }
+      }
+    },
+    "r1": {"allOf": [{"$ref": "#/$defs/entry"}, {"properties": {"id": {"const": "R1"}}}]},
+    "r2": {"allOf": [{"$ref": "#/$defs/entry"}, {"properties": {"id": {"const": "R2"}}}]},
+    "r3": {"allOf": [{"$ref": "#/$defs/entry"}, {"properties": {"id": {"const": "R3"}}}]},
+    "r4": {"allOf": [{"$ref": "#/$defs/entry"}, {"properties": {"id": {"const": "R4"}}}]},
+    "r5": {"allOf": [{"$ref": "#/$defs/entry"}, {"properties": {"id": {"const": "R5"}}}]},
+    "r6": {"allOf": [{"$ref": "#/$defs/entry"}, {"properties": {"id": {"const": "R6"}}}]},
+    "r7": {"allOf": [{"$ref": "#/$defs/entry"}, {"properties": {"id": {"const": "R7"}}}]},
+    "r8": {"allOf": [{"$ref": "#/$defs/entry"}, {"properties": {"id": {"const": "R8"}}}]}
+  }
+}

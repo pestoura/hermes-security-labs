@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/pestoura/hermes-security-labs/deployment/shared-vault-hsl/signer-evidence/decision-evidence-bundle.schema.json",
+  "title": "HSL signer decision evidence bundle v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "state",
+    "custody_class",
+    "evaluated_at",
+    "artifacts",
+    "decision_evidence_refs",
+    "bundle_file",
+    "signer_decision_effect",
+    "supplier_selection_effect",
+    "trust_binding_allowed",
+    "promotion_allowed",
+    "execution_authority",
+    "runtime_status"
+  ],
+  "properties": {
+    "schema_version": {"const": "hsl.signer-decision-evidence-bundle/v1"},
+    "state": {"enum": ["HOLD", "READY_FOR_HUMAN_DECISION"]},
+    "custody_class": {"const": "VAULT"},
+    "evaluated_at": {"type": "string", "format": "date-time"},
+    "artifacts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [        "capability_evidence",
+        "signer_attestation",
+        "public_trust_store",
+        "trust_store_manifest",
+        "r1_r8_review"
+      ],
+      "properties": {
+        "capability_evidence": {"$ref": "#/$defs/artifact"},
+        "signer_attestation": {"$ref": "#/$defs/artifact"},
+        "public_trust_store": {"$ref": "#/$defs/artifact"},
+        "trust_store_manifest": {"$ref": "#/$defs/artifact"},
+        "r1_r8_review": {"$ref": "#/$defs/artifact"}
+      }
+    },
+    "decision_evidence_refs": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": {"$ref": "#/$defs/decision_ref"}
+    },
+    "bundle_file": {"const": "decision-evidence-bundle.json"},
+    "signer_decision_effect": {"const": "NONE"},
+    "supplier_selection_effect": {"const": "NONE"},
+    "trust_binding_allowed": {"const": false},
+    "promotion_allowed": {"const": false},
+    "execution_authority": {"const": "NONE"},
+    "runtime_status": {"const": "NOT_RUN"}
+  },
+  "$defs": {
+    "artifact": {      "type": "object",
+      "additionalProperties": false,
+      "required": ["ref", "sha256", "file"],
+      "properties": {
+        "ref": {"type": "string", "pattern": "^evidence://[^\\s]+$", "maxLength": 500},
+        "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "file": {"type": "string", "pattern": "^[A-Za-z0-9._-]+\\.json$", "maxLength": 200}
+      }
+    },
+    "decision_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "ref", "sha256"],
+      "properties": {
+        "kind": {
+          "enum": [
+            "capability_evidence",
+            "signer_attestation",
+            "trust_store_manifest",
+            "r1_r8_review"
+          ]
+        },
+        "ref": {"type": "string", "pattern": "^evidence://[^\\s]+$", "maxLength": 500},
+        "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+      }
+    }
+  }
+}
