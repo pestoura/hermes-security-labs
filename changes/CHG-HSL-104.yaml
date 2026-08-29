@@ -17,7 +17,7 @@ risk: LOW
 versionEffect: NONE
 branch: chg-hsl-104/secret-zero-consumer-hardening
 issue: 403
-pr: null
+pr: 453
 validation:
   targeted: PASS
   regression: PASS
@@ -30,5 +30,5 @@ promotion:
 deferredTo: null
 timestamps:
   discoveredAt: '2026-08-29T20:13:45Z'
-  updatedAt: '2026-08-29T21:11:03Z'
+  updatedAt: '2026-08-29T21:14:21Z'
   closedAt: null
