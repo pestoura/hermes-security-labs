@@ -17,7 +17,7 @@ risk: LOW
 versionEffect: NONE
 branch: chg-hsl-103/reconciliation-observed-pass
 issue: 439
-pr: null
+pr: 452
 validation:
   targeted: PASS
   regression: PASS
@@ -30,5 +30,5 @@ promotion:
 deferredTo: null
 timestamps:
   discoveredAt: '2026-08-29T20:06:43Z'
-  updatedAt: '2026-08-29T20:13:45Z'
+  updatedAt: '2026-08-29T20:28:07Z'
   closedAt: null
