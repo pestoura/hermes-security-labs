@@ -136,6 +136,7 @@ def test_chg103_records_observation_without_granting_authority() -> None:
     assert record["issue"] == 439
     assert record["classification"] == "DOC_ONLY"
     assert record["validation"]["runtime"] == "PASS"
+    assert len(record["source"]["reference"]) <= 500
     assert record["promotion"]["commit"] is None
     text = OBSERVATION_CHANGE.read_text(encoding="utf-8")
     for marker in (
