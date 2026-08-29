@@ -14,6 +14,7 @@ DIR = ROOT / "deployment" / "shared-vault-hsl"
 SCHEMA = DIR / "secret-zero-reconciliation.schema.json"
 TEMPLATE = DIR / "secret-zero-reconciliation.yaml"
 CHANGE = ROOT / "changes" / "CHG-HSL-100.yaml"
+OBSERVATION_CHANGE = ROOT / "changes" / "CHG-HSL-103.yaml"
 
 
 def _schema() -> dict:
@@ -45,7 +46,7 @@ def test_chg100_artifacts_exist() -> None:
         assert path.exists(), f"missing CHG-HSL-100 artifact: {path.relative_to(ROOT)}"
 
 
-def test_committed_template_is_valid_not_run_and_non_authoritative() -> None:
+def test_committed_reconciliation_is_observed_pass_and_non_authoritative() -> None:
     schema = _schema()
     doc = _template()
     jsonschema.Draft7Validator(schema, format_checker=jsonschema.FormatChecker()).validate(doc)
@@ -54,14 +55,24 @@ def test_committed_template_is_valid_not_run_and_non_authoritative() -> None:
     assert doc["issue"] == 439
     assert doc["change_record"] == "CHG-HSL-100"
     assert doc["provider"] == "hermes-shared-vault"
-    assert doc["state"] == "NOT_RUN"
-    assert doc["observed_at"] is None
-    assert doc["operator_result"] is None
+    assert doc["state"] == "OBSERVED_PASS"
+    assert doc["observed_at"] == "2026-08-29T20:06:54Z"
+    assert doc["operator_result"] == {
+        "issuance_completed": True,
+        "wrapped_delivery_created": True,
+        "unwrap_consumed_once": True,
+        "login_succeeded": True,
+        "positive_capability_probe_passed": True,
+        "negative_capability_checks_passed": True,
+        "no_secret_material_persisted": True,
+    }
     cidr = ipaddress.ip_network(doc["consumer_cidr"], strict=True)
     assert cidr.version == 4 and cidr.prefixlen == 32
     assert doc["policy_metadata"]["credential_bound_cidr"] == doc["consumer_cidr"]
     assert doc["policy_metadata"]["token_bound_cidr"] == doc["consumer_cidr"]
     assert doc["authority"]["trust_binding_allowed"] is False
+    assert doc["authority"]["supplier_selection_effect"] == "NONE"
+    assert doc["authority"]["signer_decision_effect"] == "NONE"
     assert doc["authority"]["promotion_allowed"] is False
     assert doc["authority"]["execution_authority"] == "NONE"
     assert doc["authority"]["runner_effect"] is False
@@ -116,6 +127,27 @@ def test_sensitive_fields_are_rejected_by_closed_contract() -> None:
         target[forbidden_key] = "FORBIDDEN"
         with pytest.raises(jsonschema.ValidationError):
             validator.validate(candidate)
+
+
+def test_chg103_records_observation_without_granting_authority() -> None:
+    assert OBSERVATION_CHANGE.exists(), "missing CHG-HSL-103 observation record"
+    record = yaml.safe_load(OBSERVATION_CHANGE.read_text(encoding="utf-8"))
+    assert record["id"] == "CHG-HSL-103"
+    assert record["issue"] == 439
+    assert record["classification"] == "DOC_ONLY"
+    assert record["validation"]["runtime"] == "PASS"
+    assert len(record["source"]["reference"]) <= 500
+    assert record["promotion"]["commit"] is None
+    text = OBSERVATION_CHANGE.read_text(encoding="utf-8")
+    for marker in (
+        "OBSERVED_PASS",
+        "NO_DECISION",
+        "NO_SELECTION",
+        "trust_binding_allowed=false",
+        "promotion_allowed=false",
+        "execution_authority=NONE",
+    ):
+        assert marker in text
 
 
 def test_change_record_preserves_hitl_and_not_run_runtime() -> None:
