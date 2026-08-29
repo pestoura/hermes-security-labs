@@ -133,7 +133,7 @@ def _atomic_write(path: Path, payload: bytes) -> None:
         if path.read_bytes() != payload:
             raise DecisionEvidenceError(
                 "DECISION_EVIDENCE_IMMUTABLE_PATH_CONFLICT", path.name
-            )
+            ) from None
         return
     with os.fdopen(fd, "wb", closefd=True) as handle:
         handle.write(payload)
